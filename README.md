@@ -12,7 +12,7 @@ With Node.js 22 or later, run `npm ci` and `npm start`. Open the localhost URL i
 
 For offline use, run `npm run build` and open `dist/character-view.html` in a WebGL 2 browser. **Export AI request** and **Load proposal** let an external agent perform the same exchange through JSON. The separate `dist/play-model.html` player opens exported GLBs and measures their animation in a clean Three.js scene.
 
-Three game-ready models are included. The [glassgrass eel](examples/glassgrass-eel.glb) has an articulated axial spine with swimming, slithering and coiling clips. Open the player and choose the [wet-weather biologist GLB](examples/field-wardrobe.glb) or the [reef cartographer GLB](examples/reef-cartographer.glb). The [biologist's editable wardrobe](examples/field-wardrobe.form.json) contains all three saved outfits.
+Four example GLBs are included. A [tidal surveyor](examples/tide-surveyor.glb) keeps the researcher’s face and vest through a change from legs to an animated serpent body. The [glassgrass eel](examples/glassgrass-eel.glb) has an articulated axial spine with swimming, slithering and coiling clips. Open the player and choose the [wet-weather biologist GLB](examples/field-wardrobe.glb) or the [reef cartographer GLB](examples/reef-cartographer.glb). The [biologist's editable wardrobe](examples/field-wardrobe.form.json) contains all three saved outfits.
 
 ## Make a character
 
