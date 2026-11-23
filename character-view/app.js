@@ -54,6 +54,7 @@ import { repeatOnSpine } from "./scutes.js";
 import { outfitRoles } from "./wardrobe.js";
 import { faceHandles } from "./face-handles.js";
 import { frontEditor } from "./front-editor.js";
+import { headFrame } from "./front-fit.js";
 import { profileEditor } from "./profile-editor.js";
 import { isFace } from "./facial-sculpt.js";
 import { bindTraceEditor } from "./trace-editor.js";
@@ -941,6 +942,80 @@ function bindControls() {
     save: (pass) =>
       editPart((p) => ({ ...p, frontFits: [...(p.frontFits ?? []), pass] })),
   });
+  function mountAccessories(rigid) {
+    const selected = new Set(
+      Array.from($("#rigid-fit-parts").selectedOptions, (o) => o.value),
+    );
+    if (!selected.size) return status("Select the pieces to fit together.");
+    const face = selectedFace(figure, target),
+      pivot = findPart(figure, $("#rigid-fit-pivot").value);
+    if (!face || !pivot) return;
+    const frame = headFrame(face),
+      anchor = face
+        .worldToLocal(pivot.getWorldPosition(new T.Vector3()))
+        .sub(frame.center)
+        .multiply(frame.factor)
+        .toArray();
+    const base = nudge(form, target, amounts);
+    commit(
+      {
+        ...base,
+        parts: base.parts.map((p) => {
+          if (!selected.has(p.id)) return p;
+          const { rigidFaceAnchor, faceClearance, ...rest } = p;
+          return rigid ? { ...rest, rigidFaceAnchor: anchor } : rest;
+        }),
+      },
+      rigid
+        ? "Fitted the selected pieces as one rigid accessory."
+        : "Released the rigid fit.",
+    );
+  }
+  $("#rigid-fit-apply").onclick = () => mountAccessories(true);
+  $("#rigid-fit-release").onclick = () => mountAccessories(false);
+  $("#rigid-clear").onclick = () => {
+    const ids = new Set(
+      Array.from($("#rigid-fit-parts").selectedOptions, (o) => o.value),
+    );
+    if (
+      !ids.size ||
+      form.parts.some((p) => ids.has(p.id) && !p.rigidFaceAnchor)
+    )
+      return status("First fit these pieces together as a rigid accessory.");
+    const clearance =
+      T.MathUtils.clamp(Number($("#rigid-clear-mm").value), 1, 25) / 1000;
+    const base = nudge(form, target, amounts);
+    commit(
+      {
+        ...base,
+        parts: base.parts.map((p) =>
+          ids.has(p.id) ? { ...p, faceClearance: clearance } : p,
+        ),
+      },
+      "Cleared the selected front pieces. The other supports follow at the front.",
+    );
+  };
+  $("#fit-last-mirror").onchange = () =>
+    editPart((p) => ({
+      ...p,
+      frontFits: p.frontFits.map((fit, i) =>
+        i === p.frontFits.length - 1
+          ? {
+              ...fit,
+              view: { ...fit.view, symmetric: $("#fit-last-mirror").checked },
+            }
+          : fit,
+      ),
+    }));
+  $("#fit-last").onchange = () =>
+    editPart((p) => ({
+      ...p,
+      frontFits: p.frontFits.map((fit, i) =>
+        i === p.frontFits.length - 1
+          ? { ...fit, amount: Number($("#fit-last").value) / 100 }
+          : fit,
+      ),
+    }));
   $("#front-remove").onclick = () =>
     editPart((p) => {
       const { frontFits, ...rest } = p;
@@ -1931,8 +2006,31 @@ function update() {
       (part?.anatomy === "face" && part.paint?.portrait)
     );
   $("#front-tools").hidden = $("#eye-tools").hidden;
+  const attachments = !$("#front-tools").hidden
+    ? form.parts.filter((p) => p.parent === part?.id)
+    : [];
+  $("#rigid-fit-tools").hidden = !attachments.length;
+  const partList = $("#rigid-fit-parts");
+  if (
+    attachments.length &&
+    (partList.options.length !== attachments.length ||
+      attachments.some((p, i) => partList.options[i]?.value !== p.id))
+  ) {
+    partList.replaceChildren(...attachments.map((p) => new Option(p.id, p.id)));
+    $("#rigid-fit-pivot").replaceChildren(
+      ...attachments.map((p) => new Option(p.id, p.id)),
+    );
+  }
   $("#front-open").disabled = (part?.frontFits?.length ?? 0) >= 6;
-  $("#front-remove").hidden = !part?.frontFits?.length;
+  $("#front-remove").hidden = $("#fit-last-field").hidden =
+    !part?.frontFits?.length;
+  const latestFit = part?.frontFits?.at(-1);
+  $("#fit-last-mirror-label").hidden = latestFit?.view?.mode !== "depth";
+  $("#fit-last-mirror").checked = !!latestFit?.view?.symmetric;
+  if (part?.frontFits?.length) {
+    $("#fit-last").value = Math.round(100 * part.frontFits.at(-1).amount);
+    $("#fit-last-value").textContent = $("#fit-last").value + "%";
+  }
   $("#profile-tools").hidden = $("#eye-tools").hidden;
   $("#profile-settings").hidden = !part?.profileFit;
   if (part?.profileFit)

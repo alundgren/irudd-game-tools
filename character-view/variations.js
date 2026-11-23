@@ -170,6 +170,8 @@ const allowedPartKeys = new Set([
   "hideSourceHair",
   "markings",
   "headLayer",
+  "rigidFaceAnchor",
+  "faceClearance",
   "visibleIn",
   "outfitRole",
   "pulls",

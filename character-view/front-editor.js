@@ -1,5 +1,5 @@
 import * as T from "three";
-import { headFrame, registerFrontPairs } from "./front-fit.js";
+import { headFrame, registerFrontPairs, portraitAxes } from "./front-fit.js";
 
 // Keep the photograph local. The recipe records the artist's selected surface
 // positions and the corresponding offsets at the scale of the current head.
@@ -26,7 +26,23 @@ export function frontEditor({
     half = 1,
     pairs = [],
     pending = null,
-    token = 0;
+    token = 0,
+    scene = null;
+  const yaw = byId("fit-yaw"),
+    pitch = byId("fit-pitch"),
+    plane = byId("fit-plane");
+  const view = () => ({
+    yaw: Number(yaw.value),
+    pitch: Number(pitch.value),
+    mode: plane.value,
+    ...(plane.value === "depth" && byId("fit-mirror").checked
+      ? { symmetric: true }
+      : {}),
+  });
+  const selectedView = () =>
+    Number(yaw.value) || Number(pitch.value) || plane.value === "depth"
+      ? view()
+      : undefined;
   function draw(note) {
     function panel(canvas, im, pts) {
       const ctx = canvas.getContext("2d");
@@ -61,7 +77,13 @@ export function frontEditor({
       photo,
       pairs.map((p) => p.uv),
     );
-    if (!photo) note ??= "Choose a cropped, front-facing portrait.";
+    yaw.disabled =
+      pitch.disabled =
+      plane.disabled =
+        !!pending || pairs.length > 0;
+    byId("fit-mirror-label").hidden = plane.value !== "depth";
+    if (!photo)
+      note ??= "Choose a cropped portrait and match the camera angle.";
     else if (pending) note ??= "Now mark the same point on the photograph.";
     else if (pairs.length < 2)
       note ??=
@@ -85,12 +107,26 @@ export function frontEditor({
   }
   faceCanvas.onclick = (e) => {
     if (!photo || !probe) return;
+    if (
+      plane.value === "depth" &&
+      Math.hypot(
+        camera.matrixWorld.elements[8],
+        camera.matrixWorld.elements[9],
+      ) < 0.34
+    )
+      return draw(
+        "Turn or elevate the camera by at least 20 degrees to measure depth.",
+      );
     if (pairs.length >= 32) return draw("This pass already has 32 pairs.");
     const [x, y] = xy(faceCanvas, e);
     ray.setFromCamera(new T.Vector2(2 * x - 1, 1 - 2 * y), camera);
     const hit = ray.intersectObject(probe, false)[0];
     if (!hit) return draw("Choose a visible point on the face.");
-    pending = hit.point.toArray();
+    const { right, up, out } = portraitAxes(
+      Number(yaw.value),
+      Number(pitch.value),
+    );
+    pending = [hit.point.dot(right), hit.point.dot(up), hit.point.dot(out)];
     draw();
   };
   photoCanvas.onclick = (e) => {
@@ -104,7 +140,7 @@ export function frontEditor({
     const next = [...pairs, p];
     if (next.length >= 3)
       try {
-        registerFrontPairs(next);
+        registerFrontPairs(next, 0.3, selectedView());
       } catch (error) {
         return draw(error.message);
       }
@@ -127,7 +163,17 @@ export function frontEditor({
   byId("front-close").onclick = () => dialog.close();
   apply.onclick = () => {
     try {
-      save(registerFrontPairs(pairs, Number(byId("front-reach").value) / 100));
+      const pass = registerFrontPairs(
+        pairs,
+        Number(byId("front-reach").value) / 100,
+        selectedView(),
+      );
+      pass.amount = T.MathUtils.clamp(
+        Number(byId("fit-strength").value) / 100,
+        0,
+        1,
+      );
+      save(pass);
       dialog.close();
     } catch (e) {
       draw(e.message);
@@ -161,26 +207,14 @@ export function frontEditor({
     photo = null;
     probe = null;
     camera = null;
+    scene = null;
     pairs = [];
     pending = null;
     picker.value = "";
     photoCanvas.width = photoCanvas.height = 1;
   });
-  return () => {
-    const face = getFace();
-    if (!face) return status("Select a face first.");
-    const f = headFrame(face);
-    half = f.half;
-    probe = new T.Mesh(face.geometry, face.material);
-    probe.scale.copy(f.factor);
-    probe.position.copy(f.center).multiply(f.factor).negate();
-    const scene = new T.Scene();
-    scene.background = new T.Color("#dce3df");
-    scene.add(probe);
-    scene.add(new T.HemisphereLight(0xfff7e9, 0x888d94, 1.8));
-    const sun = new T.DirectionalLight(0xfff5df, 2.2);
-    sun.position.set(-2, 2, 4);
-    scene.add(sun);
+  function captureModel() {
+    if (!scene) return;
     const renderer = getRenderer(),
       c = renderer.domElement,
       aspect = c.width / c.height,
@@ -193,7 +227,9 @@ export function frontEditor({
       0.01,
       16,
     );
-    capture.position.z = 8;
+    const { out } = portraitAxes(Number(yaw.value), Number(pitch.value));
+    capture.position.copy(out).multiplyScalar(8);
+    capture.lookAt(0, 0, 0);
     capture.updateMatrixWorld();
     try {
       renderer.render(scene, capture);
@@ -215,8 +251,36 @@ export function frontEditor({
       restoreView();
     }
     camera = new T.OrthographicCamera(-half, half, half, -half, 0.01, 16);
-    camera.position.z = 8;
+    camera.position.copy(capture.position);
+    camera.quaternion.copy(capture.quaternion);
     camera.updateMatrixWorld();
+  }
+  yaw.onchange = pitch.onchange = () => {
+    yaw.value = String(T.MathUtils.clamp(Number(yaw.value) || 0, -180, 180));
+    pitch.value = String(T.MathUtils.clamp(Number(pitch.value) || 0, -80, 80));
+    captureModel();
+    draw();
+  };
+  plane.onchange = () => draw();
+  return () => {
+    const face = getFace();
+    if (!face) return status("Select a face first.");
+    const f = headFrame(face);
+    half = f.half;
+    probe = new T.Mesh(face.geometry, face.material);
+    probe.scale.copy(f.factor);
+    probe.position.copy(f.center).multiply(f.factor).negate();
+    scene = new T.Scene();
+    scene.background = new T.Color("#dce3df");
+    scene.add(probe);
+    scene.add(new T.HemisphereLight(0xfff7e9, 0x888d94, 1.8));
+    const sun = new T.DirectionalLight(0xfff5df, 2.2);
+    sun.position.set(-2, 2, 4);
+    scene.add(sun);
+    yaw.value = pitch.value = "0";
+    plane.value = "plane";
+    byId("fit-mirror").checked = false;
+    captureModel();
     dialog.showModal();
     draw();
   };

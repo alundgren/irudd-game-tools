@@ -1,0 +1,2719 @@
+{
+  "sourceV1": "https://www.reddit.com/r/fashiondogma/comments/1bbsfpn/so_anyway_i_started_casting/",
+  "sourceV2": "https://www.reddit.com/r/fashiondogma/comments/1bj09z1/frank_reynolds_v2/",
+  "photoCrops": {
+    "nearFrontal": {
+      "index": 0,
+      "leftTopRightBottom": [
+        218,
+        35,
+        497,
+        308
+      ]
+    },
+    "lowOblique": {
+      "index": 1,
+      "leftTopRightBottom": [
+        144,
+        57,
+        286,
+        198
+      ]
+    }
+  },
+  "sampling": "Artist estimates camera yaw -24 degrees and elevation -15 degrees. Orthographic ray through each annotated baseline face location, follow material UV into each reduced export; compare in reference plane at model scale. Photograph pixel scale and actual camera calibration are unknown. Both crops use a 400-unit grid in each axis, with original photo aspect ratio restored for registration. Align at the two pupils and exclude them from each score. The separate near-frontal image was excluded from depth fitting.",
+  "points": {
+    "yaw": -24,
+    "pitch": -15,
+    "radius": 16,
+    "pairs": [
+      [
+        "near pupil",
+        [
+          184,
+          164
+        ],
+        [
+          233,
+          149
+        ]
+      ],
+      [
+        "far pupil",
+        [
+          277,
+          176
+        ],
+        [
+          304,
+          151
+        ]
+      ],
+      [
+        "nose tip",
+        [
+          285,
+          203
+        ],
+        [
+          282,
+          189
+        ]
+      ],
+      [
+        "near alar edge",
+        [
+          213,
+          209
+        ],
+        [
+          245,
+          204
+        ]
+      ],
+      [
+        "near nostril",
+        [
+          239,
+          218
+        ],
+        [
+          261,
+          205
+        ]
+      ],
+      [
+        "lower columella",
+        [
+          268,
+          222
+        ],
+        [
+          280,
+          208
+        ]
+      ],
+      [
+        "far alar edge",
+        [
+          280,
+          215
+        ],
+        [
+          299,
+          205
+        ]
+      ],
+      [
+        "bridge",
+        [
+          256,
+          183
+        ],
+        [
+          269,
+          173
+        ]
+      ]
+    ],
+    "held": [
+      [
+        "tip brow slope",
+        [
+          273,
+          194
+        ],
+        [
+          277,
+          182
+        ]
+      ],
+      [
+        "outer near wing",
+        [
+          206,
+          218
+        ],
+        [
+          242,
+          211
+        ]
+      ],
+      [
+        "nasal ridge",
+        [
+          248,
+          188
+        ],
+        [
+          266,
+          180
+        ]
+      ],
+      [
+        "upper lip",
+        [
+          249,
+          254
+        ],
+        [
+          268,
+          231
+        ]
+      ]
+    ],
+    "front": [
+      [
+        "near pupil",
+        [
+          154,
+          182
+        ],
+        [
+          181,
+          172
+        ]
+      ],
+      [
+        "far pupil",
+        [
+          260,
+          182
+        ],
+        [
+          261,
+          172
+        ]
+      ],
+      [
+        "tip",
+        [
+          201,
+          245
+        ],
+        [
+          220,
+          218
+        ]
+      ],
+      [
+        "near wing",
+        [
+          165,
+          253
+        ],
+        [
+          191,
+          229
+        ]
+      ],
+      [
+        "far wing",
+        [
+          241,
+          253
+        ],
+        [
+          245,
+          229
+        ]
+      ],
+      [
+        "near mouth corner",
+        [
+          159,
+          295
+        ],
+        [
+          174,
+          268
+        ]
+      ],
+      [
+        "far mouth corner",
+        [
+          254,
+          295
+        ],
+        [
+          263,
+          270
+        ]
+      ],
+      [
+        "lower lip",
+        [
+          205,
+          314
+        ],
+        [
+          219,
+          279
+        ]
+      ],
+      [
+        "chin",
+        [
+          201,
+          375
+        ],
+        [
+          214,
+          325
+        ]
+      ]
+    ]
+  },
+  "fittedHeadHeightMm": 296.56,
+  "scoreGroups": {
+    "65": {
+      "steering": [
+        {
+          "point": "nose tip",
+          "before": 38.41999816894531,
+          "after": 14.600000381469727,
+          "deltaXYZmm": [
+            0.0,
+            -0.0,
+            -51.15
+          ]
+        },
+        {
+          "point": "near alar edge",
+          "before": 29.010000228881836,
+          "after": 14.819999694824219,
+          "deltaXYZmm": [
+            -0.0,
+            -0.0,
+            -37.26
+          ]
+        },
+        {
+          "point": "near nostril",
+          "before": 28.420000076293945,
+          "after": 11.25,
+          "deltaXYZmm": [
+            0.0,
+            -0.0,
+            -38.52
+          ]
+        },
+        {
+          "point": "lower columella",
+          "before": 32.529998779296875,
+          "after": 14.100000381469727,
+          "deltaXYZmm": [
+            0.0,
+            -0.0,
+            -40.57
+          ]
+        },
+        {
+          "point": "far alar edge",
+          "before": 29.059999465942383,
+          "after": 17.049999237060547,
+          "deltaXYZmm": [
+            -0.0,
+            0.0,
+            -36.04
+          ]
+        },
+        {
+          "point": "bridge",
+          "before": 27.1299991607666,
+          "after": 9.600000381469727,
+          "deltaXYZmm": [
+            0.0,
+            -0.0,
+            -37.29
+          ]
+        }
+      ],
+      "obliqueAdditional": [
+        {
+          "point": "tip brow slope",
+          "before": 33.40999984741211,
+          "after": 12.890000343322754,
+          "deltaXYZmm": [
+            0.0,
+            0.0,
+            -43.69
+          ]
+        },
+        {
+          "point": "outer near wing",
+          "before": 27.829999923706055,
+          "after": 14.869999885559082,
+          "deltaXYZmm": [
+            -0.02,
+            0.06,
+            -35.97
+          ]
+        },
+        {
+          "point": "nasal ridge",
+          "before": 26.829999923706055,
+          "after": 10.220000267028809,
+          "deltaXYZmm": [
+            -0.02,
+            0.01,
+            -36.79
+          ]
+        },
+        {
+          "point": "upper lip",
+          "before": 30.549999237060547,
+          "after": 14.680000305175781,
+          "deltaXYZmm": [
+            -0.0,
+            -0.0,
+            -34.09
+          ]
+        }
+      ],
+      "frontalHoldout": [
+        {
+          "point": "tip",
+          "before": 4.78000020980835,
+          "after": 4.78000020980835,
+          "deltaXYZmm": [
+            -0.0,
+            0.0,
+            -46.9
+          ]
+        },
+        {
+          "point": "near wing",
+          "before": 3.049999952316284,
+          "after": 3.049999952316284,
+          "deltaXYZmm": [
+            0.0,
+            -0.0,
+            -35.14
+          ]
+        },
+        {
+          "point": "far wing",
+          "before": 3.0199999809265137,
+          "after": 3.0199999809265137,
+          "deltaXYZmm": [
+            0.0,
+            -0.0,
+            -28.02
+          ]
+        },
+        {
+          "point": "near mouth corner",
+          "before": 15.199999809265137,
+          "after": 15.199999809265137,
+          "deltaXYZmm": [
+            0.0,
+            0.0,
+            -18.03
+          ]
+        },
+        {
+          "point": "far mouth corner",
+          "before": 13.710000038146973,
+          "after": 14.149999618530273,
+          "deltaXYZmm": [
+            2.18,
+            1.57,
+            -12.14
+          ]
+        },
+        {
+          "point": "lower lip",
+          "before": 5.610000133514404,
+          "after": 5.610000133514404,
+          "deltaXYZmm": [
+            0.01,
+            0.0,
+            -16.85
+          ]
+        },
+        {
+          "point": "chin",
+          "before": 5.21999979019165,
+          "after": 5.21999979019165,
+          "deltaXYZmm": [
+            -0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "anchors": [
+        {
+          "point": "near pupil",
+          "before": 0.0,
+          "after": 0.07000000029802322,
+          "deltaXYZmm": [
+            -0.0,
+            0.0,
+            -0.14
+          ]
+        },
+        {
+          "point": "far pupil",
+          "before": 0.0,
+          "after": 0.019999999552965164,
+          "deltaXYZmm": [
+            -0.0,
+            -0.0,
+            -0.05
+          ]
+        }
+      ]
+    },
+    "100": {
+      "steering": [
+        {
+          "point": "nose tip",
+          "before": 38.41999816894531,
+          "after": 3.5999999046325684,
+          "deltaXYZmm": [
+            0.0,
+            -0.0,
+            -78.69
+          ]
+        },
+        {
+          "point": "near alar edge",
+          "before": 29.010000228881836,
+          "after": 11.800000190734863,
+          "deltaXYZmm": [
+            -0.0,
+            -0.0,
+            -57.33
+          ]
+        },
+        {
+          "point": "near nostril",
+          "before": 28.420000076293945,
+          "after": 5.659999847412109,
+          "deltaXYZmm": [
+            0.0,
+            -0.0,
+            -59.27
+          ]
+        },
+        {
+          "point": "lower columella",
+          "before": 32.529998779296875,
+          "after": 6.159999847412109,
+          "deltaXYZmm": [
+            0.0,
+            -0.0,
+            -62.41
+          ]
+        },
+        {
+          "point": "far alar edge",
+          "before": 29.059999465942383,
+          "after": 15.1899995803833,
+          "deltaXYZmm": [
+            -0.0,
+            0.0,
+            -55.45
+          ]
+        },
+        {
+          "point": "bridge",
+          "before": 27.1299991607666,
+          "after": 0.6399999856948853,
+          "deltaXYZmm": [
+            0.0,
+            -0.0,
+            -57.36
+          ]
+        }
+      ],
+      "obliqueAdditional": [
+        {
+          "point": "tip brow slope",
+          "before": 33.40999984741211,
+          "after": 2.180000066757202,
+          "deltaXYZmm": [
+            0.0,
+            0.0,
+            -67.21
+          ]
+        },
+        {
+          "point": "outer near wing",
+          "before": 27.829999923706055,
+          "after": 12.550000190734863,
+          "deltaXYZmm": [
+            -0.0,
+            0.0,
+            -55.32
+          ]
+        },
+        {
+          "point": "nasal ridge",
+          "before": 26.829999923706055,
+          "after": 4.630000114440918,
+          "deltaXYZmm": [
+            -0.02,
+            0.01,
+            -56.53
+          ]
+        },
+        {
+          "point": "upper lip",
+          "before": 30.549999237060547,
+          "after": 6.489999771118164,
+          "deltaXYZmm": [
+            -0.0,
+            -0.0,
+            -52.44
+          ]
+        }
+      ],
+      "frontalHoldout": [
+        {
+          "point": "tip",
+          "before": 4.78000020980835,
+          "after": 4.78000020980835,
+          "deltaXYZmm": [
+            -0.0,
+            0.0,
+            -72.15
+          ]
+        },
+        {
+          "point": "near wing",
+          "before": 3.049999952316284,
+          "after": 3.049999952316284,
+          "deltaXYZmm": [
+            0.0,
+            -0.0,
+            -54.06
+          ]
+        },
+        {
+          "point": "far wing",
+          "before": 3.0199999809265137,
+          "after": 3.059999942779541,
+          "deltaXYZmm": [
+            -0.02,
+            0.06,
+            -43.13
+          ]
+        },
+        {
+          "point": "near mouth corner",
+          "before": 15.199999809265137,
+          "after": 15.199999809265137,
+          "deltaXYZmm": [
+            0.0,
+            0.0,
+            -27.74
+          ]
+        },
+        {
+          "point": "far mouth corner",
+          "before": 13.710000038146973,
+          "after": 14.149999618530273,
+          "deltaXYZmm": [
+            2.18,
+            1.57,
+            -18.4
+          ]
+        },
+        {
+          "point": "lower lip",
+          "before": 5.610000133514404,
+          "after": 5.610000133514404,
+          "deltaXYZmm": [
+            -0.0,
+            0.0,
+            -25.93
+          ]
+        },
+        {
+          "point": "chin",
+          "before": 5.21999979019165,
+          "after": 5.21999979019165,
+          "deltaXYZmm": [
+            -0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "anchors": [
+        {
+          "point": "near pupil",
+          "before": 0.0,
+          "after": 0.10000000149011612,
+          "deltaXYZmm": [
+            -0.0,
+            0.0,
+            -0.22
+          ]
+        },
+        {
+          "point": "far pupil",
+          "before": 0.0,
+          "after": 0.03999999910593033,
+          "deltaXYZmm": [
+            -0.0,
+            -0.0,
+            -0.07
+          ]
+        }
+      ]
+    },
+    "symmetric": {
+      "steering": [
+        {
+          "point": "nose tip",
+          "before": 38.41999816894531,
+          "after": 3.549999952316284,
+          "deltaXYZmm": [
+            -0.0,
+            -0.0,
+            -78.99
+          ]
+        },
+        {
+          "point": "near alar edge",
+          "before": 29.010000228881836,
+          "after": 11.729999542236328,
+          "deltaXYZmm": [
+            0.15,
+            0.03,
+            -56.49
+          ]
+        },
+        {
+          "point": "near nostril",
+          "before": 28.420000076293945,
+          "after": 5.659999847412109,
+          "deltaXYZmm": [
+            -0.0,
+            -0.0,
+            -58.8
+          ]
+        },
+        {
+          "point": "lower columella",
+          "before": 32.529998779296875,
+          "after": 6.090000152587891,
+          "deltaXYZmm": [
+            -0.0,
+            0.0,
+            -62.8
+          ]
+        },
+        {
+          "point": "far alar edge",
+          "before": 29.059999465942383,
+          "after": 15.260000228881836,
+          "deltaXYZmm": [
+            0.0,
+            -0.0,
+            -56.86
+          ]
+        },
+        {
+          "point": "bridge",
+          "before": 27.1299991607666,
+          "after": 0.6399999856948853,
+          "deltaXYZmm": [
+            -0.0,
+            -0.0,
+            -57.32
+          ]
+        }
+      ],
+      "obliqueAdditional": [
+        {
+          "point": "tip brow slope",
+          "before": 33.40999984741211,
+          "after": 1.9600000381469727,
+          "deltaXYZmm": [
+            -0.0,
+            0.0,
+            -67.82
+          ]
+        },
+        {
+          "point": "outer near wing",
+          "before": 27.829999923706055,
+          "after": 12.510000228881836,
+          "deltaXYZmm": [
+            -0.0,
+            -0.0,
+            -54.19
+          ]
+        },
+        {
+          "point": "nasal ridge",
+          "before": 26.829999923706055,
+          "after": 4.630000114440918,
+          "deltaXYZmm": [
+            -0.02,
+            0.01,
+            -56.56
+          ]
+        },
+        {
+          "point": "upper lip",
+          "before": 30.549999237060547,
+          "after": 6.360000133514404,
+          "deltaXYZmm": [
+            0.0,
+            0.0,
+            -52.76
+          ]
+        }
+      ],
+      "frontalHoldout": [
+        {
+          "point": "tip",
+          "before": 4.78000020980835,
+          "after": 4.78000020980835,
+          "deltaXYZmm": [
+            -0.0,
+            -0.0,
+            -74.69
+          ]
+        },
+        {
+          "point": "near wing",
+          "before": 3.049999952316284,
+          "after": 3.049999952316284,
+          "deltaXYZmm": [
+            -0.0,
+            -0.0,
+            -52.66
+          ]
+        },
+        {
+          "point": "far wing",
+          "before": 3.0199999809265137,
+          "after": 3.7200000286102295,
+          "deltaXYZmm": [
+            0.27,
+            0.66,
+            -52.71
+          ]
+        },
+        {
+          "point": "near mouth corner",
+          "before": 15.199999809265137,
+          "after": 15.199999809265137,
+          "deltaXYZmm": [
+            0.0,
+            -0.0,
+            -27.55
+          ]
+        },
+        {
+          "point": "far mouth corner",
+          "before": 13.710000038146973,
+          "after": 13.710000038146973,
+          "deltaXYZmm": [
+            0.0,
+            0.0,
+            -20.05
+          ]
+        },
+        {
+          "point": "lower lip",
+          "before": 5.610000133514404,
+          "after": 5.650000095367432,
+          "deltaXYZmm": [
+            0.08,
+            0.03,
+            -25.99
+          ]
+        },
+        {
+          "point": "chin",
+          "before": 5.21999979019165,
+          "after": 5.389999866485596,
+          "deltaXYZmm": [
+            0.04,
+            0.18,
+            0.0
+          ]
+        }
+      ],
+      "anchors": [
+        {
+          "point": "near pupil",
+          "before": 0.0,
+          "after": 0.14000000059604645,
+          "deltaXYZmm": [
+            0.0,
+            -0.0,
+            -0.29
+          ]
+        },
+        {
+          "point": "far pupil",
+          "before": 0.0,
+          "after": 0.7400000095367432,
+          "deltaXYZmm": [
+            0.61,
+            0.62,
+            -0.07
+          ]
+        }
+      ]
+    }
+  },
+  "hardwareStages": {
+    "before": {
+      "-1": {
+        "rimFaceCrossings": 106,
+        "rimToBridge": 20,
+        "rimToTemple": 86,
+        "armToHead": 107
+      },
+      "1": {
+        "rimFaceCrossings": 101,
+        "rimToBridge": 28,
+        "rimToTemple": 55,
+        "armToHead": 90
+      },
+      "bridgeFaceCrossings": 63,
+      "frameWidthMm": 180.44,
+      "widthOverFace": 0.957,
+      "innerGapMm": -5.23,
+      "frontmostHeadMinusEyewearBandDepthMm": 62.31
+    },
+    "AI first": {
+      "-1": {
+        "rimFaceCrossings": 95,
+        "rimToBridge": 54,
+        "rimToTemple": 81,
+        "armToHead": 104
+      },
+      "1": {
+        "rimFaceCrossings": 109,
+        "rimToBridge": 51,
+        "rimToTemple": 68,
+        "armToHead": 92
+      },
+      "bridgeFaceCrossings": 49,
+      "frameWidthMm": 190.42,
+      "widthOverFace": 0.936,
+      "innerGapMm": -15.26,
+      "frontmostHeadMinusEyewearBandDepthMm": 49.67
+    },
+    "rigid unseated": {
+      "-1": {
+        "rimFaceCrossings": 162,
+        "rimToBridge": 81,
+        "rimToTemple": 95,
+        "armToHead": 2
+      },
+      "1": {
+        "rimFaceCrossings": 103,
+        "rimToBridge": 80,
+        "rimToTemple": 81,
+        "armToHead": 0
+      },
+      "bridgeFaceCrossings": 13,
+      "frameWidthMm": 225.06,
+      "widthOverFace": 1.169,
+      "innerGapMm": -16.74,
+      "frontmostHeadMinusEyewearBandDepthMm": 42.45
+    },
+    "rigid seated": {
+      "-1": {
+        "rimFaceCrossings": 0,
+        "rimToBridge": 83,
+        "rimToTemple": 97,
+        "armToHead": 0
+      },
+      "1": {
+        "rimFaceCrossings": 0,
+        "rimToBridge": 84,
+        "rimToTemple": 87,
+        "armToHead": 0
+      },
+      "bridgeFaceCrossings": 0,
+      "frameWidthMm": 225.06,
+      "widthOverFace": 1.169,
+      "innerGapMm": -16.74,
+      "frontmostHeadMinusEyewearBandDepthMm": 42.45
+    },
+    "AI second": {
+      "-1": {
+        "rimFaceCrossings": 0,
+        "rimToBridge": 40,
+        "rimToTemple": 50,
+        "armToHead": 0
+      },
+      "1": {
+        "rimFaceCrossings": 0,
+        "rimToBridge": 44,
+        "rimToTemple": 47,
+        "armToHead": 0
+      },
+      "bridgeFaceCrossings": 0,
+      "frameWidthMm": 151.72,
+      "widthOverFace": 0.788,
+      "innerGapMm": 11.11,
+      "frontmostHeadMinusEyewearBandDepthMm": 42.45
+    },
+    "Final seated and mirrored": {
+      "-1": {
+        "rimFaceCrossings": 0,
+        "rimToBridge": 37,
+        "rimToTemple": 50,
+        "armToHead": 44
+      },
+      "1": {
+        "rimFaceCrossings": 0,
+        "rimToBridge": 44,
+        "rimToTemple": 49,
+        "armToHead": 34
+      },
+      "bridgeFaceCrossings": 0,
+      "frameWidthMm": 151.72,
+      "widthOverFace": 0.767,
+      "innerGapMm": 11.11,
+      "frontmostHeadMinusEyewearBandDepthMm": 47.9
+    }
+  },
+  "agentExchanges": [
+    {
+      "instruction": "Fit the dockworker's glasses and remaining side hair to the supplied reference portrait. Edit only the spectacle frames, their bridge and temples, and the two grey horseshoe hair parts (additional head-attached hair strands are allowed). Leave his fitted head, eyes, body, pose and clothes exactly as they are. The main identity cue is genuinely thick near-black squared acetate rims, a strong brow and broad rounded rectangular openings. Keep two clear eye openings, a curved bridge and arms seated over the ears. Change the two smooth grey side lumps into dark brown-grey thinning, textured hair going behind the ears and spreading down to the nape, with the top still bald. Use the existing spectacle positions as a baseline; keep the eyes visible at front and three-quarter. The surface geometry should cast the rims' shadows. No imported pictures or decals.",
+      "draw": {
+        "strength": "radical",
+        "seed": 47595737,
+        "cues": [
+          "Transform a limb into another functional structure",
+          "Unequal limbs that balance the body"
+        ],
+        "magnitude": 49,
+        "pins": [
+          null,
+          null
+        ]
+      },
+      "viewCount": 2,
+      "serverStatus": 200,
+      "summary": "Thick near-black rectangular spectacles with curved bridge and ear hooks, plus thinning brown-grey side hair swept behind the ears into a textured nape.",
+      "operations": [
+        {
+          "op": "setPart",
+          "id": "round spectacle frame -1",
+          "set": {
+            "color": "#171615",
+            "knots": [
+              [
+                0,
+                0,
+                0,
+                0.0065,
+                0.005
+              ],
+              [
+                -0.002,
+                0.016,
+                -0.0003,
+                0.0075,
+                0.0055
+              ],
+              [
+                -0.012,
+                0.025,
+                -0.0018,
+                0.0085,
+                0.0055
+              ],
+              [
+                -0.034,
+                0.026,
+                -0.005,
+                0.0085,
+                0.0055
+              ],
+              [
+                -0.061,
+                0.025,
+                -0.009,
+                0.0085,
+                0.0055
+              ],
+              [
+                -0.076,
+                0.021,
+                -0.0111,
+                0.008,
+                0.0055
+              ],
+              [
+                -0.083,
+                0.012,
+                -0.012,
+                0.007,
+                0.005
+              ],
+              [
+                -0.083,
+                -0.012,
+                -0.012,
+                0.0065,
+                0.005
+              ],
+              [
+                -0.076,
+                -0.023,
+                -0.0111,
+                0.0065,
+                0.005
+              ],
+              [
+                -0.06,
+                -0.027,
+                -0.0088,
+                0.006,
+                0.005
+              ],
+              [
+                -0.027,
+                -0.027,
+                -0.004,
+                0.006,
+                0.005
+              ],
+              [
+                -0.01,
+                -0.023,
+                -0.0015,
+                0.006,
+                0.005
+              ],
+              [
+                -0.001,
+                -0.013,
+                -0.0002,
+                0.0065,
+                0.005
+              ],
+              [
+                0,
+                0,
+                0,
+                0.0065,
+                0.005
+              ]
+            ]
+          }
+        },
+        {
+          "op": "setPart",
+          "id": "round spectacle frame 1",
+          "set": {
+            "color": "#171615",
+            "knots": [
+              [
+                0,
+                0,
+                0,
+                0.0065,
+                0.005
+              ],
+              [
+                -0.002,
+                0.016,
+                0.0003,
+                0.0075,
+                0.0055
+              ],
+              [
+                -0.012,
+                0.025,
+                0.0018,
+                0.0085,
+                0.0055
+              ],
+              [
+                -0.034,
+                0.026,
+                0.005,
+                0.0085,
+                0.0055
+              ],
+              [
+                -0.061,
+                0.025,
+                0.009,
+                0.0085,
+                0.0055
+              ],
+              [
+                -0.076,
+                0.021,
+                0.0111,
+                0.008,
+                0.0055
+              ],
+              [
+                -0.083,
+                0.012,
+                0.012,
+                0.007,
+                0.005
+              ],
+              [
+                -0.083,
+                -0.012,
+                0.012,
+                0.0065,
+                0.005
+              ],
+              [
+                -0.076,
+                -0.023,
+                0.0111,
+                0.0065,
+                0.005
+              ],
+              [
+                -0.06,
+                -0.027,
+                0.0088,
+                0.006,
+                0.005
+              ],
+              [
+                -0.027,
+                -0.027,
+                0.004,
+                0.006,
+                0.005
+              ],
+              [
+                -0.01,
+                -0.023,
+                0.0015,
+                0.006,
+                0.005
+              ],
+              [
+                -0.001,
+                -0.013,
+                0.0002,
+                0.0065,
+                0.005
+              ],
+              [
+                0,
+                0,
+                0,
+                0.0065,
+                0.005
+              ]
+            ]
+          }
+        },
+        {
+          "op": "setPart",
+          "id": "spectacle bridge",
+          "set": {
+            "shape": "sweep",
+            "size": [
+              1,
+              1,
+              1
+            ],
+            "color": "#171615",
+            "knots": [
+              [
+                -0.009,
+                -0.003,
+                -0.006,
+                0.005,
+                0.005
+              ],
+              [
+                -0.006,
+                0.003,
+                -0.002,
+                0.0055,
+                0.005
+              ],
+              [
+                0,
+                0.006,
+                0,
+                0.0055,
+                0.005
+              ],
+              [
+                0.006,
+                0.003,
+                -0.002,
+                0.0055,
+                0.005
+              ],
+              [
+                0.009,
+                -0.003,
+                -0.006,
+                0.005,
+                0.005
+              ]
+            ]
+          }
+        },
+        {
+          "op": "setPart",
+          "id": "spectacle temple -1",
+          "set": {
+            "color": "#1b1917",
+            "knots": [
+              [
+                0,
+                0,
+                0,
+                0.0065,
+                0.005
+              ],
+              [
+                -0.008,
+                0.002,
+                -0.018,
+                0.0065,
+                0.005
+              ],
+              [
+                -0.016,
+                0.004,
+                -0.058,
+                0.006,
+                0.0045
+              ],
+              [
+                -0.018,
+                0.003,
+                -0.087,
+                0.0055,
+                0.0045
+              ],
+              [
+                -0.016,
+                -0.003,
+                -0.105,
+                0.005,
+                0.0045
+              ],
+              [
+                -0.01,
+                -0.02,
+                -0.116,
+                0.0045,
+                0.004
+              ]
+            ]
+          }
+        },
+        {
+          "op": "setPart",
+          "id": "spectacle temple 1",
+          "set": {
+            "color": "#1b1917",
+            "knots": [
+              [
+                0,
+                0,
+                0,
+                0.0065,
+                0.005
+              ],
+              [
+                0.008,
+                0.002,
+                -0.018,
+                0.0065,
+                0.005
+              ],
+              [
+                0.016,
+                0.004,
+                -0.058,
+                0.006,
+                0.0045
+              ],
+              [
+                0.018,
+                0.003,
+                -0.087,
+                0.0055,
+                0.0045
+              ],
+              [
+                0.016,
+                -0.003,
+                -0.105,
+                0.005,
+                0.0045
+              ],
+              [
+                0.01,
+                -0.02,
+                -0.116,
+                0.0045,
+                0.004
+              ]
+            ]
+          }
+        },
+        {
+          "op": "setPart",
+          "id": "grey horseshoe -1",
+          "set": {
+            "color": "#403b35",
+            "knots": [
+              [
+                0,
+                -0.012,
+                -0.002,
+                0.007,
+                0.009
+              ],
+              [
+                -0.014,
+                -0.033,
+                -0.003,
+                0.011,
+                0.013
+              ],
+              [
+                -0.022,
+                -0.058,
+                -0.005,
+                0.014,
+                0.017
+              ],
+              [
+                -0.024,
+                -0.081,
+                -0.012,
+                0.013,
+                0.019
+              ],
+              [
+                -0.021,
+                -0.104,
+                -0.023,
+                0.014,
+                0.02
+              ],
+              [
+                -0.017,
+                -0.128,
+                -0.035,
+                0.013,
+                0.019
+              ],
+              [
+                -0.006,
+                -0.148,
+                -0.046,
+                0.014,
+                0.016
+              ],
+              [
+                0.014,
+                -0.16,
+                -0.055,
+                0.014,
+                0.012
+              ],
+              [
+                0.04,
+                -0.164,
+                -0.06,
+                0.013,
+                0.009
+              ],
+              [
+                0.066,
+                -0.165,
+                -0.061,
+                0.01,
+                0.007
+              ]
+            ]
+          }
+        },
+        {
+          "op": "setPart",
+          "id": "grey horseshoe 1",
+          "set": {
+            "color": "#403b35",
+            "knots": [
+              [
+                0,
+                -0.014,
+                -0.002,
+                0.007,
+                0.009
+              ],
+              [
+                0.013,
+                -0.035,
+                -0.003,
+                0.011,
+                0.013
+              ],
+              [
+                0.021,
+                -0.06,
+                -0.006,
+                0.014,
+                0.017
+              ],
+              [
+                0.024,
+                -0.084,
+                -0.013,
+                0.013,
+                0.019
+              ],
+              [
+                0.021,
+                -0.107,
+                -0.024,
+                0.014,
+                0.02
+              ],
+              [
+                0.016,
+                -0.13,
+                -0.036,
+                0.013,
+                0.019
+              ],
+              [
+                0.005,
+                -0.149,
+                -0.047,
+                0.014,
+                0.016
+              ],
+              [
+                -0.015,
+                -0.161,
+                -0.055,
+                0.014,
+                0.012
+              ],
+              [
+                -0.041,
+                -0.165,
+                -0.06,
+                0.013,
+                0.009
+              ],
+              [
+                -0.066,
+                -0.165,
+                -0.061,
+                0.01,
+                0.007
+              ]
+            ]
+          }
+        },
+        {
+          "op": "addPart",
+          "part": {
+            "id": "left swept temple strands",
+            "shape": "sweep",
+            "parent": "head",
+            "position": [
+              0.083,
+              0.275,
+              -0.047
+            ],
+            "size": [
+              1,
+              1,
+              1
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "color": "#514b43",
+            "knots": [
+              [
+                0,
+                0,
+                0,
+                0.003,
+                0.003
+              ],
+              [
+                0.012,
+                -0.026,
+                -0.005,
+                0.004,
+                0.004
+              ],
+              [
+                0.014,
+                -0.053,
+                -0.018,
+                0.004,
+                0.004
+              ],
+              [
+                0.01,
+                -0.079,
+                -0.035,
+                0.0035,
+                0.0035
+              ],
+              [
+                -0.002,
+                -0.103,
+                -0.047,
+                0.002,
+                0.002
+              ]
+            ]
+          }
+        },
+        {
+          "op": "addPart",
+          "part": {
+            "id": "right swept temple strands",
+            "shape": "sweep",
+            "parent": "head",
+            "position": [
+              -0.083,
+              0.277,
+              -0.047
+            ],
+            "size": [
+              1,
+              1,
+              1
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "color": "#514b43",
+            "knots": [
+              [
+                0,
+                0,
+                0,
+                0.003,
+                0.003
+              ],
+              [
+                -0.012,
+                -0.027,
+                -0.006,
+                0.004,
+                0.004
+              ],
+              [
+                -0.014,
+                -0.054,
+                -0.018,
+                0.004,
+                0.004
+              ],
+              [
+                -0.01,
+                -0.081,
+                -0.036,
+                0.0035,
+                0.0035
+              ],
+              [
+                0.002,
+                -0.105,
+                -0.048,
+                0.002,
+                0.002
+              ]
+            ]
+          }
+        },
+        {
+          "op": "addPart",
+          "part": {
+            "id": "left rear hair ridge",
+            "shape": "sweep",
+            "parent": "head",
+            "position": [
+              0.077,
+              0.28,
+              -0.073
+            ],
+            "size": [
+              1,
+              1,
+              1
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "color": "#302d29",
+            "knots": [
+              [
+                0,
+                0,
+                0,
+                0.003,
+                0.004
+              ],
+              [
+                0.01,
+                -0.027,
+                -0.009,
+                0.005,
+                0.005
+              ],
+              [
+                0.011,
+                -0.057,
+                -0.02,
+                0.005,
+                0.005
+              ],
+              [
+                0.004,
+                -0.089,
+                -0.031,
+                0.004,
+                0.005
+              ],
+              [
+                -0.014,
+                -0.119,
+                -0.041,
+                0.003,
+                0.004
+              ],
+              [
+                -0.034,
+                -0.139,
+                -0.045,
+                0.002,
+                0.002
+              ]
+            ]
+          }
+        },
+        {
+          "op": "addPart",
+          "part": {
+            "id": "right rear hair ridge",
+            "shape": "sweep",
+            "parent": "head",
+            "position": [
+              -0.077,
+              0.278,
+              -0.073
+            ],
+            "size": [
+              1,
+              1,
+              1
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "color": "#302d29",
+            "knots": [
+              [
+                0,
+                0,
+                0,
+                0.003,
+                0.004
+              ],
+              [
+                -0.01,
+                -0.027,
+                -0.009,
+                0.005,
+                0.005
+              ],
+              [
+                -0.011,
+                -0.057,
+                -0.02,
+                0.005,
+                0.005
+              ],
+              [
+                -0.004,
+                -0.089,
+                -0.031,
+                0.004,
+                0.005
+              ],
+              [
+                0.014,
+                -0.119,
+                -0.041,
+                0.003,
+                0.004
+              ],
+              [
+                0.034,
+                -0.14,
+                -0.045,
+                0.002,
+                0.002
+              ]
+            ]
+          }
+        },
+        {
+          "op": "addPart",
+          "part": {
+            "id": "left nape wisps",
+            "shape": "sweep",
+            "parent": "head",
+            "position": [
+              0.081,
+              0.206,
+              -0.083
+            ],
+            "size": [
+              1,
+              1,
+              1
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "color": "#5b544b",
+            "knots": [
+              [
+                0,
+                0,
+                0,
+                0.003,
+                0.003
+              ],
+              [
+                -0.004,
+                -0.024,
+                -0.015,
+                0.004,
+                0.004
+              ],
+              [
+                -0.018,
+                -0.044,
+                -0.027,
+                0.004,
+                0.004
+              ],
+              [
+                -0.041,
+                -0.058,
+                -0.035,
+                0.003,
+                0.003
+              ],
+              [
+                -0.065,
+                -0.067,
+                -0.037,
+                0.002,
+                0.002
+              ]
+            ]
+          }
+        },
+        {
+          "op": "addPart",
+          "part": {
+            "id": "right nape wisps",
+            "shape": "sweep",
+            "parent": "head",
+            "position": [
+              -0.081,
+              0.204,
+              -0.083
+            ],
+            "size": [
+              1,
+              1,
+              1
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "color": "#5b544b",
+            "knots": [
+              [
+                0,
+                0,
+                0,
+                0.003,
+                0.003
+              ],
+              [
+                0.004,
+                -0.024,
+                -0.015,
+                0.004,
+                0.004
+              ],
+              [
+                0.018,
+                -0.044,
+                -0.027,
+                0.004,
+                0.004
+              ],
+              [
+                0.041,
+                -0.058,
+                -0.035,
+                0.003,
+                0.003
+              ],
+              [
+                0.065,
+                -0.065,
+                -0.037,
+                0.002,
+                0.002
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "instruction": "Revise only the five existing spectacle parts to fit the reference's narrower frames. Keep all other parts, the face, hair, frontFits and materials unchanged. The exported rigid spectacle front measures 225 mm wide on a 196 mm face. Aim for 145–155 mm overall, with each opening still centered around its eye, and two inner rims separated by 9–13 mm under the bridge. To accomplish that shrink the X positions and the local knot X coordinates of the lens front towards the head centre to about two thirds of their present span. Keep the open rectangles about 48–54 mm tall. Shape their upper edges slightly upswept to the temples. The inner edges should not touch each other. Span that gap with the separate arched bridge, with both bridge ends overlapping a frame at the top inner corners. The temples must meet the new narrower outer rim edges at their front ends and retain their width and position at the ear ends; angle the sides back out to the ears. Keep every rigidFaceAnchor and faceClearance value; those fields automatically seat the front pieces as a whole on this fitted face. Use the supplied frame photo for the shape. Keep the optically open holes and dark acetate color.",
+      "draw": {
+        "strength": "radical",
+        "seed": 4056782954,
+        "cues": [
+          "Redistribute sensory organs",
+          "Bilateral repeating segments"
+        ],
+        "magnitude": 81,
+        "pins": [
+          null,
+          null
+        ]
+      },
+      "viewCount": 2,
+      "serverStatus": 200,
+      "summary": "Narrowed the open acetate frames to approximately 151 mm overall, with upswept tops, an 11 mm inner gap, an overlapping arched bridge, and temples angled outward to the unchanged ear ends.",
+      "operations": [
+        {
+          "op": "setPart",
+          "id": "round spectacle frame -1",
+          "set": {
+            "position": [
+              -0.0105,
+              0.212,
+              0.106
+            ],
+            "knots": [
+              [
+                0,
+                0,
+                0,
+                0.006,
+                0.005
+              ],
+              [
+                -0.001,
+                0.023,
+                -0.0003,
+                0.006,
+                0.0055
+              ],
+              [
+                -0.007,
+                0.033,
+                -0.0018,
+                0.007,
+                0.0055
+              ],
+              [
+                -0.022,
+                0.036,
+                -0.005,
+                0.007,
+                0.0055
+              ],
+              [
+                -0.036,
+                0.038,
+                -0.009,
+                0.007,
+                0.0055
+              ],
+              [
+                -0.043,
+                0.031,
+                -0.0111,
+                0.0065,
+                0.0055
+              ],
+              [
+                -0.044,
+                0.015,
+                -0.012,
+                0.0065,
+                0.005
+              ],
+              [
+                -0.044,
+                -0.022,
+                -0.012,
+                0.006,
+                0.005
+              ],
+              [
+                -0.039,
+                -0.033,
+                -0.0111,
+                0.006,
+                0.005
+              ],
+              [
+                -0.031,
+                -0.037,
+                -0.0088,
+                0.006,
+                0.005
+              ],
+              [
+                -0.015,
+                -0.037,
+                -0.004,
+                0.006,
+                0.005
+              ],
+              [
+                -0.006,
+                -0.033,
+                -0.0015,
+                0.006,
+                0.005
+              ],
+              [
+                -0.001,
+                -0.021,
+                -0.0002,
+                0.006,
+                0.005
+              ],
+              [
+                0,
+                0,
+                0,
+                0.006,
+                0.005
+              ]
+            ]
+          }
+        },
+        {
+          "op": "setPart",
+          "id": "round spectacle frame 1",
+          "set": {
+            "position": [
+              0.0105,
+              0.212,
+              0.106
+            ],
+            "knots": [
+              [
+                0,
+                0,
+                0,
+                0.006,
+                0.005
+              ],
+              [
+                0.001,
+                0.023,
+                -0.0003,
+                0.006,
+                0.0055
+              ],
+              [
+                0.007,
+                0.033,
+                -0.0018,
+                0.007,
+                0.0055
+              ],
+              [
+                0.022,
+                0.036,
+                -0.005,
+                0.007,
+                0.0055
+              ],
+              [
+                0.036,
+                0.038,
+                -0.009,
+                0.007,
+                0.0055
+              ],
+              [
+                0.043,
+                0.031,
+                -0.0111,
+                0.0065,
+                0.0055
+              ],
+              [
+                0.044,
+                0.015,
+                -0.012,
+                0.0065,
+                0.005
+              ],
+              [
+                0.044,
+                -0.022,
+                -0.012,
+                0.006,
+                0.005
+              ],
+              [
+                0.039,
+                -0.033,
+                -0.0111,
+                0.006,
+                0.005
+              ],
+              [
+                0.031,
+                -0.037,
+                -0.0088,
+                0.006,
+                0.005
+              ],
+              [
+                0.015,
+                -0.037,
+                -0.004,
+                0.006,
+                0.005
+              ],
+              [
+                0.006,
+                -0.033,
+                -0.0015,
+                0.006,
+                0.005
+              ],
+              [
+                0.001,
+                -0.021,
+                -0.0002,
+                0.006,
+                0.005
+              ],
+              [
+                0,
+                0,
+                0,
+                0.006,
+                0.005
+              ]
+            ]
+          }
+        },
+        {
+          "op": "setPart",
+          "id": "spectacle bridge",
+          "set": {
+            "position": [
+              0,
+              0.24,
+              0.112
+            ],
+            "knots": [
+              [
+                -0.012,
+                0,
+                -0.0065,
+                0.005,
+                0.005
+              ],
+              [
+                -0.008,
+                0.005,
+                -0.002,
+                0.0055,
+                0.005
+              ],
+              [
+                0,
+                0.008,
+                0,
+                0.0055,
+                0.005
+              ],
+              [
+                0.008,
+                0.005,
+                -0.002,
+                0.0055,
+                0.005
+              ],
+              [
+                0.012,
+                0,
+                -0.0065,
+                0.005,
+                0.005
+              ]
+            ]
+          }
+        },
+        {
+          "op": "setPart",
+          "id": "spectacle temple -1",
+          "set": {
+            "position": [
+              -0.0545,
+              0.216,
+              0.1
+            ],
+            "knots": [
+              [
+                0,
+                0.02,
+                -0.006,
+                0.0065,
+                0.005
+              ],
+              [
+                -0.0235,
+                0.01,
+                -0.018,
+                0.0065,
+                0.005
+              ],
+              [
+                -0.0435,
+                0.004,
+                -0.058,
+                0.006,
+                0.0045
+              ],
+              [
+                -0.0455,
+                0.003,
+                -0.087,
+                0.0055,
+                0.0045
+              ],
+              [
+                -0.0435,
+                -0.003,
+                -0.105,
+                0.005,
+                0.0045
+              ],
+              [
+                -0.0375,
+                -0.02,
+                -0.116,
+                0.0045,
+                0.004
+              ]
+            ]
+          }
+        },
+        {
+          "op": "setPart",
+          "id": "spectacle temple 1",
+          "set": {
+            "position": [
+              0.0545,
+              0.216,
+              0.1
+            ],
+            "knots": [
+              [
+                0,
+                0.02,
+                -0.006,
+                0.0065,
+                0.005
+              ],
+              [
+                0.0235,
+                0.01,
+                -0.018,
+                0.0065,
+                0.005
+              ],
+              [
+                0.0435,
+                0.004,
+                -0.058,
+                0.006,
+                0.0045
+              ],
+              [
+                0.0455,
+                0.003,
+                -0.087,
+                0.0055,
+                0.0045
+              ],
+              [
+                0.0435,
+                -0.003,
+                -0.105,
+                0.005,
+                0.0045
+              ],
+              [
+                0.0375,
+                -0.02,
+                -0.116,
+                0.0045,
+                0.004
+              ]
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "contacts": {
+    "Rest": [
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 37,
+          "temple": 50,
+          "earEnd": 44
+        },
+        "1": {
+          "face": 0,
+          "bridge": 44,
+          "temple": 49,
+          "earEnd": 34
+        },
+        "bridgeFace": 0
+      }
+    ],
+    "Idle": [
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 37,
+          "temple": 50,
+          "earEnd": 44
+        },
+        "1": {
+          "face": 0,
+          "bridge": 44,
+          "temple": 49,
+          "earEnd": 34
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 37,
+          "temple": 50,
+          "earEnd": 44
+        },
+        "1": {
+          "face": 0,
+          "bridge": 44,
+          "temple": 49,
+          "earEnd": 34
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 37,
+          "temple": 50,
+          "earEnd": 44
+        },
+        "1": {
+          "face": 0,
+          "bridge": 44,
+          "temple": 49,
+          "earEnd": 34
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 37,
+          "temple": 50,
+          "earEnd": 44
+        },
+        "1": {
+          "face": 0,
+          "bridge": 44,
+          "temple": 49,
+          "earEnd": 34
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 37,
+          "temple": 50,
+          "earEnd": 44
+        },
+        "1": {
+          "face": 0,
+          "bridge": 44,
+          "temple": 49,
+          "earEnd": 34
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 37,
+          "temple": 50,
+          "earEnd": 44
+        },
+        "1": {
+          "face": 0,
+          "bridge": 44,
+          "temple": 49,
+          "earEnd": 34
+        },
+        "bridgeFace": 0
+      }
+    ],
+    "Walk": [
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 37,
+          "temple": 50,
+          "earEnd": 44
+        },
+        "1": {
+          "face": 0,
+          "bridge": 44,
+          "temple": 49,
+          "earEnd": 34
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 37,
+          "temple": 50,
+          "earEnd": 44
+        },
+        "1": {
+          "face": 0,
+          "bridge": 44,
+          "temple": 49,
+          "earEnd": 34
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 37,
+          "temple": 50,
+          "earEnd": 44
+        },
+        "1": {
+          "face": 0,
+          "bridge": 44,
+          "temple": 49,
+          "earEnd": 34
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 37,
+          "temple": 50,
+          "earEnd": 44
+        },
+        "1": {
+          "face": 0,
+          "bridge": 44,
+          "temple": 49,
+          "earEnd": 34
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 37,
+          "temple": 50,
+          "earEnd": 44
+        },
+        "1": {
+          "face": 0,
+          "bridge": 44,
+          "temple": 49,
+          "earEnd": 34
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 37,
+          "temple": 50,
+          "earEnd": 44
+        },
+        "1": {
+          "face": 0,
+          "bridge": 44,
+          "temple": 49,
+          "earEnd": 34
+        },
+        "bridgeFace": 0
+      }
+    ],
+    "Crouch": [
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 37,
+          "temple": 50,
+          "earEnd": 44
+        },
+        "1": {
+          "face": 0,
+          "bridge": 44,
+          "temple": 49,
+          "earEnd": 34
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 37,
+          "temple": 50,
+          "earEnd": 44
+        },
+        "1": {
+          "face": 0,
+          "bridge": 44,
+          "temple": 49,
+          "earEnd": 34
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 37,
+          "temple": 50,
+          "earEnd": 44
+        },
+        "1": {
+          "face": 0,
+          "bridge": 44,
+          "temple": 49,
+          "earEnd": 34
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 37,
+          "temple": 50,
+          "earEnd": 44
+        },
+        "1": {
+          "face": 0,
+          "bridge": 44,
+          "temple": 49,
+          "earEnd": 34
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 37,
+          "temple": 50,
+          "earEnd": 44
+        },
+        "1": {
+          "face": 0,
+          "bridge": 44,
+          "temple": 49,
+          "earEnd": 34
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 37,
+          "temple": 50,
+          "earEnd": 44
+        },
+        "1": {
+          "face": 0,
+          "bridge": 44,
+          "temple": 49,
+          "earEnd": 34
+        },
+        "bridgeFace": 0
+      }
+    ],
+    "Reach": [
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 37,
+          "temple": 50,
+          "earEnd": 44
+        },
+        "1": {
+          "face": 0,
+          "bridge": 44,
+          "temple": 49,
+          "earEnd": 34
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 37,
+          "temple": 50,
+          "earEnd": 44
+        },
+        "1": {
+          "face": 0,
+          "bridge": 44,
+          "temple": 49,
+          "earEnd": 34
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 37,
+          "temple": 50,
+          "earEnd": 44
+        },
+        "1": {
+          "face": 0,
+          "bridge": 44,
+          "temple": 49,
+          "earEnd": 34
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 37,
+          "temple": 50,
+          "earEnd": 44
+        },
+        "1": {
+          "face": 0,
+          "bridge": 44,
+          "temple": 49,
+          "earEnd": 34
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 37,
+          "temple": 50,
+          "earEnd": 44
+        },
+        "1": {
+          "face": 0,
+          "bridge": 44,
+          "temple": 49,
+          "earEnd": 34
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 37,
+          "temple": 50,
+          "earEnd": 44
+        },
+        "1": {
+          "face": 0,
+          "bridge": 44,
+          "temple": 49,
+          "earEnd": 34
+        },
+        "bridgeFace": 0
+      }
+    ]
+  },
+  "validation": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "export": {
+    "heightMetres": 1.573,
+    "triangles": 24004,
+    "materials": 1,
+    "clips": [
+      "Idle",
+      "Walk",
+      "Crouch",
+      "Reach"
+    ],
+    "byteLength": 1820872,
+    "reopenedRecipeProducesIdenticalGLB": true,
+    "sha256": "f29ee9e6cb701849765779e5a59a1dcf49882c9babc7dfb6fff455a815c2de78"
+  }
+}

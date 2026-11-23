@@ -47,6 +47,7 @@ const directions = {
   portrait: [0, 0, 1],
   "portrait-side": [-1, 0, 0],
   "portrait-oblique": [-0.74, 0, 1],
+  "portrait-angle": [0, 0, 1],
   side: [1, 0, 0],
   overhead: [0, 1, 0.001],
   back: [0, 0, -1],
@@ -54,23 +55,41 @@ const directions = {
 function frameModel() {
   const view = $("camera-angle").value,
     direction = directions[view];
+  $("portrait-orbit").hidden = view !== "portrait-angle";
   const bounds = view.startsWith("portrait") ? faceBounds : lastBounds;
   if (!direction || bounds.isEmpty()) return;
   const center = bounds.getCenter(new T.Vector3()),
     size = bounds.getSize(new T.Vector3());
+  const aim = new T.Vector3(...direction);
+  if (view === "portrait-angle")
+    aim.setFromSphericalCoords(
+      1,
+      T.MathUtils.degToRad(90 - Number($("portrait-pitch").value)),
+      T.MathUtils.degToRad(Number($("portrait-yaw").value)),
+    );
   orbit.target.copy(center);
   camera.position
     .copy(center)
     .add(
-      new T.Vector3(...direction)
-        .normalize()
-        .multiplyScalar(Math.max(size.x, size.y, size.z) * 2.55),
+      aim.normalize().multiplyScalar(Math.max(size.x, size.y, size.z) * 2.55),
     );
   orbit.update();
 }
 $("camera-angle").onchange = frameModel;
+function setAngle(id, value) {
+  const el = $(id);
+  el.value = String(
+    T.MathUtils.clamp(Number(value) || 0, Number(el.min), Number(el.max)),
+  );
+}
+for (const id of ["portrait-yaw", "portrait-pitch"])
+  $(id).onchange = () => {
+    setAngle(id, $(id).value);
+    frameModel();
+  };
 orbit.addEventListener("start", () => {
   $("camera-angle").value = "";
+  $("portrait-orbit").hidden = true;
 });
 function setSurface() {
   for (const m of meshes) {
@@ -363,6 +382,10 @@ async function openExample() {
     if (!response.ok) throw new Error("This example is unavailable.");
     const blob = await response.blob();
     if (ticket === generation) {
+      if (params.get("view") === "portrait-angle") {
+        setAngle("portrait-yaw", params.get("yaw") ?? -30);
+        setAngle("portrait-pitch", params.get("pitch") ?? 0);
+      }
       await load(
         new File([blob], key + ".glb"),
         params.get("view"),

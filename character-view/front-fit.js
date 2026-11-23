@@ -20,9 +20,44 @@ const vector = (v, length, limit) =>
   Array.isArray(v) &&
   v.length === length &&
   v.every((n) => Number.isFinite(n) && Math.abs(n) <= limit);
+// Orthonormal frame of an upright camera orbiting a head centred at the origin.
+export function portraitAxes(yaw = 0, pitch = 0) {
+  const y = MathUtils.degToRad(yaw),
+    p = MathUtils.degToRad(pitch);
+  return {
+    right: new Vector3(Math.cos(y), 0, -Math.sin(y)),
+    up: new Vector3(
+      -Math.sin(y) * Math.sin(p),
+      Math.cos(p),
+      -Math.cos(y) * Math.sin(p),
+    ),
+    out: new Vector3(
+      Math.sin(y) * Math.cos(p),
+      Math.sin(p),
+      Math.cos(y) * Math.cos(p),
+    ),
+  };
+}
+function validView(view) {
+  if (view === undefined) return true;
+  if (
+    !view ||
+    !Number.isFinite(view.yaw) ||
+    Math.abs(view.yaw) > 180 ||
+    !Number.isFinite(view.pitch) ||
+    Math.abs(view.pitch) > 80 ||
+    !["plane", "depth"].includes(view.mode) ||
+    (view.symmetric !== undefined &&
+      (typeof view.symmetric !== "boolean" || view.mode !== "depth"))
+  )
+    return false;
+  const { right, up } = portraitAxes(view.yaw, view.pitch);
+  return view.mode !== "depth" || Math.hypot(right.z, up.z) >= 0.34;
+}
 export function validFrontFit(pass) {
   return (
     pass &&
+    validView(pass.view) &&
     Number.isFinite(pass.radius) &&
     pass.radius >= 0.1 &&
     pass.radius <= 0.65 &&
@@ -47,7 +82,7 @@ export function validFrontFit(pass) {
 }
 // A planar similarity registers the two pictures using the first two fixed
 // landmarks. The photograph can have any crop, magnification or in-plane tilt.
-export function registerFrontPairs(pairs, radius = 0.3) {
+export function registerFrontPairs(pairs, radius = 0.3, view) {
   if (pairs.length < 3)
     throw new Error("Mark two alignment pairs and at least one feature.");
   const [a, b] = pairs;
@@ -71,7 +106,16 @@ export function registerFrontPairs(pairs, radius = 0.3) {
           : [a.at[0] + u * x - v * y - at[0], a.at[1] + v * x + u * y - at[1]],
     };
   });
-  const pass = { pins, radius, amount: 1 };
+  if (!validView(view))
+    throw new Error(
+      "Turn the head at least 20 degrees from the front to measure depth.",
+    );
+  const pass = {
+    pins,
+    radius,
+    amount: 1,
+    ...(view ? { view: { ...view } } : {}),
+  };
   if (!validFrontFit(pass))
     throw new Error(
       "Space the points apart and keep each correction within 35% of head height.",
@@ -149,6 +193,61 @@ function frontalWarp(pass) {
     return [dx * local * depth * pass.amount, dy * local * depth * pass.amount];
   };
 }
+// A depth correction is a scalar field over the anatomical front plane.
+// Moving every point in the same column monotonically keeps a large nose
+// correction from folding the far eyelid or the underside of the nose.
+function depthWarp(pass, { right, up, out }, rear) {
+  const sensitivity = right.z ** 2 + up.z ** 2;
+  const pins = pass.pins.map(({ at: [u, v, w], shift: [du, dv] }) => {
+    const point = new Vector3()
+      .addScaledVector(right, u)
+      .addScaledVector(up, v)
+      .addScaledVector(out, w);
+    const delta = MathUtils.clamp(
+      (du * right.z + dv * up.z) / sensitivity,
+      -0.35,
+      0.35,
+    );
+    return { point, delta };
+  });
+  if (pass.view.symmetric)
+    for (const pin of pins.slice()) {
+      if (Math.abs(pin.point.x) > 1e-6)
+        pins.push({
+          point: pin.point.clone().setX(-pin.point.x),
+          delta: pin.delta,
+        });
+    }
+  return (x, y, z) => {
+    let sum = 0,
+      shift = 0,
+      depth = 0,
+      nearest = Infinity;
+    for (const { point, delta } of pins) {
+      const d = (x - point.x) ** 2 + (y - point.y) ** 2;
+      nearest = Math.min(nearest, d);
+      const w = 1 / Math.max(1e-10, d) ** 1.25;
+      sum += w;
+      shift += delta * w;
+      depth += point.z * w;
+    }
+    const span = Math.max(0.02, depth / sum - rear);
+    const fade =
+      1 -
+      MathUtils.smoothstep(
+        Math.sqrt(nearest),
+        pass.radius * 0.25,
+        pass.radius * 1.65,
+      );
+    const taper = MathUtils.clamp((z - rear) / span, 0, 1);
+    return (
+      pass.amount *
+      fade *
+      taper *
+      MathUtils.clamp(shift / sum, -span * 0.68, span)
+    );
+  };
+}
 export function applyFrontFit(mesh, pass, retainProfile = false, owner = mesh) {
   if (!pass.amount) return;
   const { center, factor } = headFrame(mesh),
@@ -157,15 +256,33 @@ export function applyFrontFit(mesh, pass, retainProfile = false, owner = mesh) {
     box = g.boundingBox;
   const bottom = box.min.y + 0.008 / factor.y,
     top = box.max.y - 0.008 / factor.y;
-  const before = retainProfile ? sectionDepth(g, bottom, top) : null;
+  const angled = !!(pass.view?.yaw || pass.view?.pitch);
+  const before = retainProfile && !angled ? sectionDepth(g, bottom, top) : null;
+  const basis = angled ? portraitAxes(pass.view.yaw, pass.view.pitch) : null;
+  const at = new Vector3();
+  const depth =
+    basis && pass.view.mode === "depth"
+      ? depthWarp(pass, basis, (box.min.z - center.z) * factor.z)
+      : null;
   const warp = frontalWarp(pass);
   function move(x, y, z) {
-    const [dx, dy] = warp(
+    at.set(
       (x - center.x) * factor.x,
       (y - center.y) * factor.y,
       (z - center.z) * factor.z,
     );
-    return [x + dx / factor.x, y + dy / factor.y, z];
+    if (!basis) {
+      const [dx, dy] = warp(at.x, at.y, at.z);
+      return [x + dx / factor.x, y + dy / factor.y, z];
+    }
+    if (depth) return [x, y, z + depth(at.x, at.y, at.z) / factor.z];
+    const { right, up, out } = basis;
+    const [du, dv] = warp(at.dot(right), at.dot(up), at.dot(out));
+    return [
+      x + (du * right.x + dv * up.x) / factor.x,
+      y + (du * right.y + dv * up.y) / factor.y,
+      z + (du * right.z + dv * up.z) / factor.z,
+    ];
   }
   for (let i = 0; i < pos.count; i++)
     pos.setXYZ(i, ...move(pos.getX(i), pos.getY(i), pos.getZ(i)));
@@ -198,9 +315,31 @@ export function applyFrontFit(mesh, pass, retainProfile = false, owner = mesh) {
   // and the independently editable attachments remain intact.
   owner.updateWorldMatrix(true, true);
   const fromWorld = mesh.matrixWorld.clone().invert();
+  const rigid = new Set();
+  owner.traverse((branch) => {
+    if (branch === owner) return;
+    if (rigid.has(branch.parent)) {
+      rigid.add(branch);
+      return;
+    }
+    const anchor = branch.userData.rigidFaceAnchor;
+    if (!anchor) return;
+    rigid.add(branch);
+    const pivot = new Vector3().fromArray(anchor).divide(factor).add(center);
+    const before = pivot.clone().applyMatrix4(mesh.matrixWorld);
+    const after = new Vector3()
+      .fromArray(keepDepth(...move(pivot.x, pivot.y, pivot.z)))
+      .applyMatrix4(mesh.matrixWorld);
+    const parent = branch.parent;
+    branch.position.add(
+      parent.worldToLocal(after).sub(parent.worldToLocal(before)),
+    );
+    branch.updateWorldMatrix(false, true);
+  });
   owner.traverse((child) => {
     if (
       !child.isMesh ||
+      rigid.has(child) ||
       child === mesh ||
       child.userData.eyePiece ||
       child.userData.faceSurface
@@ -214,7 +353,13 @@ export function applyFrontFit(mesh, pass, retainProfile = false, owner = mesh) {
     for (let i = 0; i < source.count; i++) {
       pt.fromBufferAttribute(source, i).applyMatrix4(toFace);
       const at = move(pt.x, pt.y, pt.z);
-      if (Math.abs(at[0] - pt.x) + Math.abs(at[1] - pt.y) < 1e-7) continue;
+      if (
+        Math.abs(at[0] - pt.x) +
+          Math.abs(at[1] - pt.y) +
+          Math.abs(at[2] - pt.z) <
+        1e-7
+      )
+        continue;
       pt.fromArray(at).applyMatrix4(fromFace);
       changed.push([i, pt.x, pt.y, pt.z]);
     }

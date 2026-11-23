@@ -112,10 +112,12 @@
           <option value="portrait" disabled>Face close-up</option>
           <option value="portrait-side" disabled>Face in profile</option>
           <option value="portrait-oblique" disabled>Face at three-quarter</option>
+          <option value="portrait-angle" disabled>Face at measured angles</option>
           <option value="overhead">Overhead</option>
           <option value="side">Profile</option>
           <option value="back">Back</option>
         </select>
+        <div id="portrait-orbit" hidden><label>Camera turn (°) <input id="portrait-yaw" type="number" min="-180" max="180" step="1" value="-30"></label><label>Camera elevation (°) <input id="portrait-pitch" type="number" min="-80" max="80" step="1" value="0"></label></div>
         <label for="surface">Surface</label
         ><select id="surface">
           <option value="paint">Color</option>

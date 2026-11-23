@@ -326,8 +326,10 @@ function seatBranch(mesh, carrier, part, nearest) {
   }
   deform(mesh, part.id);
 }
-export function fitSurfaceJoins(form, objects) {
-  const chosen = form.parts.filter((p) => p.surfaceJoin);
+export function fitSurfaceJoins(form, objects, rigidFaceMounts = false) {
+  const chosen = form.parts.filter(
+    (p) => p.surfaceJoin && Boolean(p.rigidFaceAnchor) === rigidFaceMounts,
+  );
   if (!chosen.length) return;
   const byId = new Map(form.parts.map((p) => [p.id, p]));
   function depth(p) {

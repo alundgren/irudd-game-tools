@@ -907,6 +907,20 @@
           >
         </p>
       </section>
+      <section class="method" id="angled-portrait">
+        <h2>Can a second view shorten the nose and keep the glasses on?</h2>
+        <figure><img src="media/oblique-dockworker.webp" alt="Two rows of dockworker portraits, each viewed from the front, from below, at three-quarter and in profile. The updated head has a shorter nose and continuous squared rims." /><figcaption>Top is the earlier fitted dockworker. Bottom is the new game export. The second column looks up at the head from the estimated angle of badtrouble’s full-body screenshot.</figcaption></figure>
+        <p>Badtrouble’s final Frank Reynolds pawn appears in a near-frontal portrait and a low-angle full-body view. The head in the latter is about 100 pixels high. We matched its pose by eye at −24° turn and −15° elevation, registered the pupils, and paired six locations on the nose. The depth fit moves the mesh forward or backward and can mirror the correction across the nose. <a href="https://www.reddit.com/r/fashiondogma/comments/1bj09z1/frank_reynolds_v2/">Creator’s final two-view showcase</a></p>
+        <table><thead><tr><th>Mean projected error at model scale</th><th>Earlier GLB</th><th>Revised GLB</th></tr></thead><tbody>
+          <tr><td>Six points used to steer depth</td><td>30.76 mm</td><td>7.16 mm</td></tr>
+          <tr><td>Four more points in the low-angle image</td><td>29.66 mm</td><td>6.36 mm</td></tr>
+          <tr><td>Seven points in the separate near-frontal portrait</td><td>7.23 mm</td><td>7.36 mm</td></tr>
+        </tbody></table>
+        <p>Each measurement follows the same skin location through the reduced meshes using its texture coordinates. The near-frontal portrait supplied no points to the depth fit. Its small increase in error is below one source pixel. The actual camera calibration and physical facial measurements are unknown.</p>
+        <p>The first live AI edit used the original portrait to revise seven accessory parts and add six hair pieces. The soft fit bent the frames into the cheeks. Fitting them rigidly and clearing the cheeks exposed another error. The front was 225 mm wide. A second AI direction requested 145–155 mm overall and a 9–13 mm inner gap. Its five edits produced 151.7 mm and 11.1 mm. The artist then seated each temple end on the head. <a href="https://www.reddit.com/r/fashiondogma/comments/1bbsfpn/so_anyway_i_started_casting/">Original reference for the accessory edits</a></p>
+        <p>At rest and six phases of each of four clips, both rims joined the bridge and temples, both temples met the head, and no front rim or bridge triangle crossed the facial mesh. The nose retains a sharp lower edge in profile. The side hair reads as thick clumps, and the game frames have more slanted sides. Full likeness remains open.</p>
+        <p><a href="../examples/oblique-dockworker.glb" data-player="oblique-dockworker" data-view="portrait-angle" data-yaw="-24" data-pitch="-15">Inspect the angled export</a> · <a href="../examples/oblique-dockworker.form.json">Edit the head and mounts</a> · <a href="media/oblique-dockworker.json">Click locations, AI operations and measurements</a></p>
+      </section>
       <section class="method" id="paired-faces">
         <h2>What changes when the artist pairs features on two faces?</h2>
         <figure><img src="media/paired-faces.webp" alt="Two rows of exported ranger and dockworker faces. Each shows color before and after, clay before and after, then the fitted clay face turned three-quarter." />
@@ -1513,6 +1527,8 @@
                 (a.dataset.view
                   ? "&view=" + encodeURIComponent(a.dataset.view)
                   : "") +
+                (a.dataset.yaw ? "&yaw=" + encodeURIComponent(a.dataset.yaw) : "") +
+                (a.dataset.pitch ? "&pitch=" + encodeURIComponent(a.dataset.pitch) : "") +
                 (a.dataset.clip
                   ? "&clip=" + encodeURIComponent(a.dataset.clip)
                   : "")),

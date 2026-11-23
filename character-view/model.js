@@ -21,6 +21,7 @@ import { expeditionMaterial } from "./expedition.js";
 import { fittedScute } from "./scutes.js";
 import { sculptBuild } from "./body-sculpt.js";
 import { fitWardrobe, addEquipment } from "./wardrobe.js";
+import { clearFaceHardware } from "./face-hardware.js";
 import { applyFrontFit } from "./front-fit.js";
 import { fitHeadProfile } from "./profile-fit.js";
 import { deformFace, portraitSurface } from "./facial-sculpt.js";
@@ -727,6 +728,8 @@ export function createCharacter(form, silhouette, clay = false) {
         (!part.visibleIn || part.visibleIn.includes(form.outfit)));
     objects.set(part.id, object);
     object.userData.partId = part.id;
+    if (part.rigidFaceAnchor)
+      object.userData.rigidFaceAnchor = part.rigidFaceAnchor;
   }
   const mounts = new Map();
   for (const part of form.parts) {
@@ -821,6 +824,23 @@ export function createCharacter(form, silhouette, clay = false) {
         for (const pass of p.frontFits)
           applyFrontFit(face, pass, !!p.profileFit, owner);
     }
+  fitSurfaceJoins(form, objects, true);
+  const hardwareFitted = new Set();
+  for (const p of form.parts) {
+    if (!p.faceClearance || !p.parent || hardwareFitted.has(p.parent)) continue;
+    const parent = objects.get(p.parent);
+    const face = parent.userData.faceSurface
+      ? parent
+      : parent.children.find((c) => c.userData.faceSurface);
+    if (!face) continue;
+    clearFaceHardware(
+      face,
+      form.parts
+        .filter((part) => part.parent === p.parent && part.rigidFaceAnchor)
+        .map((part) => ({ part, object: objects.get(part.id) })),
+    );
+    hardwareFitted.add(p.parent);
+  }
   if (!plainView)
     for (const part of form.parts) {
       if (!part.markings) continue;
