@@ -21,6 +21,7 @@ export const figureSleeves = ["long", "rolled", "short", "none"];
 export const figureBottoms = ["trousers", "shorts", "none"];
 export const figureShoes = ["sneakers", "boots", "none"];
 export const figureHair = ["Crop", "Sweep", "Coils", "Bald"];
+export const figureGrooms = ["Locks", "Side part", "Coils", "Braids", "Locs"];
 
 // Every number is clamped, so an artist or agent can send a partial figure.
 export function readFigure(raw = {}) {
@@ -46,6 +47,21 @@ export function readFigure(raw = {}) {
     face: Number.isInteger(f.face) ? clamp(f.face, 0, 3) : 0,
     hair: pick(f.hair, figureHair),
     hairColor: hex(f.hairColor, "#3a2e28"),
+    // Rooted strands replace the plain hair shell when a groom is given.
+    groom:
+      f.groom && typeof f.groom === "object"
+        ? {
+            pattern: pick(f.groom.pattern, figureGrooms),
+            length: number(f.groom.length, 0, 2, 0.3),
+            curl: number(f.groom.curl, 0, 1, 0.4),
+            gather: number(f.groom.gather, 0, 1, 0),
+            sweep: number(f.groom.sweep, -1, 1, 0.2),
+            volume: number(f.groom.volume, 0, 1, 0.4),
+            seed: Number.isInteger(f.groom.seed)
+              ? clamp(f.groom.seed, 0, 4294967295)
+              : 1,
+          }
+        : null,
     stance: {
       arms: number(stance.arms, 4, 75, 13),
       elbows: number(stance.elbows, 0, 80, 14),
@@ -65,6 +81,8 @@ export function readFigure(raw = {}) {
       color: hex(bottom.color, "#3c4656"),
       ease: number(bottom.ease, 0, 1, 0.4),
       belt: hex(bottom.belt, "#4a3a2c"),
+      rise: number(bottom.rise, 0, 1, 0.45),
+      cuffs: bottom.cuffs === true,
     },
     shoes: {
       kind: pick(shoes.kind, figureShoes),
@@ -191,7 +209,8 @@ export function buildFigure(raw = {}) {
       chestD * 0.95,
       0.002 * k,
     ],
-    [shoulderY - 0.012 * k, sw * 0.86, 0.085 * k, -0.008 * k],
+    [shoulderY - 0.03 * k, sw * 0.97, 0.09 * k, -0.006 * k],
+    [shoulderY - 0.008 * k, sw * 0.84, 0.082 * k, -0.009 * k],
     [lerp(shoulderY, neckBase, 0.55), sw * 0.5, 0.072 * k, -0.013 * k],
     [neckBase, 0.062 * k * f.neck, 0.064 * k * f.neck, -0.014 * k],
     [neckBase + 0.03 * k, 0.05 * k * f.neck, 0.054 * k * f.neck, -0.01 * k],
@@ -214,6 +233,7 @@ export function buildFigure(raw = {}) {
     size: [headScale, headScale, headScale],
     rotation: [0, 0, 0],
   });
+  if (f.groom) parts.at(-1).groom = { ...f.groom, color: f.hairColor };
   links.head = "body";
 
   const armLength = f.arms * H;
@@ -223,7 +243,7 @@ export function buildFigure(raw = {}) {
       bend = f.stance.elbows * rad;
     const shoulder = new Vector3(
       side * (sw - 0.022 * k),
-      shoulderY - 0.047 * k,
+      shoulderY - 0.052 * k,
       -0.01 * k,
     );
     const upperDir = new Vector3(
@@ -243,7 +263,7 @@ export function buildFigure(raw = {}) {
       wrist = elbow.clone().addScaledVector(lowerDir, lowerLength);
     const a = (v) => v * k * m;
     const upperStations = [
-      [0, a(0.05), a(0.054)],
+      [0, a(0.046), a(0.052)],
       [0.16, a(0.052), a(0.057), side * 0.004 * k],
       [0.36, a(0.046), a(0.052)],
       [0.6, a(0.042), a(0.049), 0, 0.003 * k],
@@ -307,14 +327,14 @@ export function buildFigure(raw = {}) {
     if (top.kind !== "none") {
       const heavy = top.kind === "jacket" || top.kind === "hoodie";
       const ease = (0.004 + top.ease * 0.011 + (heavy ? 0.009 : 0)) * k;
-      const cloth = (stations, more = 0) =>
-        stations.map(([t, w, d, dx, dz]) => [
-          t,
-          w + ease + more,
-          d + ease + more,
-          dx,
-          dz,
-        ]);
+      // The sleeve head is set into the shoulder seam, so it carries less
+      // ease there than along the arm.
+      const cloth = (stations, more = 0, seam = true) =>
+        stations.map(([t, w, d, dx, dz]) => {
+          const add =
+            (ease + more) * (seam ? lerp(0.45, 1, clamp(t / 0.3, 0, 1)) : 1);
+          return [t, w + add, d + add, dx, dz];
+        });
       const sleeves =
         top.kind === "tee" && top.sleeves === "long" ? "short" : top.sleeves;
       if (sleeves === "none") {
@@ -361,6 +381,8 @@ export function buildFigure(raw = {}) {
                 lerp(w, a(0.034), t * 0.55),
                 lerp(d, a(0.037), t * 0.55),
               ]),
+          0.002 * k,
+          false,
         );
         if (rolled)
           lower.push([
@@ -480,14 +502,14 @@ export function buildFigure(raw = {}) {
         name + "shoe",
         ankle,
         footPath([
-          [-0.078, 0.04, 0.014, 0.016],
-          [-0.07, 0.044, 0.034, 0.036],
-          [-0.03, 0.054, 0.041, 0.05],
-          [0.03, 0.052, 0.046, 0.047],
-          [0.09, 0.041, 0.053, 0.035],
-          [0.145, 0.034, 0.054, 0.027],
-          [0.188, 0.03, 0.045, 0.023],
-          [0.212, 0.027, 0.022, 0.014],
+          [-0.08, 0.046, 0.014, 0.018],
+          [-0.073, 0.05, 0.035, 0.041],
+          [-0.035, 0.062, 0.042, 0.057],
+          [0.025, 0.062, 0.046, 0.055],
+          [0.08, 0.05, 0.052, 0.042],
+          [0.135, 0.04, 0.054, 0.031],
+          [0.185, 0.034, 0.047, 0.025],
+          [0.212, 0.03, 0.024, 0.016],
         ]),
         f.shoes.color,
         garment("leather"),
@@ -497,9 +519,10 @@ export function buildFigure(raw = {}) {
         name + "sole",
         ankle,
         footPath([
-          [-0.082, 0.012, 0.02, 0.011],
-          [-0.072, 0.012, 0.037, 0.012],
-          [-0.02, 0.012, 0.043, 0.012],
+          [-0.084, 0.016, 0.02, 0.014],
+          [-0.074, 0.016, 0.038, 0.016],
+          [-0.02, 0.015, 0.044, 0.015],
+          [0.01, 0.012, 0.046, 0.012],
           [0.07, 0.012, 0.052, 0.012],
           [0.15, 0.012, 0.056, 0.012],
           [0.2, 0.013, 0.044, 0.012],
@@ -532,13 +555,21 @@ export function buildFigure(raw = {}) {
     const bottom = f.bottom;
     if (bottom.kind !== "none") {
       const ease = (0.009 + bottom.ease * 0.022) * k;
-      const upper = thighStations.map(([t, w, d, dx, dz], i) => [
-        t,
-        Math.max(w, i > 2 ? l(0.058) + bottom.ease * 0.012 * k : 0) + ease,
-        Math.max(d, i > 2 ? l(0.063) + bottom.ease * 0.012 * k : 0) + ease,
-        dx,
-        dz,
-      ]);
+      // Cloth hangs from the seat in front, so the leg below the seam is
+      // deeper than the thigh. The cap at the hip stays a sphere about the
+      // joint and remains inside the seat until the leg lifts.
+      const upper = thighStations.map(([t, w, d, dx = 0, dz = 0], i) => {
+        const hang = t < 0.2 ? t / 0.2 : clamp(1 - (t - 0.2) / 0.3, 0, 1);
+        return [
+          t,
+          Math.max(w, i > 2 ? l(0.058) + bottom.ease * 0.012 * k : 0) + ease,
+          Math.max(d, i > 2 ? l(0.063) + bottom.ease * 0.012 * k : 0) +
+            ease +
+            hang * 0.011 * k,
+          dx,
+          dz + hang * 0.007 * k,
+        ];
+      });
       if (bottom.kind === "shorts") {
         const cut = upper.filter(([t]) => t <= 0.5);
         cut.push([0.62, cut.at(-1)[1] + 0.004 * k, cut.at(-1)[2] + 0.004 * k]);
@@ -576,6 +607,23 @@ export function buildFigure(raw = {}) {
           [0.62, lerp(kneeW, hemW, 0.7), lerp(kneeD, hemD, 0.7), 0, -0.006 * k],
           [f.shoes.kind === "boots" ? 0.8 : 0.93, hemW, hemD, 0, 0.002 * k],
         ];
+        if (bottom.cuffs) {
+          // A turn-up is a short band outside the hem.
+          const [t, w, d, , dz] = lowerLeg.at(-1);
+          const at = (u) =>
+            knee.clone().addScaledVector(shinDir, u * shinLength);
+          sweep(
+            name + "trouser cuff",
+            knee,
+            [t - 0.11, t + 0.004].map((u) => {
+              const q = at(u).sub(knee);
+              return [q.x, q.y, q.z + dz, w + 0.005 * k, d + 0.005 * k];
+            }),
+            bottom.color,
+            garment(),
+            name + "shin",
+          );
+        }
         sweep(
           name + "trouser shin",
           knee,
@@ -591,13 +639,43 @@ export function buildFigure(raw = {}) {
   // Trunk garments use the same rings as the body with ease added.
   const fitted = (rows, ease, depthEase = ease) =>
     rows.map(([y, w, d, z, x]) => [y, w + ease, d + depthEase, z, x]);
-  const beltY = lerp(hipY, waistY, 0.62);
+  const beltY = lerp(hipY, waistY, 0.35 + 0.62 * f.bottom.rise);
   if (f.bottom.kind !== "none") {
     const ease = (0.009 + f.bottom.ease * 0.012) * k;
+    // The seat keeps its full width down to the crotch seam. Both trouser
+    // legs start inside it, so there is no separate wedge between them.
+    const legScale = k * lerp(1, m, 0.85) * lerp(1, f.hips, 0.3);
+    const legEase = f.bottom.ease * 0.01 * k + 0.003 * k;
+    const seamW = 0.086 * k * lerp(1, f.hips, 0.7) + 0.083 * legScale + legEase;
+    const seamD = 0.089 * legScale + 0.007 * k + legEase;
     const seat = fitted(
       [
-        [crotch - 0.03 * k, 0.07 * k * f.hips, 0.068 * k, -0.004 * k],
-        ...torsoRows.slice(1, 4).filter(([y]) => y < beltY - 0.01 * k),
+        [crotch - 0.05 * k, seamW * 0.16, 0.04 * k, -0.006 * k],
+        [crotch - 0.02 * k, seamW * 0.42, 0.066 * k, -0.006 * k],
+        [
+          crotch + 0.004 * k,
+          Math.max(seamW, hipW * 0.97),
+          Math.max(seamD, hipD * 0.93),
+          -0.007 * k,
+        ],
+        [
+          lerp(crotch, hipY, 0.5),
+          Math.max(seamW, hipW * 0.99),
+          Math.max(seamD, hipD * 0.98) + bellyOut * 0.1,
+          -0.007 * k + bellyOut * 0.1,
+        ],
+        ...torsoRows
+          .slice(2, 5)
+          .filter(([y]) => y < beltY - 0.01 * k)
+          .map(([y, w, d, z]) => [
+            y,
+            Math.max(
+              w,
+              lerp(seamW + 0.002 * k, w, clamp((y - hipY) / (0.06 * k), 0, 1)),
+            ),
+            d,
+            z,
+          ]),
         [
           beltY,
           lerp(hipW, waistW, 0.7) + bellyOut * 0.25,
@@ -780,6 +858,17 @@ export function randomFigure(draw) {
     face: Math.floor(draw() * 4),
     hair: choose(figureHair),
     hairColor: choose(["#372e2a", "#292624", "#786353", "#a9864e", "#8a8a86"]),
+    groom:
+      draw() < 0.75
+        ? {
+            pattern: choose(figureGrooms),
+            length: between(0.12, 0.9),
+            curl: between(0.05, 0.8),
+            sweep: between(-0.5, 0.5),
+            volume: between(0.2, 0.7),
+            seed: Math.floor(draw() * 4294967296),
+          }
+        : null,
     top: {
       kind: choose(figureTops.slice(0, 4)),
       sleeves: choose(figureSleeves.slice(0, 3)),

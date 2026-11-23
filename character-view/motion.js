@@ -132,6 +132,21 @@ export function buildClips(root, regions) {
   const arms = [...regions.values()].filter((s) => s.role === "upper arm");
   // Give additional pairs independent work. A hand carrying a separate object
   // stays close to its rest pose while a free arm performs the reach.
+  const hangs = (arm) =>
+    elbows.has(arm) &&
+    arm.points.at(-1).clone().sub(arm.points[0]).normalize().y < -0.78;
+  if (arms.length === 2 && arms.every(hangs)) {
+    // A person reaching for something leads with one hand. The elbow stays
+    // below the shoulder and the other arm follows part of the way.
+    for (const arm of arms)
+      armMovement.set(arm, {
+        reach: arm.points[0].x < 0 ? 1 : 0.42,
+        swing: 1,
+        phase: 0,
+        natural: true,
+      });
+  }
+  const openHands = [...armMovement.values()].some((m) => m.natural);
   if (arms.length > 2) {
     const ordered = [...arms].sort(
       (a, b) => b.points[0].y - a.points[0].y || a.points[0].x - b.points[0].x,
@@ -223,6 +238,7 @@ export function buildClips(root, regions) {
                 const angle =
                   -(j === 0 ? 0.34 : j === 1 ? 0.55 : 0.42) *
                   wave *
+                  (openHands ? 0.42 : 1) *
                   (digit.name === "Thumb" ? 0.68 : 1);
                 const q = new Quaternion().setFromAxisAngle(digit.axis, angle);
                 if (!tracks.has(bone)) tracks.set(bone, []);
@@ -264,17 +280,25 @@ export function buildClips(root, regions) {
             add(s.bones[0], side * 0.37 * stride, 0, side * 0.035);
           } else if (name === "Reach") {
             const lift = wave * (motion?.reach ?? 1);
-            add(
-              s.bones[0],
-              -1.06 * lift,
-              side * 0.08 * lift,
-              side * 0.24 * lift,
-            );
+            if (motion?.natural)
+              add(
+                s.bones[0],
+                -1.28 * lift,
+                side * 0.1 * lift,
+                -side * 0.03 * lift,
+              );
+            else
+              add(
+                s.bones[0],
+                -1.06 * lift,
+                side * 0.08 * lift,
+                side * 0.24 * lift,
+              );
             const elbow = elbows.get(s);
             if (elbow) {
               const q = new Quaternion().setFromAxisAngle(
                 elbow.axis,
-                0.67 * lift,
+                (motion?.natural ? 0.2 : 0.67) * lift,
               );
               if (!tracks.has(elbow.bone)) tracks.set(elbow.bone, []);
               tracks.get(elbow.bone).push(q.x, q.y, q.z, q.w);
