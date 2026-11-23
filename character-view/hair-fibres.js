@@ -59,7 +59,8 @@ export function shapedFibres({
   buffers,
 }) {
   const { pattern, length, curl, sweep, gather, volume } = options,
-    part = options.part ?? 0;
+    part = options.part ?? 0,
+    loose = 1 - 0.8 * (options.nape ?? 0);
   const v = new Vector3(),
     normal = new Vector3(),
     side = new Vector3(),
@@ -94,9 +95,10 @@ export function shapedFibres({
           phi = MathUtils.lerp(startPhi, endPhi, s);
         const lift =
           (0.042 + 0.21 * volume + 0.08 * Math.max(0, z)) *
+          loose *
           Math.sin(Math.PI * s);
         const p = scalp(a, phi, 1.018 + lift);
-        p.z -= h * (0.062 + 0.038 * sweep) * Math.sin(Math.PI * s);
+        p.z -= h * (0.062 + 0.038 * sweep) * loose * Math.sin(Math.PI * s);
         p.x += h * sign * 0.005 * curl * Math.sin(s * 17 + phase);
         p.y -= free * h * length * (0.19 + (0.35 * (1 - z)) / 2);
         if (gather > 0) p.z -= free * h * 0.12 * gather;

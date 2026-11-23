@@ -63,7 +63,7 @@ function buffer() {
 }
 // The cap follows the actual head bounds. Locks run over the crown, leave the
 // hairline, then fall freely or gather at a common point behind the scalp.
-function headClearance(box, geometry, transform, rx, rz, cz) {
+function headClearance(box, geometry, transform, rx, rz, cz, hug = 0) {
   if (!geometry) return (v) => v;
   const rows = 36,
     sectors = 48,
@@ -114,12 +114,11 @@ function headClearance(box, geometry, transform, rx, rz, cz) {
     const low = mix(read(j, k), read(j, k + 1), fk - k),
       high = mix(read(j + 1, k), read(j + 1, k + 1), fk - k);
     const minRadius = mix(low, high, fy - j) + pad;
-    if (r < minRadius) {
-      const target = mix(
-        r,
-        minRadius,
-        smooth(Math.min(1, (rows - 1 - fy) / 3)),
-      );
+    // A cropped cut also comes in to the skull where the cap stands off it,
+    // which keeps the fringe from overhanging the forehead.
+    const near = smooth(Math.min(1, (rows - 1 - fy) / 3));
+    if (r < minRadius || (hug > 0 && minRadius - pad > 0.2)) {
+      const target = mix(r, minRadius, r < minRadius ? near : near * hug);
       v.x = center.x + (rx * x * target) / r;
       v.z = cz + (rz * z * target) / r;
     }
@@ -141,7 +140,15 @@ export function groomGeometry(box, options, geometry, transform) {
     ry = h * (0.31 + 0.11 * volume);
   const cy = box.max.y - ry + h * (0.013 + 0.04 * volume),
     cz = center.z - 0.012 * h;
-  const clear = headClearance(box, geometry, transform, rx, rz, cz);
+  const clear = headClearance(
+    box,
+    geometry,
+    transform,
+    rx,
+    rz,
+    cz,
+    options.nape ?? 0,
+  );
   // A cropped cut carries the hairline down the back of the skull and a
   // little way over the temples. Without it the hair ends above the ears.
   const nape = options.nape ?? 0;
