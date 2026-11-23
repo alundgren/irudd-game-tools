@@ -1,3 +1,4 @@
+import { cubeCage, editCage } from "./control-cage.js";
 import { reshapeSpine } from "./spine-edit.js";
 import { drawDecks, encodeDecks, decodeDecks } from "./choice-decks.js";
 import { paintSources, retainPaintSources } from "./paint-sources.js";
@@ -129,6 +130,7 @@ export function replayDirection(code) {
 }
 
 const measuredShapes = new Set([
+  "cage",
   "box",
   "cone",
   "cylinder",
@@ -142,6 +144,7 @@ function withMetricFrame(part, enabled) {
     : part;
 }
 const allowedPartKeys = new Set([
+  "cage",
   "shape",
   "anatomy",
   "position",
@@ -196,6 +199,13 @@ export function applyOperations(preview, ops, library = {}, metric = false) {
     const { op, id, set, part } = action ?? {};
     const index = form.parts.findIndex((p) => p.id === id);
     switch (op) {
+      case "editCage": {
+        const p = form.parts[index];
+        if (p?.shape !== "cage")
+          throw new Error("Choose a control cage for this edit.");
+        form.parts[index] = { ...p, cage: editCage(p.cage, action) };
+        break;
+      }
       case "reshapeSpine":
         form = reshapeSpine(form, id, action.knots);
         break;
@@ -230,6 +240,7 @@ export function applyOperations(preview, ops, library = {}, metric = false) {
               position: [0, 0, 0],
               rotation: [0, 0, 0],
               size: [1, 1, 1],
+              ...(part.shape === "cage" ? { cage: cubeCage() } : {}),
               ...part,
             },
             metric,

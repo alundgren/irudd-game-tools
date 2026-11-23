@@ -1,3 +1,4 @@
+import { cageGeometry } from "./control-cage.js";
 import { fitDepth } from "./depth-pins.js";
 import { separateHair, scalpMaterial, seatHair } from "./portrait-hair.js";
 import { mantleGeometry } from "./mantle.js";
@@ -544,6 +545,9 @@ export function createCharacter(form, silhouette, clay = false) {
         : null;
       let geometry;
       switch (part.shape) {
+        case "cage":
+          geometry = cageGeometry(part.cage);
+          break;
         case "mantle":
           geometry = mantleGeometry(part.cut);
           break;

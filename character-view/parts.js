@@ -1,3 +1,4 @@
+import { cubeCage } from "./control-cage.js";
 import { paintSources, retainPaintSources } from "./paint-sources.js";
 import { shapes, anchors } from "./recipe.js";
 const nextId = (used, name) => {
@@ -22,6 +23,7 @@ export function appendPart(form, parent, shape) {
     color: "#c99563",
     rotation: [0, 0, 0],
   };
+  if (shape === "cage") part.cage = cubeCage();
   if (parent) part.parent = parent;
   if (shape !== "sweep") part.frameSize = [...part.size];
   if (shape === "sweep") {
@@ -65,6 +67,10 @@ export function copyBranch(form, id, mirror) {
     copy.id = ids.get(p.id);
     if (ids.has(p.parent)) copy.parent = ids.get(p.parent);
     if (mirror) {
+      if (copy.cage) {
+        for (const vertex of copy.cage.vertices) vertex[0] *= -1;
+        for (const face of copy.cage.faces) face.reverse();
+      }
       if (copy.hull) copy.hull.mirrored = !copy.hull.mirrored;
       if (copy.grip) copy.grip.side *= -1;
       for (const f of copy.pulls ?? []) {

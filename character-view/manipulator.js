@@ -1,5 +1,6 @@
 import * as T from "three";
 import { TransformControls } from "three/addons/controls/TransformControls.js";
+import { checkCage, cageGeometry } from "./control-cage.js";
 import { sweepGeometry } from "./surface.js";
 
 export function manipulator(
@@ -7,7 +8,7 @@ export function manipulator(
   camera,
   canvas,
   orbit,
-  { pick, finish, render },
+  { pick, pickFace, finish, render },
 ) {
   const tool = new TransformControls(camera, canvas);
   tool.setSize(0.69);
@@ -23,17 +24,64 @@ export function manipulator(
     editing = false,
     knot = null,
     handle = null;
+  const outline = new T.LineSegments(
+    new T.BufferGeometry(),
+    new T.LineBasicMaterial({
+      color: 0xb45124,
+      depthTest: false,
+      transparent: true,
+      opacity: 0.9,
+    }),
+  );
+  outline.renderOrder = 3;
+  outline.visible = false;
+  outline.matrixAutoUpdate = false;
+  scene.add(outline);
+  let faceIndex = 0;
+  function highlight(cage) {
+    const f = cage.faces[faceIndex],
+      v = cage.vertices;
+    const lines = f.flatMap((a, i) => [...v[a], ...v[f[(i + 1) % f.length]]]);
+    outline.geometry.dispose();
+    outline.geometry = new T.BufferGeometry();
+    outline.geometry.setAttribute(
+      "position",
+      new T.Float32BufferAttribute(lines, 3),
+    );
+    target.updateWorldMatrix(true, false);
+    outline.matrix.copy(target.matrixWorld);
+    outline.matrixWorldNeedsUpdate = true;
+    outline.visible = true;
+  }
+  function movedCage() {
+    const cage = {
+      ...part.cage,
+      vertices: part.cage.vertices.map((row, i) =>
+        i === knot ? point.position.toArray() : row,
+      ),
+    };
+    return checkCage(cage);
+  }
   let dragOrigin = null;
   let start = null,
     lastDrag = 0;
   function detach() {
+    outline.visible = false;
     tool.detach();
     point.removeFromParent();
     handle = null;
     target = null;
     part = null;
   }
-  function attach(figure, recipe, id, mode, enabled, selectedKnot) {
+  function attach(
+    figure,
+    recipe,
+    id,
+    mode,
+    enabled,
+    selectedKnot,
+    selectedFace,
+  ) {
     detach();
     root = figure;
     active = enabled;
@@ -41,10 +89,15 @@ export function manipulator(
     part = recipe.parts.find((p) => p.id === id);
     target = findPart(figure, id);
     if (!part || !target || !target.visible) return;
-    knot = part.shape === "sweep" ? selectedKnot : null;
+    const isCage = part.shape === "cage";
+    knot = part.shape === "sweep" || isCage ? selectedKnot : null;
+    if (isCage) {
+      faceIndex = selectedFace;
+      highlight(part.cage);
+    }
     handle = target;
     if (knot !== null) {
-      point.position.fromArray(part.knots[knot]);
+      point.position.fromArray((part.cage?.vertices ?? part.knots)[knot]);
       target.add(point);
       handle = point;
     }
@@ -75,6 +128,16 @@ export function manipulator(
     if (!dragOrigin) return;
     lastDrag = performance.now();
     if (knot !== null) {
+      if (part.cage) {
+        const updated = {
+          ...part.cage,
+          vertices: part.cage.vertices.map((row, i) =>
+            i === knot ? point.position.toArray() : row,
+          ),
+        };
+        finish({ ...part, cage: updated });
+        return;
+      }
       const knots = part.knots.map((row, i) =>
         i === knot ? [...point.position.toArray(), ...row.slice(3)] : row,
       );
@@ -106,7 +169,25 @@ export function manipulator(
     }
   });
   tool.addEventListener("objectChange", () => {
+    if (part?.cage && knot === null) {
+      target.updateWorldMatrix(true, false);
+      outline.matrix.copy(target.matrixWorld);
+      outline.matrixWorldNeedsUpdate = true;
+    }
     if (knot !== null && target?.isMesh) {
+      if (part.cage) {
+        let cage;
+        try {
+          cage = movedCage();
+        } catch {
+          return;
+        }
+        target.geometry.dispose();
+        target.geometry = cageGeometry(cage);
+        highlight(cage);
+        render();
+        return;
+      }
       const rows = part.knots.map((row, i) =>
         i === knot ? [...point.position.toArray(), ...row.slice(3)] : row,
       );
@@ -153,7 +234,9 @@ export function manipulator(
         object = object.parent;
       }
       if (visible && id) {
-        pick(id);
+        const fi = hit.object.geometry?.cageFaces?.[hit.faceIndex];
+        if (id === part?.id && Number.isInteger(fi)) pickFace(fi);
+        else pick(id);
         break;
       }
     }

@@ -596,7 +596,8 @@
             <summary>Build parts</summary>
             <label class="field"
               >Shape<select id="shape">
-                <option>ellipsoid</option>
+                <option value="cage">Freeform control cage</option>
+                <option selected>ellipsoid</option>
                 <option>box</option>
                 <option>cone</option>
                 <option>cylinder</option>
@@ -610,6 +611,30 @@
               ><button id="duplicate">Duplicate</button
               ><button id="mirror">Mirror</button
               ><button id="remove">Remove</button>
+            </div>
+            <div id="cage-tools" hidden>
+              <label class="field"
+                >Cage face<select id="cage-face"></select
+              ></label>
+              <div class="actions">
+                <button id="cage-inset">Inset face</button
+                ><button id="cage-extrude">Extrude face</button
+                ><button id="cage-crease">Toggle edge crease</button>
+              </div>
+              <label class="field"
+                >Tunnel through to<select id="cage-to"></select
+              ></label>
+              <button id="cage-tunnel">Open tunnel</button>
+              <label class="field"
+                >Move a corner<select id="cage-corner"></select
+              ></label>
+              <label class="field"
+                >Smoothing<select id="cage-level">
+                  <option value="0">Faceted</option>
+                  <option value="1">One subdivision</option>
+                  <option value="2">Two subdivisions</option>
+                </select></label
+              >
             </div>
             <button id="fit-hand" hidden>Fit fingers to this hand</button>
             <div id="grip-tools" hidden>

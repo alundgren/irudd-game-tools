@@ -1,3 +1,4 @@
+import { editCage } from "./control-cage.js";
 import { spineHandles } from "./spine-handles.js";
 import { acceptsDepth } from "./portrait-depth.js";
 import { reshapeSpine } from "./spine-edit.js";
@@ -179,6 +180,7 @@ let renderer,
   spinePreview,
   playback,
   direct = false,
+  cageFace = 0,
   knot = null;
 
 function button(label, handler) {
@@ -271,6 +273,7 @@ function selectTarget(id) {
   }
   target = id;
   knot = null;
+  cageFace = 0;
   request = null;
   if (
     (operation === "build" && id) ||
@@ -894,6 +897,33 @@ function bindControls() {
     }));
   $("#hair-roll").onclick = () =>
     editPart((p) => ({ ...p, groom: { ...p.groom, seed: newHairSeed() } }));
+  $("#cage-face").onchange = () => {
+    cageFace = Number($("#cage-face").value);
+    direct = true;
+    knot = null;
+    update();
+  };
+  $("#cage-corner").onchange = () => {
+    knot =
+      $("#cage-corner").value === "" ? null : Number($("#cage-corner").value);
+    direct = true;
+    update();
+  };
+  $("#cage-level").onchange = () =>
+    editPart((p) => ({
+      ...p,
+      cage: { ...p.cage, levels: Number($("#cage-level").value) },
+    }));
+  for (const kind of ["extrude", "inset", "crease", "tunnel"])
+    $("#cage-" + kind).onclick = () =>
+      editPart((p) => ({
+        ...p,
+        cage: editCage(p.cage, {
+          kind,
+          face: cageFace,
+          to: Number($("#cage-to").value),
+        }),
+      }));
   $("#fit-hand").onclick = () => {
     try {
       const preview = nudge(form, target, amounts),
@@ -920,6 +950,10 @@ function bindControls() {
         const next = action(nudge(form, target, amounts));
         validateForm(next.form);
         target = next.id;
+        if (next.form.parts.find((p) => p.id === target)?.shape === "cage") {
+          cageFace = 0;
+          direct = true;
+        }
         commit(next.form, "Created " + next.id + ".");
       } catch (e) {
         status(e.message);
@@ -1419,7 +1453,21 @@ function update() {
   $("#cancel-generation").hidden = !generationController;
   $("#save-turnaround").hidden = !proposal?.art;
   $("#save-map").hidden = !proposal?.art?.map;
-  $("#summary").textContent = proposal?.summary || "";
+  let proposalSummary = proposal?.summary ?? "";
+  if (proposal && !showCurrent) {
+    const existing = new Set(form.parts.map((p) => p.id)),
+      visible = new Set();
+    figure.traverseVisible((node) => {
+      if (node.userData.partId) visible.add(node.userData.partId);
+    });
+    const hidden = preview.parts
+      .filter((p) => !existing.has(p.id) && !visible.has(p.id))
+      .map((p) => p.id);
+    if (hidden.length)
+      proposalSummary +=
+        " Hidden in " + preview.outfit + ": " + hidden.join(", ") + ".";
+  }
+  $("#summary").textContent = proposalSummary;
   $("#compare").textContent = showCurrent ? "Show proposal" : "Show current";
   pressed($("#compare"), showCurrent);
   const list = $("#target");
@@ -1637,6 +1685,33 @@ function update() {
   $("#protected-list").hidden = !protectedIds.size;
   $("#fit-hand").hidden =
     locked || part?.shape !== "sweep" || part?.outfitRole !== "hand";
+  $("#cage-tools").hidden = part?.shape !== "cage" || locked;
+  if (!$("#cage-tools").hidden) {
+    const cage = part.cage;
+    cageFace = Math.min(cageFace, cage.faces.length - 1);
+    const selected = cage.faces[cageFace],
+      faceOptions = cage.faces.map((_, i) => new Option("Face " + (i + 1), i));
+    $("#cage-face").replaceChildren(...faceOptions);
+    $("#cage-face").value = cageFace;
+    const other = Array.from(cage.faces.entries()).filter(
+      ([i, face]) =>
+        i !== cageFace &&
+        face.length === selected.length &&
+        face.every((v) => !selected.includes(v)),
+    );
+    const chosen = $("#cage-to").value;
+    $("#cage-to").replaceChildren(
+      ...other.map(([i]) => new Option("Face " + (i + 1), i)),
+    );
+    if (other.some(([i]) => String(i) === chosen)) $("#cage-to").value = chosen;
+    $("#cage-tunnel").disabled = other.length === 0;
+    $("#cage-level").value = cage.levels ?? 1;
+    $("#cage-corner").replaceChildren(
+      new Option("Whole part", ""),
+      ...selected.map((i) => new Option("Corner " + (i + 1), i)),
+    );
+    $("#cage-corner").value = knot ?? "";
+  }
   $("#grip-tools").hidden = part?.shape !== "hand" || locked;
   if (!$("#grip-tools").hidden) {
     $("#finger-count").value = part.grip?.fingers ?? 4;
@@ -1677,6 +1752,7 @@ function update() {
       operation !== "spine" &&
       !locked,
     knot,
+    cageFace,
   );
   const hasBody = preview.parts.some(
     (p) => Object.hasOwn(anchors, p.shape) || p.outfitRole || p.visibleIn,
@@ -1807,6 +1883,11 @@ function setup() {
   });
   gizmo = manipulator(scene, camera, canvas, controls, {
     pick: selectTarget,
+    pickFace: (i) => {
+      cageFace = i;
+      knot = null;
+      update();
+    },
     finish: (p) => editPart(() => p),
     render,
   });

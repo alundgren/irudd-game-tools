@@ -90,7 +90,10 @@ function bounds(parts, world) {
     pnt = new Vector3();
   for (const p of parts) {
     const transform = world(p.id);
-    if (p.shape === "mantle") {
+    if (p.shape === "cage") {
+      for (const vertex of p.cage.vertices)
+        box.expandByPoint(pnt.fromArray(vertex).applyMatrix4(transform));
+    } else if (p.shape === "mantle") {
       const g = mantleGeometry(p.cut);
       box.union(g.boundingBox.applyMatrix4(transform));
       g.dispose();
