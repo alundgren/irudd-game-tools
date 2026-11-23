@@ -1,3 +1,4 @@
+import { armAccess } from "./mantle.js";
 import { cutGarment } from "./graft.js";
 import {
   fittedLayers,
@@ -54,6 +55,7 @@ export function wardrobeEditor({ getForm, getTarget, commit, status }) {
     if (!part?.cut) throw new Error("Select a cut garment.");
     const cut = {
       ...part.cut,
+      armAccess: $("cut-arms").value,
       drop: Number($("cut-drop").value) / 100,
       opening: Number($("cut-opening").value),
       flare: Number($("cut-flare").value) / 100,
@@ -91,6 +93,7 @@ export function wardrobeEditor({ getForm, getTarget, commit, status }) {
     if (p?.cut) {
       $("cut-drop").value = +(p.cut.drop * 100).toFixed(1);
       $("cut-opening").value = p.cut.opening;
+      $("cut-arms").value = armAccess(p.cut);
       $("cut-flare").value = Math.round(p.cut.flare * 100);
       $("cut-folds").value = p.cut.folds;
     }

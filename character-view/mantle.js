@@ -1,10 +1,18 @@
 import { BufferGeometry, Float32BufferAttribute, MathUtils } from "three";
 
 export const garmentCuts = ["Cape", "Poncho", "Tabard"];
+export const armAccessOptions = ["Covered", "Open sides", "Armholes"];
+export function armAccess(c) {
+  return (
+    c.armAccess ??
+    { Cape: "Covered", Tabard: "Open sides", Poncho: "Armholes" }[c.kind]
+  );
+}
 export function validCut(c) {
   return (
     c &&
     garmentCuts.includes(c.kind) &&
+    armAccessOptions.includes(armAccess(c)) &&
     ["width", "depth", "drop"].every(
       (k) => Number.isFinite(c[k]) && c[k] >= 0.025 && c[k] <= 8,
     ) &&
@@ -22,6 +30,7 @@ export function validCut(c) {
 // A single fabric panel wraps an open neckline. Two surfaces share sewn
 // boundaries around the hem, front opening and armholes.
 export function mantleGeometry(c) {
+  const arms = armAccess(c);
   const columns = 96,
     rows = 34,
     ring = columns + 1,
@@ -84,10 +93,14 @@ export function mantleGeometry(c) {
         half = ((c.opening * Math.PI) / 360) * (0.56 + 0.44 * t);
       const theta = half + u * (Math.PI * 2 - 2 * half),
         sideDistance = Math.abs(Math.cos(theta));
-      if (c.kind === "Tabard" && t > 0.27 && sideDistance < 0.4 + 0.13 * t)
+      if (
+        arms === "Open sides" &&
+        t > 0.14 &&
+        sideDistance < 0.76 * MathUtils.smoothstep(t, 0.14, 0.3) + 0.09 * t
+      )
         continue;
       if (
-        c.kind === "Poncho" &&
+        arms === "Armholes" &&
         ((t - 0.55) / 0.16) ** 2 + (sideDistance / 0.17) ** 2 < 1
       )
         continue;

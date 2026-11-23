@@ -1,3 +1,4 @@
+import { bindMantleArms } from "./mantle-rig.js";
 import { whiteVertexColors } from "./markings.js";
 import { bindFingers, weightFingers } from "./finger-rig.js";
 import * as T from "three";
@@ -38,6 +39,15 @@ export function inferRole(p) {
 }
 export function movementRoles(parts) {
   const roles = new Map(parts.map((p) => [p.id, inferRole(p)]));
+  for (const part of parts) {
+    if (
+      !part.motionRole &&
+      roles.get(part.id) === "rigid" &&
+      roles.get(part.parent) === "hand" &&
+      /finger|thumb|claw|talon|digit/i.test(part.id)
+    )
+      roles.set(part.id, "hand");
+  }
   for (const base of parts) {
     if (base.motionRole || !["upper arm", "rigid"].includes(roles.get(base.id)))
       continue;
@@ -319,6 +329,8 @@ export function skinCharacter(form, model) {
           blend[i * 4 + 3] = j * (1 - mix);
         }
       }
+      if (source === s.object)
+        bindMantleArms(s, regions, geometry, ids, blend, index, weights);
       if (s.fingers.has(source))
         weightFingers(s.fingers.get(source), ids, blend, index, s.bones[0]);
       geometry.setAttribute("skinIndex", new T.BufferAttribute(ids, 4));

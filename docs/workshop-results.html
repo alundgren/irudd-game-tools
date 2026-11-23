@@ -521,6 +521,86 @@
           >
         </p>
       </section>
+      <section class="method" id="garment-motion">
+        <h2>Can the wearer reach through a cape?</h2>
+        <figure>
+          <img
+            src="media/garment-motion.webp"
+            alt="Four poses of a researcher before and after fitting the cape and tabard around the arms. The revised cape lifts when the arms reach forwards."
+          />
+          <figcaption>
+            Top row shows the earlier export. Bottom row shows the same recipe
+            after fitting the panels around the arms and transferring some arm
+            movement to the cloth.
+          </figcaption>
+        </figure>
+        <p>
+          We intersected the actual triangles of the arms and fabric in the
+          exported game models at eight points in each of four animation loops.
+          The table reports the average total length of intersection curves in
+          metres per pose. Both sides of a sewn panel contribute to this figure.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Wearer and layer</th>
+              <th>Earlier export</th>
+              <th>Revised export</th>
+              <th>Revised poses clear of crossings</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Researcher in a cape and tabard</td>
+              <td>3.625 m</td>
+              <td>0.007 m</td>
+              <td>24 / 32</td>
+            </tr>
+            <tr>
+              <td>Broad pressure suit with poncho</td>
+              <td>4.362 m</td>
+              <td>0.010 m</td>
+              <td>31 / 32</td>
+            </tr>
+            <tr>
+              <td>Four-armed trader with covered cape</td>
+              <td>3.862 m</td>
+              <td>0.310 m</td>
+              <td>0 / 32</td>
+            </tr>
+          </tbody>
+        </table>
+        <figure>
+          <img
+            src="media/arm-access.webp"
+            alt="Standing and reaching views of a poncho over a broad pressure suit, a cape covering four arms and the same cape cut open at the sides."
+          />
+          <figcaption>
+            Left to right, a pressure-suit poncho, a covered four-arm cape and
+            the same cape with open sides. The models are individually framed.
+          </figcaption>
+        </figure>
+        <p>
+          The covered four-arm cape still bunches and crosses the arms at full
+          reach. Selecting open sides eliminated crossings at all 32 samples.
+          That choice reduced the cape’s two-sided fabric area from about 4.7 to
+          1.4 m². The artist can choose how much coverage the character needs.
+          These measurements cover arm intersections at sampled poses. Cloth-to-cloth contact and collisions between samples remain unmeasured.
+        </p>
+        <p>
+          <a href="../examples/pressure-poncho.form.json"
+            >Editable pressure poncho</a
+          >
+          ·
+          <a href="../examples/four-arm-cape.form.json"
+            >Editable four-arm cape</a
+          >
+          · <a href="media/garment-crossings.json">Per-pose measurements</a> ·
+          <a href="../scripts/measure-garments.py"
+            >Reproduce the measurements</a
+          >
+        </p>
+      </section>
       <section class="method" id="body-scale">
         <h2>Measure the wearer and the equipped silhouette</h2>
         <figure>

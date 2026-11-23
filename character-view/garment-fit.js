@@ -8,15 +8,21 @@ const directions = Array.from({ length: angles }, (_, i) => [
 ]);
 // A garment can contain many overlapping panels. Sample the covered body region in
 // its local frame, then ease any penetrating surface vertices outside the body.
-export function fitGarment(host, garment, innerLayers = []) {
+export function fitGarment(
+  host,
+  garment,
+  innerLayers = [],
+  limbs = [],
+  pairedPanel = false,
+) {
   host.updateWorldMatrix(true, true);
   const hostInverse = host.matrixWorld.clone().invert(),
     point = new Vector3();
   const cloud = [];
-  function collect(node, includeParts = false) {
+  function collect(node, includeParts = false, source = node) {
     if (
       !node.visible ||
-      (!includeParts && node !== host && node.userData.partId)
+      (!includeParts && node !== source && node.userData.partId)
     )
       return;
     if (node.isMesh) {
@@ -26,9 +32,10 @@ export function fitGarment(host, garment, innerLayers = []) {
       for (let i = 0; i < p.count; i += stride)
         cloud.push(new Vector3().fromBufferAttribute(p, i).applyMatrix4(m));
     }
-    for (const child of node.children) collect(child, includeParts);
+    for (const child of node.children) collect(child, includeParts, source);
   }
   collect(host);
+  for (const limb of limbs) collect(limb);
   for (const inner of innerLayers) collect(inner, true);
   if (!cloud.length) return;
   let low = Infinity,
@@ -88,7 +95,9 @@ export function fitGarment(host, garment, innerLayers = []) {
         mesh.matrixWorld,
       ),
       fromHost = toHost.clone().invert();
-    for (let i = 0; i < positions.count; i++) {
+    const count =
+      pairedPanel && mesh === garment ? positions.count / 2 : positions.count;
+    for (let i = 0; i < count; i++) {
       point.fromBufferAttribute(positions, i).applyMatrix4(toHost);
       if (point.y < low || point.y > high) continue;
       const f = ((point.y - low) / (high - low)) * (bins - 1),
@@ -120,6 +129,15 @@ export function fitGarment(host, garment, innerLayers = []) {
       point.x = x + ux * radius;
       point.z = z + uz * radius;
       point.applyMatrix4(fromHost);
+      if (count < positions.count) {
+        const k = i + count;
+        positions.setXYZ(
+          k,
+          positions.getX(k) + point.x - positions.getX(i),
+          positions.getY(k) + point.y - positions.getY(i),
+          positions.getZ(k) + point.z - positions.getZ(i),
+        );
+      }
       positions.setXYZ(i, point.x, point.y, point.z);
     }
     positions.needsUpdate = true;

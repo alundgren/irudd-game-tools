@@ -1,7 +1,7 @@
 import { cageGeometry } from "./control-cage.js";
 import { fitDepth } from "./depth-pins.js";
 import { separateHair, scalpMaterial, seatHair } from "./portrait-hair.js";
-import { mantleGeometry } from "./mantle.js";
+import { mantleGeometry, armAccess } from "./mantle.js";
 import { garmentOwners } from "./outfit-sets.js";
 import { paintMarkings } from "./markings.js";
 import { headSpace } from "./portrait-frame.js";
@@ -12,6 +12,7 @@ import { pullSurface } from "./surface-pull.js";
 import { groomGeometry } from "./groom.js";
 import { handGeometry } from "./hands.js";
 import { blendSkin } from "./blended-skin.js";
+import { movementRoles } from "./skin.js";
 import { fitGarment } from "./garment-fit.js";
 import { pleat, splitHem } from "./drapery.js";
 import { expeditionMaterial } from "./expedition.js";
@@ -754,10 +755,26 @@ export function createCharacter(form, silhouette, clay = false) {
         (form.layerStyles?.[a.id]?.order ?? 0) -
         (form.layerStyles?.[b.id]?.order ?? 0),
     );
+  const roles = fitted.some((p) => p.shape === "mantle")
+    ? movementRoles(form.parts)
+    : null;
   for (const p of fitted) {
     const inner = innerLayers.get(p.parent) ?? [],
       mesh = objects.get(p.id);
-    fitGarment(objects.get(p.parent), mesh, inner);
+    const host = objects.get(p.parent),
+      limbs = [];
+    if (p.shape === "mantle") {
+      host.traverseVisible((node) => {
+        const role = roles.get(node.userData.partId);
+        if (
+          ["thigh", "shin", "upper arm"].includes(role) ||
+          (armAccess(p.cut) !== "Open sides" &&
+            ["forearm", "hand"].includes(role))
+        )
+          limbs.push(node);
+      });
+    }
+    fitGarment(host, mesh, inner, limbs, p.shape === "mantle");
     inner.push(mesh);
     innerLayers.set(p.parent, inner);
   }
