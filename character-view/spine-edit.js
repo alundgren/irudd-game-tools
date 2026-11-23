@@ -1,5 +1,7 @@
 import { Vector3, Quaternion, Euler, CatmullRomCurve3, MathUtils } from "three";
 
+import { growPlateField, plateGrowthRest } from "./plate-growth.js";
+
 export const spineAxes = ["bow", "side bend", "extend", "tip girth"];
 const vector = (r) => new Vector3(r[0], r[1], r[2]);
 const curve = (rows) =>
@@ -111,16 +113,17 @@ export function reshapeSpine(form, id, knots) {
       rotation: [angles.x, angles.y, angles.z].map(MathUtils.radToDeg),
     };
   }
-  return {
+  const updated = {
     ...form,
     parts: form.parts.map((p) =>
       p.id === id
-        ? { ...p, knots }
-        : p.parent === id
+        ? { ...p, knots, ...(p.plateGrowth ? {plateGrowthRest:p.plateGrowthRest ?? plateGrowthRest(p)} : {}) }
+        : p.parent === id && !(old.plateGrowth && p.plateSite)
           ? { ...follow(p), ...(p.mount ? { mount: follow(p.mount) } : {}) }
           : p,
     ),
   };
+  return old.plateGrowth ? growPlateField(updated,id).form : updated;
 }
 export function bendKnots(old, amounts) {
   let rows = old;

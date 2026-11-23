@@ -9,6 +9,7 @@ import { editCage } from "./control-cage.js";
 import { spineHandles } from "./spine-handles.js";
 import { acceptsDepth } from "./portrait-depth.js";
 import { reshapeSpine } from "./spine-edit.js";
+import { plateGrowthEditor } from "./plate-growth-editor.js";
 import { fibreEditor } from "./fibre-editor.js";
 import { reusePaintEditor } from "./reuse-paint-editor.js";
 import { wardrobeEditor } from "./wardrobe-editor.js";
@@ -25,6 +26,7 @@ import {
 import { parseDecks, drawDecks, deckText } from "./choice-decks.js";
 import { groomDefaults } from "./groom.js";
 import * as T from "three";
+import { inspectGameExport, compareExportViews } from "./export-review.js";
 import { exportForm } from "./export-form.js";
 import { paintWithAgent } from "./art-variation.js";
 import { canBlend, bodyRegion } from "./blended-skin.js";
@@ -178,7 +180,16 @@ function restoreSessionState(saved) {
     status("The previous session could not be restored.");
   }
 }
-let generationController, updateWardrobe, updateFibres, updateReusePaint;
+let generationController,
+  updateWardrobe,
+  updateFibres,
+  updateReusePaint,
+  updatePlateGrowth;
+const inspectedProposals = new WeakMap();
+let exportReview = null,
+  inspecting = false,
+  compareExport = false,
+  shownReview = null;
 let reviewHistory = [],
   refineRequest = null,
   restoredReviewAtLink = false;
@@ -593,6 +604,12 @@ function bindControls() {
     commit,
     status,
   );
+  updatePlateGrowth = plateGrowthEditor({
+    current: () => nudge(form, target, amounts),
+    selected: () => target,
+    commit,
+    status,
+  });
   updateFibres = fibreEditor(
     () => nudge(form, target, amounts),
     commit,
@@ -1560,8 +1577,14 @@ function bindControls() {
   $("#agent-help").textContent = connected
     ? "Sends the current form, nudges and direction to your local Codex CLI."
     : "Give the exported JSON to your agent, then load its proposal here.";
+  $("#inspect-export").onclick = inspectProposal;
+  $("#export-review-compare").onclick = () => {
+    compareExport = !compareExport;
+    update();
+  };
   $("#refine-note").oninput = () => {
-    $("#refine-send").disabled = busy || !$("#refine-note").value.trim();
+    $("#refine-send").disabled =
+      busy || inspecting || (!exportReview && !$("#refine-note").value.trim());
     persist();
   };
   $("#refine-send").onclick = refineProposal;
@@ -1774,9 +1797,35 @@ async function receiveRefinement(raw, brief, parent) {
   refineRequest = null;
   $("#refine-note").value = "";
 }
+async function inspectProposal() {
+  const parent = proposal;
+  if (!parent || busy || inspecting) return;
+  inspecting = true;
+  update();
+  try {
+    status("Exporting and reloading the proposed game mesh...");
+    const previous = inspectedProposals.get(reviewHistory.at(-1));
+    const result = await inspectGameExport(candidateForm(), renderer, previous);
+    if (parent !== proposal) return;
+    inspectedProposals.set(parent, result);
+    compareExport = false;
+    status("Inspect the pose and silhouette, then refine the proposal.");
+  } catch (err) {
+    if (parent === proposal) status(err.message);
+  } finally {
+    inspecting = false;
+    update();
+    render();
+  }
+}
 async function refineProposal() {
-  const direction = $("#refine-note").value.trim(),
-    parent = proposal;
+  const parent = proposal,
+    review = parent && inspectedProposals.get(parent);
+  const direction =
+    $("#refine-note").value.trim() ||
+    (review
+      ? "Inspect the attached game-export views. Identify and correct one visible defect that matters to the original direction. Describe the defect and change in the summary. Preserve unrelated work. If no defect is visible, return an empty operations list."
+      : "");
   if (busy || !parent || !direction) return;
   try {
     // The accepted form stays available for comparison through every round.
@@ -1802,7 +1851,20 @@ async function refineProposal() {
     };
     brief.spatialGuide = spatialGuide(figure);
     if (surfaceMarks.length) brief.surfaceMarks = markTool.resolved();
-    const images = referenceViews();
+    let images = review?.views ?? referenceViews();
+    if (review) {
+      brief.refinement.exportReview = review.detail;
+      const preceding = inspectedProposals.get(reviewHistory.at(-1));
+      if (preceding) {
+        images = await compareExportViews(preceding.views, review.views);
+        if (parent !== proposal || busy) return;
+        brief.refinement.exportReview = {
+          ...review.detail,
+          previous: preceding.detail,
+          attachments: images.map((v) => v.name),
+        };
+      }
+    }
     refineRequest = brief;
     persist();
     if (!connected) {
@@ -1958,7 +2020,46 @@ function update() {
   $("#name").textContent = target ?? "Whole form";
   $("#look").textContent = preview.parts.length + " parts";
   $("#candidate").hidden = !proposal;
-  $("#refine-send").disabled = busy || !$("#refine-note").value.trim();
+  const inspection = proposal && inspectedProposals.get(proposal);
+  if (inspection !== exportReview) compareExport = false;
+  exportReview = inspection;
+  const earlier = inspectedProposals.get(reviewHistory.at(-1));
+  $("#inspect-export").disabled = busy || inspecting;
+  $("#inspect-export").hidden = Boolean(exportReview);
+  $("#export-review").hidden = !exportReview;
+  $("#export-review-compare").hidden = !earlier || !exportReview;
+  $("#export-review-compare").textContent = compareExport
+    ? "Show this export"
+    : "Show earlier export";
+  pressed($("#export-review-compare"), compareExport);
+  const shown = compareExport && earlier ? earlier : inspection;
+  if (shown !== shownReview) {
+    shownReview = shown;
+    const images = $("#export-review").querySelectorAll("img");
+    images.forEach((img, i) => {
+      if (shown) img.src = "data:image/jpeg;base64," + shown.views[i].jpeg;
+      else img.removeAttribute("src");
+    });
+    if (shown)
+      $("#export-review-caption").textContent =
+        (compareExport ? "Earlier proposal. " : "This proposal. ") +
+        shown.detail.triangles.toLocaleString() +
+        " triangles. Refinements use this proposal's own export.";
+    const change = shown?.detail.coverage?.changes[0];
+    if (change)
+      $("#export-review-caption").textContent +=
+        " In the " +
+        change.view +
+        " view, " +
+        change.pixels +
+        " of the 256 x 256 sampled pixels switched from " +
+        change.garment +
+        " to bare " +
+        change.body +
+        ".";
+  }
+  $("#refine-send").disabled =
+    busy || inspecting || (!exportReview && !$("#refine-note").value.trim());
   $("#refine-send").textContent = connected
     ? "Refine proposal"
     : "Export refinement request";
@@ -2346,6 +2447,7 @@ function update() {
     $("#finger-curl").value = (part.grip?.curl ?? 0.15) * 100;
     $("#finger-spread").value = (part.grip?.spread ?? 0.2) * 100;
   }
+  updatePlateGrowth?.(preview, part, locked);
   $("#repeat-tools").hidden = part?.shape !== "sweep" || locked;
   $("#paintpart").hidden = !part || Object.hasOwn(anchors, part.shape);
   if (!$("#paintpart").hidden) {

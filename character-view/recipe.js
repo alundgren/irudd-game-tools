@@ -12,6 +12,11 @@ import { validHairCap } from "./portrait-hair.js";
 import { validCut } from "./mantle.js";
 import { validLayerStyles, validOutfitSets } from "./outfit-sets.js";
 import { validMarkings, acceptsMarkings } from "./markings.js";
+import {
+  validPlateGrowth,
+  validPlateGrowthRest,
+  validPlateSite,
+} from "./plate-growth.js";
 import { validGroom } from "./groom.js";
 import {
   applyOperations,
@@ -524,6 +529,28 @@ export function validateForm(form) {
           validEyes(part.eyesRig),
         "Invalid articulated eye fit.",
       );
+    if (part.plateGrowth !== undefined)
+      requireThat(
+        part.shape === "sweep" && validPlateGrowth(part.plateGrowth),
+        "Invalid plate growth settings.",
+      );
+    if (part.plateGrowthRest !== undefined)
+      requireThat(
+        part.plateGrowth && validPlateGrowthRest(part.plateGrowthRest),
+        "Invalid plate carrier rest shape.",
+      );
+    if (part.hornSwatch !== undefined)
+      requireThat(
+        Number.isInteger(part.hornSwatch) &&
+          part.hornSwatch >= 0 &&
+          part.hornSwatch <= 3,
+        "Invalid horn material swatch.",
+      );
+    if (part.plateSite !== undefined)
+      requireThat(
+        part.shape === "cage" && part.parent && validPlateSite(part.plateSite),
+        "Invalid plate site.",
+      );
     if (part.groom !== undefined)
       requireThat(
         validGroom(part.groom) &&
@@ -708,6 +735,7 @@ export function validateForm(form) {
           "leather",
           "metal",
           "scales",
+          "horn",
           "jacket",
         ].includes(part.surface),
         "Unknown surface.",
@@ -721,7 +749,23 @@ export function validateForm(form) {
       );
     ids.add(part.id);
   }
+  const occupiedSites = new Set();
   for (const p of form.parts) {
+    if (p.plateSite) {
+      const field = form.parts.find(
+        (part) => part.id === p.parent,
+      )?.plateGrowth;
+      const { row, column } = p.plateSite;
+      const key = JSON.stringify([p.parent, row, column]);
+      requireThat(
+        field &&
+          row < field.rows &&
+          column < field.columns &&
+          !occupiedSites.has(key),
+        "Each grown plate needs its own site on its carrier.",
+      );
+      occupiedSites.add(key);
+    }
     const seen = new Set([p.id]);
     let parent = p.parent;
     while (parent !== undefined) {
@@ -773,6 +817,8 @@ export function makeBrief(
       requestId: "copy requestId",
       revision: "copy revision",
       summary: "one short description",
+      plateGrowth:
+        "Use {op:growPlateField,id,seed,tipSeed,face:Back,rows:6,columns:3} on a sweep. Seeds are unsigned 32-bit integers. Use the request variation seed for a new layout. Face may be Back, Front, Left, Right or Top. Rows 2-12, columns 1/3/5/7. Optional direction first or last points tips along the carrier. Start/end are fractions, wrap 20-165 degrees, overlap 0-.8, crest 0-1, color #rrggbb. On an existing field send only changed settings. Change tipSeed to reshape tips while retaining anchors, or seed to reroll the layout. Each plate is an editable cage. On a single plate ID send only tipSeed to pin its tip through field rerolls. A null tipSeed on that plate releases the pin. A carrier-only operation refits the field to edited knots. A horn surface accepts hornSwatch 0-3.",
       operations:
         "ordered edits against preview. Omit unchanged fields and parts. setPart: {op,id,set}, addPart: {op,part}, removePart: {op,id}, setForm: {op,set}. placeBranch: {op,id,parent,fromWorld:[point on source branch, optional; defaults to its pivot],toWorld:[destination point on parent],copy:true|false,scale:1,turn:[world X,Y,Z degrees]}. Match the chosen point on an existing branch to a point on the new parent, carrying attached regions and paint. Copies get the suffix ‘ copy’. For artist-marked locations use {op:placeAtMark,id,mark:exact mark name,copy:true|false,scale:1,turn:[x,y,z],depth:.008}. The mark supplies the destination parent and position. Omit fromWorld to seat the source pivot. Carry every attached part with it. placeComponent: {op,asset,id:target,mode:replace|replaceBranch|attach,fit:true|false,socket:above|below|front|back|left|right}. Use the library for high-detail painted features; replace preserves children. Use null to remove an optional field in setPart.",
     },

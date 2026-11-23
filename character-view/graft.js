@@ -403,6 +403,11 @@ export function extractComponent(form, id, includeChildren = true) {
       delete q.parent;
       delete q.mount;
       delete q.wearFit;
+      delete q.plateSite;
+      if (!includeChildren) {
+        delete q.plateGrowth;
+        delete q.plateGrowthRest;
+      }
     }
     return q;
   });
@@ -556,11 +561,15 @@ export function placeComponent(
   const pose = fields(g.mount(parent).invert().multiply(world));
   const childWorld = world.clone();
   if (root.frameSize) childWorld.scale(v(root.frameSize.map((x) => 1 / x)));
-  const preserved = retained.map((p) =>
-    mode === "replace" && p.parent === target
-      ? { ...p, ...fields(childWorld.clone().invert().multiply(g.world(p.id))) }
-      : p,
-  );
+  const preserved = retained.map((p) => {
+    if (mode !== "replace" || p.parent !== target) return p;
+    const child = {
+      ...p,
+      ...fields(childWorld.clone().invert().multiply(g.world(p.id))),
+    };
+    delete child.plateSite;
+    return child;
+  });
   const incoming = component.parts.map((p) => {
     const copy = structuredClone(p);
     copy.id = rename.get(p.id);
@@ -665,6 +674,8 @@ export function placeBranch(
         }
       : p,
   );
+  if (parent !== source.parent)
+    delete parts.find((p) => p.id === placed.id).plateSite;
   const result = { ...placed.form, parts };
   if (copy) {
     function copiedLayers(layers) {
@@ -853,15 +864,15 @@ export function fitHand(form, id, color = form.appearance.skin) {
     .multiply(local(hand))
     .scale(v(size.map((n) => 1 / n)));
   const inverse = mount.invert();
-  const parts = form.parts.map((existing) =>
-    existing === p
-      ? hand
-      : existing.parent === id
-        ? {
-            ...existing,
-            ...fields(inverse.clone().multiply(g.world(existing.id))),
-          }
-        : existing,
-  );
+  const parts = form.parts.map((existing) => {
+    if (existing === p) return hand;
+    if (existing.parent !== id) return existing;
+    const child = {
+      ...existing,
+      ...fields(inverse.clone().multiply(g.world(existing.id))),
+    };
+    delete child.plateSite;
+    return child;
+  });
   return retainPaintSources({ ...form, parts }, paintSources(form));
 }

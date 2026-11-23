@@ -1,3 +1,4 @@
+import { releaseGLTFScenes as release } from "../character-view/release-gltf.js";
 import { clipsForScene } from "./wardrobe-scenes.js";
 import { gazeNames, setGaze } from "../character-view/ocular.js";
 import * as T from "three";
@@ -187,28 +188,6 @@ function pose() {
     all.push(values);
   }
   return { box, all };
-}
-function release(groups) {
-  if (!groups) return;
-  const geometries = new Set(),
-    materials = new Set(),
-    textures = new Set(),
-    skeletons = new Set();
-  for (const group of groups)
-    group.traverse((o) => {
-      if (o.geometry) geometries.add(o.geometry);
-      if (o.skeleton) skeletons.add(o.skeleton);
-      for (const m of (Array.isArray(o.material)
-        ? o.material
-        : [o.material]
-      ).filter(Boolean)) {
-        materials.add(m);
-        for (const v of Object.values(m)) if (v?.isTexture) textures.add(v);
-      }
-    });
-  for (const v of [...geometries, ...materials, ...textures, ...skeletons])
-    v.dispose();
-  for (const group of groups) group.removeFromParent();
 }
 function selectClip() {
   mixer.stopAllAction();

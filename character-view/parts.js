@@ -70,10 +70,17 @@ export function copyBranch(form, id, mirror) {
     const copy = structuredClone(p);
     copy.id = ids.get(p.id);
     if (ids.has(p.parent)) copy.parent = ids.get(p.parent);
+    else delete copy.plateSite;
     if (mirror) {
       if (copy.cage) {
         for (const vertex of copy.cage.vertices) vertex[0] *= -1;
         for (const face of copy.cage.faces) face.reverse();
+      }
+      if (copy.plateGrowth) {
+        const growth = copy.plateGrowth;
+        growth.mirrored = !growth.mirrored;
+        if (growth.face === "Left") growth.face = "Right";
+        else if (growth.face === "Right") growth.face = "Left";
       }
       if (copy.hull) copy.hull.mirrored = !copy.hull.mirrored;
       if (copy.grip) copy.grip.side *= -1;

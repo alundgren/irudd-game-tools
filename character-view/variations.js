@@ -1,4 +1,5 @@
 import { buildFigure } from "./figure.js";
+import { growPlateField } from "./plate-growth.js";
 import { equipPlateRows } from "./scutes.js";
 import { cubeCage, editCage } from "./control-cage.js";
 import { validWorldMarks } from "./spatial-guide.js";
@@ -169,6 +170,7 @@ const allowedPartKeys = new Set([
   "parent",
   "color",
   "surface",
+  "hornSwatch",
   "knots",
   "paint",
   "mount",
@@ -262,6 +264,9 @@ export function applyOperations(
       case "bendElbow":
         form = bendElbow(form, id, action.degrees);
         break;
+      case "growPlateField":
+        form = growPlateField(form, id, action).form;
+        break;
       case "equipPlates":
         form = equipPlateRows(form, id, action).form;
         break;
@@ -307,6 +312,17 @@ export function applyOperations(
         {
           const old = form.parts[index],
             next = updateRecord(old, set, allowedPartKeys);
+          if (old.plateGrowth && next.shape !== "sweep") {
+            delete next.plateGrowth;
+            delete next.plateGrowthRest;
+            form.parts = form.parts.map((p) => {
+              if (p.parent !== id || !p.plateSite) return p;
+              const { plateSite, ...detached } = p;
+              return detached;
+            });
+          }
+          if (next.parent !== old.parent || next.shape !== "cage")
+            delete next.plateSite;
           form.parts[index] = withMetricFrame(
             next,
             metric && old.shape !== next.shape,
@@ -349,12 +365,19 @@ export function applyOperations(
   }
   return retainPaintSources(form, paintSources(preview));
 }
-export function compactForm(form) {
+export function compactForm(form, selectedId = null) {
   const { artwork, occluders, ...compact } = form;
   return {
     ...compact,
     parts: form.parts.map((p) => {
-      const { paint, mount, hairCap, ...out } = p;
+      const { paint, mount, hairCap, plateGrowthRest, ...out } = p;
+      if (p.plateSite && p.cage && p.id !== selectedId) {
+        out.cageSummary = {
+          vertices: p.cage.vertices.length,
+          faces: p.cage.faces.length,
+        };
+        delete out.cage;
+      }
       if (hairCap) out.hasRemovableSourceHair = true;
       if (paint) out.paintSource = paint.atlas;
       if (mount) out.fittedTo = p.parent;
@@ -405,10 +428,10 @@ export function agentDesign(brief) {
       partCount: parts.length,
       bounds,
     })),
-    preview: compactForm(preview),
+    preview: compactForm(preview, brief.nudge?.target),
     currentSummary: { outfit: current.outfit, parts: current.parts.length },
     geometryNote:
-      "Long painted sweeps show six sampled knots. Omit unchanged parts from operations to retain all detail. paintSource and fittedTo describe retained assets. Return operations against this exact request and revision.",
+      "Unselected grown plates show cage counts. Target an individual plate for its full lattice. Long painted sweeps show six sampled knots. Omit unchanged parts from operations to retain all detail. paintSource and fittedTo describe retained assets. Return operations against this exact request and revision.",
   };
 }
 function geometryFingerprint(part) {

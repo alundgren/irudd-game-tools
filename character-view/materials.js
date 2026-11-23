@@ -1,5 +1,6 @@
 import * as T from "three";
 import jacketUrl from "./work-jacket.webp";
+import hornUrl from "./horn-growth.atlas.webp";
 import swatchesUrl from "./surfaces.atlas.webp";
 
 const surfaces = new Map();
@@ -39,9 +40,26 @@ export async function loadSurfaces() {
     t.anisotropy = 4;
     surfaces.set(key, t);
   }
-  const [image, jacket] = await Promise.all(
-    [swatchesUrl, jacketUrl].map((url) => new T.ImageLoader().loadAsync(url)),
+  const [image, jacket, horn] = await Promise.all(
+    [swatchesUrl, jacketUrl, hornUrl].map((url) => new T.ImageLoader().loadAsync(url)),
   );
+  // Keep the intrinsic value variation while allowing every site to be tinted.
+  const hornCanvas = document.createElement("canvas");
+  hornCanvas.width = horn.width;
+  hornCanvas.height = horn.height;
+  const hornContext = hornCanvas.getContext("2d", { willReadFrequently: true });
+  hornContext.drawImage(horn, 0, 0);
+  const hornData = hornContext.getImageData(0, 0, horn.width, horn.height);
+  for (let i = 0; i < hornData.data.length; i += 4) {
+    const value = .2126 * hornData.data[i] + .7152 * hornData.data[i+1] + .0722 * hornData.data[i+2];
+    for (let j=0;j<3;j++) hornData.data[i+j]=Math.min(255,28+.92*value+.26*(hornData.data[i+j]-value));
+  }
+  hornContext.putImageData(hornData, 0, 0);
+  const hornMap = new T.CanvasTexture(hornCanvas);
+  hornMap.name = "Keratin growth rings";
+  hornMap.colorSpace = T.SRGBColorSpace;
+  hornMap.anisotropy = 4;
+  surfaces.set("horn", hornMap);
   for (const [index, name] of [
     "canvas",
     "leather",

@@ -1,6 +1,7 @@
 import { fitSurfaceJoins } from "./surface-join.js";
 import { attachEyes } from "./ocular.js";
 import { cageGeometry } from "./control-cage.js";
+import { finishPlateSurface } from "./plate-growth.js";
 import { fitDepth } from "./depth-pins.js";
 import { separateHair, scalpMaterial, seatHair } from "./portrait-hair.js";
 import { mantleGeometry, armAccess } from "./mantle.js";
@@ -652,6 +653,8 @@ export function createCharacter(
             object.material.userData.foldedCloth = true;
         } else geometry.deleteAttribute("color");
       }
+      if (part.shape === "cage" && part.surface === "horn" && !plainView)
+        finishPlateSurface(object, part, material);
       if (geometry.handRig) object.handRig = geometry.handRig;
       if (coat && fit.suit && !plainView) {
         const textile = expeditionMaterial(

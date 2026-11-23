@@ -1,6 +1,7 @@
 import * as T from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { TransformControls } from "three/addons/controls/TransformControls.js";
+import { wristReach } from "./wrist-reach.js";
 import { skinCharacter } from "./skin.js";
 import { applyJointPose, captureJoints, validPoses } from "./poses.js";
 const $ = (id) => document.getElementById(id);
@@ -26,6 +27,10 @@ export function poseEditor(current, save) {
     entries = [],
     history = [],
     dragStart = null;
+  const wristTarget = new T.Object3D();
+  scene.add(wristTarget);
+  let reach,
+    pickingSurface = false;
   const markerMat = new T.PointsMaterial({
     color: 0x387c6f,
     size: 7,
@@ -76,9 +81,97 @@ export function poseEditor(current, save) {
     selected = rig.bindings.get(value);
     if (!selected) return;
     $("pose-joint").value = value;
-    if ($("pose-dots").checked) tool.attach(selected.bone);
+    reach = selected.address.digit
+      ? null
+      : wristReach(
+          base.parts,
+          rig.bindings,
+          selected.address.part,
+          rig.regions,
+        );
+    $("pose-reach-mode").disabled = !reach;
+    if (!reach && $("pose-mode").value === "reach")
+      $("pose-mode").value = "rotate";
+    const mode = $("pose-mode").value,
+      guiding = mode === "reach";
+    $("pose-reach-controls").hidden = !guiding;
+    $("pose-elbow-direction").value = "original";
+    $("pose-elbow-turn").value = 0;
+    pickingSurface = false;
+    $("pose-reach-surface").setAttribute("aria-pressed", "false");
+    const unit = mode === "rotate" ? "Step in degrees" : "Step in metres";
+    if ($("pose-unit").textContent !== unit) {
+      $("pose-unit").textContent = unit;
+      Object.assign(
+        $("pose-step"),
+        mode === "rotate"
+          ? { value: "15", min: ".1", max: "180" }
+          : { value: ".025", min: ".001", max: "3" },
+      );
+    }
+    tool.setMode(mode === "rotate" ? "rotate" : "translate");
+    tool.setSpace(guiding ? "world" : "local");
+    if (guiding) wristTarget.position.copy(reach.initial);
+    if ($("pose-dots").checked)
+      tool.attach(guiding ? wristTarget : selected.bone);
     else tool.detach();
     render();
+  }
+  function guideWrist() {
+    if (!reach) return;
+    const roll = $("pose-elbow-turn").valueAsNumber;
+    const directions = {
+      down: [0, -1, 0],
+      left: [1, 0, 0],
+      right: [-1, 0, 0],
+      back: [0, 0, -1],
+    };
+    const choice = $("pose-elbow-direction").value;
+    const direction = directions[choice];
+    const miss = reach.solve(
+      wristTarget.position,
+      Number.isFinite(roll) ? T.MathUtils.clamp(roll, -180, 180) : 0,
+      choice === "clear"
+        ? "clear"
+        : direction
+          ? new T.Vector3(...direction)
+          : null,
+    );
+    note(
+      miss > 0.001
+        ? "At full reach, " + (miss * 100).toFixed(1) + " cm from the target."
+        : "Wrist reached the target. The hand kept its orientation.",
+    );
+    render();
+  }
+  function pickSurface(event) {
+    const rect = canvas.getBoundingClientRect(),
+      ray = new T.Raycaster();
+    ray.setFromCamera(
+      new T.Vector2(
+        ((event.clientX - rect.left) * 2) / rect.width - 1,
+        1 - ((event.clientY - rect.top) * 2) / rect.height,
+      ),
+      camera,
+    );
+    const meshes = rig.actor.children.filter((o) => o.isMesh);
+    for (const mesh of meshes)
+      if (mesh.isSkinnedMesh) {
+        mesh.computeBoundingSphere();
+        if (mesh.boundingBox) mesh.computeBoundingBox();
+      }
+    const hit = ray.intersectObjects(meshes, false)[0];
+    if (!hit) {
+      note("Choose a point on the character surface.");
+      return;
+    }
+    edit(() => {
+      wristTarget.position.copy(hit.point);
+      guideWrist();
+    });
+    pickingSurface = false;
+    $("pose-reach-surface").setAttribute("aria-pressed", "false");
+    if ($("pose-dots").checked) tool.attach(wristTarget);
   }
   function snapshot() {
     return captureJoints(rig.bindings, start.joints);
@@ -123,6 +216,9 @@ export function poseEditor(current, save) {
     tool.setSize(0.63);
     scene.add(tool.getHelper());
     tool.addEventListener("change", render);
+    tool.addEventListener("objectChange", () => {
+      if ($("pose-mode").value === "reach") guideWrist();
+    });
     tool.addEventListener("dragging-changed", (e) => {
       orbit.enabled = !e.value;
       if (e.value) {
@@ -143,8 +239,10 @@ export function poseEditor(current, save) {
         down &&
         !dragged &&
         Math.hypot(e.clientX - down[0], e.clientY - down[1]) < 4
-      )
-        pick(e);
+      ) {
+        if (pickingSurface) pickSurface(e);
+        else pick(e);
+      }
       down = null;
     });
     new ResizeObserver(sizeView).observe(stage);
@@ -167,6 +265,8 @@ export function poseEditor(current, save) {
       old.dispose();
     }
     selected = null;
+    reach = null;
+    pickingSurface = false;
     history = [];
     entries = [];
     start?.resume?.();
@@ -225,7 +325,6 @@ export function poseEditor(current, save) {
       camera.far = Math.max(200, span * 10);
       orbit.target.copy(center);
       orbit.update();
-      tool.setMode($("pose-mode").value);
       choose(
         (entries.find(([, b]) => b.address.part === source.target) ??
           entries.find(([, b]) => b.address.part) ??
@@ -241,17 +340,20 @@ export function poseEditor(current, save) {
   $("pose-cancel").onclick = () => dialog.close();
   $("pose-joint").onchange = (e) => choose(e.target.value);
   $("pose-dots").onchange = () => choose($("pose-joint").value);
-  $("pose-mode").onchange = (e) => {
-    const rotate = e.target.value === "rotate";
-    tool.setMode(e.target.value);
-    $("pose-unit").textContent = rotate ? "Step in degrees" : "Step in metres";
-    Object.assign($("pose-step"), {
-      value: rotate ? "15" : ".025",
-      min: rotate ? ".1" : ".001",
-      max: rotate ? "180" : "3",
-    });
-    render();
+  $("pose-mode").onchange = () => choose($("pose-joint").value);
+  $("pose-reach-surface").onclick = () => {
+    pickingSurface = !pickingSurface;
+    $("pose-reach-surface").setAttribute(
+      "aria-pressed",
+      String(pickingSurface),
+    );
+    if (pickingSurface) {
+      tool.detach();
+      note("Click a point on the posed surface for this wrist.");
+    } else if ($("pose-dots").checked) tool.attach(wristTarget);
   };
+  $("pose-elbow-turn").onchange = () => edit(guideWrist);
+  $("pose-elbow-direction").onchange = () => edit(guideWrist);
   $("pose-front").onclick = () => {
     camera.position
       .copy(center)
@@ -271,20 +373,28 @@ export function poseEditor(current, save) {
       axis[$("pose-axis").value.toLowerCase()] = 1;
       const amount = sign * Number(step.value);
       edit(() => {
-        if (tool.getMode() === "rotate")
+        if ($("pose-mode").value === "reach") {
+          wristTarget.position.addScaledVector(axis, amount);
+          guideWrist();
+        } else if (tool.getMode() === "rotate")
           selected.bone.rotateOnAxis(axis, T.MathUtils.degToRad(amount));
         else selected.bone.translateOnAxis(axis, amount);
       });
     };
   }
-  $("pose-reset").onclick = () =>
+  $("pose-reset").onclick = () => {
     edit(() => {
       selected.bone.position.copy(selected.position);
       selected.bone.quaternion.copy(selected.rotation);
     });
+    choose($("pose-joint").value);
+  };
   $("pose-undo").onclick = () => {
     const before = history.pop();
-    if (before) applyJointPose(rig.bindings, before);
+    if (before) {
+      applyJointPose(rig.bindings, before);
+      choose($("pose-joint").value);
+    }
     $("pose-undo").disabled = !history.length;
     render();
   };
