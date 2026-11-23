@@ -658,7 +658,8 @@ export function buildFigure(raw = {}) {
     const gusset = [
       [crotch - 0.046 * k, seamW * 0.1, 0.034 * k, -0.008 * k],
       [crotch - 0.034 * k, seamW * 0.26, 0.058 * k, -0.008 * k],
-      [crotch - 0.014 * k, seamW * 0.48, 0.07 * k, -0.008 * k],
+      [crotch - 0.018 * k, seamW * 0.5, 0.076 * k, -0.007 * k],
+      [crotch - 0.006 * k, seamW * 0.78, 0.092 * k, -0.006 * k],
     ];
     const seat = fitted(
       [

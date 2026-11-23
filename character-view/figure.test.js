@@ -6,7 +6,15 @@ import { validateForm } from "./recipe.js";
 import { applyOperations } from "./variations.js";
 import { fitWardrobe } from "./wardrobe.js";
 import { randomStream } from "./random.js";
-import { BoxGeometry, Group, MathUtils, Mesh } from "three";
+import {
+  BoxGeometry,
+  DoubleSide,
+  Group,
+  MathUtils,
+  Mesh,
+  MeshBasicMaterial,
+  Raycaster,
+} from "three";
 import { sweepGeometry } from "./surface.js";
 import { skinCharacter } from "./skin.js";
 
@@ -165,24 +173,43 @@ test("reach turns the elbow about the forearm pivot", () => {
 });
 
 test("trousers and shorts cover the body between the legs", () => {
-  const draw = randomStream(11);
+  const draw = randomStream(11),
+    ray = new Raycaster();
   for (let n = 0; n < 24; n++) {
     const figure = randomFigure(draw);
     figure.bottom.kind = n % 2 ? "shorts" : "trousers";
     const form = buildFigure(figure),
-      body = form.parts.find((p) => p.id === "body").knots,
-      seat = form.parts.find((p) => p.id === "trouser seat").knots;
-    for (const [, y, z, , depth] of body) {
-      const i = seat.findIndex((row) => row[1] > y);
-      if (i < 1) continue;
-      const a = seat[i - 1],
-        b = seat[i],
-        t = (y - a[1]) / (b[1] - a[1]);
-      const centre = a[2] + (b[2] - a[2]) * t,
-        cover = a[4] + (b[4] - a[4]) * t;
-      assert.ok(centre + cover > z + depth, `front at ${y.toFixed(3)}`);
-      assert.ok(centre - cover < z - depth, `back at ${y.toFixed(3)}`);
+      scene = new Group();
+    for (const p of form.parts) {
+      if (
+        !/^(body|trouser seat|(left|right) (trouser thigh|short leg))$/.test(
+          p.id,
+        )
+      )
+        continue;
+      const mesh = new Mesh(
+        sweepGeometry(p.knots),
+        new MeshBasicMaterial({ side: DoubleSide }),
+      );
+      mesh.position.copy(world(form, p.id));
+      mesh.name = p.id;
+      scene.add(mesh);
     }
+    scene.updateMatrixWorld(true);
+    const body = form.parts.find((p) => p.id === "body"),
+      k = figure.height / 1.72,
+      low = body.position[1] + body.knots[0][1];
+    for (const toward of [1, -1])
+      for (let y = low + 0.002 * k; y < low + 0.1 * k; y += 0.006 * k)
+        for (const x of [-0.02 * k, 0, 0.02 * k]) {
+          ray.set(new Vector3(x, y, -2 * toward), new Vector3(0, 0, toward));
+          const hit = ray.intersectObjects(scene.children)[0];
+          assert.notEqual(
+            hit?.object.name,
+            "body",
+            `figure ${n} ${toward > 0 ? "back" : "front"} at ${(y - low).toFixed(3)}`,
+          );
+        }
   }
 });
 
