@@ -1,0 +1,967 @@
+{
+ "reference": {
+  "title": "Jim Thorpe at the 1912 Summer Olympics",
+  "source": "https://commons.wikimedia.org/wiki/File:Jim_Thorpe,_1912_Summer_Olympics.jpg",
+  "license": "Public domain (Agence Rol, 1912, Bibliothèque nationale de France)",
+  "use": "Viewed only after the code was committed. A reduced copy appears in figure-heldout-shorts.webp."
+ },
+ "frozenCommit": "a8b23d8",
+ "protocol": "Offline request/proposal exchange in dist/character-view.html. Each attempt is a complete proposal against a fresh request: one first attempt and three revisions. No code changed between attempts. The pose quaternions were solved outside the editor from the figure's own joint positions (two-bone reach to the hip) and travel as plain setForm.poses data.",
+ "attempts": [
+  {
+   "summary": "Broad athletic man in a loose white tee and shorts with his hands on his hips.",
+   "operations": [
+    {
+     "op": "buildFigure",
+     "figure": {
+      "height": 1.85,
+      "heads": 7.6,
+      "shoulders": 1.12,
+      "chest": 1.12,
+      "waist": 1,
+      "hips": 1,
+      "limbs": 1.18,
+      "legs": 1,
+      "neck": 1.2,
+      "skin": "#b98566",
+      "face": 0,
+      "hair": "Crop",
+      "hairColor": "#241d1a",
+      "groom": {
+       "pattern": "Side part",
+       "length": 0.14,
+       "curl": 0.15,
+       "volume": 0.45,
+       "sweep": 0.4,
+       "seed": 4
+      },
+      "stance": {
+       "arms": 14,
+       "elbows": 12,
+       "feet": 1.3,
+       "curl": 0.3
+      },
+      "top": {
+       "kind": "tee",
+       "sleeves": "short",
+       "color": "#e9e6dc",
+       "trim": "#e9e6dc",
+       "ease": 0.45,
+       "length": 0
+      },
+      "bottom": {
+       "kind": "shorts",
+       "color": "#e4e0d4",
+       "ease": 0.6,
+       "belt": "#d8d3c4",
+       "rise": 0.55
+      },
+      "shoes": {
+       "kind": "sneakers",
+       "color": "#3a2e26",
+       "sole": "#2a221c"
+      }
+     }
+    },
+    {
+     "op": "setForm",
+     "set": {
+      "poses": [
+       {
+        "name": "Hands on hips",
+        "joints": [
+         {
+          "part": "left upper arm",
+          "station": 0,
+          "turn": [
+           0.09364,
+           0.017527,
+           0.188248,
+           0.97749
+          ]
+         },
+         {
+          "part": "left forearm",
+          "station": 0,
+          "turn": [
+           -0.271011,
+           -0.174814,
+           -0.586587,
+           0.742906
+          ]
+         },
+         {
+          "part": "right upper arm",
+          "station": 0,
+          "turn": [
+           0.09364,
+           -0.017527,
+           -0.188248,
+           0.97749
+          ]
+         },
+         {
+          "part": "right forearm",
+          "station": 0,
+          "turn": [
+           -0.271011,
+           0.174814,
+           0.586587,
+           0.742906
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "op": "addPart",
+     "part": {
+      "id": "chest badge",
+      "shape": "ellipsoid",
+      "parent": "body",
+      "position": [
+       0,
+       0.4,
+       0.143
+      ],
+      "size": [
+       0.085,
+       0.1,
+       0.016
+      ],
+      "color": "#27304f",
+      "surface": "canvas",
+      "motionRole": "rigid",
+      "visibleIn": [
+       "Work clothes"
+      ]
+     }
+    }
+   ],
+   "observed": "Arms, elbows and the saved pose read correctly. Limbs too thin for the athlete, herringbone weave instead of cotton, hair sits on the crown like a cap, shorts show a wedge between the legs."
+  },
+  {
+   "summary": "Revision 1: heavier athletic limbs, larger head, plain cotton, closer hair, shield badge.",
+   "operations": [
+    {
+     "op": "buildFigure",
+     "figure": {
+      "height": 1.85,
+      "heads": 7,
+      "shoulders": 1.18,
+      "chest": 1.2,
+      "waist": 1,
+      "hips": 1.08,
+      "limbs": 1.42,
+      "legs": 0.97,
+      "neck": 1.3,
+      "skin": "#b98566",
+      "face": 0,
+      "hair": "Crop",
+      "hairColor": "#241d1a",
+      "groom": {
+       "pattern": "Side part",
+       "length": 0.09,
+       "curl": 0.1,
+       "volume": 0.12,
+       "sweep": 0.6,
+       "seed": 4
+      },
+      "stance": {
+       "arms": 14,
+       "elbows": 12,
+       "feet": 1.3,
+       "curl": 0.3
+      },
+      "top": {
+       "kind": "tee",
+       "sleeves": "short",
+       "color": "#e9e6dc",
+       "trim": "#e9e6dc",
+       "ease": 0.45,
+       "length": 0
+      },
+      "bottom": {
+       "kind": "shorts",
+       "color": "#e4e0d4",
+       "ease": 0.25,
+       "belt": "#e4e0d4",
+       "rise": 0.55
+      },
+      "shoes": {
+       "kind": "sneakers",
+       "color": "#3a2e26",
+       "sole": "#2a221c"
+      },
+      "arms": 1
+     }
+    },
+    {
+     "op": "setForm",
+     "set": {
+      "poses": [
+       {
+        "name": "Hands on hips",
+        "joints": [
+         {
+          "part": "left upper arm",
+          "station": 0,
+          "turn": [
+           0.093921,
+           0.017518,
+           0.190802,
+           0.976968
+          ]
+         },
+         {
+          "part": "left forearm",
+          "station": 0,
+          "turn": [
+           -0.271872,
+           -0.174957,
+           -0.586539,
+           0.742595
+          ]
+         },
+         {
+          "part": "right upper arm",
+          "station": 0,
+          "turn": [
+           0.093921,
+           -0.017518,
+           -0.190802,
+           0.976968
+          ]
+         },
+         {
+          "part": "right forearm",
+          "station": 0,
+          "turn": [
+           -0.271872,
+           0.174957,
+           0.586539,
+           0.742595
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "op": "addPart",
+     "part": {
+      "id": "chest badge",
+      "shape": "scute",
+      "parent": "body",
+      "position": [
+       0,
+       0.4,
+       0.15
+      ],
+      "size": [
+       0.09,
+       0.11,
+       0.02
+      ],
+      "color": "#27304f",
+      "surface": "canvas",
+      "motionRole": "rigid",
+      "visibleIn": [
+       "Work clothes"
+      ]
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "shirt body",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "left sleeve",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "right sleeve",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "collar",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "trouser seat",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "left short leg",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "right short leg",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "belt",
+     "set": {
+      "surface": "plain"
+     }
+    }
+   ],
+   "observed": "Heavier limbs and plain cloth are closer. The seat shows a boxed panel between the legs, the sleeve caps stand proud of the shoulders and the hair still ends above the ears."
+  },
+  {
+   "summary": "Revision 2: looser shorts, closer sleeves, tousled short hair, broader jaw.",
+   "operations": [
+    {
+     "op": "buildFigure",
+     "figure": {
+      "height": 1.85,
+      "heads": 7,
+      "shoulders": 1.12,
+      "chest": 1.2,
+      "waist": 1,
+      "hips": 1.08,
+      "limbs": 1.42,
+      "legs": 0.97,
+      "neck": 1.3,
+      "skin": "#b98566",
+      "face": 0,
+      "hair": "Crop",
+      "hairColor": "#241d1a",
+      "groom": {
+       "pattern": "Locks",
+       "length": 0.12,
+       "curl": 0.3,
+       "volume": 0.3,
+       "sweep": 0.3,
+       "seed": 7
+      },
+      "stance": {
+       "arms": 14,
+       "elbows": 12,
+       "feet": 1.3,
+       "curl": 0.3
+      },
+      "top": {
+       "kind": "tee",
+       "sleeves": "short",
+       "color": "#e9e6dc",
+       "trim": "#e9e6dc",
+       "ease": 0.2,
+       "length": 0
+      },
+      "bottom": {
+       "kind": "shorts",
+       "color": "#e4e0d4",
+       "ease": 0.6,
+       "belt": "#e4e0d4",
+       "rise": 0.55
+      },
+      "shoes": {
+       "kind": "sneakers",
+       "color": "#3a2e26",
+       "sole": "#2a221c"
+      },
+      "arms": 1
+     }
+    },
+    {
+     "op": "setForm",
+     "set": {
+      "poses": [
+       {
+        "name": "Hands on hips",
+        "joints": [
+         {
+          "part": "left upper arm",
+          "station": 0,
+          "turn": [
+           0.095298,
+           0.017421,
+           0.20504,
+           0.973947
+          ]
+         },
+         {
+          "part": "left forearm",
+          "station": 0,
+          "turn": [
+           -0.275576,
+           -0.175204,
+           -0.584632,
+           0.742675
+          ]
+         },
+         {
+          "part": "right upper arm",
+          "station": 0,
+          "turn": [
+           0.095298,
+           -0.017421,
+           -0.20504,
+           0.973947
+          ]
+         },
+         {
+          "part": "right forearm",
+          "station": 0,
+          "turn": [
+           -0.275576,
+           0.175204,
+           0.584632,
+           0.742675
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "op": "addPart",
+     "part": {
+      "id": "chest badge",
+      "shape": "scute",
+      "parent": "body",
+      "position": [
+       0,
+       0.4,
+       0.15
+      ],
+      "size": [
+       0.09,
+       0.11,
+       0.02
+      ],
+      "color": "#27304f",
+      "surface": "canvas",
+      "motionRole": "rigid",
+      "visibleIn": [
+       "Work clothes"
+      ]
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "shirt body",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "left sleeve",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "right sleeve",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "collar",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "trouser seat",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "left short leg",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "right short leg",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "belt",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "head",
+     "set": {
+      "sculpt": {
+       "jaw": 1.3,
+       "cheek": 1.2,
+       "chin": 1.1,
+       "brow": 1.15,
+       "nose": 1.1
+      }
+     }
+    }
+   ],
+   "observed": "Broader jaw helps the face. Looser shorts balloon at the hip and the Locks groom becomes a bowl cut."
+  },
+  {
+   "summary": "Revision 3: leaner limbs under closer shorts and sleeves, swept side-parted hair.",
+   "operations": [
+    {
+     "op": "buildFigure",
+     "figure": {
+      "height": 1.85,
+      "heads": 7,
+      "shoulders": 1.12,
+      "chest": 1.2,
+      "waist": 1,
+      "hips": 1.12,
+      "limbs": 1.25,
+      "legs": 0.97,
+      "neck": 1.3,
+      "skin": "#b98566",
+      "face": 0,
+      "hair": "Crop",
+      "hairColor": "#241d1a",
+      "groom": {
+       "pattern": "Side part",
+       "length": 0.12,
+       "curl": 0.35,
+       "volume": 0.3,
+       "sweep": 0.25,
+       "seed": 4
+      },
+      "stance": {
+       "arms": 14,
+       "elbows": 12,
+       "feet": 1.3,
+       "curl": 0.3
+      },
+      "top": {
+       "kind": "tee",
+       "sleeves": "short",
+       "color": "#e9e6dc",
+       "trim": "#e9e6dc",
+       "ease": 0.1,
+       "length": 0
+      },
+      "bottom": {
+       "kind": "shorts",
+       "color": "#e4e0d4",
+       "ease": 0.4,
+       "belt": "#e4e0d4",
+       "rise": 0.55
+      },
+      "shoes": {
+       "kind": "sneakers",
+       "color": "#3a2e26",
+       "sole": "#2a221c"
+      },
+      "arms": 1
+     }
+    },
+    {
+     "op": "setForm",
+     "set": {
+      "poses": [
+       {
+        "name": "Hands on hips",
+        "joints": [
+         {
+          "part": "left upper arm",
+          "station": 0,
+          "turn": [
+           0.096114,
+           0.017373,
+           0.213153,
+           0.972125
+          ]
+         },
+         {
+          "part": "left forearm",
+          "station": 0,
+          "turn": [
+           -0.277619,
+           -0.175268,
+           -0.583246,
+           0.742989
+          ]
+         },
+         {
+          "part": "right upper arm",
+          "station": 0,
+          "turn": [
+           0.096114,
+           -0.017373,
+           -0.213153,
+           0.972125
+          ]
+         },
+         {
+          "part": "right forearm",
+          "station": 0,
+          "turn": [
+           -0.277619,
+           0.175268,
+           0.583246,
+           0.742989
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "op": "addPart",
+     "part": {
+      "id": "chest badge",
+      "shape": "scute",
+      "parent": "body",
+      "position": [
+       0,
+       0.4,
+       0.15
+      ],
+      "size": [
+       0.09,
+       0.11,
+       0.02
+      ],
+      "color": "#27304f",
+      "surface": "canvas",
+      "motionRole": "rigid",
+      "visibleIn": [
+       "Work clothes"
+      ]
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "shirt body",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "left sleeve",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "right sleeve",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "collar",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "trouser seat",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "left short leg",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "right short leg",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "belt",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "head",
+     "set": {
+      "sculpt": {
+       "jaw": 1.3,
+       "cheek": 1.2,
+       "chin": 1.1,
+       "brow": 1.15,
+       "nose": 1.1
+      }
+     }
+    }
+   ],
+   "observed": "Kept result. Shoulders, elbows and hands hold up in rest, Reach and the saved pose. The shorts panel, sleeve caps, cap-like hair, slipper-like shoes and tube-like calves remain. The face is one of four stock faces and is not a likeness."
+  }
+ ],
+ "recognition": "Without the chest badge the result reads as a stocky man in white sportswear, not as the person in the photograph. Build, clothing and stance carry over. Face and hair do not.",
+ "afterTheRun": {
+  "commit": "8aaec68",
+  "changes": [
+   "The trouser seat loses depth toward the crotch seam while still covering the body, so shorts close in a crease.",
+   "The shoulder joint moves in by the arm radius, so heavier arms fill the shoulder line.",
+   "A groom accepts nape (0 to 1) to carry a cropped cut down the back of the head."
+  ],
+  "replay": {
+   "summary": "Replay after the held-out run: same request with the new nape control.",
+   "operations": [
+    {
+     "op": "buildFigure",
+     "figure": {
+      "height": 1.85,
+      "heads": 7,
+      "shoulders": 1.12,
+      "chest": 1.2,
+      "waist": 1,
+      "hips": 1.12,
+      "limbs": 1.25,
+      "legs": 0.97,
+      "neck": 1.3,
+      "skin": "#b98566",
+      "face": 0,
+      "hair": "Crop",
+      "hairColor": "#241d1a",
+      "groom": {
+       "pattern": "Side part",
+       "length": 0.06,
+       "curl": 0.35,
+       "volume": 0.1,
+       "sweep": 0.25,
+       "nape": 1,
+       "seed": 4
+      },
+      "stance": {
+       "arms": 14,
+       "elbows": 12,
+       "feet": 1.3,
+       "curl": 0.3
+      },
+      "top": {
+       "kind": "tee",
+       "sleeves": "short",
+       "color": "#e9e6dc",
+       "trim": "#e9e6dc",
+       "ease": 0.1,
+       "length": 0
+      },
+      "bottom": {
+       "kind": "shorts",
+       "color": "#e4e0d4",
+       "ease": 0.4,
+       "belt": "#e4e0d4",
+       "rise": 0.55
+      },
+      "shoes": {
+       "kind": "sneakers",
+       "color": "#3a2e26",
+       "sole": "#2a221c"
+      },
+      "arms": 1
+     }
+    },
+    {
+     "op": "setForm",
+     "set": {
+      "poses": [
+       {
+        "name": "Hands on hips",
+        "joints": [
+         {
+          "part": "left upper arm",
+          "station": 0,
+          "turn": [
+           0.10151,
+           0.017977,
+           0.237161,
+           0.965985
+          ]
+         },
+         {
+          "part": "left forearm",
+          "station": 0,
+          "turn": [
+           -0.296743,
+           -0.180971,
+           -0.593915,
+           0.725574
+          ]
+         },
+         {
+          "part": "right upper arm",
+          "station": 0,
+          "turn": [
+           0.10151,
+           -0.017977,
+           -0.237161,
+           0.965985
+          ]
+         },
+         {
+          "part": "right forearm",
+          "station": 0,
+          "turn": [
+           -0.296743,
+           0.180971,
+           0.593915,
+           0.725574
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "op": "addPart",
+     "part": {
+      "id": "chest badge",
+      "shape": "scute",
+      "parent": "body",
+      "position": [
+       0,
+       0.4,
+       0.15
+      ],
+      "size": [
+       0.09,
+       0.11,
+       0.02
+      ],
+      "color": "#27304f",
+      "surface": "canvas",
+      "motionRole": "rigid",
+      "visibleIn": [
+       "Work clothes"
+      ]
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "shirt body",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "left sleeve",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "right sleeve",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "collar",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "trouser seat",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "left short leg",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "right short leg",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "belt",
+     "set": {
+      "surface": "plain"
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "head",
+     "set": {
+      "sculpt": {
+       "jaw": 1.3,
+       "cheek": 1.2,
+       "chin": 1.1,
+       "brow": 1.15,
+       "nose": 1.1
+      }
+     }
+    }
+   ],
+   "note": "Same request as the kept attempt with the groom changed to use nape. This is a replay on changed code, not a held-out result."
+  },
+  "regressionCaught": "The first version of the seat change let skin show between the trouser legs of the earlier aviator. A test now checks that the seat covers the body for 24 random figures in trousers and shorts."
+ },
+ "playback": {
+  "field-athlete": "1.852 m, 23,965 triangles, 1 material, 1 skeleton, Idle/Walk/Crouch/Reach and Pose · Hands on hips, lowest vertex 0.000 m in every clip",
+  "tucked-aviator": "1.759 m, 24,002 triangles, 1 material, 1 skeleton, Idle/Walk/Crouch/Reach, lowest vertex 0.000 m in every clip",
+  "hooded-docker": "1.621 m, 23,998 triangles, 1 material, 1 skeleton, Idle/Walk/Crouch/Reach, lowest vertex 0.000 m in every clip"
+ },
+ "imageTool": "No image-generation tool was available to the implementing agent in this run, so no new face or cloth artwork was painted. Faces are the four built-in faces or existing original painted heads.",
+ "judgement": "Visual assessment by the implementing agent only. No blinded or independent human rating was collected."
+}
