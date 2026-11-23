@@ -747,9 +747,9 @@
   ]
  },
  "playback": {
-  "note": "The committed examples were rebuilt from the same proposals on commit 8aaec68. Readings are from that rebuild.",
-  "tucked-aviator": "1.759 m, 24,002 triangles, 1 material, 1 skeleton, Idle/Walk/Crouch/Reach, lowest vertex 0.000 m in every clip",
-  "hooded-docker": "1.621 m, 23,998 triangles, 1 material, 1 skeleton, Idle/Walk/Crouch/Reach, lowest vertex 0.000 m in every clip"
+  "note": "The committed examples were rebuilt from the same proposals on commit 10a04ef. Readings are from that rebuild.",
+  "tucked-aviator": "1.759 m, 24,000 triangles, 1 material, 1 skeleton, Idle/Walk/Crouch/Reach, lowest vertex 0.000 m in every clip",
+  "hooded-docker": "1.621 m, 24,000 triangles, 1 material, 1 skeleton, Idle/Walk/Crouch/Reach, lowest vertex 0.000 m in every clip"
  },
  "judgement": "Visual assessment by the implementing agent only. No blinded or independent human rating was collected."
 }
