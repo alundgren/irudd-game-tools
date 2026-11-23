@@ -1,22 +1,19 @@
-import { Box3, Matrix4, Vector3 } from "three";
+import { Matrix4, Vector3 } from "three";
+import { bodyFrame } from "./graft.js";
 
 export const buildAxes = ["mass", "shoulders", "waist", "belly", "hips"];
 const bell = (y, c, r) => Math.exp(-(((y - c) / r) ** 2));
 
-export function sculptBuild(root, build) {
+export function sculptBuild(root, form) {
+  const build = form.build;
   if (!build || buildAxes.every((k) => (build[k] ?? 1) === 1)) return;
   root.updateMatrixWorld(true);
-  const box = new Box3().makeEmpty(),
+  const box = bodyFrame(form),
     point = new Vector3(),
     meshes = [],
     pivots = [];
   root.traverse((o) => {
     if (o.isMesh) {
-      const pos = o.geometry.attributes.position;
-      for (let i = 0; i < pos.count; i++)
-        box.expandByPoint(
-          point.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld),
-        );
       meshes.push([o, o.matrixWorld.clone()]);
     }
     if (o.userData.partId) pivots.push([o, o.getWorldPosition(new Vector3())]);

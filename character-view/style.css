@@ -556,6 +556,98 @@ textarea {
   }
 }
 
+#scale-room {
+  width: min(850px, 95vw);
+  max-height: 94dvh;
+  overflow: auto;
+  border: 1px solid #8c9e92;
+  border-radius: 8px;
+  background: #f4f4ec;
+  color: #263a32;
+  padding: 16px;
+}
+#scale-room::backdrop {
+  background: #152a24a6;
+}
+.scale-heading,
+.scale-controls,
+.scale-readings {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+#scale-room h2 {
+  margin: 0;
+}
+#scale-view {
+  height: clamp(210px, 47vh, 450px);
+  position: relative;
+  margin-top: 12px;
+  background: #e4e9e5;
+  overflow: hidden;
+}
+#scale-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+#scale-ruler {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+#scale-ruler span {
+  position: absolute;
+  left: 0;
+  font: 11px monospace;
+  color: #40584e;
+  line-height: 1;
+  border-bottom: 1px solid #607e6d;
+  min-width: 30px;
+  padding: 0 3px;
+}
+.scale-readings p {
+  font-size: 0.85rem;
+  margin: 0.6rem 0;
+}
+#scale-room .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.scale-controls {
+  align-items: end;
+  justify-content: start;
+  margin-top: 0.65rem;
+}
+.scale-controls .field {
+  min-width: 110px;
+  flex: 1;
+  margin: 0;
+}
+#scale-room input[type="number"] {
+  width: 100%;
+}
+#scale-note {
+  font-size: 0.85rem;
+}
+@media (max-width: 550px) {
+  #scale-view {
+    height: clamp(205px, 30vh, 285px);
+  }
+  #scale-room {
+    width: 95vw;
+    padding: 10px;
+  }
+  .scale-readings {
+    display: block;
+  }
+  .scale-controls {
+    gap: 8px;
+  }
+}
 #trace-dialog {
   width: min(780px, 94vw);
   max-height: 92dvh;

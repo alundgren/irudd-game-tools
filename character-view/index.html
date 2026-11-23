@@ -52,6 +52,7 @@
             title="Keep a fixed world frame when switching forms"
           >
             World scale</button
+          ><button id="show-scale-room">Compare sizes</button
           ><button id="reset" title="Reset camera angle and zoom">
             Reset view
           </button>
@@ -781,6 +782,61 @@
       </aside>
     </main>
 
+    <dialog id="scale-room" aria-labelledby="scale-title">
+      <div class="scale-heading">
+        <h2 id="scale-title">Compare sizes</h2>
+        <button id="scale-close">Close</button>
+      </div>
+      <div id="scale-view">
+        <canvas
+          id="scale-canvas"
+          aria-label="Characters on a shared metric floor"
+        ></canvas>
+        <div id="scale-ruler" aria-hidden="true"></div>
+      </div>
+      <div class="scale-readings">
+        <p id="scale-reference-reading" hidden></p>
+        <p id="scale-current-reading"></p>
+      </div>
+      <div class="actions">
+        <button id="scale-pin">Pin current as reference</button
+        ><button id="scale-open">Open reference form…</button
+        ><button id="scale-forget">Clear reference</button
+        ><input id="scale-reference-file" type="file" accept=".json" hidden />
+      </div>
+      <div class="scale-controls">
+        <label class="field"
+          >Turn both models<input
+            id="scale-yaw"
+            type="range"
+            min="-180"
+            max="180"
+            step="1"
+            value="0" /></label
+        ><label><input id="scale-clay" type="checkbox" /> Clay</label>
+      </div>
+      <div class="scale-controls">
+        <label class="field"
+          >Measure current form to<select id="scale-metric">
+            <option value="overall">Highest visible point</option>
+            <option value="head">Top of head</option>
+          </select></label
+        >
+        <label class="field"
+          >Height above floor (m)<input
+            id="scale-metres"
+            type="number"
+            min=".05"
+            max="12"
+            step=".001" /></label
+        ><button id="scale-apply">Resize current form</button>
+      </div>
+      <p class="micro">
+        Both models stand on their lowest visible point. Head measurements use
+        the head mesh and exclude separate hats, hair and crests.
+      </p>
+      <p id="scale-note" role="status"></p>
+    </dialog>
     <dialog id="trace-dialog" aria-labelledby="trace-title">
       <div class="section-title">
         <h2 id="trace-title">Trace a volume</h2>

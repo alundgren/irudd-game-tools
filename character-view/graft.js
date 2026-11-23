@@ -1,3 +1,4 @@
+import { sweepGeometry } from "./surface.js";
 import { headSpace } from "./portrait-frame.js";
 import { Box3, Vector3, Matrix4, Euler, Quaternion, MathUtils } from "three";
 
@@ -120,6 +121,52 @@ function bounds(parts, world) {
       box.union(new Box3(v(a), v(b)).applyMatrix4(transform));
     }
   }
+  return box;
+}
+// Derive sculpt coordinates from the original carrier geometry. Clothing meshes
+// and their visibility can change independently of the wearer's body.
+export function bodyFrame(form) {
+  const candidates = form.parts.filter(
+    (p) =>
+      !p.wearFit &&
+      !p.sourceHairOnly &&
+      !p.headLayer &&
+      !p.visibleIn &&
+      p.shape !== "mantle" &&
+      !["skirt", "accessory"].includes(p.outfitRole),
+  );
+  const primary = candidates.filter(
+    (p) =>
+      Object.hasOwn(anatomyBoxes, p.shape) ||
+      p.anatomy === "face" ||
+      p.outfitRole ||
+      p.motionRole === "torso" ||
+      p.motionRole === "axial spine",
+  );
+  const carriers = primary.length
+    ? primary
+    : candidates.filter((p) => !p.parent);
+  const source = carriers.length
+    ? carriers
+    : form.parts.filter((p) => !p.parent);
+  const { world } = graph(form.parts),
+    box = bounds(
+      source.filter((p) => p.shape !== "sweep"),
+      world,
+    );
+  // A horizontal trunk has vertical thickness, even when every knot shares one Y.
+  for (const p of source)
+    if (p.shape === "sweep") {
+      const geom = sweepGeometry(
+        p.knots,
+        Boolean(p.paint && p.paint.frame !== "path"),
+        12,
+      );
+      geom.applyMatrix4(world(p.id));
+      geom.computeBoundingBox();
+      box.union(geom.boundingBox);
+      geom.dispose();
+    }
   return box;
 }
 export function cutGarment(form, id, kind, color = "#405d59") {

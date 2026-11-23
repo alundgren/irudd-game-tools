@@ -30,6 +30,8 @@ Six praised community creations from Dragon’s Dogma 2, Spore and The Sims 4 su
 
 An [eleven-point eel](examples/glassgrass-eel.form.json) came from a live human-to-creature revision. A [printed rescue vest](examples/tidal-print.form.json) retains the source garment's exact geometry. The [historical portrait revision](examples/composed-portrait.form.json) includes six paired facial depth points.
 
+**Compare sizes** puts the current form beside a pinned revision or another saved form. Read overall height and top-of-head height on a shared floor. Enter either measurement in metres to resize the current form uniformly before export.
+
 Under **Sculpt → Build parts**, add a **Freeform control cage**. Select a face to extrude or inset it, or choose an opposite face and open a tunnel. Select a corner to drag it on the model. The [editable fen-crowned eel](examples/fen-crown.form.json) uses the same cage format in an agent-built crest.
 
 Run `npm test` for local checks. To regenerate the benchmark screenshots, build the pages and run `python scripts/capture-studies.py` with Chrome, Playwright, Pillow and NumPy installed. The capture script drives the editor’s public controls.

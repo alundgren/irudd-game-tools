@@ -762,7 +762,7 @@ export function createCharacter(form, silhouette, clay = false) {
     innerLayers.set(p.parent, inner);
   }
   blendSkin(form, objects, material);
-  sculptBuild(group, form.build);
+  sculptBuild(group, form);
   if (!plainView)
     for (const part of form.parts) {
       if (!part.markings) continue;

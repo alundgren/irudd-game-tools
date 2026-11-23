@@ -1,3 +1,5 @@
+import { scaleRoom } from "./scale-room.js";
+import { visibleBounds } from "./dimensions.js";
 import { editCage } from "./control-cage.js";
 import { spineHandles } from "./spine-handles.js";
 import { acceptsDepth } from "./portrait-depth.js";
@@ -307,20 +309,6 @@ function editPart(change) {
     status(e.message);
     update();
   }
-}
-function visibleBounds(object) {
-  const bounds = new T.Box3().makeEmpty(),
-    vertex = new T.Vector3();
-  object.updateWorldMatrix(true, true);
-  object.traverseVisible((part) => {
-    const pos = part.geometry?.attributes.position;
-    if (pos)
-      for (let i = 0; i < pos.count; i++)
-        bounds.expandByPoint(
-          vertex.fromBufferAttribute(pos, i).applyMatrix4(part.matrixWorld),
-        );
-  });
-  return bounds;
 }
 function download(blob, name) {
   const url = URL.createObjectURL(blob),
@@ -1226,6 +1214,11 @@ function bindControls() {
     );
   for (const el of $("#angles").children)
     el.onclick = () => chooseAngle(el.dataset.angle);
+  scaleRoom(
+    () => displayedForm,
+    (next) => commit(next, "Resized current form."),
+    () => Boolean(busy || proposal),
+  );
   $("#scale-lock").onclick = () => {
     worldScale = !worldScale;
     pressed($("#scale-lock"), worldScale);
