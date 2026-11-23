@@ -1,3 +1,11 @@
+import { fitHand } from "./graft.js";
+import { palmColor } from "./turnaround.js";
+import {
+  listAlternates,
+  saveAlternate,
+  loadAlternate,
+  removeAlternate,
+} from "./alternates.js";
 import { parseDecks, drawDecks, deckText } from "./choice-decks.js";
 import { groomDefaults } from "./groom.js";
 import * as T from "three";
@@ -313,7 +321,139 @@ function focusFace() {
   chooseAngle("Front");
   $("#focus").click();
 }
+function candidateForm() {
+  return form.artwork && !proposal.painted && !proposal.alternate
+    ? {
+        ...proposal.form,
+        artwork: { ...form.artwork, ...proposal.form.artwork },
+      }
+    : proposal.form;
+}
+function returnToDraft(message) {
+  variation = redrawDirection(variation, variation.strength);
+  proposal = null;
+  request = null;
+  showCurrent = false;
+  persist();
+  update();
+  status(message);
+}
+function bindAlternates() {
+  const list = $("#alternate-list");
+  let saving = false,
+    version = 0;
+  async function refresh() {
+    const ticket = ++version,
+      items = await listAlternates();
+    if (ticket !== version) return;
+    list.replaceChildren();
+    for (const item of items) {
+      const row = document.createElement("div"),
+        open = document.createElement("button"),
+        img = document.createElement("img"),
+        label = document.createElement("span");
+      row.className = "alternate";
+      img.src = item.thumbnail;
+      img.alt = "";
+      label.textContent = item.title;
+      open.append(img, label);
+      open.onclick = async () => {
+        if (busy || proposal) return;
+        const before = revision;
+        try {
+          const stored = await loadAlternate(item.id);
+          if (!stored)
+            throw new Error("This variation is no longer on the shelf.");
+          validateForm(stored);
+          await restoreArtwork(stored);
+          if (before !== revision || busy || proposal) return;
+          proposal = { alternate: true, summary: item.title, form: stored };
+          showCurrent = false;
+          switchTab("ai");
+          update();
+          status("Compare the saved variation with your current form.");
+        } catch (e) {
+          status(e.message);
+        }
+      };
+      const remove = button("×", async () => {
+        try {
+          await removeAlternate(item.id);
+          await refresh();
+          status("Removed the saved variation.");
+        } catch (e) {
+          status(e.message);
+        }
+      });
+      remove.className = "remove-alternate";
+      remove.setAttribute("aria-label", "Remove " + item.title);
+      row.append(open, remove);
+      list.append(row);
+    }
+  }
+  async function keep(candidate) {
+    if (saving || busy || (candidate && !proposal)) return;
+    saving = true;
+    try {
+      const saved = candidate ? candidateForm() : nudge(form, target, amounts);
+      if (candidate && showCurrent) {
+        showCurrent = false;
+        update();
+      }
+      const thumbnail = document.createElement("canvas");
+      thumbnail.width = 220;
+      thumbnail.height = 180;
+      render();
+      const edge = Math.min(canvas.width, canvas.height),
+        cropWidth = Math.min(canvas.width, (edge * 220) / 180);
+      thumbnail
+        .getContext("2d")
+        .drawImage(
+          canvas,
+          (canvas.width - cropWidth) / 2,
+          (canvas.height - edge) / 2,
+          cropWidth,
+          edge,
+          0,
+          0,
+          220,
+          180,
+        );
+      const entered = candidate ? "" : $("#alternate-name").value.trim();
+      const title =
+        entered ||
+        (candidate
+          ? proposal.summary
+          : "Form · " + new Date().toLocaleString());
+      const cover = {
+        id: crypto.randomUUID(),
+        title,
+        savedAt: Date.now(),
+        thumbnail: thumbnail.toDataURL("image/webp", 0.82),
+      };
+      const active = proposal;
+      await saveAlternate(cover, saved);
+      await refresh();
+      if (candidate && proposal === active)
+        returnToDraft(
+          "Kept the alternate. The original is ready for another draw.",
+        );
+      else {
+        if (!candidate) $("#alternate-name").value = "";
+        status("Kept this form in Saved variations.");
+      }
+    } catch (e) {
+      status("Could not keep this variation. " + e.message);
+    } finally {
+      saving = false;
+    }
+  }
+  $("#keep-candidate").onclick = () => keep(true);
+  $("#keep-current").onclick = () => keep(false);
+  refresh().catch(() => {});
+}
 function bindControls() {
+  bindAlternates();
   bindTraceEditor({
     getForm: () => form,
     getTarget: () => target,
@@ -619,6 +759,18 @@ function bindControls() {
     }));
   $("#hair-roll").onclick = () =>
     editPart((p) => ({ ...p, groom: { ...p.groom, seed: newHairSeed() } }));
+  $("#fit-hand").onclick = () => {
+    try {
+      const preview = nudge(form, target, amounts),
+        part = preview.parts.find((p) => p.id === target);
+      commit(
+        fitHand(preview, target, palmColor(part, preview.appearance.skin)),
+        "Fitted a palm, thumb and fingers.",
+      );
+    } catch (e) {
+      status(e.message);
+    }
+  };
   $("#surface").onchange = () =>
     editPart((p) => ({ ...p, surface: $("#surface").value }));
   $("#part-color").onchange = () =>
@@ -898,23 +1050,13 @@ function bindControls() {
   };
   $("#accept").onclick = () =>
     commit(
-      form.artwork && !proposal.painted
-        ? {
-            ...proposal.form,
-            artwork: { ...form.artwork, ...proposal.form.artwork },
-          }
-        : proposal.form,
-      "AI variation accepted.",
+      candidateForm(),
+      proposal.alternate ? "Saved variation opened." : "AI variation accepted.",
     );
-  $("#discard").onclick = () => {
-    variation = redrawDirection(variation, variation.strength);
-    proposal = null;
-    request = null;
-    showCurrent = false;
-    persist();
-    update();
-    status("Proposal discarded. Your nudge is still editable.");
-  };
+  $("#discard").onclick = () =>
+    returnToDraft(
+      "Returned to the current form. Your nudge is still editable.",
+    );
   for (const el of $("#angles").children)
     el.onclick = () => chooseAngle(el.dataset.angle);
   $("#scale-lock").onclick = () => {
@@ -1123,6 +1265,10 @@ function update() {
   $("#name").textContent = target ?? "Whole form";
   $("#look").textContent = preview.parts.length + " parts";
   $("#candidate").hidden = !proposal;
+  $("#keep-current").disabled = locked;
+  $("#keep-candidate").hidden = Boolean(proposal?.alternate);
+  for (const b of $("#alternate-list").querySelectorAll("button"))
+    b.disabled = locked;
   $("#cancel-generation").hidden = !generationController;
   $("#save-turnaround").hidden = !proposal?.art;
   $("#save-map").hidden = !proposal?.art?.map;
@@ -1285,6 +1431,8 @@ function update() {
     ? "Keep shape: " + [...protectedIds].join(", ")
     : "";
   $("#protected-list").hidden = !protectedIds.size;
+  $("#fit-hand").hidden =
+    locked || part?.shape !== "sweep" || part?.outfitRole !== "hand";
   $("#grip-tools").hidden = part?.shape !== "hand" || locked;
   if (!$("#grip-tools").hidden) {
     $("#finger-count").value = part.grip?.fingers ?? 4;

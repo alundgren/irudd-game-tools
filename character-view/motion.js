@@ -95,6 +95,23 @@ export function buildClips(root, regions) {
   const legs = legChains(regions),
     bounds = new Box3().makeEmpty();
   for (const region of regions.values()) bounds.union(region.bounds);
+  // Without grasping arms, a creature reaches toward a sample with its head.
+  // Rotate only the first head/neck joint of each chain.
+  const hasArms = [...regions.values()].some(
+    (s) => s.role === "upper arm" || s.fingers?.size,
+  );
+  function startsHeadChain(region) {
+    if (hasArms || region.role !== "head") return false;
+    for (
+      let parent = regions.get(region.part.parent);
+      parent;
+      parent = regions.get(parent.part.parent)
+    ) {
+      if (parent.role === "head") return false;
+    }
+    return true;
+  }
+  const reachingHeads = new Set([...regions.values()].filter(startsHeadChain));
   const size = bounds.getSize(new Vector3()),
     limb = legs.length
       ? Math.min(...legs.map((l) => l.upper + l.lower))
@@ -149,6 +166,19 @@ export function buildClips(root, regions) {
           placeFoot(leg, dz, lift, drop, add);
         }
       for (const s of regions.values()) {
+        if (name === "Reach" && s.fingers?.size) {
+          for (const fingers of s.fingers.values())
+            for (const digit of fingers)
+              for (const [j, bone] of digit.chain.entries()) {
+                const angle =
+                  -(j === 0 ? 0.34 : j === 1 ? 0.55 : 0.42) *
+                  wave *
+                  (digit.name === "Thumb" ? 0.68 : 1);
+                const q = new Quaternion().setFromAxisAngle(digit.axis, angle);
+                if (!tracks.has(bone)) tracks.set(bone, []);
+                tracks.get(bone).push(q.x, q.y, q.z, q.w);
+              }
+        }
         const side = s.points[0].x >= 0 ? 1 : -1;
         if (
           s.role === "skirt" &&
@@ -192,6 +222,8 @@ export function buildClips(root, regions) {
             add(s.bones[0], -0.32 * wave, 0, side * 0.09 * wave);
         } else if (s.role === "head" && name === "Idle")
           add(s.bones[0], 0.019 * sin, 0.048 * sin, 0);
+        else if (name === "Reach" && reachingHeads.has(s))
+          add(s.bones[0], 0.46 * wave, 0.08 * wave, 0);
         else if (s.role === "torso" && name === "Idle")
           add(s.bones[0], 0.011 * sin, 0, 0.006 * sin);
         else if (s.role === "tail" || s.role === "wing") {

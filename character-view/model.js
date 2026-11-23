@@ -1,3 +1,4 @@
+import { headSpace } from "./portrait-frame.js";
 import * as T from "three";
 import { paintSources } from "./paint-sources.js";
 import { pullSurface } from "./surface-pull.js";
@@ -595,6 +596,7 @@ export function createCharacter(form, silhouette, clay = false) {
                 coat ? (fit.bare ? "plain" : "canvas") : part.surface,
               ),
       );
+      if (geometry.handRig) object.handRig = geometry.handRig;
       if (coat && fit.suit && !plainView) {
         const textile = expeditionMaterial(
           fit.role,
@@ -614,7 +616,7 @@ export function createCharacter(form, silhouette, clay = false) {
     }
     if (part.anatomy === "face" && object.isMesh) {
       object.userData.faceSurface = true;
-      object.facePaint = part.paint;
+      object.facePaint = headSpace(part.paint);
     }
     if (part.groom) {
       const scalp = object.isMesh

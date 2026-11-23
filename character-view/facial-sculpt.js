@@ -1,3 +1,4 @@
+import { headSpace } from "./portrait-frame.js";
 import { profileCorrection, landmarkRelief } from "./portrait-relief.js";
 import { MathUtils, Vector3 } from "three";
 
@@ -104,7 +105,8 @@ export function deformFace(
 // A profile supplies the frontmost point of each row. Only the bridge and
 // tip of the nose reach that depth. Recess cheeks and eye sockets locally
 // and retain the source profile at the nasal tip, lips and chin.
-export function portraitSurface(geometry, paint) {
+export function portraitSurface(geometry, binding) {
+  const paint = headSpace(binding);
   const face = paint?.portrait;
   if (!face) return geometry;
   const pos = geometry.attributes.position;

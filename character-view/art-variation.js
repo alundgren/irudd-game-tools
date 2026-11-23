@@ -1,5 +1,6 @@
 import {
   paintGuide,
+  calibrateFace,
   importArtwork,
   traceHull,
   traceOutline,
@@ -94,27 +95,37 @@ export async function fitMapWithAgent(
   let best;
   for (const map of attempts) {
     try {
-      const missed = [];
-      const form = buildTraceMap(map, atlas, height, { missed });
+      const missed = [],
+        uncalibrated = [];
+      const form = buildTraceMap(map, atlas, height, { missed, uncalibrated });
       if (
-        form.parts.length < 2 ||
+        !form.parts.length ||
         form.parts.length / map.regions.length < 0.7 ||
         preserve.some((id) => !form.parts.some((p) => p.id === id))
       )
         continue;
-      if (!best || form.parts.length > best.form.parts.length) {
+      if (
+        !best ||
+        form.parts.length > best.form.parts.length ||
+        (form.parts.length === best.form.parts.length &&
+          uncalibrated.length < best.uncalibrated.length)
+      ) {
         const fittedIds = new Set(form.parts.map((p) => p.id));
         const fittedMap = {
           ...map,
           height,
           regions: map.regions
             .filter((r) => fittedIds.has(r.id))
-            .map((r) => ({
-              ...r,
-              parent: form.parts.find((p) => p.id === r.id).parent,
-            })),
+            .map((r) => {
+              const region = {
+                ...r,
+                parent: form.parts.find((p) => p.id === r.id).parent,
+              };
+              if (uncalibrated.includes(r.id)) delete region.faceLandmarks;
+              return region;
+            }),
         };
-        best = { form, map: fittedMap, missed };
+        best = { form, map: fittedMap, missed, uncalibrated };
       }
     } catch {
       /* Try the other map when its root or graph is invalid. */
@@ -157,8 +168,8 @@ export async function paintWithAgent(
     map,
     note = "";
   try {
-    let missed;
-    ({ form, map, missed } = await fitMapWithAgent(
+    let missed, uncalibrated;
+    ({ form, map, missed, uncalibrated } = await fitMapWithAgent(
       atlas,
       art.height,
       wearable
@@ -180,6 +191,11 @@ export async function paintWithAgent(
         " editable regions. Unresolved outlines: " +
         missed.join(", ") +
         ". ";
+    if (uncalibrated?.length)
+      note +=
+        " Mark the pupils, nose, lips and chin to enable facial expressions on " +
+        uncalibrated.join(", ") +
+        ".";
   } catch (error) {
     signal?.throwIfAborted();
     // A failed fit still leaves usable artwork and an editable 3D candidate.
@@ -196,6 +212,41 @@ export async function paintWithAgent(
       form = startingForm(() => 0.5);
       form.parts = [traceHull("painted volume", atlas, art.height)];
       note = " The part map failed; this candidate uses one silhouette volume.";
+    }
+  }
+  const sourcePart = target && base.parts.find((p) => p.id === target);
+  const portraitRoot = map?.regions?.find((r) => !r.parent && r.faceLandmarks);
+  if (
+    !wearable &&
+    portraitRoot &&
+    (sourcePart?.shape === "head" || sourcePart?.anatomy === "face")
+  ) {
+    // An isolated human portrait has complete front/profile contours. A single
+    // continuous scalp, jaw and neck avoids gaps between overlapping lofts.
+    try {
+      const surface = traceOutline(portraitRoot.id, atlas, art.height, [
+        [],
+        [],
+      ]);
+      const face = calibrateFace(surface, portraitRoot.faceLandmarks);
+      form = { ...form, parts: [face] };
+      map = {
+        ...map,
+        regions: [
+          {
+            id: portraitRoot.id,
+            method: "loft",
+            front: [],
+            side: [],
+            faceLandmarks: portraitRoot.faceLandmarks,
+            outfitRole: "head",
+            motionRole: "head",
+          },
+        ],
+      };
+      note += " Fitted one continuous, sculptable portrait.";
+    } catch {
+      note += " Kept the individually fitted portrait regions.";
     }
   }
   form.artwork = { [atlas]: url };

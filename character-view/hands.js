@@ -1,5 +1,5 @@
-import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
-import { sweepGeometry } from "./surface.js";
+import { handSurface } from "./hand-surface.js";
+const cache = new Map();
 
 // The wrist is the pivot. Digit chains bend toward the palm in its local
 // frame, and the opposable thumb has its own plane of movement.
@@ -9,22 +9,28 @@ export function handGeometry({
   spread = 0.2,
   side = 1,
 } = {}) {
-  const patches = [],
-    w = 0.085,
+  const w = 0.085,
     h = 0.18,
-    d = 0.039;
-  function loft(rows) {
-    patches.push(
-      sweepGeometry(
-        rows.map(([x, y, z, rx, rz]) => [
-          x * w * side,
-          y * h,
-          z * d,
-          rx * w,
-          rz * d,
-        ]),
-      ),
-    );
+    d = 0.039,
+    key = [fingers, curl, spread, side].join("/");
+  if (cache.has(key)) {
+    const source = cache.get(key),
+      copy = source.clone();
+    copy.handRig = source.handRig;
+    return copy;
+  }
+  let palm;
+  const digits = [];
+  function loft(rows, name) {
+    const scaled = rows.map(([x, y, z, rx, rz]) => [
+      x * w * side,
+      y * h,
+      z * d,
+      rx * w,
+      rz * d,
+    ]);
+    if (name) digits.push({ name, rows: scaled });
+    else palm = scaled;
   }
   loft([
     [0, 0, 0, 0.29, 0.33],
@@ -70,29 +76,38 @@ export function handGeometry({
         0.12,
       ],
     ];
-    loft(rows);
+    loft(rows, ["Index", "Middle", "Ring", "Little"][i] ?? "Digit" + (i + 1));
   }
-  loft([
-    [-0.25, -0.17, 0.19, 0.163, 0.32],
-    [-0.406, -0.28, 0.33, 0.153, 0.29],
-    [-0.56 - spread * 0.1, -0.395, 0.46, 0.13, 0.25],
+  loft(
     [
-      -0.59 - spread * 0.14,
-      -0.51 + curl * 0.08,
-      0.57 + curl * 0.19,
-      0.115,
-      0.2,
+      [-0.25, -0.17, 0.19, 0.163, 0.32],
+      [-0.406, -0.28, 0.33, 0.153, 0.29],
+      [-0.56 - spread * 0.1, -0.395, 0.46, 0.13, 0.25],
+      [
+        -0.59 - spread * 0.14,
+        -0.51 + curl * 0.08,
+        0.57 + curl * 0.19,
+        0.115,
+        0.2,
+      ],
+      [
+        -0.58 - spread * 0.14,
+        -0.57 + curl * 0.13,
+        0.65 + curl * 0.35,
+        0.069,
+        0.14,
+      ],
     ],
-    [
-      -0.58 - spread * 0.14,
-      -0.57 + curl * 0.13,
-      0.65 + curl * 0.35,
-      0.069,
-      0.14,
-    ],
-  ]);
-  const merged = mergeGeometries(patches);
-  for (const p of patches) p.dispose();
-  merged.scale(1 / w, 1 / h, 1 / d);
-  return merged;
+    "Thumb",
+  );
+  const source = handSurface(palm, digits, [w, h, d]);
+  if (cache.size >= 8) {
+    const old = cache.keys().next().value;
+    cache.get(old).dispose();
+    cache.delete(old);
+  }
+  cache.set(key, source);
+  const copy = source.clone();
+  copy.handRig = source.handRig;
+  return copy;
 }

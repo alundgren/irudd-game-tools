@@ -1,3 +1,4 @@
+import { registerFace } from "./portrait-frame.js";
 import * as T from "three";
 import tidebell from "./tidebell.atlas.webp";
 import expedition from "./expedition.atlas.webp";
@@ -209,6 +210,36 @@ export async function importArtwork(file) {
   });
   await registerTurnaround(id, url);
   return { id, url };
+}
+export function palmColor(part, fallback) {
+  const b = part.paint,
+    p = atlases.get(b?.atlas)?.[0];
+  if (!p || !b?.rest?.length) return fallback;
+  const samples = [];
+  for (const f of [0.25, 0.38, 0.5, 0.62, 0.75]) {
+    const k = b.rest[Math.round(f * (b.rest.length - 1))];
+    for (const u of [-0.35, 0, 0.35]) {
+      const i = projected(
+        p,
+        (b.offset[0] + k[0] + k[3] * u) / b.height,
+        (b.offset[1] + k[1]) / b.height,
+      );
+      if (p.mask[i]) samples.push([...p.pixels.slice(4 * i, 4 * i + 3)]);
+    }
+  }
+  if (!samples.length) return fallback;
+  samples.sort((a, b) => a[0] + a[1] + a[2] - (b[0] + b[1] + b[2]));
+  return (
+    "#" +
+    samples[Math.floor(samples.length / 2)]
+      .map((v) => v.toString(16).padStart(2, "0"))
+      .join("")
+  );
+}
+export function calibrateFace(part, marks) {
+  const panel = atlases.get(part?.paint?.atlas)?.[0];
+  if (!panel) throw new Error("Load the source art before fitting a face.");
+  return registerFace(part, marks, panel);
 }
 export function guideHeight(atlas, view, y) {
   const p = atlases.get(atlas)[view];

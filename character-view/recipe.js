@@ -423,6 +423,16 @@ export function validateForm(form) {
           ["center", "width", "eyes", "nose", "mouth", "chin"].every((k) =>
             Number.isFinite(f[k]),
           ) &&
+          (f.frame === undefined ||
+            (simpleObject(f.frame) &&
+              Number.isFinite(f.frame.base) &&
+              f.frame.base >= -0.05 &&
+              f.frame.base <= 1 &&
+              Number.isFinite(f.frame.span) &&
+              f.frame.span >= 0.018 &&
+              f.frame.span <= 1.1 &&
+              Number.isFinite(f.frame.centerX) &&
+              Math.abs(f.frame.centerX) <= 4)) &&
           Math.abs(f.center) <= 0.4 &&
           f.width >= 0.08 &&
           f.width <= 0.8 &&

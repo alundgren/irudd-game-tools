@@ -1,7 +1,12 @@
 import { startingForm, validateForm, motionRoles } from "./recipe.js";
 import { outfitRoles } from "./wardrobe.js";
 import { bindParts } from "./rig.js";
-import { traceOutline, traceHull, tracePath } from "./turnaround.js";
+import {
+  traceOutline,
+  traceHull,
+  tracePath,
+  calibrateFace,
+} from "./turnaround.js";
 
 function polygon(points) {
   if (
@@ -24,7 +29,7 @@ export function buildTraceMap(
   map,
   atlas,
   height = map.height,
-  { missed } = {},
+  { missed, uncalibrated } = {},
 ) {
   if (
     map?.format !== "irudd.trace-map.v1" ||
@@ -86,6 +91,14 @@ export function buildTraceMap(
       if (!missed || !r.parent) throw new Error(r.id + ": " + error.message);
       missed.push(r.id);
       continue;
+    }
+    if (r.faceLandmarks) {
+      try {
+        part = calibrateFace(part, r.faceLandmarks);
+      } catch (error) {
+        if (!uncalibrated) throw new Error(r.id + ": " + error.message);
+        uncalibrated.push(r.id);
+      }
     }
     if (r.parent) links[r.id] = r.parent;
     if (r.outfitRole) part.outfitRole = r.outfitRole;

@@ -36,6 +36,31 @@ const clayMaterial = new T.MeshStandardMaterial({
     roughness: 0.9,
   }),
   inkMaterial = new T.MeshBasicMaterial({ color: 0x203733 });
+const directions = {
+  threequarter: [1.85, 0.56, 3],
+  front: [0, 0, 1],
+  side: [1, 0, 0],
+  back: [0, 0, -1],
+};
+function frameModel() {
+  const direction = directions[$("camera-angle").value];
+  if (!direction || lastBounds.isEmpty()) return;
+  const center = lastBounds.getCenter(new T.Vector3()),
+    size = lastBounds.getSize(new T.Vector3());
+  orbit.target.copy(center);
+  camera.position
+    .copy(center)
+    .add(
+      new T.Vector3(...direction)
+        .normalize()
+        .multiplyScalar(Math.max(size.x, size.y, size.z) * 2.55),
+    );
+  orbit.update();
+}
+$("camera-angle").onchange = frameModel;
+orbit.addEventListener("start", () => {
+  $("camera-angle").value = "";
+});
 function setSurface() {
   for (const m of meshes) {
     const mat =
@@ -149,17 +174,9 @@ async function load(file) {
     const neutral = pose();
     restPositions = neutral.all;
     lastBounds = neutral.box;
-    const size = lastBounds.getSize(new T.Vector3()),
-      center = lastBounds.getCenter(new T.Vector3());
-    orbit.target.copy(center);
-    camera.position
-      .copy(center)
-      .add(
-        new T.Vector3(1.85, 0.56, 3.0)
-          .normalize()
-          .multiplyScalar(Math.max(...size.toArray()) * 2.55),
-      );
-    orbit.update();
+    const size = lastBounds.getSize(new T.Vector3());
+    if (!$("camera-angle").value) $("camera-angle").value = "threequarter";
+    frameModel();
     $("clip").replaceChildren(
       new Option("Rest pose", ""),
       ...clips.map((c) => new Option(c.name, c.name)),

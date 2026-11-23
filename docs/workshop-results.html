@@ -464,6 +464,13 @@
           sampled.
         </p>
         <p>
+          On a separate retry of the two timed-out directions, both requests
+          returned editable models, with 21 and 28 regions in 37 and 377
+          seconds. The retries used a seven-minute limit and medium reasoning
+          effort.
+          <a href="media/retry-outcomes.json">Read both retry outcomes.</a>
+        </p>
+        <p>
           <a href="media/marsh-directions.json"
             >All six outcomes, wording, seeds, region IDs and distances</a
           >
@@ -471,6 +478,38 @@
           <a href="../examples/marsh-draw-2.form.json">2</a>,
           <a href="../examples/marsh-draw-3.form.json">3</a> and
           <a href="../examples/marsh-draw-5.form.json">5</a>.
+        </p>
+      </section>
+      <section class="method">
+        <h2>Can the artist choose the anatomy?</h2>
+        <p>
+          One artist-written choice group specified
+          <code>Walking legs = 3 | 5 | 7 | 8</code>. Two prespecified draws used
+          the same locked ellipsoid, brief, built-in cues and magnitude. The
+          first requested three legs and the second eight. Both proposals were
+          kept as alternatives to the same starting form.
+        </p>
+        <figure>
+          <img
+            src="media/operator-draws.webp"
+            alt="Two creatures built around the same green ellipsoid, one with a tripod stance and the other with eight walking legs"
+          />
+          <figcaption>
+            Identical body geometry in both models. Several feet overlap in this
+            view. The attachment graph contains three limbs and three terminal
+            feet in the first model, eight of each in the second. The locked
+            body dominates both silhouettes.
+          </figcaption>
+        </figure>
+        <p>
+          The first proposal took 36 seconds and the second 95 seconds. This
+          tests compliance with two explicit draws. It does not estimate the
+          frequency of each result over repeated requests. Open the
+          <a href="../examples/marsh-tripod.form.json">tripod</a> and
+          <a href="../examples/marsh-eight-legs.form.json">eight-legged form</a>
+          to inspect each attachment. The
+          <a href="media/operator-draws.json">trial record</a> contains the
+          wording, codes and part IDs.
         </p>
       </section>
       <section class="method">
@@ -522,8 +561,8 @@
       <section class="method">
         <h2>Live painted rerolls</h2>
         <p>
-          Both trials started in the editor with an existing model, a random
-          design direction and written instructions. The local Codex CLI
+          The painted trials started in the editor with an existing model, a
+          random design direction and written instructions. The local Codex CLI
           generated fresh artwork and supplied matching front and profile
           outlines. These files reopen with their source art and editable
           regions.
@@ -632,6 +671,42 @@
             >Open the rescue vest recipe in the workshop</a
           >.
         </p>
+        <h3>A new face that can still move</h3>
+        <figure>
+          <img
+            src="media/biologist-expressions.webp"
+            alt="A new coastal biologist with short silver hair at rest, blinking, smiling and lifting her brows"
+          />
+          <figcaption>
+            Four poses on one freshly generated portrait, under the same
+            lighting and camera. Five front-view landmarks connect the new
+            artwork to local sculpt controls and exportable expression targets.
+          </figcaption>
+        </figure>
+        <p>
+          A head-only request changed one of the rescue-vest wearer's 26
+          regions. All 25 other region records stayed identical. The first
+          multi-piece fit left a gap at the neck. Reusing the same generated
+          artwork and trace map to fit one continuous scalp, jaw and neck closed
+          the gap. Open the
+          <a href="../examples/coastal-biologist.form.json"
+            >editable coastal biologist</a
+          >
+          to orbit the result.
+        </p>
+        <figure>
+          <img
+            src="media/hand-fitting.webp"
+            alt="A painted mitten-like hand, a fitted five-digit hand and a shorter curled four-digit hand"
+          />
+          <figcaption>
+            A separate edit on this wearer. Fitting fingers adds a smooth palm,
+            an opposable thumb and three animated joints per digit. Curl and
+            finger count change the mesh. The original sleeve texture ends at
+            the wrist.
+          </figcaption>
+        </figure>
+        <p>The biologist with both hands fitted was 1.764 m tall in the independent player at both export settings. Game export reduced 389,658 triangles and 26 materials to 24,004 triangles and one material. The two fixed camera angles gave 99.2–99.5% silhouette overlap at rest and during Reach. All 27 finger joints remained in the exported animation. This compares outlines at the test resolution. Pupil detail and small seams require separate close-up inspection.</p>
         <h3>Can faces be recognized from shape alone?</h3>
         <p>
           We started all six faces from the same head, hairstyle and paint.

@@ -1,3 +1,4 @@
+import { portraitMarks } from "./portrait-frame.js";
 import {
   registeredArtwork,
   paintGuide,
@@ -7,6 +8,7 @@ import {
   traceOutline,
   traceHull,
   tracePath,
+  calibrateFace,
 } from "./turnaround.js";
 import { buildTraceMap } from "./trace-map.js";
 import { fitMapWithAgent } from "./art-variation.js";
@@ -50,6 +52,55 @@ export function bindTraceEditor({
     added = {},
     hover = null,
     lastView = 0;
+  const markButton = document.getElementById("trace-face"),
+    applyMarks = document.getElementById("trace-face-apply");
+  let marks = null;
+  const selectedHead = () =>
+    getForm().parts.find(
+      (p) =>
+        p.id === getTarget() &&
+        p.shape === "sweep" &&
+        p.paint?.atlas === art &&
+        p.paint.frame !== "path",
+    );
+  function showMarks() {
+    applyMarks.hidden = !marks;
+    applyMarks.disabled = marks?.length !== 5;
+    markButton.textContent = marks
+      ? "Cancel face marks"
+      : "Mark facial landmarks";
+    markButton.hidden = !selectedHead();
+    if (marks)
+      message.textContent =
+        marks.length < 5
+          ? "Mark the " + portraitMarks[marks.length] + " in the front view."
+          : "Inspect the five points, then fit the face.";
+  }
+  markButton.onclick = () => {
+    marks = marks ? null : [];
+    message.textContent = "";
+    showMarks();
+    draw();
+  };
+  applyMarks.onclick = () => {
+    try {
+      const form = getForm(),
+        source = selectedHead(),
+        part = calibrateFace(source, marks);
+      accept(
+        {
+          ...form,
+          parts: form.parts.map((p) => (p.id === part.id ? part : p)),
+        },
+        part.id,
+      );
+      marks = null;
+      dialog.close();
+      status("Calibrated the face. Facial nudges and expressions are ready.");
+    } catch (e) {
+      message.textContent = e.message;
+    }
+  };
   function draw() {
     canvases.forEach((canvas, view) => {
       const ctx = canvas.getContext("2d"),
@@ -57,7 +108,19 @@ export function bindTraceEditor({
       ctx.clearRect(0, 0, n, n);
       if (!art) return;
       paintGuide(ctx, art, view);
-      const poly = outlines[view];
+      if (marks && view === 0) {
+        ctx.font = "bold 15px system-ui";
+        marks.forEach(([x, y], i) => {
+          ctx.beginPath();
+          ctx.arc(x * n, y * n, 4, 0, 2 * Math.PI);
+          ctx.fillStyle = "#fff4a0";
+          ctx.fill();
+          ctx.strokeStyle = "#223c36";
+          ctx.stroke();
+          ctx.fillText(String(i + 1), x * n + 7, y * n - 3);
+        });
+      }
+      const poly = marks ? [] : outlines[view];
       if (poly.length) {
         ctx.beginPath();
         poly.forEach(([x, y], i) => ctx[i ? "lineTo" : "moveTo"](x * n, y * n));
@@ -95,6 +158,8 @@ export function bindTraceEditor({
     );
     art = registeredArtwork().includes(id) ? id : select.value;
     select.value = art ?? "";
+    marks = null;
+    showMarks();
     outlines = [[], []];
     hover = null;
     draw();
@@ -111,10 +176,17 @@ export function bindTraceEditor({
   select.onchange = () => refresh(select.value);
   document.getElementById("trace-cancel").onclick = () => dialog.close();
   document.getElementById("trace-undo").onclick = () => {
-    outlines[lastView].pop();
+    if (marks) {
+      marks.pop();
+      showMarks();
+    } else outlines[lastView].pop();
     draw();
   };
   document.getElementById("trace-clear").onclick = () => {
+    if (marks) {
+      marks = [];
+      showMarks();
+    }
     outlines = [[], []];
     draw();
   };
@@ -125,6 +197,12 @@ export function bindTraceEditor({
     };
     canvas.onclick = (e) => {
       if (!art) return;
+      if (marks) {
+        if (view === 0 && marks.length < 5) marks.push(point(e));
+        showMarks();
+        draw();
+        return;
+      }
       lastView = view;
       outlines[view].push(point(e));
       draw();

@@ -284,3 +284,67 @@ export function attachAt(form, part, parent, pivot) {
   const pose = fields(relative);
   return { ...form, parts: [...form.parts, { ...part, ...pose, parent }] };
 }
+export function fitHand(form, id, color = form.appearance.skin) {
+  const g = graph(form.parts),
+    p = g.byId.get(id);
+  if (p?.shape !== "sweep" || p.outfitRole !== "hand")
+    throw new Error("Select a hand with editable cross sections.");
+  const t = local(p),
+    ends = [p.knots[0], p.knots.at(-1)].map((k) =>
+      v(k.slice(0, 3)).applyMatrix4(t),
+    );
+  const parent = g.byId.get(p.parent),
+    parentFrame = g.mount(p.parent);
+  const nearest = parent
+    ? bounds([parent], g.world)
+        .getCenter(new Vector3())
+        .applyMatrix4(parentFrame.clone().invert())
+    : new Vector3(0, Infinity, 0);
+  const reverse = parent
+    ? ends[0].distanceToSquared(nearest) > ends[1].distanceToSquared(nearest)
+    : ends[0].y < ends[1].y;
+  const [wrist, tip] = reverse ? ends.reverse() : ends;
+  const towards = tip.clone().sub(wrist),
+    side = wrist.clone().applyMatrix4(parentFrame).x >= 0 ? 1 : -1;
+  const h = p.paint?.height ?? Math.max(0.1, towards.length() * 10);
+  const span = MathUtils.clamp(towards.length() * 1.08, 0.076 * h, 0.125 * h);
+  const q = new Quaternion().setFromUnitVectors(
+    new Vector3(0, -1, 0),
+    towards.normalize(),
+  );
+  q.multiply(
+    new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), side * 0.82),
+  );
+  const e = new Euler().setFromQuaternion(q),
+    size = [span * 0.46, span, span * 0.225];
+  const hand = {
+    id,
+    shape: "hand",
+    position: wrist.toArray(),
+    rotation: [e.x, e.y, e.z].map(MathUtils.radToDeg),
+    size,
+    frameSize: [...size],
+    color,
+    outfitRole: "hand",
+    motionRole: "hand",
+    grip: { fingers: 4, side, curl: 0.18, spread: 0.27 },
+  };
+  if (p.parent) hand.parent = p.parent;
+  if (p.visibleIn) hand.visibleIn = [...p.visibleIn];
+  const mount = parentFrame
+    .clone()
+    .multiply(local(hand))
+    .scale(v(size.map((n) => 1 / n)));
+  const inverse = mount.invert();
+  const parts = form.parts.map((existing) =>
+    existing === p
+      ? hand
+      : existing.parent === id
+        ? {
+            ...existing,
+            ...fields(inverse.clone().multiply(g.world(existing.id))),
+          }
+        : existing,
+  );
+  return retainPaintSources({ ...form, parts }, paintSources(form));
+}

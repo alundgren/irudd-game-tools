@@ -281,6 +281,7 @@
             <div class="actions">
               <button id="compare" aria-pressed="false">Show current</button
               ><button id="accept" class="solid">Accept</button
+              ><button id="keep-candidate">Keep alternate &amp; return</button
               ><button id="discard">Discard</button
               ><button id="save-turnaround" hidden>Save new artwork</button
               ><button id="save-map" hidden>Save part map</button>
@@ -374,6 +375,23 @@
           <div class="actions"><button id="graft">Graft component</button></div>
         </section>
         <section data-panel="files" hidden>
+          <h2>Saved variations</h2>
+          <label class="field"
+            >Name this version<input
+              id="alternate-name"
+              maxlength="96"
+              placeholder="Optional name"
+          /></label>
+          <div class="actions">
+            <button id="keep-current">Keep current form</button>
+          </div>
+          <div
+            id="alternate-list"
+            class="alternates"
+            aria-label="Saved variations"
+          ></div>
+        </section>
+        <section data-panel="files" hidden>
           <h2>Reference studies</h2>
           <p class="micro">
             <a
@@ -407,6 +425,7 @@
               ><button id="mirror">Mirror</button
               ><button id="remove">Remove</button>
             </div>
+            <button id="fit-hand" hidden>Fit fingers to this hand</button>
             <div id="grip-tools" hidden>
               <label class="field"
                 >Fingers (plus thumb)<input
@@ -601,7 +620,9 @@
         </figure>
       </div>
       <div class="actions">
-        <button id="trace-undo">Undo point</button
+        <button id="trace-face" hidden>Mark facial landmarks</button
+        ><button id="trace-face-apply" hidden>Fit marked face</button
+        ><button id="trace-undo">Undo point</button
         ><button id="trace-clear">Clear outlines</button>
       </div>
       <label class="field" id="trace-radius-field" hidden

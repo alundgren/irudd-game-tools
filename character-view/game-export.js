@@ -15,40 +15,73 @@ function batches(mesh) {
     ];
   return g.groups.map((b) => ({ ...b, material: materials[b.materialIndex] }));
 }
-function simplify(g, b, ratio) {
+function simplifyInputs(g) {
+  const p = g.attributes.position,
+    n = g.attributes.normal,
+    u = g.attributes.uv,
+    w = g.attributes.skinWeight,
+    bones = g.attributes.skinIndex;
+  const stride = w ? 12 : 5,
+    attr = new Float32Array(stride * p.count);
+  for (let i = 0; i < p.count; i++) {
+    const out = i * stride;
+    attr[out] = n.getX(i);
+    attr[out + 1] = n.getY(i);
+    attr[out + 2] = n.getZ(i);
+    attr[out + 3] = u.getX(i);
+    attr[out + 4] = u.getY(i);
+    if (!w) continue;
+    for (let j = 0; j < 4; j++) {
+      const influence = w.array[4 * i + j],
+        bone = bones.array[4 * i + j];
+      attr[out + 5 + j] = influence;
+      if (!influence) continue;
+      // Identify which joints carry the weights. A rigid toe and a rigid
+      // shin otherwise have the same attribute vector, [1, 0, 0, 0].
+      attr[out + 9] += influence * Math.sin(2.13 * bone);
+      attr[out + 10] += influence * Math.cos(1.81 * bone);
+      attr[out + 11] += influence * Math.sin(3.61 * bone);
+    }
+  }
+  return {
+    p,
+    attr,
+    stride,
+    weights: w
+      ? [0.1, 0.1, 0.1, 0.13, 0.13, 0.35, 0.35, 0.35, 0.35, 0.22, 0.22, 0.22]
+      : [0.1, 0.1, 0.1, 0.13, 0.13],
+  };
+}
+function simplify(g, b, ratio, input) {
   const idx = g.index.array.subarray(b.start, b.start + b.count);
   const target =
     3 *
     Math.min(idx.length / 3, Math.max(12, Math.ceil((idx.length / 3) * ratio)));
   if (target >= idx.length) return idx;
-  const p = g.attributes.position,
-    n = g.attributes.normal,
-    u = g.attributes.uv,
-    w = g.attributes.skinWeight;
-  const stride = w ? 9 : 5,
-    attr = new Float32Array(stride * p.count);
-  for (let i = 0; i < p.count; i++) {
-    attr.set(
-      [n.getX(i), n.getY(i), n.getZ(i), u.getX(i), u.getY(i)],
-      i * stride,
-    );
-    if (w) attr.set(w.array.subarray(4 * i, 4 * i + 4), i * stride + 5);
+  const { p, attr, stride, weights } = input;
+  function run(error, flags) {
+    return MeshoptSimplifier.simplifyWithAttributes(
+      idx,
+      p.array,
+      3,
+      attr,
+      stride,
+      weights,
+      null,
+      target,
+      error,
+      flags,
+    )[0];
   }
-  const weight = w
-    ? [0.1, 0.1, 0.1, 0.13, 0.13, 0.35, 0.35, 0.35, 0.35]
-    : [0.1, 0.1, 0.1, 0.13, 0.13];
-  return MeshoptSimplifier.simplifyWithAttributes(
-    idx,
-    p.array,
-    3,
-    attr,
-    stride,
-    weight,
-    null,
-    target,
-    0.011,
-    ["Sparse"],
-  )[0];
+  let result = run(0.011, ["Sparse"]);
+  // A fitted garment can have a normal seam at each source triangle.
+  // Permit seam collapses for materials that miss the target and retain
+  // UVs, surface normals and joint influence in the error metric.
+  if (result.length > target * 1.12)
+    result = run(0.035, ["Sparse", "Permissive"]);
+  if (result.length > target * 1.25)
+    result = run(0.085, ["Sparse", "Permissive"]);
+  return result;
 }
 function pack(entries, rect) {
   if (entries.length === 1) {
@@ -227,12 +260,13 @@ function atlas(entries, size) {
   };
 }
 function remap(g, groups, ratio, tiles, size) {
+  const input = simplifyInputs(g);
   const attributes = Object.entries(g.attributes),
     out = new Map(attributes.map(([k]) => [k, []])),
     indices = [],
     sourceOrder = [];
   for (const b of groups) {
-    const simplified = simplify(g, b, ratio),
+    const simplified = simplify(g, b, ratio, input),
       lookup = new Map();
     const [x, y, w, h] = tiles.get(b.material).uv;
     for (const i of simplified) {

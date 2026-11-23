@@ -1,3 +1,4 @@
+import { headSpace } from "./portrait-frame.js";
 import { Vector3 } from "three";
 
 const handles = [
@@ -84,7 +85,8 @@ export function faceHandles(stage, { start, move, finish, cancel }) {
     };
     return el;
   });
-  return function position(object, painted, camera, enabled, binding) {
+  return function position(object, painted, camera, enabled, sourcePaint) {
+    const binding = headSpace(sourcePaint);
     overlay.hidden = !enabled || !object;
     if (overlay.hidden) return;
     let mesh = painted ? object : null;

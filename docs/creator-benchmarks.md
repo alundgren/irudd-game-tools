@@ -13,6 +13,8 @@ Use the same generator for every target. The community creations below set the d
 
 [Inspect the original 3D results in color, clay and silhouette](workshop-results.html).
 
+The aquatic creature **Lok-nau-tan by Himmelslaub** served as an additional held-out goal. Maxis praised its graceful aquatic build and how the equipment suited its body. The workshop's original reef cartographer tests whether a hooked tail and thin fins remain distinct during an orbit. [Maxis challenge and judges' notes](https://www.spore.com/what/ga_captains) · [3D result and first-fit comparison](workshop-results.html).
+
 ## How to judge a build
 
 1. Orbit each original study in color and silhouette. Keep a world-scale lineup for comparisons of stature. Use matched screen height separately when comparing facial structure and outfit shape.

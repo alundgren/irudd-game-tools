@@ -1,4 +1,5 @@
-import { extractComponent, placeComponent } from "./graft.js";
+import { palmColor } from "./turnaround.js";
+import { extractComponent, placeComponent, fitHand } from "./graft.js";
 import { paintedStudies } from "../examples/painted-studies.js";
 import { studies } from "../examples/studies.js";
 import { generateForm, randomStream } from "./generator.js";
@@ -162,6 +163,11 @@ export function generateWorkshopForm(
         }).form;
     }
   }
-  form.origin = { generator: 2, seed, kind: anatomy };
+  if (anatomy === "human")
+    for (const hand of form.parts.filter(
+      (p) => p.outfitRole === "hand" && p.shape === "sweep",
+    ))
+      form = fitHand(form, hand.id, palmColor(hand, form.appearance.skin));
+  form.origin = { generator: 3, seed, kind: anatomy };
   return form;
 }

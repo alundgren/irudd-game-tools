@@ -1,3 +1,4 @@
+import { bindFingers, weightFingers } from "./finger-rig.js";
 import * as T from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { prepareExpressions, worldMorphs } from "./expressions.js";
@@ -10,7 +11,12 @@ function inferRole(p) {
   if (/wing/.test(id) && !/(rib|spar|plate|fin)/.test(id)) return "wing";
   if (p.outfitRole) return p.outfitRole;
   if (/skirt fold|velvet dress/.test(id)) return "skirt";
-  if (p.shape === "head" || p.anatomy === "face") return "head";
+  if (
+    p.shape === "head" ||
+    p.anatomy === "face" ||
+    /(?:^|[- ])head(?:$|[- ])/.test(id)
+  )
+    return "head";
   if (p.shape === "torso" || id === "spine" || id === "torso") return "torso";
   if (
     p.shape.endsWith(" leg") ||
@@ -217,6 +223,7 @@ export function skinCharacter(form, model) {
       anchor = s.points[i];
     }
   }
+  for (const s of regions.values()) s.fingers = bindFingers(s, bones, index);
   actor.updateMatrixWorld(true);
   const skeleton = new T.Skeleton(bones),
     point = new T.Vector3();
@@ -248,6 +255,8 @@ export function skinCharacter(form, model) {
           blend[i * 4 + 3] = j * (1 - mix);
         }
       }
+      if (s.fingers.has(source))
+        weightFingers(s.fingers.get(source), ids, blend, index, s.bones[0]);
       geometry.setAttribute("skinIndex", new T.BufferAttribute(ids, 4));
       geometry.setAttribute("skinWeight", new T.BufferAttribute(blend, 4));
       if (!geometry.index)

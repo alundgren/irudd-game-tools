@@ -693,3 +693,36 @@ textarea {
 #pull-settings {
   padding: 0.55rem 0.15rem;
 }
+.alternates {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+}
+.alternate {
+  display: grid;
+  grid-template-columns: 3.7rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+.alternate button:first-child {
+  display: contents;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.alternate button:first-child:focus-visible span {
+  outline: 2px solid currentColor;
+}
+.alternate img {
+  width: 3.7rem;
+  height: 3rem;
+  object-fit: cover;
+  border-radius: 0.23rem;
+}
+.alternate span {
+  overflow-wrap: anywhere;
+  font-size: 0.84rem;
+}
+.alternate .remove-alternate {
+  padding: 0.2rem 0.45rem;
+}
