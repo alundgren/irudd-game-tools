@@ -54,6 +54,7 @@ import { paintedStudies } from "../examples/painted-studies.js";
 import { repeatOnSpine } from "./scutes.js";
 import { outfitRoles } from "./wardrobe.js";
 import { faceHandles } from "./face-handles.js";
+import { profileEditor } from "./profile-editor.js";
 import { isFace } from "./facial-sculpt.js";
 import { bindTraceEditor } from "./trace-editor.js";
 import { loadTurnarounds, restoreArtwork } from "./turnaround.js";
@@ -884,6 +885,22 @@ function bindControls() {
     }));
   $("#hair-source").onclick = () =>
     editPart((p) => ({ ...p, hideSourceHair: !p.hideSourceHair }));
+  $("#profile-open").onclick = profileEditor((profileFit) =>
+    editPart((p) => ({ ...p, profileFit })),
+  );
+  $("#profile-mix").onchange = () =>
+    editPart((p) => ({
+      ...p,
+      profileFit: {
+        ...p.profileFit,
+        amount: Number($("#profile-mix").value) / 100,
+      },
+    }));
+  $("#profile-remove").onclick = () =>
+    editPart((p) => {
+      const { profileFit, ...rest } = p;
+      return rest;
+    });
   $("#eye-fit").onclick = () =>
     editPart((p) => {
       const owner = findPart(figure, p.id),
@@ -1826,6 +1843,10 @@ function update() {
       part?.shape === "head" ||
       (part?.anatomy === "face" && part.paint?.portrait)
     );
+  $("#profile-tools").hidden = $("#eye-tools").hidden;
+  $("#profile-settings").hidden = !part?.profileFit;
+  if (part?.profileFit)
+    $("#profile-mix").value = Math.round(part.profileFit.amount * 100);
   $("#eye-settings").hidden = !part?.eyesRig;
   $("#eye-fit").hidden = !!part?.eyesRig;
   if (part?.eyesRig) $("#eye-color").value = part.eyesRig.color;

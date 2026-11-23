@@ -670,6 +670,7 @@ textarea {
     gap: 8px;
   }
 }
+#profile-room,
 #trace-dialog {
   width: min(780px, 94vw);
   max-height: 92dvh;
@@ -680,9 +681,25 @@ textarea {
   border-radius: 8px;
   padding: 20px;
 }
+#profile-room::backdrop,
 #trace-dialog::backdrop {
   background: #152a24a6;
 }
+#profile-image {
+  display: block;
+  position: static;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 54dvh;
+  margin: 12px auto;
+  cursor: crosshair;
+  touch-action: none;
+}
+#profile-image[hidden] {
+  display: none;
+}
+#profile-room p,
 #trace-dialog p {
   font-size: 0.86rem;
   line-height: 1.5;

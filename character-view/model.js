@@ -21,6 +21,7 @@ import { expeditionMaterial } from "./expedition.js";
 import { fittedScute } from "./scutes.js";
 import { sculptBuild } from "./body-sculpt.js";
 import { fitWardrobe, addEquipment } from "./wardrobe.js";
+import { fitHeadProfile } from "./profile-fit.js";
 import { deformFace, portraitSurface } from "./facial-sculpt.js";
 import { volumeGeometry } from "./volume.js";
 import {
@@ -782,6 +783,17 @@ export function createCharacter(form, silhouette, clay = false) {
   }
   blendSkin(form, objects, material);
   sculptBuild(group, form);
+  for (const part of form.parts) {
+    if (!part.profileFit) continue;
+    const owner = objects.get(part.id);
+    const face = owner.userData.faceSurface
+      ? owner
+      : owner.children.find((c) => c.userData.faceSurface);
+    if (face) {
+      if (part.shape === "head") face.geometry = face.geometry.clone();
+      fitHeadProfile(face, part.profileFit);
+    }
+  }
   fitSurfaceJoins(form, objects);
   for (const p of form.parts)
     if (p.eyesRig) {

@@ -42,6 +42,8 @@ const directions = {
   threequarter: [1.85, 0.56, 3],
   front: [0, 0, 1],
   portrait: [0, 0, 1],
+  "portrait-side": [-1, 0, 0],
+  "portrait-oblique": [-0.74, 0, 1],
   side: [1, 0, 0],
   overhead: [0, 1, 0.001],
   back: [0, 0, -1],
@@ -49,7 +51,7 @@ const directions = {
 function frameModel() {
   const view = $("camera-angle").value,
     direction = directions[view];
-  const bounds = view === "portrait" ? faceBounds : lastBounds;
+  const bounds = view.startsWith("portrait") ? faceBounds : lastBounds;
   if (!direction || bounds.isEmpty()) return;
   const center = bounds.getCenter(new T.Vector3()),
     size = bounds.getSize(new T.Vector3());
@@ -246,13 +248,15 @@ async function load(file, view, initialClip) {
       for (let i = 0; i < vertices.length; i += 3)
         faceBounds.expandByPoint(point.fromArray(vertices, i));
     });
-    $("camera-angle").querySelector('option[value="portrait"]').disabled =
-      faceBounds.isEmpty();
-    if (faceBounds.isEmpty() && $("camera-angle").value === "portrait")
+    for (const option of $("camera-angle").querySelectorAll(
+      'option[value^="portrait"]',
+    ))
+      option.disabled = faceBounds.isEmpty();
+    if (faceBounds.isEmpty() && $("camera-angle").value.startsWith("portrait"))
       $("camera-angle").value = "threequarter";
     if (
       Object.hasOwn(directions, view) &&
-      (view !== "portrait" || !faceBounds.isEmpty())
+      (!view.startsWith("portrait") || !faceBounds.isEmpty())
     )
       $("camera-angle").value = view;
     const size = lastBounds.getSize(new T.Vector3());

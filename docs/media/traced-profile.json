@@ -1,0 +1,112 @@
+{
+  "berger-before": {
+    "traced": {
+      "samples": 26,
+      "meanAbsoluteMm": 15.57,
+      "maxAbsoluteMm": 42.76,
+      "browToChinMm": 191.21
+    },
+    "intermediate": {
+      "samples": 17,
+      "meanAbsoluteMm": 15.07,
+      "maxAbsoluteMm": 40.2,
+      "browToChinMm": 191.21
+    }
+  },
+  "berger-fit": {
+    "traced": {
+      "samples": 26,
+      "meanAbsoluteMm": 1.58,
+      "maxAbsoluteMm": 10.02,
+      "browToChinMm": 191.21
+    },
+    "intermediate": {
+      "samples": 17,
+      "meanAbsoluteMm": 1.32,
+      "maxAbsoluteMm": 5.26,
+      "browToChinMm": 191.21
+    }
+  },
+  "source": "https://www.loc.gov/item/2013645981/",
+  "cropPixels": [
+    173,
+    165,
+    290,
+    289
+  ],
+  "sourceSizePixels": [
+    441,
+    640
+  ],
+  "intermediatePixelsInCrop": [
+    [
+      88.5,
+      30
+    ],
+    [
+      85.5,
+      34
+    ],
+    [
+      88,
+      40
+    ],
+    [
+      94,
+      48
+    ],
+    [
+      99,
+      54
+    ],
+    [
+      100.7,
+      58
+    ],
+    [
+      100,
+      65
+    ],
+    [
+      84.2,
+      74
+    ],
+    [
+      85.2,
+      78
+    ],
+    [
+      83,
+      82
+    ],
+    [
+      83,
+      85
+    ],
+    [
+      84,
+      87.5
+    ],
+    [
+      81,
+      92.5
+    ],
+    [
+      86,
+      97
+    ],
+    [
+      89,
+      101.5
+    ],
+    [
+      88.5,
+      107
+    ],
+    [
+      85.5,
+      112
+    ]
+  ],
+  "method": "Depth of foremost triangle edge at each world height in the reduced GLB, relative to brow. Camera right is character forward. Alignment uses brow depth and brow-to-lower-chin height. Intermediate rows read from the same source separately from the artist input."
+}

@@ -150,6 +150,14 @@
             >Frontal depth influence
             <input id="depth-mix" type="range" min="0" max="100" value="85"
           /></label>
+          <details id="profile-tools" hidden>
+            <summary>Shape from a side portrait</summary>
+            <button id="profile-open">Trace a profile</button>
+            <div id="profile-settings" hidden>
+              <label class="field">Contour strength<input id="profile-mix" type="range" min="0" max="100" step="1"></label>
+              <button id="profile-remove">Release profile</button>
+            </div>
+          </details>
           <details id="eye-tools" hidden>
             <summary>Fit movable eyes</summary>
             <button id="eye-fit">Fit to face</button>
@@ -984,6 +992,14 @@
         the head mesh and exclude separate hats, hair and crests.
       </p>
       <p id="scale-note" role="status"></p>
+    </dialog>
+    <dialog id="profile-room" aria-labelledby="profile-title">
+      <div class="section-title"><h2 id="profile-title">Trace the face in profile</h2><button id="profile-close">Close</button></div>
+      <p>Use a cropped, level side portrait. Start at the forward brow ridge, follow the visible outline over the nose and lips, and finish at the front of the lower chin. Drag a point to adjust it.</p>
+      <div class="trace-row"><label>Side portrait<input id="profile-file" type="file" accept="image/*"></label><label class="field">Nose points<select id="profile-facing"><option value="right">Right</option><option value="left">Left</option></select></label></div>
+      <canvas id="profile-image" hidden aria-label="Trace points on the reference portrait"></canvas>
+      <p id="profile-reading" aria-live="polite"></p>
+      <div class="actions"><button id="profile-undo">Undo point</button><button id="profile-apply">Fit selected face</button></div>
     </dialog>
     <dialog id="trace-dialog" aria-labelledby="trace-title">
       <div class="section-title">
