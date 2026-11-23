@@ -744,11 +744,13 @@
  ],
  "recognition": "Without the chest badge the result reads as a stocky man in white sportswear, not as the person in the photograph. Build, clothing and stance carry over. Face and hair do not.",
  "afterTheRun": {
-  "commit": "8aaec68, 10a04ef",
+  "commit": "8aaec68, 10a04ef, ec9ae90, 3c9c4a2",
   "changes": [
    "The trouser seat loses depth toward the crotch seam while still covering the body, so shorts close in a crease.",
    "The shoulder joint moves in by the arm radius, so heavier arms fill the shoulder line.",
-   "A groom accepts nape (0 to 1) to carry a cropped cut down the back of the head."
+   "A groom accepts nape (0 to 1) to carry a cropped cut down the back of the head.",
+   "Every shoe has a lower upper, a tongue and four laces, and the sole edge rises to meet the upper.",
+   "bottom.pockets accepts cargo for a pouch and flap on the outside of each thigh."
   ],
   "replay": {
    "summary": "Replay after the held-out run: same request with the new nape control.",
@@ -958,18 +960,18 @@
   "regressionCaught": "The first version of the seat change let skin show between the trouser legs of the earlier aviator. A lean runner then showed skin from behind where the seat steps in to the gusset. A test now casts rays at the swept surfaces of 24 random figures in trousers and shorts. It fails on both earlier versions."
  },
  "playback": {
-  "note": "Exports built from a clean copy of commit 10a04ef.",
-  "field-athlete": "1.852 m, 23,965 triangles, 1 material, 1 skeleton, Idle/Walk/Crouch/Reach and Pose · Hands on hips, lowest vertex 0.000 m in every clip",
-  "tucked-aviator": "1.759 m, 24,000 triangles, 1 material, 1 skeleton, Idle/Walk/Crouch/Reach, lowest vertex 0.000 m in every clip",
-  "hooded-docker": "1.621 m, 24,000 triangles, 1 material, 1 skeleton, Idle/Walk/Crouch/Reach, lowest vertex 0.000 m in every clip",
-  "figure-runner": "1.700 m, 24,005 triangles, 1 material, 1 skeleton, Idle/Walk/Crouch/Reach, lowest vertex 0.000 m in every clip"
+  "note": "Exports built from a clean copy of commit 3c9c4a2.",
+  "field-athlete": "1.851 m, 23,968 triangles, 1 material, 1 skeleton, Idle/Walk/Crouch/Reach and Pose · Hands on hips, lowest vertex 0.000 m in every clip",
+  "tucked-aviator": "1.758 m, 24,004 triangles, 1 material, 1 skeleton, Idle/Walk/Crouch/Reach, lowest vertex 0.000 m in every clip",
+  "hooded-docker": "1.620 m, 24,001 triangles, 1 material, 1 skeleton, Idle/Walk/Crouch/Reach, lowest vertex 0.000 m in every clip",
+  "figure-runner": "1.700 m, 24,004 triangles, 1 material, 1 skeleton, Idle/Walk/Crouch/Reach, lowest vertex 0.000 m in every clip"
  },
  "imageTool": "No image-generation tool was available to the implementing agent in this run, so no new face or cloth artwork was painted. Faces are the four built-in faces or existing original painted heads.",
  "judgement": "Visual assessment by the implementing agent only. No blinded or independent human rating was collected.",
  "benchmarkTransfer": {
   "target": "Faith Connors by Vesbesit, The Sims 4, https://www.pcgamer.com/the-most-fabulous-fan-made-sims/",
-  "note": "One proposal, no revision. The head is the existing original painted runner head. Clothing detail from the painted trace is not reproduced.",
-  "summary": "Lean runner in a sleeveless black top, pale cuffed trousers and red trainers, with the existing painted runner's head.",
+  "note": "One proposal for the body and head. Cargo pockets were added to the request after the option was written, so the committed runner is the second version. The head is the existing original painted runner head. Knee patches, arm wraps and printed cloth from the painted trace are not reproduced.",
+  "summary": "Lean runner in a sleeveless black top, pale cuffed cargo trousers and red trainers, with the existing painted runner's head.",
   "operations": [
    {
     "op": "buildFigure",
@@ -1007,7 +1009,8 @@
       "ease": 0.5,
       "belt": "#3a3a3a",
       "rise": 0.35,
-      "cuffs": true
+      "cuffs": true,
+      "pockets": "cargo"
      },
      "shoes": {
       "kind": "sneakers",
