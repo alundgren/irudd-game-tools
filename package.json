@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "start": "npm run build && node scripts/workshop.mjs",
     "build": "node scripts/build.mjs",
     "test": "node --test"
   },

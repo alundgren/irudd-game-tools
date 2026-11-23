@@ -25,9 +25,7 @@
           ></canvas>
         </div>
         <div class="stage-title">
-          <span class="overline">Model view</span>
-          <h1 id="name">Mara</h1>
-          <p id="look">Pressure suit</p>
+          <span class="overline" id="revision">Current form</span><h1 id="name">Form study</h1><p id="look"></p>
         </div>
         <div class="measure" aria-hidden="true">
           <span id="tick2">2 m</span><span id="tick1">1 m</span
@@ -47,40 +45,26 @@
         </div>
         <div class="stage-foot">
           <span>Drag to orbit · Scroll or pinch to zoom</span
-          ><span id="compare-key"></span>
+          ><span id="size"></span>
         </div>
       </section>
-      <aside aria-label="Character controls">
-        <section>
-          <h2>Character</h2>
-          <div
-            id="characters"
-            class="switch"
-            aria-label="Active character"
-            role="group"
-          ></div>
-          <label class="check"
-            ><input type="checkbox" id="compare" /> Compare at true scale</label
-          >
-        </section>
-        <section>
-          <h2>Wardrobe</h2>
-          <div
-            class="stack"
-            id="outfits"
-            aria-label="Outfit"
-            role="group"
-          ></div>
-        </section>
-        <section>
-          <div class="section-title">
-            <h2>Features</h2>
-            <button id="undo" class="quiet" disabled>Undo</button>
-          </div>
-          <p class="micro">Reroll one feature at a time.</p>
-          <div id="features"></div>
-        </section>
-        <section class="display">
+      <aside aria-label="Form controls"><nav class="panel-tabs" aria-label="Workshop tools"><button data-tab="sculpt" aria-pressed="true">Sculpt</button><button data-tab="ai" aria-pressed="false">AI direction</button><button data-tab="files" aria-pressed="false">Forms</button></nav>
+<section data-panel="sculpt"><div class="section-title"><h2>Shape nudges</h2><button id="undo" class="quiet" disabled>Undo</button></div>
+<label class="field">Apply to<select id="target"></select></label>
+<div class="switch" id="operations"><button data-op="shape">Size</button><button data-op="move">Move</button><button data-op="turn">Turn</button><button data-op="face">Face</button></div><div id="features"></div><div class="actions"><button id="direct" aria-pressed="false">Edit on model</button><button id="focus" type="button">Focus selection</button></div>
+<div id="knot-tools" hidden><label class="field">Spine point<select id="knot"></select></label><div class="actions"><button id="thinner">Thin point</button><button id="thicker">Thicken point</button><button id="insert-knot">Insert point</button></div></div><p class="micro">Changes are relative to the current form.</p>
+<div class="actions"><button class="solid" id="apply">Apply nudge</button><button id="roll">Small reroll</button><button id="clear">Reset</button></div></section>
+<section data-panel="ai" class="direction" hidden><h2>AI variation</h2><label class="field" for="steering">Direction</label>
+<textarea id="steering" rows="3" maxlength="2000" placeholder="Keep the face. Give it a long, low body and two extra pairs of legs."></textarea>
+<p class="micro" id="agent-help"></p><div class="actions"><button id="generate" class="solid"></button><button id="import">Load proposal</button><input id="file" type="file" accept=".json,application/json" hidden></div>
+<div id="candidate" hidden><p id="summary"></p><div class="actions"><button id="compare" aria-pressed="false">Show current</button><button id="accept" class="solid">Accept</button><button id="discard">Discard</button></div></div>
+</section>
+<section data-panel="sculpt"><div class="section-title"><h2>Wardrobe</h2></div><div id="outfits" class="stack" role="group" aria-label="Outfit"></div></section>
+<section data-panel="files" hidden><h2>Generate a starting form</h2><label class="field">Anatomy<select id="body-plan"><option value="human">Human</option><option value="creature">Creature</option></select></label><div class="actions"><button id="fresh">Generate new form</button></div></section>
+<section data-panel="files" hidden><h2>Form files</h2><div class="actions"><button id="save">Save form</button><button id="open">Open form</button><button id="glb">Export GLB</button></div><input id="openfile" type="file" accept=".json" hidden></section>
+<section data-panel="files" hidden><h2>Reference studies</h2><label class="field">Load an editable study<select id="studies"></select></label><button id="study">Load study</button></section>
+<section data-panel="sculpt"><details><summary>Build parts</summary><label class="field">Shape<select id="shape"><option>ellipsoid</option><option>box</option><option>cone</option><option>cylinder</option><option>sweep</option></select></label><div class="actions"><button id="attach">Add part</button><button id="duplicate">Duplicate</button><button id="mirror">Mirror</button><button id="remove">Remove</button></div><div id="paintpart"><label class="field">Surface<select id="surface"><option>plain</option><option>canvas</option><option>leather</option><option>metal</option><option>scales</option><option>jacket</option></select></label><label class="field">Color <input id="part-color" type="color"></label></div></details></section>
+<section class="display" data-panel="sculpt">
           <h2>Display</h2>
           <div
             class="switch"
@@ -94,9 +78,9 @@
             </button>
           </div>
         </section>
-      </aside>
+      <p class="feedback" id="status" role="status"></p></aside>
     </main>
-    <p id="status" role="status" class="sr-only"></p>
+    
     <!-- APP -->
   </body>
 </html>

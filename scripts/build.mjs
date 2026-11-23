@@ -5,6 +5,7 @@ const { outputFiles } = await build({
   entryPoints: ["character-view/app.js"],
   bundle: true,
   format: "iife",
+  loader: {".webp": "dataurl"},
   target: "es2022",
   minify: true,
   legalComments: "inline",

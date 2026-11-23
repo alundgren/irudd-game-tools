@@ -4,10 +4,12 @@ Open-source tools for making games. The first project explores how a game artist
 
 ## Character workshop
 
-With Node.js 22 or later and npm installed, run `npm ci` and `npm run build`. Open `dist/character-view.html` directly in a WebGL 2 browser. The single file includes Three.js and the original procedural models and runs offline. Run `npm test` for the recipe checks.
+With Node.js 22 or later, run `npm ci` and `npm start`. Open the localhost URL printed by the workshop. **Generate variation** uses your installed, signed-in Codex CLI when clicked. For offline use, run `npm run build` and open `dist/character-view.html` directly in a WebGL 2 browser. The offline view can export its AI request and load an agent’s JSON response. Run `npm test` for local checks.
 
-Drag the model to orbit and scroll or pinch to zoom. Compare two characters on a metre grid, switch between three outfits, inspect their silhouettes, or reroll individual features. Undo applies to the selected character. Edits last for the current session.
+One form is active at a time. Start fresh, or open an editable [reference study](docs/creator-benchmarks.md) from **Forms**. Select a part, preview a relative adjustment and apply it. Neutral controls mean zero additional change. AI direction combines the current form, proposed nudges and written steering. Inspect the candidate, toggle back to the current shape, then accept or discard. Accepted forms can be saved as JSON and exported as GLB. The editor keeps the current form in browser storage when available.
 
-The [character creator research plan](docs/character-creator.html) describes the staged 3D experiments and the later 2D reference-sheet study.
+[Research plan and later 2D reference-sheet study](docs/character-creator.html) · [Credited character-creator benchmarks](docs/creator-benchmarks.md)
+
+Geometry and examples are original procedural work. The original face and surface atlases were made for this project with the OpenAI image generation tool. Three.js supplies rendering and GLB export under MIT.
 
 [MIT license](LICENSE).
