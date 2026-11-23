@@ -1,3 +1,4 @@
+import { gazeNames, setGaze } from "../character-view/ocular.js";
 import * as T from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
@@ -28,6 +29,7 @@ let model,
   previous = performance.now(),
   generation = 0;
 let lastBounds = new T.Box3(),
+  faceBounds = new T.Box3(),
   restPositions = [],
   meshes = [],
   locked = false;
@@ -39,15 +41,18 @@ const clayMaterial = new T.MeshStandardMaterial({
 const directions = {
   threequarter: [1.85, 0.56, 3],
   front: [0, 0, 1],
+  portrait: [0, 0, 1],
   side: [1, 0, 0],
   overhead: [0, 1, 0.001],
   back: [0, 0, -1],
 };
 function frameModel() {
-  const direction = directions[$("camera-angle").value];
-  if (!direction || lastBounds.isEmpty()) return;
-  const center = lastBounds.getCenter(new T.Vector3()),
-    size = lastBounds.getSize(new T.Vector3());
+  const view = $("camera-angle").value,
+    direction = directions[view];
+  const bounds = view === "portrait" ? faceBounds : lastBounds;
+  if (!direction || bounds.isEmpty()) return;
+  const center = bounds.getCenter(new T.Vector3()),
+    size = bounds.getSize(new T.Vector3());
   orbit.target.copy(center);
   camera.position
     .copy(center)
@@ -82,8 +87,17 @@ function expression(value) {
   for (const m of meshes)
     if (m.morphTargetDictionary)
       for (const [key, id] of Object.entries(m.morphTargetDictionary))
-        m.morphTargetInfluences[id] = key === value ? 1 : 0;
+        if (!gazeNames.includes(key))
+          m.morphTargetInfluences[id] = key === value ? 1 : 0;
 }
+function gaze() {
+  setGaze(
+    model,
+    Number($("look-x").value) / 100,
+    Number($("look-y").value) / 100,
+  );
+}
+$("look-x").oninput = $("look-y").oninput = gaze;
 $("expression").onchange = () => expression($("expression").value);
 function pose() {
   model.updateMatrixWorld(true);
@@ -132,7 +146,7 @@ function selectClip() {
   mixer.update(0);
   $("time").value = 0;
 }
-async function load(file) {
+async function load(file, view) {
   if (!file) return;
   const ticket = ++generation;
   $("status").textContent = "Loading " + file.name + "…";
@@ -163,18 +177,33 @@ async function load(file) {
         meshes.flatMap((m) => Object.keys(m.morphTargetDictionary ?? {})),
       ),
     ];
-    $("expression-field").hidden = !targets.length;
+    const poses = targets.filter((k) => !gazeNames.includes(k));
+    $("look-fields").hidden = !targets.includes("LookLeft");
+    $("look-x").value = $("look-y").value = 0;
+    $("expression-field").hidden = !poses.length;
     $("expression").replaceChildren(
       new Option("Rest", ""),
-      ...targets.map(
-        (k) => new Option(k === "BrowLift" ? "Raise brows" : k, k),
-      ),
+      ...poses.map((k) => new Option(k === "BrowLift" ? "Raise brows" : k, k)),
     );
     mixer = new T.AnimationMixer(model);
     clips = gltf.animations;
     const neutral = pose();
     restPositions = neutral.all;
     lastBounds = neutral.box;
+    faceBounds.makeEmpty();
+    const point = new T.Vector3();
+    meshes.forEach((mesh, index) => {
+      if (!mesh.userData.faceSurface) return;
+      const vertices = neutral.all[index];
+      for (let i = 0; i < vertices.length; i += 3)
+        faceBounds.expandByPoint(point.fromArray(vertices, i));
+    });
+    $("camera-angle").querySelector('option[value="portrait"]').disabled =
+      faceBounds.isEmpty();
+    if (faceBounds.isEmpty() && $("camera-angle").value === "portrait")
+      $("camera-angle").value = "threequarter";
+    if (view === "portrait" && !faceBounds.isEmpty())
+      $("camera-angle").value = view;
     const size = lastBounds.getSize(new T.Vector3());
     if (!$("camera-angle").value) $("camera-angle").value = "threequarter";
     frameModel();
@@ -231,7 +260,10 @@ async function openExample() {
     const response = await fetch("/examples/" + key + ".glb");
     if (!response.ok) throw new Error("This example is unavailable.");
     const blob = await response.blob();
-    if (ticket === generation) await load(new File([blob], key + ".glb"));
+    if (ticket === generation) {
+      const view = new URLSearchParams(location.hash.slice(1)).get("view");
+      await load(new File([blob], key + ".glb"), view);
+    }
   } catch (e) {
     if (ticket === generation) $("status").textContent = e.message;
   }

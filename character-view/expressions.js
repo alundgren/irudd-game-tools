@@ -8,7 +8,7 @@ function buildTargets(mesh) {
     if (!mesh.morphTargetDictionary) mesh.updateMorphTargets();
     return;
   }
-  const lids = addEyelids(mesh),
+  const lids = mesh.userData.fittedEyes ? null : addEyelids(mesh),
     geometry = mesh.geometry;
   geometry.computeBoundingBox();
   const pos = geometry.attributes.position,
@@ -45,6 +45,10 @@ function buildTargets(mesh) {
       aperture * (1 - MathUtils.smoothstep(Math.abs(ey), 0.033, 0.082));
     changes[0][3 * i + 1] = h * (-0.006 - ey * (lids ? 0.14 : 0.88)) * lid;
     changes[0][3 * i + 2] = h * 0.004 * lid;
+    if (mesh.userData.fittedEyes) {
+      changes[0][3 * i + 1] = 0;
+      changes[0][3 * i + 2] = 0;
+    }
     const mouth = front * bell(y - mouthY, 0.07),
       corners = bell(Math.abs(x) - 0.33, 0.19) * mouth;
     changes[1][3 * i] = h * 0.017 * side * corners;

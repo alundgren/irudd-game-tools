@@ -585,7 +585,9 @@
           reach. Selecting open sides eliminated crossings at all 32 samples.
           That choice reduced the cape’s two-sided fabric area from about 4.7 to
           1.4 m². The artist can choose how much coverage the character needs.
-          These measurements cover arm intersections at sampled poses. Cloth-to-cloth contact and collisions between samples remain unmeasured.
+          These measurements cover arm intersections at sampled poses.
+          Cloth-to-cloth contact and collisions between samples remain
+          unmeasured.
         </p>
         <p>
           <a href="../examples/pressure-poncho.form.json"
@@ -750,6 +752,55 @@
           <a href="../examples/braided-biologist.form.json"
             >Editable braided portrait</a
           >
+        </p>
+      </section>
+      <section class="method" id="eye-motion">
+        <h2>Can the eyes turn without changing the face at rest?</h2>
+        <figure>
+          <img
+            src="media/portrait-gaze.webp"
+            alt="Two painted heads in the independent GLB player. Each row shows a neutral gaze, two opposite glances and a blink."
+          />
+          <figcaption>
+            Neutral, look to the viewer’s left, look to the viewer’s right,
+            blink. Both rows come from reduced game exports. The room lighting
+            and camera stay fixed for each row.
+          </figcaption>
+        </figure>
+        <p>
+          The first experiment placed procedural irises over the source
+          paintings. In front view, fitting them changed 2,785 pixels on the
+          historical portrait and 2,295 on the biologist by more than 32 of 255
+          in at least one color channel. Fitting the painted eye openings and
+          deforming the artwork kept every pixel within that tolerance in both
+          neutral editor renders.
+        </p>
+        <p>
+          In the independent GLB player, opposite glances changed 2,681 and
+          2,247 pixels respectively at a threshold of 15. With the lids fully
+          shut, both counts fell to zero. An early reduced export let the iris
+          show through the closed lid. Assigning more of the same triangle
+          budget to the eye surfaces and the face corrected both test cases. The
+          two final exports contain 24,031 and 23,995 triangles.
+        </p>
+        <p>
+          The fit uses the visible artwork. Extreme glances can stretch a
+          painted highlight, and the shared 1,024-pixel atlas softens details at
+          this magnification. The test covers two front-facing portraits. It
+          measures motion and preservation of the original art. The historical
+          likeness still needs its own assessment.
+        </p>
+        <p>
+          <a
+            href="../examples/portrait-gaze.glb"
+            data-player="portrait-gaze"
+            data-view="portrait"
+            >Try the portrait in the GLB player</a
+          >
+          · <a href="../examples/portrait-gaze.form.json">Editable model</a>. In
+          the editor, select the head and choose
+          <strong>Fit movable eyes</strong>. Use the gaze controls with a blink
+          under the pose controls.
         </p>
       </section>
       <section class="method" id="portrait-test">
@@ -1278,7 +1329,11 @@
         document
           .querySelectorAll("[data-player]")
           .forEach(
-            (a) => (a.href = "../play-model.html#model=" + a.dataset.player),
+            (a) =>
+              (a.href =
+                "../play-model.html#model=" +
+                a.dataset.player +
+                (a.dataset.view === "portrait" ? "&view=portrait" : "")),
           );
         document
           .querySelectorAll(".live-demo")

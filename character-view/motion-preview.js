@@ -1,3 +1,4 @@
+import { setGaze } from "./ocular.js";
 import { creatureMoves, standardMoves } from "./creature-motion.js";
 import { AnimationMixer, SkeletonHelper } from "three";
 import { poseExpression } from "./expressions.js";
@@ -20,6 +21,21 @@ export function motionPreview(scene, render) {
     previous = 0;
   const expression = document.getElementById("face-pose"),
     amount = document.getElementById("face-pose-amount");
+  const lookX = document.getElementById("look-x"),
+    lookY = document.getElementById("look-y");
+  function gaze() {
+    setGaze(
+      rig?.actor ?? model,
+      Number(lookX.value) / 100,
+      Number(lookY.value) / 100,
+    );
+    render();
+  }
+  lookX.oninput = lookY.oninput = gaze;
+  document.getElementById("look-center").onclick = () => {
+    lookX.value = lookY.value = 0;
+    gaze();
+  };
   function setExpression() {
     poseExpression(
       rig?.actor ?? model,
@@ -49,6 +65,7 @@ export function motionPreview(scene, render) {
     }
   }
   function overlay() {
+    gaze();
     if (helper) {
       scene.remove(helper);
       helper.geometry.dispose();
@@ -90,6 +107,7 @@ export function motionPreview(scene, render) {
     if (select.value === "Bind") {
       scene.add(model);
       setExpression();
+      gaze();
       return;
     }
     scene.remove(model);
@@ -137,10 +155,13 @@ export function motionPreview(scene, render) {
         ),
       );
       select.value = names.includes(last) ? last : "Bind";
-      let hasFace = false;
+      let hasFace = false,
+        hasEyes = false;
       figure.traverse((o) => {
         if (o.userData.faceSurface) hasFace = true;
+        if (o.userData.fittedEyes) hasEyes = true;
       });
+      document.getElementById("gaze-tools").hidden = !hasEyes;
       document.getElementById("face-pose-tools").hidden = !hasFace;
       if (!hasFace) expression.value = "Rest";
       configure();

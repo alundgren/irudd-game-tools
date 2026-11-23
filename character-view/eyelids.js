@@ -3,7 +3,7 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
 // Query the front surface and its painted UV at facial landmarks. Spatial
 // buckets make sampling two moving eyelids independent of face tessellation.
-function projector(g) {
+export function faceProjector(g) {
   const pos = g.attributes.position,
     uv = g.attributes.uv,
     idx = g.index;
@@ -75,7 +75,7 @@ export function addEyelids(mesh) {
     half = face ? face.width * h : dim.x * 0.5;
   const cx = face ? face.center * h - paint.offset[0] : c.x;
   const y = face ? face.eyes * h - paint.offset[1] : b.min.y + 0.566 * h,
-    probe = projector(g);
+    probe = faceProjector(g);
   const p = [],
     uv = [],
     delta = [],

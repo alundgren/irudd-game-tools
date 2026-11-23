@@ -337,15 +337,26 @@ export function skinCharacter(form, model) {
       geometry.setAttribute("skinWeight", new T.BufferAttribute(blend, 4));
       if (!geometry.index)
         geometry.setIndex(Array.from({ length: pos.count }, (_, i) => i));
-      if (geometry.morphAttributes.position?.length) {
-        worldMorphs(geometry, source);
+      if (
+        geometry.morphAttributes.position?.length ||
+        source.userData.eyePiece
+      ) {
+        if (geometry.morphAttributes.position?.length)
+          worldMorphs(geometry, source);
         const face = new T.SkinnedMesh(geometry, source.material);
         face.name =
-          "Face_" +
+          (source.userData.eyePiece
+            ? source.userData.eyePiece + "_"
+            : "Face_") +
           s.part.id.replace(/[^a-zA-Z0-9_-]/g, "_") +
           "_" +
           actor.children.length;
-        face.userData.faceSurface = true;
+        if (source.userData.eyePiece)
+          face.userData.eyePiece = source.userData.eyePiece;
+        else {
+          face.userData.faceSurface = true;
+          if (source.userData.fittedEyes) face.userData.fittedEyes = true;
+        }
         face.bind(skeleton, new T.Matrix4());
         face.frustumCulled = false;
         face.castShadow = true;
@@ -390,8 +401,9 @@ export function skinCharacter(form, model) {
       );
     }
   const skinned =
-    actor.children.find((o) => o.isSkinnedMesh && !o.userData.faceSurface) ??
-    actor.children.find((o) => o.isSkinnedMesh);
+    actor.children.find(
+      (o) => o.isSkinnedMesh && !o.userData.faceSurface && !o.userData.eyePiece,
+    ) ?? actor.children.find((o) => o.isSkinnedMesh);
   if (skinned) {
     const supported = [...regions.values()].some((r) =>
       ["thigh", "foot", "skirt", "axial spine"].includes(r.role),

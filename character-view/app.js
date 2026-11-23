@@ -1,3 +1,4 @@
+import { fitEyeSettings } from "./ocular.js";
 import { scaleRoom } from "./scale-room.js";
 import { visibleBounds } from "./dimensions.js";
 import { editCage } from "./control-cage.js";
@@ -842,6 +843,57 @@ function bindControls() {
     }));
   $("#hair-source").onclick = () =>
     editPart((p) => ({ ...p, hideSourceHair: !p.hideSourceHair }));
+  $("#eye-fit").onclick = () =>
+    editPart((p) => {
+      const owner = findPart(figure, p.id),
+        face = owner?.userData.faceSurface
+          ? owner
+          : owner?.children.find((c) => c.userData.faceSurface);
+      if (!face) throw new Error("Select a registered face.");
+      return { ...p, eyesRig: fitEyeSettings(face) };
+    });
+  $("#eye-remove").onclick = () =>
+    editPart((p) => {
+      const { eyesRig, ...source } = p;
+      return source;
+    });
+  $("#eye-color").onchange = () =>
+    editPart((p) => ({
+      ...p,
+      eyesRig: { ...p.eyesRig, source: false, color: $("#eye-color").value },
+    }));
+  for (const [id, sign] of [
+    ["eye-less", -1],
+    ["eye-more", 1],
+  ])
+    $("#" + id).onclick = () =>
+      editPart((p) => {
+        const settings = structuredClone(p.eyesRig),
+          k = $("#eye-axis").value;
+        if (/^[xy][01]$/.test(k)) {
+          settings.offsets ??= [
+            [0, 0],
+            [0, 0],
+          ];
+          const eye = Number(k[1]),
+            axis = k[0] === "x" ? 0 : 1;
+          settings.offsets[eye][axis] = T.MathUtils.clamp(
+            settings.offsets[eye][axis] + sign * 0.004,
+            -0.09,
+            0.09,
+          );
+        } else {
+          const [low, high, step] = {
+            opening: [0.42, 1.8, 0.09],
+            width: [0.62, 1.6, 0.06],
+            spacing: [0.7, 1.3, 0.04],
+            lift: [-0.1, 0.1, 0.004],
+            iris: [0.55, 1.45, 0.06],
+          }[k];
+          settings[k] = T.MathUtils.clamp(settings[k] + sign * step, low, high);
+        }
+        return { ...p, eyesRig: settings };
+      });
   $("#hair-add").onclick = () =>
     editPart((p) => ({
       ...p,
@@ -1580,6 +1632,15 @@ function update() {
   $("#mark-apply").disabled = $("#mark-roll").disabled = locked;
   $("#mark-clear").disabled = locked || !marked;
   const joined = form.parts.filter((p) => p.blendSkin);
+  $("#eye-tools").hidden =
+    locked ||
+    !(
+      part?.shape === "head" ||
+      (part?.anatomy === "face" && part.paint?.portrait)
+    );
+  $("#eye-settings").hidden = !part?.eyesRig;
+  $("#eye-fit").hidden = !!part?.eyesRig;
+  if (part?.eyesRig) $("#eye-color").value = part.eyesRig.color;
   $("#hair-tools").hidden =
     locked ||
     !(

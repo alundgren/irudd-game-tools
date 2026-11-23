@@ -150,6 +150,35 @@
             >Frontal depth influence
             <input id="depth-mix" type="range" min="0" max="100" value="85"
           /></label>
+          <details id="eye-tools" hidden>
+            <summary>Fit movable eyes</summary>
+            <button id="eye-fit">Fit to face</button>
+            <div id="eye-settings" hidden>
+              <label class="field"
+                >Replace with a solid iris color<input
+                  id="eye-color"
+                  type="color"
+              /></label>
+              <label class="field"
+                >Nudge eye fit<select id="eye-axis">
+                  <option value="opening">Lid opening</option>
+                  <option value="width">Eye width</option>
+                  <option value="spacing">Eye spacing</option>
+                  <option value="lift">Eye line</option>
+                  <option value="iris">Iris size</option>
+                  <option value="x0">Right eye across</option>
+                  <option value="y0">Right eye up</option>
+                  <option value="x1">Left eye across</option>
+                  <option value="y1">Left eye up</option>
+                </select></label
+              >
+              <div class="actions">
+                <button id="eye-less">Decrease</button
+                ><button id="eye-more">Increase</button
+                ><button id="eye-remove">Restore source eyes</button>
+              </div>
+            </div>
+          </details>
           <details id="hair-tools" hidden>
             <summary>Style hair</summary>
             <div class="actions">
@@ -729,6 +758,23 @@
         </section>
         <section class="display" data-panel="sculpt">
           <h2>Movement</h2>
+          <div id="gaze-tools" hidden>
+            <label class="field"
+              >Look across<input
+                id="look-x"
+                type="range"
+                min="-100"
+                max="100"
+                value="0" /></label
+            ><label class="field"
+              >Look up or down<input
+                id="look-y"
+                type="range"
+                min="-100"
+                max="100"
+                value="0" /></label
+            ><button id="look-center">Centre gaze</button>
+          </div>
           <div id="face-pose-tools" hidden>
             <label class="field"
               >Facial expression<select id="face-pose">

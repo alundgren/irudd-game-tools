@@ -342,12 +342,16 @@ export async function optimizeForGame(
   root.updateMatrixWorld(true);
   const meshes = [],
     tiles = new Map();
-  let initial = 0;
+  let initial = 0,
+    eyeTriangles = 0,
+    fittedFaceTriangles = 0;
   root.traverseVisible((m) => {
     if (!m.isMesh) return;
     const groups = batches(m);
     for (const b of groups) {
       initial += b.count / 3;
+      if (m.userData.eyePiece) eyeTriangles += b.count / 3;
+      else if (m.userData.fittedEyes) fittedFaceTriangles += b.count / 3;
       const e = tiles.get(b.material) ?? { material: b.material, weight: 0 };
       // Dense facial meshes retain more texture space, while tiny hardware
       // shares the remainder. All weights have a lower bound for padding.
@@ -359,8 +363,16 @@ export async function optimizeForGame(
   });
   if (!meshes.length)
     throw new Error("The selected wardrobe has no visible mesh.");
+  // Thin moving eye layers need closely matching surfaces after simplification.
+  // Reserve part of the existing triangle budget so their depths stay ordered.
+  const eyes = Math.min(eyeTriangles, triangles * 0.22),
+    faces = Math.min(fittedFaceTriangles * 0.55, triangles * 0.34);
   const page = atlas([...tiles.values()], size),
-    ratio = Math.min(0.55, triangles / initial);
+    ratio = Math.min(
+      0.55,
+      (triangles - eyes - faces) /
+        Math.max(1, initial - eyeTriangles - fittedFaceTriangles),
+    );
   page.material.vertexColors = meshes.some(([mesh]) =>
     Boolean(mesh.geometry.attributes.color),
   );
@@ -369,7 +381,12 @@ export async function optimizeForGame(
     if (page.material.vertexColors) whiteVertexColors(mesh.geometry);
     const original = mesh.geometry,
       joined = mergeVertices(original, 1e-5);
-    mesh.geometry = remap(joined, groups, ratio, tiles, size);
+    const share = mesh.userData.eyePiece
+      ? eyes / eyeTriangles
+      : mesh.userData.fittedEyes
+        ? faces / fittedFaceTriangles
+        : ratio;
+    mesh.geometry = remap(joined, groups, share, tiles, size);
     mesh.material = page.material;
     joined.dispose();
     original.dispose();

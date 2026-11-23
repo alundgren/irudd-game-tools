@@ -1,3 +1,4 @@
+import { attachEyes } from "./ocular.js";
 import { cageGeometry } from "./control-cage.js";
 import { fitDepth } from "./depth-pins.js";
 import { separateHair, scalpMaterial, seatHair } from "./portrait-hair.js";
@@ -780,6 +781,15 @@ export function createCharacter(form, silhouette, clay = false) {
   }
   blendSkin(form, objects, material);
   sculptBuild(group, form);
+  for (const p of form.parts)
+    if (p.eyesRig) {
+      const root = objects.get(p.id);
+      const face = root?.userData.faceSurface
+        ? root
+        : root?.children.find((c) => c.userData.faceSurface);
+      if (face)
+        attachEyes(face, p.eyesRig, plainView ? material("#adb4ad") : null);
+    }
   if (!plainView)
     for (const part of form.parts) {
       if (!part.markings) continue;
