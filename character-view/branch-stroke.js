@@ -78,7 +78,16 @@ export function drawBranch(
     while (result.parts.some((p) => p.id === id)) id = name + " " + k++;
     result = attachAt(
       result,
-      { id, shape: "sweep", knots, color, motionRole: style.motion },
+      {
+        id,
+        shape: "sweep",
+        knots,
+        color,
+        motionRole: style.motion,
+        ...(form.parts.find((p) => p.id === parent)?.blendSkin
+          ? { blendSkin: true }
+          : {}),
+      },
       side === 1 ? parent : oppositeRegion(parent, form),
       pivot.toArray(),
     );

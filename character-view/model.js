@@ -3,6 +3,7 @@ import { paintSources } from "./paint-sources.js";
 import { pullSurface } from "./surface-pull.js";
 
 import { handGeometry } from "./hands.js";
+import { blendSkin } from "./blended-skin.js";
 import { fitGarment } from "./garment-fit.js";
 import { pleat, splitHem } from "./drapery.js";
 import { expeditionMaterial } from "./expedition.js";
@@ -604,6 +605,10 @@ export function createCharacter(form, silhouette, clay = false) {
       }
       object.castShadow = true;
     }
+    if (part.anatomy === "face" && object.isMesh) {
+      object.userData.faceSurface = true;
+      object.facePaint = part.paint;
+    }
     if (part.pulls?.length) pullSurface(object).apply(part.pulls);
     object.name = part.id;
     object.position.fromArray(part.position);
@@ -632,6 +637,7 @@ export function createCharacter(form, silhouette, clay = false) {
   for (const p of form.parts)
     if (p.wearFit && p.parent && objects.get(p.id).visible)
       fitGarment(objects.get(p.parent), objects.get(p.id));
+  blendSkin(form, objects, material);
   sculptBuild(group, form.build);
   return group;
 }

@@ -139,6 +139,31 @@
               down to indent it. Each drag is one undo step.
             </p>
           </div>
+          <details id="skin-tools">
+            <summary>Join organic surfaces</summary>
+            <p class="micro">
+              Blend unpainted sweeps and ellipsoids into a continuous skin. Each
+              region keeps its attachments and joints.
+            </p>
+            <div class="actions">
+              <button id="skin-body">Join body regions</button
+              ><button id="skin-part">Join selected region</button
+              ><button id="skin-clear">Separate regions</button>
+            </div>
+            <label class="field"
+              >Seam softness<select id="skin-softness">
+                <option value=".008">Firm</option>
+                <option value=".015" selected>Soft</option>
+                <option value=".028">Rounded</option>
+              </select></label
+            >
+            <label class="field"
+              >Shared skin color<input
+                id="skin-color"
+                type="color"
+                value="#82715b"
+            /></label>
+          </details>
           <div id="knot-tools" hidden>
             <label class="field">Spine point<select id="knot"></select></label>
             <div class="actions">
@@ -173,7 +198,24 @@
           <div class="actions">
             <button id="draw-cue">Draw direction</button>
           </div>
-          <p class="micro" id="drawn-cues"></p>
+          <div id="drawn-cues">
+            <label class="check"
+              ><input type="checkbox" id="pin-0" /><span
+                id="cue-0"
+              ></span></label
+            ><label class="check"
+              ><input type="checkbox" id="pin-1" /><span id="cue-1"></span
+            ></label>
+          </div>
+          <details>
+            <summary>Replay a direction</summary>
+            <label class="field"
+              >Direction code<input
+                id="direction-code"
+                type="text"
+                spellcheck="false" /></label
+            ><button id="direction-replay">Use code</button>
+          </details>
           <p class="micro" id="protected-list"></p>
           <p class="micro" id="agent-help"></p>
           <label class="field" id="paint-action-field" hidden
@@ -408,6 +450,23 @@
         </section>
         <section class="display" data-panel="sculpt">
           <h2>Movement</h2>
+          <div id="face-pose-tools" hidden>
+            <label class="field"
+              >Facial expression<select id="face-pose">
+                <option value="Rest">Rest</option>
+                <option value="Blink">Blink</option>
+                <option value="Smile">Smile</option>
+                <option value="BrowLift">Raise brows</option>
+              </select></label
+            ><label class="field"
+              >Expression amount<input
+                id="face-pose-amount"
+                type="range"
+                min="0"
+                max="100"
+                value="100"
+            /></label>
+          </div>
           <label class="field"
             >Pose or clip<select id="motion">
               <option>Bind</option>

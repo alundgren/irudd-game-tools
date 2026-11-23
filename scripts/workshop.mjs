@@ -6,10 +6,14 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { validateForm, readProposal } from "../character-view/recipe.js";
 
-export async function codexVariation(brief, signal) {
+export async function codexVariation(brief, signal, repair) {
   const prompt =
     "You are the geometry author for a game character editor. Use the JSON brief as design input. Do not use tools, access the filesystem or execute code. Return a single JSON proposal following replyFormat. Preserve ids on retained parts.\n" +
-    JSON.stringify(agentDesign(brief));
+    JSON.stringify(agentDesign(brief)) +
+    (repair
+      ? "\nThe editor could not apply your first proposal. Return a complete corrected proposal for this same request. Preserve the original design intent.\n" +
+        JSON.stringify(repair)
+      : "");
   return (
     await codexJob(
       prompt,
@@ -150,12 +154,23 @@ export function workshopServer(
         return json(200, await art.paint(brief, controller.signal));
       if (req.url === "/trace-map")
         return json(200, await art.fit(brief, controller.signal));
-      const proposal = readProposal(
-        await generate(brief, controller.signal),
-        brief,
-        brief.revision,
-      );
-      json(200, proposal);
+      let repair;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const raw = await generate(brief, controller.signal, repair);
+        try {
+          const proposal = readProposal(raw, brief, brief.revision);
+          return json(200, proposal);
+        } catch (error) {
+          if (attempt === 1)
+            throw new Error(
+              "The corrected proposal could not be applied. " + error.message,
+            );
+          repair = {
+            problem: error.message,
+            previousReply: JSON.stringify(raw).slice(0, 55000),
+          };
+        }
+      }
     } catch (error) {
       if (!res.destroyed)
         json(502, {

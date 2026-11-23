@@ -74,6 +74,52 @@ export function drawVariation(
   };
 }
 
+export function redrawDirection(previous, strength, seed) {
+  const fresh = drawVariation(strength, seed);
+  const pins = fresh.cues.map((_, i) =>
+    previous?.strength === strength ? (previous.pins?.[i] ?? null) : null,
+  );
+  return {
+    ...fresh,
+    pins,
+    cues: fresh.cues.map((cue, i) =>
+      pins[i] === null ? cue : drawVariation(strength, pins[i]).cues[i],
+    ),
+  };
+}
+export function directionCode(variation) {
+  const pins = variation.pins ?? [];
+  return [
+    variation.strength,
+    variation.seed.toString(36),
+    ...(pins.some((v) => v !== null)
+      ? pins.map((v) => (v === null ? "_" : v.toString(36)))
+      : []),
+  ].join("/");
+}
+export function replayDirection(code) {
+  const [strength, draw, ...locked] = String(code)
+    .trim()
+    .toLowerCase()
+    .split("/");
+  function seed(s) {
+    if (!/^[0-9a-z]{1,7}$/.test(s) || parseInt(s, 36) > 0xffffffff)
+      throw new Error("Enter a saved direction code.");
+    return parseInt(s, 36);
+  }
+  if (
+    !Object.hasOwn(ideas, strength) ||
+    !draw ||
+    (locked.length && locked.length !== ideas[strength].length)
+  )
+    throw new Error("Enter a saved direction code.");
+  return redrawDirection(
+    { strength, pins: locked.map((s) => (s === "_" ? null : seed(s))) },
+    strength,
+    seed(draw),
+  );
+}
+
 const measuredShapes = new Set([
   "box",
   "cone",
@@ -101,6 +147,7 @@ const allowedPartKeys = new Set([
   "mount",
   "sculpt",
   "drape",
+  "blendSkin",
   "grip",
   "visibleIn",
   "outfitRole",
@@ -109,7 +156,13 @@ const allowedPartKeys = new Set([
   "look",
   "frameSize",
 ]);
-const allowedFormKeys = new Set(["outfit", "appearance", "build"]);
+const allowedFormKeys = new Set([
+  "outfit",
+  "appearance",
+  "build",
+  "skinTint",
+  "skinSoftness",
+]);
 function updateRecord(record, values, permitted) {
   if (!values || typeof values !== "object" || Array.isArray(values))
     throw new Error("A change needs named fields.");
@@ -155,7 +208,17 @@ export function applyOperations(preview, ops, library = {}, metric = false) {
       case "addPart":
         if (!part || form.parts.some((p) => p.id === part.id))
           throw new Error("A new part needs a unique ID.");
-        form.parts.push(withMetricFrame(part, metric));
+        form.parts.push(
+          withMetricFrame(
+            {
+              position: [0, 0, 0],
+              rotation: [0, 0, 0],
+              size: [1, 1, 1],
+              ...part,
+            },
+            metric,
+          ),
+        );
         break;
       case "removePart":
         if (index < 0) throw new Error("Unknown part: " + id + ".");

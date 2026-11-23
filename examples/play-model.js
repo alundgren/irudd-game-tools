@@ -52,6 +52,13 @@ function setSurface() {
   }
 }
 $("surface").onchange = setSurface;
+function expression(value) {
+  for (const m of meshes)
+    if (m.morphTargetDictionary)
+      for (const [key, id] of Object.entries(m.morphTargetDictionary))
+        m.morphTargetInfluences[id] = key === value ? 1 : 0;
+}
+$("expression").onchange = () => expression($("expression").value);
 function pose() {
   model.updateMatrixWorld(true);
   const all = [],
@@ -125,6 +132,18 @@ async function load(file) {
       }
     });
     if (!meshes.length) throw new Error("This file contains no mesh.");
+    const targets = [
+      ...new Set(
+        meshes.flatMap((m) => Object.keys(m.morphTargetDictionary ?? {})),
+      ),
+    ];
+    $("expression-field").hidden = !targets.length;
+    $("expression").replaceChildren(
+      new Option("Rest", ""),
+      ...targets.map(
+        (k) => new Option(k === "BrowLift" ? "Raise brows" : k, k),
+      ),
+    );
     mixer = new T.AnimationMixer(model);
     clips = gltf.animations;
     const neutral = pose();
@@ -251,6 +270,7 @@ orbit.target.set(0, 0.7, 0);
 renderer.setAnimationLoop((t) => {
   if (action && !locked && $("playing").checked) {
     mixer.update(Math.min((t - previous) / 1000, 0.08));
+    if ($("expression").value) expression($("expression").value);
     $("time").value = action.time / action.getClip().duration;
   }
   previous = t;

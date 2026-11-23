@@ -460,7 +460,7 @@ function human(atlas, height, gown) {
     : {
         center: 0.009,
         width: 0.3,
-        eyes: 0.615,
+        eyes: 0.608,
         nose: 0.453,
         mouth: 0.343,
         chin: 0.16,
@@ -594,7 +594,7 @@ function scanHuman(atlas, height, skin, palette) {
   portrait.paint.portrait = {
     center: wide ? 0 : 0.035,
     width: wide ? 0.29 : 0.248,
-    eyes: wide ? 0.651 : 0.646,
+    eyes: wide ? 0.685 : 0.633,
     nose: wide ? 0.534 : 0.52,
     mouth: wide ? 0.443 : 0.405,
     chin: wide ? 0.298 : 0.274,

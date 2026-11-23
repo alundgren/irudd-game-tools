@@ -1,5 +1,6 @@
 import * as T from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+import { prepareExpressions, worldMorphs } from "./expressions.js";
 import { alignGroundContacts } from "./ground-contact.js";
 import { buildClips } from "./motion.js";
 
@@ -65,7 +66,7 @@ function collect(form, model) {
       };
       segments.set(p.id, owner);
     }
-    if (owner && object.isMesh) {
+    if (owner && object.isMesh && object.geometry.attributes.position.count) {
       owner.meshes.push(object);
       if (!object.geometry.boundingBox) object.geometry.computeBoundingBox();
       owner.bounds.union(
@@ -163,6 +164,7 @@ function weights(point, points) {
   return [1, 2, 1 - t, t];
 }
 export function skinCharacter(form, model) {
+  prepareExpressions(model);
   const regions = collect(form, model),
     actor = new T.Group();
   actor.name = "Character";
@@ -227,16 +229,44 @@ export function skinCharacter(form, model) {
         blend = new Float32Array(pos.count * 4);
       for (let i = 0; i < pos.count; i++) {
         point.fromBufferAttribute(pos, i);
-        const [a, b, f, g] = weights(point, s.points);
-        ids[i * 4] = f > 0 ? index.get(s.bones[a]) : 0;
-        ids[i * 4 + 1] = g > 0 ? index.get(s.bones[b]) : 0;
-        blend[i * 4] = f;
-        blend[i * 4 + 1] = g;
+        const owners = source.blendOwners;
+        const primary = owners ? regions.get(owners.ids[owners.first[i]]) : s;
+        const secondary = owners
+          ? regions.get(owners.ids[owners.second[i]])
+          : null;
+        const mix = secondary ? owners.weight[i] : 1;
+        const [a, b, f, g] = weights(point, primary.points);
+        ids[i * 4] = f > 0 ? index.get(primary.bones[a]) : 0;
+        ids[i * 4 + 1] = g > 0 ? index.get(primary.bones[b]) : 0;
+        blend[i * 4] = f * mix;
+        blend[i * 4 + 1] = g * mix;
+        if (secondary && mix < 1) {
+          const [c, d, h, j] = weights(point, secondary.points);
+          ids[i * 4 + 2] = h > 0 ? index.get(secondary.bones[c]) : 0;
+          ids[i * 4 + 3] = j > 0 ? index.get(secondary.bones[d]) : 0;
+          blend[i * 4 + 2] = h * (1 - mix);
+          blend[i * 4 + 3] = j * (1 - mix);
+        }
       }
       geometry.setAttribute("skinIndex", new T.BufferAttribute(ids, 4));
       geometry.setAttribute("skinWeight", new T.BufferAttribute(blend, 4));
       if (!geometry.index)
         geometry.setIndex(Array.from({ length: pos.count }, (_, i) => i));
+      if (geometry.morphAttributes.position?.length) {
+        worldMorphs(geometry, source);
+        const face = new T.SkinnedMesh(geometry, source.material);
+        face.name =
+          "Face_" +
+          s.part.id.replace(/[^a-zA-Z0-9_-]/g, "_") +
+          "_" +
+          actor.children.length;
+        face.userData.faceSurface = true;
+        face.bind(skeleton, new T.Matrix4());
+        face.frustumCulled = false;
+        face.castShadow = true;
+        actor.add(face);
+        continue;
+      }
       if (!byMaterial.has(source.material)) byMaterial.set(source.material, []);
       byMaterial.get(source.material).push(geometry);
     }
@@ -259,7 +289,22 @@ export function skinCharacter(form, model) {
     actor.add(mesh);
   }
   const clips = buildClips(root, regions);
-  const skinned = actor.children.find((o) => o.isSkinnedMesh);
+  const idle = clips.find((c) => c.name === "Idle");
+  if (idle)
+    for (const mesh of actor.children) {
+      if (mesh.morphTargetDictionary?.Blink === undefined) continue;
+      const d = idle.duration;
+      idle.tracks.push(
+        new T.NumberKeyframeTrack(
+          mesh.name + ".morphTargetInfluences[Blink]",
+          [0, 0.59 * d, 0.64 * d, 0.69 * d, d],
+          [0, 0, 1, 0, 0],
+        ),
+      );
+    }
+  const skinned =
+    actor.children.find((o) => o.isSkinnedMesh && !o.userData.faceSurface) ??
+    actor.children.find((o) => o.isSkinnedMesh);
   if (
     skinned &&
     [...regions.values()].some((r) =>

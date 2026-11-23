@@ -1,13 +1,21 @@
 import * as T from "three";
 import { optimizeForGame } from "./game-export.js";
 import { paintWithAgent } from "./art-variation.js";
+import { canBlend, bodyRegion } from "./blended-skin.js";
+import { prepareExpressions } from "./expressions.js";
 import { drawTool } from "./draw-tool.js";
 import { drawBranch, branchTypes } from "./branch-stroke.js";
 import { pullTool } from "./pull-tool.js";
 import { readSession, saveSession } from "./session.js";
 import { skinCharacter } from "./skin.js";
 import { motionPreview } from "./motion-preview.js";
-import { drawVariation, agentDesign } from "./variations.js";
+import {
+  drawVariation,
+  agentDesign,
+  redrawDirection,
+  directionCode,
+  replayDirection,
+} from "./variations.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { manipulator, findPart } from "./manipulator.js";
 import { appendPart, copyBranch, removePart } from "./parts.js";
@@ -91,14 +99,11 @@ function restoreSessionState(saved) {
         ),
       );
       if (saved.variation?.seed !== undefined)
-        variation = drawVariation(
-          saved.variation.strength,
-          saved.variation.seed,
-        );
+        variation = replayDirection(directionCode(saved.variation));
       if (saved.target && form.parts.some((p) => p.id === saved.target))
         target = saved.target;
       if (saved.amounts)
-        for (const key of Object.keys(neutral()))
+        for (const key of Object.values(modes).flat())
           if (Number.isFinite(saved.amounts[key]))
             amounts[key] = Math.max(-40, Math.min(40, saved.amounts[key]));
       instructions =
@@ -319,7 +324,7 @@ function bindControls() {
     status,
   });
   function redraw() {
-    variation = drawVariation($("#variation-range").value);
+    variation = redrawDirection(variation, $("#variation-range").value);
     request = null;
     persist();
     update();
@@ -327,6 +332,63 @@ function bindControls() {
   $("#variation-range").value = variation.strength;
   $("#variation-range").onchange = redraw;
   $("#draw-cue").onclick = redraw;
+  for (let i = 0; i < 2; i++)
+    $("#pin-" + i).onchange = () => {
+      const pins = [...(variation.pins ?? [null, null])];
+      pins[i] = $("#pin-" + i).checked ? (pins[i] ?? variation.seed) : null;
+      variation = { ...variation, pins };
+      request = null;
+      persist();
+      update();
+    };
+  $("#direction-replay").onclick = () => {
+    try {
+      variation = replayDirection($("#direction-code").value);
+      $("#variation-range").value = variation.strength;
+      request = null;
+      persist();
+      update();
+      status("Direction restored.");
+    } catch (error) {
+      status(error.message);
+    }
+  };
+  function skinChange(kind) {
+    try {
+      const base = nudge(form, target, amounts);
+      const next = base.parts.map((p) => {
+        const change =
+          kind === "body"
+            ? bodyRegion(p)
+            : kind === "part"
+              ? p.id === target && canBlend(p)
+              : kind === "clear"
+                ? p.blendSkin
+                : false;
+        if (!change) return p;
+        return {
+          ...p,
+          blendSkin:
+            kind === "clear" ? false : kind === "part" ? !p.blendSkin : true,
+        };
+      });
+      commit(
+        {
+          ...base,
+          parts: next,
+          skinSoftness: Number($("#skin-softness").value),
+          skinTint: $("#skin-color").value,
+        },
+        "Updated the shared skin.",
+      );
+    } catch (error) {
+      status(error.message);
+    }
+  }
+  for (const action of ["body", "part", "clear"])
+    $("#skin-" + action).onclick = () => skinChange(action);
+  $("#skin-color").onchange = () => skinChange("appearance");
+  $("#skin-softness").onchange = () => skinChange("appearance");
   $("#branch-type").replaceChildren(
     ...branchTypes.map((k) => new Option(k, k)),
   );
@@ -622,6 +684,7 @@ function bindControls() {
     try {
       exporting = createCharacter(form, false);
       if ($("#with-motion").checked) rig = skinCharacter(form, exporting);
+      else prepareExpressions(exporting);
       const exportScene = new T.Scene();
       if (rig) {
         for (const o of [...rig.actor.children]) exportScene.add(o);
@@ -780,7 +843,7 @@ function bindControls() {
       "AI variation accepted.",
     );
   $("#discard").onclick = () => {
-    variation = drawVariation(variation.strength);
+    variation = redrawDirection(variation, variation.strength);
     proposal = null;
     request = null;
     showCurrent = false;
@@ -1067,6 +1130,25 @@ function update() {
   $("#pull-tool").disabled = locked;
   pressed($("#branch-tool"), drawing);
   $("#branch-settings").hidden = !drawing;
+  const joined = form.parts.filter((p) => p.blendSkin);
+  $("#skin-tools").hidden = !form.parts.some(canBlend);
+  $("#skin-part").disabled = locked || !canBlend(part);
+  $("#skin-part").textContent = part?.blendSkin
+    ? "Separate selected region"
+    : "Join selected region";
+  $("#skin-body").disabled = locked || form.parts.filter(bodyRegion).length < 2;
+  $("#skin-clear").disabled = locked || !joined.length;
+  $("#skin-softness").disabled = locked;
+  $("#skin-color").disabled = locked;
+  $("#skin-color").value =
+    form.skinTint ??
+    joined[0]?.color ??
+    form.parts.find(bodyRegion)?.color ??
+    "#82715b";
+  $("#skin-softness").value = String(form.skinSoftness ?? 0.015).replace(
+    /^0\./,
+    ".",
+  );
   $("#branch-tool").disabled = locked;
   pressed($("#pull-tool"), pulling);
   $("#pull-settings").hidden = !pulling;
@@ -1076,7 +1158,14 @@ function update() {
   $("#focus").disabled = !target;
   $("#protect").disabled = locked || !target;
   pressed($("#protect"), protectedIds.has(target));
-  $("#drawn-cues").textContent = variation.cues.join(" · ");
+  variation.cues.forEach((cue, i) => {
+    $("#cue-" + i).textContent = "Keep “" + cue + "”";
+    $("#pin-" + i).checked = variation.pins?.[i] != null;
+    $("#pin-" + i).disabled = locked;
+  });
+  if (document.activeElement !== $("#direction-code"))
+    $("#direction-code").value = directionCode(variation);
+  $("#direction-replay").disabled = locked;
   $("#protected-list").textContent = protectedIds.size
     ? "Keep shape: " + [...protectedIds].join(", ")
     : "";

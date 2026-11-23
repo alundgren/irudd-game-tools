@@ -1,4 +1,5 @@
 import { AnimationMixer, SkeletonHelper } from "three";
+import { poseExpression } from "./expressions.js";
 import { skinCharacter } from "./skin.js";
 
 export function motionPreview(scene, render) {
@@ -16,6 +17,19 @@ export function motionPreview(scene, render) {
     playing = true,
     frame = null,
     previous = 0;
+  const expression = document.getElementById("face-pose"),
+    amount = document.getElementById("face-pose-amount");
+  function setExpression() {
+    poseExpression(
+      rig?.actor ?? model,
+      expression.value,
+      Number(amount.value) / 100,
+    );
+    amount.disabled = expression.value === "Rest";
+    render();
+  }
+  expression.onchange = setExpression;
+  amount.oninput = setExpression;
   function release() {
     if (frame !== null) cancelAnimationFrame(frame);
     frame = null;
@@ -51,6 +65,8 @@ export function motionPreview(scene, render) {
     frame = null;
     if (!playing || !rig) return;
     mixer.update(Math.min(0.08, (now - previous) / 1000));
+    if (expression.value !== "Rest")
+      poseExpression(rig.actor, expression.value, Number(amount.value) / 100);
     previous = now;
     time.value = ((mixer.time % clip.duration) / clip.duration) * 1000;
     render();
@@ -72,7 +88,7 @@ export function motionPreview(scene, render) {
     if (!model) return;
     if (select.value === "Bind") {
       scene.add(model);
-      render();
+      setExpression();
       return;
     }
     scene.remove(model);
@@ -83,6 +99,7 @@ export function motionPreview(scene, render) {
     mixer.clipAction(clip).play();
     mixer.setTime(0);
     time.value = 0;
+    setExpression();
     overlay();
     play(playing);
     render();
@@ -100,7 +117,8 @@ export function motionPreview(scene, render) {
     if (rig) {
       play(false);
       mixer.setTime((Number(time.value) / 1000) * clip.duration);
-      render();
+      if (expression.value !== "Rest") setExpression();
+      else render();
     }
   };
   return {
@@ -109,6 +127,12 @@ export function motionPreview(scene, render) {
       release();
       model = figure;
       recipe = form;
+      let hasFace = false;
+      figure.traverse((o) => {
+        if (o.userData.faceSurface) hasFace = true;
+      });
+      document.getElementById("face-pose-tools").hidden = !hasFace;
+      if (!hasFace) expression.value = "Rest";
       configure();
     },
     get active() {

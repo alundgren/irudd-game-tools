@@ -304,6 +304,21 @@ function validBinding(p) {
   );
 }
 export function validateForm(form) {
+  requireThat(simpleObject(form), "Choose a character form.");
+  if (form.skinSoftness !== undefined)
+    requireThat(
+      Number.isFinite(form.skinSoftness) &&
+        form.skinSoftness >= 0.005 &&
+        form.skinSoftness <= 0.045,
+      "Invalid seam softness.",
+    );
+  if (form.skinTint !== undefined)
+    requireThat(hex(form.skinTint), "Invalid shared skin color.");
+  if (Array.isArray(form.parts))
+    requireThat(
+      form.parts.filter((p) => p?.blendSkin).length <= 48,
+      "Join at most 48 regions at once.",
+    );
   if (form.occluders !== undefined)
     requireThat(
       Array.isArray(form.occluders) &&
@@ -481,6 +496,11 @@ export function validateForm(form) {
           vec(part.mount.rotation, -360, 360),
         "Invalid scute mounting pose.",
       );
+    if (part.blendSkin !== undefined)
+      requireThat(
+        typeof part.blendSkin === "boolean",
+        "Invalid joined-skin setting.",
+      );
     if (part.wearFit !== undefined)
       requireThat(
         part.wearFit === true && typeof part.parent === "string",
@@ -588,7 +608,7 @@ export function makeBrief(
         "ordered edits against preview. Omit unchanged fields and parts. setPart: {op,id,set}, addPart: {op,part}, removePart: {op,id}, setForm: {op,set}. placeComponent: {op,asset,id:target,mode:replace|replaceBranch|attach,fit:true|false,socket:above|below|front|back|left|right}. Use the library for high-detail painted features; replace preserves children. Use null to remove an optional field in setPart.",
     },
     modeling:
-      "Follow the written instructions first. The variation seed and cues were drawn by the editor from a real random source. Use the cues to resolve freedom left by the user. Preserve listed part geometry. Return compact operations against the nudged preview and omit unchanged geometry. Global build has optional mass, shoulders, waist, belly and hips multipliers (.4 to 2.4). Units are metres; +Y up, +Z forward and +X character left. The floor is y=0. Preserve appearance and wardrobe unless steered otherwise. You can add, remove, duplicate or replace any parts. Built-in shapes: torso, head, left arm, right arm, left leg, right leg. Their position is an anatomical pivot; size is a local XYZ scale. Custom shapes: box, ellipsoid, cylinder, cone (tip +Y), scute (a shield-shaped convex armor plate, tip -Y, outer ridge +Z). A hand shape has a wrist pivot and extends down local Y. Its optional grip has fingers (1-7, plus thumb), curl and spread (0-1), and side (1 or -1). Other primitive positions are their centers; size is full local XYZ dimensions in metres. The organic sweep shape uses knots, each [x,y,z,radiusWidth,radiusDepth] in local metres, two to 48 distinct centreline points, smoothly joined. For sweeps size is local scale. Use this for organic limbs, spines, horns, hair or garment shapes. Appearance.face (0 to 3) selects original face paint and head parts can hold independent sculpt multipliers (.35 to 2) for jaw, nose, brow, cheek, eyes (spacing), eye size, mouth (width), lips (fullness), chin and smile. For a human face made of a sweep, anatomy may be face. Preserve original paint bindings for retained surface artwork. All rotations are Euler XYZ degrees. Custom shapes require color as #rrggbb. Optional parent is a part ID. A child uses local position/size/rotation and follows parent edits. Newly added or replaced primitives receive a metre-based attachment frame automatically: author a child using metre offsets from its parent centre, independent of primitive dimensions. Previously retained primitives without frameSize use scaled local coordinates. Avoid cycles. Optional surface: canvas, leather, metal, scales, plain. Set outfitRole to torso, upper arm, forearm, hand, thigh, shin, foot, head, skirt, accessory or tail when a custom region should accept clothing. A sweep can carry drape {folds:2..32,depth:0..0.3,twist:-2..2,slit:0..0.35,slitHeight:0.05..1}. Slits open front and rear panels upwards from the hem. A region also accepts up to 64 local surface pulls: {at:[x,y,z],reach:[rx,ry,rz],offset:[dx,dy,dz],mirrorX?:number}. A smooth radial displacement permits local asymmetry, bulges, dimples and folds in the 3D surface. Keep existing pulls when modifying other fields. Optional motionRole (rigid, torso, head, upper arm, forearm, hand, thigh, shin, foot, wing, tail, skirt) controls skinning and animation independently of clothing. Use optional visibleIn (wardrobe names) for outfit-specific additions. appearance.tones accepts cloth, trim, panel, pants, boots as hex colours. Use unique readable IDs. Use at most 128 parts, each size .005 to 12 and position -12 to 12. Return only proposal JSON. Keep adult humanoid clothing practical and nonsexualized.",
+      "Follow the written instructions first. The variation seed and cues were drawn by the editor from a real random source. Use the cues to resolve freedom left by the user. Preserve listed part geometry. Return compact operations against the nudged preview and omit unchanged geometry. Global build has optional mass, shoulders, waist, belly and hips multipliers (.4 to 2.4). Units are metres; +Y up, +Z forward and +X character left. The floor is y=0. Preserve appearance and wardrobe unless steered otherwise. You can add, remove, duplicate or replace any parts. Built-in shapes: torso, head, left arm, right arm, left leg, right leg. Their position is an anatomical pivot; size is a local XYZ scale. Custom shapes: box, ellipsoid, cylinder, cone (tip +Y), scute (a shield-shaped convex armor plate, tip -Y, outer ridge +Z). A hand shape has a wrist pivot and extends down local Y. Its optional grip has fingers (1-7, plus thumb), curl and spread (0-1), and side (1 or -1). Other primitive positions are their centers; size is full local XYZ dimensions in metres. The organic sweep shape uses knots, each [x,y,z,radiusWidth,radiusDepth] in local metres, two to 48 distinct centreline points, smoothly joined. For sweeps size is local scale. Use this for organic limbs, spines, horns, hair or garment shapes. Appearance.face (0 to 3) selects original face paint and head parts can hold independent sculpt multipliers (.35 to 2) for jaw, nose, brow, cheek, eyes (spacing), eye size, mouth (width), lips (fullness), chin and smile. For a human face made of a sweep, anatomy may be face. Preserve original paint bindings for retained surface artwork. All rotations are Euler XYZ degrees. Custom shapes require color as #rrggbb. Optional parent is a part ID. A child uses local position/size/rotation and follows parent edits. Newly added or replaced primitives receive a metre-based attachment frame automatically: author a child using metre offsets from its parent centre, independent of primitive dimensions. Previously retained primitives without frameSize use scaled local coordinates. Avoid cycles. Optional surface: canvas, leather, metal, scales, plain. Set outfitRole to torso, upper arm, forearm, hand, thigh, shin, foot, head, skirt, accessory or tail when a custom region should accept clothing. Unpainted sweep and ellipsoid regions may set blendSkin:true to join them into one smooth skin with shared joint weights. A sweep can carry drape {folds:2..32,depth:0..0.3,twist:-2..2,slit:0..0.35,slitHeight:0.05..1}. Slits open front and rear panels upwards from the hem. A region also accepts up to 64 local surface pulls: {at:[x,y,z],reach:[rx,ry,rz],offset:[dx,dy,dz],mirrorX?:number}. A smooth radial displacement permits local asymmetry, bulges, dimples and folds in the 3D surface. Keep existing pulls when modifying other fields. Optional motionRole (rigid, torso, head, upper arm, forearm, hand, thigh, shin, foot, wing, tail, skirt) controls skinning and animation independently of clothing. Use optional visibleIn (wardrobe names) for outfit-specific additions. appearance.tones accepts cloth, trim, panel, pants, boots as hex colours. Use unique readable IDs. Use at most 128 parts, each size .005 to 12 and position -12 to 12. Return only proposal JSON. Keep adult humanoid clothing practical and nonsexualized.",
   };
 }
 export function readProposal(raw, request, revision) {

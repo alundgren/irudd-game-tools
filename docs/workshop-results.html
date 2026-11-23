@@ -422,6 +422,42 @@
         </details>
       </article>
       <section class="method">
+        <h2>Faces and moving skin in a game</h2>
+        <figure>
+          <img
+            src="media/scout-expressions.webp"
+            alt="The same scout at rest, with eyes shut, smiling and raising her brows"
+          />
+          <figcaption>
+            Rest, blink, smile and brow lift on the same 3D head. The eyelids
+            carry skin sampled from the portrait.
+          </figcaption>
+        </figure>
+        <p>
+          The GLB keeps the facial poses as named morph targets. The standalone
+          player can apply them by name. Two heads were exported at full detail,
+          game detail and as static game meshes. All six files passed the
+          Khronos glTF validator with zero errors and warnings.
+        </p>
+        <figure>
+          <img
+            src="media/organic-skin.webp"
+            alt="A glider, six-legged hybrid and four-armed trader before and after joining organic skin"
+          />
+          <figcaption>
+            Separate regions above, joined skin below. The hybrid's chest and
+            abdomen show the largest difference. Fine legs retain their authored
+            contours.
+          </figcaption>
+        </figure>
+        <p>
+          Joining organic regions removes interior surfaces at their seams. Each
+          region keeps its editable part and rig attachment. Shared vertices
+          follow neighbouring joints during motion. Three additional characters
+          passed GLB validation at both detail settings.
+        </p>
+      </section>
+      <section class="method">
         <h2>Two live painted rerolls</h2>
         <p>
           Both trials started in the editor with an existing model, a random

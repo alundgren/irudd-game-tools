@@ -229,7 +229,8 @@ function atlas(entries, size) {
 function remap(g, groups, ratio, tiles, size) {
   const attributes = Object.entries(g.attributes),
     out = new Map(attributes.map(([k]) => [k, []])),
-    indices = [];
+    indices = [],
+    sourceOrder = [];
   for (const b of groups) {
     const simplified = simplify(g, b, ratio),
       lookup = new Map();
@@ -239,6 +240,7 @@ function remap(g, groups, ratio, tiles, size) {
       if (dest === undefined) {
         dest = out.get("position").length / 3;
         lookup.set(i, dest);
+        sourceOrder.push(i);
         for (const [key, a] of attributes) {
           const values = out.get(key);
           if (key === "uv") {
@@ -265,6 +267,24 @@ function remap(g, groups, ratio, tiles, size) {
         a.normalized,
       ),
     );
+  geo.morphTargetsRelative = g.morphTargetsRelative;
+  for (const [key, targets] of Object.entries(g.morphAttributes)) {
+    geo.morphAttributes[key] = targets.map((target) => {
+      const data = new Float32Array(sourceOrder.length * target.itemSize);
+      sourceOrder.forEach((source, dest) =>
+        data.set(
+          target.array.subarray(
+            source * target.itemSize,
+            (source + 1) * target.itemSize,
+          ),
+          dest * target.itemSize,
+        ),
+      );
+      const attr = new T.Float32BufferAttribute(data, target.itemSize);
+      attr.name = target.name;
+      return attr;
+    });
+  }
   geo.computeBoundingBox();
   geo.computeBoundingSphere();
   return geo;
