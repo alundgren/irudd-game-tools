@@ -74,7 +74,8 @@
             ><button data-op="turn">Turn</button
             ><button data-op="face">Face</button
             ><button data-op="build">Build</button
-            ><button data-op="cloth">Cloth</button>
+            ><button data-op="cloth">Cloth</button
+            ><button data-op="spine">Spine</button>
           </div>
           <div id="features"></div>
           <div class="actions">
@@ -139,10 +140,15 @@
               down to indent it. Each drag is one undo step.
             </p>
           </div>
+          <label id="depth-mix-field" hidden
+            >Frontal depth influence
+            <input id="depth-mix" type="range" min="0" max="100" value="85"
+          /></label>
           <details id="hair-tools" hidden>
             <summary>Style hair</summary>
             <div class="actions">
-              <button id="hair-add">Grow hair</button
+              <button id="hair-source" hidden>Take off source hair</button
+              ><button id="hair-add">Grow hair</button
               ><button id="hair-remove">Remove groom</button>
             </div>
             <div id="hair-settings" hidden>
@@ -323,6 +329,12 @@
             >Painted edit<select id="paint-action">
               <option value="replace">Redesign this part</option>
               <option value="wear">Fit a garment to this part</option>
+              <option value="depth" id="depth-action" hidden>
+                Fit facial relief from the source views
+              </option>
+              <option value="scalp" id="scalp-action" hidden>
+                Fit a clean scalp under this hair
+              </option>
             </select></label
           >
           <div class="actions">
@@ -771,9 +783,20 @@
       <div class="actions">
         <button id="trace-face" hidden>Mark facial landmarks</button
         ><button id="trace-face-apply" hidden>Fit marked face</button
+        ><button id="trace-depth" hidden>Match front and profile</button
+        ><button id="trace-depth-apply" hidden>Fit depth point</button
         ><button id="trace-undo">Undo point</button
         ><button id="trace-clear">Clear outlines</button>
       </div>
+      <label class="field" id="trace-depth-settings" hidden
+        >Depth influence as % of region reference height<input
+          type="number"
+          min="3.5"
+          max="35"
+          step=".5"
+          value="15"
+          id="trace-depth-radius"
+      /></label>
       <label class="field" id="trace-radius-field" hidden
         >Root radius as % of height<input
           type="number"

@@ -1,6 +1,11 @@
+import { acceptsDepth, depthFromPixels } from "./portrait-depth.js";
+import { readReference } from "./visual-references.js";
+import { keepSourceHairstyle } from "./graft.js";
 import {
   paintGuide,
   calibrateFace,
+  sourceHairCap,
+  withDepthPairs,
   importArtwork,
   traceHull,
   traceOutline,
@@ -60,7 +65,14 @@ export async function fitMapWithAgent(
   atlas,
   height,
   instructions,
-  { revision, requestId, preserve = [], status = () => {}, signal },
+  {
+    revision,
+    requestId,
+    preserve = [],
+    isolatedFace = false,
+    status = () => {},
+    signal,
+  },
 ) {
   const brief = {
     format: "irudd.trace-request.v1",
@@ -75,6 +87,37 @@ export async function fitMapWithAgent(
   const attempts = [];
   for (let i = 0; i < 2; i++) {
     const map = await post("/trace-map", brief, signal);
+    // An isolated portrait fills the whole panel. The agent's outlined head
+    // can end just above the chin, especially when it separated the neck.
+    const root =
+      isolatedFace &&
+      map.regions?.find(
+        (r) => !r.parent && r.method === "loft" && r.faceLandmarks,
+      );
+    if (root) {
+      const hairRegions =
+        root.hairRegions ??
+        map.regions
+          .filter(
+            (r) =>
+              /hair|coiffure|fringe|bun|braid|locks/i.test(r.id) &&
+              r.front?.length >= 3 &&
+              r.side?.length >= 3,
+          )
+          .map(({ id, front, side }) => ({ id, front, side }));
+      const portraitMap = {
+        ...map,
+        regions: [{ ...root, front: [], side: [], hairRegions }],
+      };
+      try {
+        return {
+          form: buildTraceMap(portraitMap, atlas, height),
+          map: portraitMap,
+        };
+      } catch {
+        /* Retry the individual outlines below. */
+      }
+    }
     attempts.push(map);
     try {
       const form = buildTraceMap(map, atlas, height);
@@ -134,15 +177,92 @@ export async function fitMapWithAgent(
   if (best) return best;
   throw problem;
 }
+async function newDepthCandidate(request, base, target, signal, status) {
+  const part = base.parts.find((p) => p.id === target);
+  if (!acceptsDepth(part))
+    throw new Error(
+      "Select a painted portrait with its own front and side pictures.",
+    );
+  const views = [0, 1].map((i) => {
+    const c = document.createElement("canvas");
+    c.width = c.height = 640;
+    paintGuide(c.getContext("2d"), part.paint.atlas, i);
+    return {
+      name: i === 0 ? "frontal color" : "profile color",
+      jpeg: c.toDataURL("image/jpeg", 0.93).split(",")[1],
+    };
+  });
+  status("Generating a frontal depth pass from the accepted portrait.");
+  const reply = await post(
+    "/portrait-depth",
+    {
+      format: request.format,
+      requestId: request.requestId,
+      revision: request.revision,
+      instructions: request.instructions,
+      height: Math.max(0.15, part.paint.height),
+      views,
+    },
+    signal,
+  );
+  if (
+    reply.requestId !== request.requestId ||
+    reply.revision !== request.revision
+  )
+    throw new Error("This depth pass belongs to an earlier edit.");
+  const blob = new Blob(
+    [Uint8Array.from(atob(reply.png), (c) => c.charCodeAt(0))],
+    { type: "image/png" },
+  );
+  const bitmap = await createImageBitmap(blob);
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 384;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  ctx.drawImage(bitmap, 0, 0, 384, 384);
+  bitmap.close();
+  const depthField = depthFromPixels(
+    ctx.getImageData(0, 0, 384, 384).data,
+    384,
+    384,
+  );
+  const form = {
+    ...base,
+    parts: base.parts.map((p) =>
+      p === part ? { ...p, paint: { ...p.paint, depthField } } : p,
+    ),
+  };
+  validateForm(form);
+  return {
+    format: "irudd.form-proposal.v1",
+    requestId: request.requestId,
+    revision: request.revision,
+    summary:
+      "Fitted frontal depth to " +
+      part.id +
+      ". Compare the shape in clay and adjust its influence under Sculpt.",
+    form,
+    painted: true,
+  };
+}
 export async function paintWithAgent(
   request,
   base,
-  { views, height, target, wearable = false, status, signal },
+  {
+    views,
+    height,
+    target,
+    wearable = false,
+    scalp = false,
+    depth = false,
+    status,
+    signal,
+  },
 ) {
   if (target && !wearable && request.preserve.includes(target))
     throw new Error(
       "This part is protected. Choose an unlocked part or remove its shape lock.",
     );
+  if (depth) return newDepthCandidate(request, base, target, signal, status);
   const payload = {
     format: request.format,
     revision: request.revision,
@@ -156,6 +276,21 @@ export async function paintWithAgent(
     ...(request.references?.length ? { references: request.references } : {}),
     wearable,
   };
+  if (scalp) {
+    const original = base.parts.find((p) => p.id === target),
+      url = base.artwork?.[original?.paint?.atlas];
+    if (!original?.hairCap || !url)
+      throw new Error("Select a fitted portrait with source hair.");
+    const source = await (await fetch(url)).blob();
+    const reference = await readReference(
+      new File([source], "original-face-turnaround.webp", {
+        type: "image/webp",
+      }),
+      "Face",
+    );
+    payload.references = [reference, ...(request.references ?? []).slice(0, 1)];
+    payload.scalp = true;
+  }
   status("Generating an original four-view turnaround…");
   const art = await post("/turnaround", payload, signal);
   if (art.requestId !== request.requestId || art.revision !== request.revision)
@@ -181,6 +316,13 @@ export async function paintWithAgent(
         revision: request.revision,
         requestId: request.requestId,
         preserve: target ? [] : request.preserve,
+        isolatedFace:
+          !wearable &&
+          !!target &&
+          base.parts.some(
+            (p) =>
+              p.id === target && (p.shape === "head" || p.anatomy === "face"),
+          ),
         signal,
         status,
       },
@@ -229,7 +371,24 @@ export async function paintWithAgent(
         [],
         [],
       ]);
-      const face = calibrateFace(surface, portraitRoot.faceLandmarks);
+      const face = withDepthPairs(
+        calibrateFace(surface, portraitRoot.faceLandmarks),
+        portraitRoot.depthPairs,
+      );
+      const hairRegions =
+        portraitRoot.hairRegions ??
+        map.regions
+          .filter(
+            (r) =>
+              /hair|coiffure|fringe|bun|braid|locks/i.test(r.id) &&
+              r.front?.length >= 3 &&
+              r.side?.length >= 3,
+          )
+          .map(({ id, front, side }) => ({ id, front, side }));
+      if (!scalp && hairRegions.length) {
+        const cap = sourceHairCap(face, hairRegions);
+        if (cap) face.hairCap = cap;
+      }
       form = { ...form, parts: [face] };
       map = {
         ...map,
@@ -240,6 +399,10 @@ export async function paintWithAgent(
             front: [],
             side: [],
             faceLandmarks: portraitRoot.faceLandmarks,
+            ...(portraitRoot.depthPairs?.length
+              ? { depthPairs: portraitRoot.depthPairs }
+              : {}),
+            ...(hairRegions.length ? { hairRegions } : {}),
             outfitRole: "head",
             motionRole: "head",
           },
@@ -283,11 +446,14 @@ export async function paintWithAgent(
           : p,
       );
     }
-    form = placeComponent(base, extractComponent(form, roots[0].id, true), {
-      target,
-      mode: wearable ? "wear" : "replace",
-      fit: true,
-    }).form;
+    const component = extractComponent(form, roots[0].id, true);
+    if (scalp) form = keepSourceHairstyle(base, target, component);
+    else
+      form = placeComponent(base, component, {
+        target,
+        mode: wearable ? "wear" : "replace",
+        fit: true,
+      }).form;
   } else {
     for (const id of request.preserve) {
       const original = extractComponent(base, id, false);

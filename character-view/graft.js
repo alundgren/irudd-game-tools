@@ -1,3 +1,4 @@
+import { headSpace } from "./portrait-frame.js";
 import { Box3, Vector3, Matrix4, Euler, Quaternion, MathUtils } from "three";
 
 import { paintSources, retainPaintSources } from "./paint-sources.js";
@@ -328,6 +329,102 @@ export function attachAt(form, part, parent, pivot) {
     .multiply(new Matrix4().makeTranslation(...pivot));
   const pose = fields(relative);
   return { ...form, parts: [...form.parts, { ...part, ...pose, parent }] };
+}
+export function keepSourceHairstyle(base, target, component) {
+  const oldGraph = graph(base.parts),
+    original = oldGraph.byId.get(target),
+    newFace = component.parts.find((p) => p.id === component.root);
+  if (!original?.hairCap || !newFace?.paint?.portrait)
+    throw new Error(
+      "The scalp fit needs an isolated calibrated face and a fitted source hairstyle.",
+    );
+  const assembled = placeComponent(base, component, {
+    target,
+    mode: "replace",
+    fit: false,
+  }).form;
+  const newPart = assembled.parts.find((p) => p.id === target);
+  function eyeFrame(part) {
+    const b = headSpace(part.paint),
+      f = b.portrait;
+    const y = f.eyes * b.height - b.offset[1],
+      x = f.center * b.height - b.offset[0];
+    const rows = part.knots;
+    let i = 1;
+    while (i < rows.length - 1 && rows[i][1] < y) i++;
+    const a = rows[i - 1],
+      z = rows[i],
+      t = MathUtils.clamp((y - a[1]) / (z[1] - a[1] || 1), 0, 1);
+    const pupilDepth = MathUtils.lerp(
+      a[2] + a[4] * 0.89,
+      z[2] + z[4] * 0.89,
+      t,
+    );
+    return {
+      p: new Vector3(x, y, pupilDepth),
+      metric: f.width * b.height,
+      lower: (f.eyes - f.chin) * b.height,
+    };
+  }
+  const a = eyeFrame(original),
+    b = eyeFrame(newPart),
+    oldWorld = oldGraph.world(target);
+  const ratio = MathUtils.clamp(
+    Math.sqrt(((a.metric / b.metric) * a.lower) / b.lower),
+    0.35,
+    3,
+  );
+  const transform = oldWorld
+    .clone()
+    .multiply(new Matrix4().makeTranslation(a.p.x, a.p.y, a.p.z))
+    .multiply(new Matrix4().makeScale(ratio, ratio, ratio))
+    .multiply(new Matrix4().makeTranslation(-b.p.x, -b.p.y, -b.p.z));
+  const placement = fields(
+    oldGraph.mount(original.parent).invert().multiply(transform),
+  );
+  const current = { ...newPart, ...placement };
+  delete current.hairCap;
+  delete current.groom;
+  delete current.hideSourceHair;
+  const newMount = transform.clone();
+  if (current.frameSize) newMount.scale(v(current.frameSize.map((n) => 1 / n)));
+  const inverse = newMount.invert(),
+    ids = new Set(assembled.parts.map((p) => p.id));
+  let name = target.slice(0, 59) + " hair",
+    suffix = 2;
+  while (ids.has(name)) name = target.slice(0, 48) + " hair " + suffix++;
+  const hair = {
+    ...original,
+    ...fields(inverse.clone().multiply(oldWorld)),
+    id: name,
+    parent: target,
+    headLayer: "hair",
+    sourceHairOnly: true,
+    motionRole: "rigid",
+  };
+  for (const key of [
+    "anatomy",
+    "outfitRole",
+    "groom",
+    "hideSourceHair",
+    "frameSize",
+    "pulls",
+    "wearFit",
+  ])
+    delete hair[key];
+  const parts = assembled.parts.map((p) =>
+    p.id === target
+      ? current
+      : p.parent === target && oldGraph.byId.has(p.id)
+        ? { ...p, ...fields(inverse.clone().multiply(oldGraph.world(p.id))) }
+        : p,
+  );
+  parts.push(hair);
+  return {
+    ...assembled,
+    parts,
+    artwork: { ...base.artwork, ...assembled.artwork },
+  };
 }
 export function fitHand(form, id, color = form.appearance.skin) {
   const g = graph(form.parts),

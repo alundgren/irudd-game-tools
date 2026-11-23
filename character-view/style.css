@@ -732,3 +732,19 @@ textarea {
   padding: 0;
   min-width: 0;
 }
+
+.spine-handle {
+  width: 15px;
+  height: 15px;
+  border-color: #24574e;
+  background: #f0d58d;
+}
+.spine-handle[aria-pressed="true"] {
+  background: #cc7650;
+}
+@media (pointer: coarse) {
+  .spine-handle {
+    width: 22px;
+    height: 22px;
+  }
+}

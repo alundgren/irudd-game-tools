@@ -6,6 +6,8 @@ import {
   traceHull,
   tracePath,
   calibrateFace,
+  sourceHairCap,
+  withDepthPairs,
 } from "./turnaround.js";
 
 function polygon(points) {
@@ -95,11 +97,16 @@ export function buildTraceMap(
     if (r.faceLandmarks) {
       try {
         part = calibrateFace(part, r.faceLandmarks);
+        if (r.hairRegions?.length) {
+          const cap = sourceHairCap(part, r.hairRegions);
+          if (cap) part.hairCap = cap;
+        }
       } catch (error) {
         if (!uncalibrated) throw new Error(r.id + ": " + error.message);
         uncalibrated.push(r.id);
       }
     }
+    part = withDepthPairs(part, r.depthPairs);
     if (r.parent) links[r.id] = r.parent;
     if (r.outfitRole) part.outfitRole = r.outfitRole;
     if (r.motionRole) part.motionRole = r.motionRole;

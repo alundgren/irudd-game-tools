@@ -4,7 +4,7 @@ import {
 } from "../character-view/visual-references.js";
 import { agentDesign } from "../character-view/variations.js";
 import { createServer } from "node:http";
-import { paintVariation, fitArtwork } from "./art-direction.mjs";
+import { paintVariation, fitArtwork, paintDepth } from "./art-direction.mjs";
 import { codexJob } from "./codex-worker.mjs";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -34,7 +34,7 @@ export async function codexVariation(brief, signal, repair) {
 export function workshopServer(
   page,
   generate = codexVariation,
-  art = { paint: paintVariation, fit: fitArtwork },
+  art = { paint: paintVariation, fit: fitArtwork, depth: paintDepth },
 ) {
   let busy = false;
   return createServer(async (req, res) => {
@@ -91,7 +91,9 @@ export function workshopServer(
     }
     if (
       req.method !== "POST" ||
-      !["/variation", "/turnaround", "/trace-map"].includes(req.url)
+      !["/variation", "/turnaround", "/trace-map", "/portrait-depth"].includes(
+        req.url,
+      )
     )
       return json(404, { error: "Unknown route." });
     if (
@@ -157,7 +159,10 @@ export function workshopServer(
             brief.views.some(
               (v) =>
                 typeof v.jpeg !== "string" ||
-                v.jpeg.length > (req.url === "/trace-map" ? 850000 : 170000) ||
+                v.jpeg.length >
+                  (["/trace-map", "/portrait-depth"].includes(req.url)
+                    ? 850000
+                    : 170000) ||
                 !v.jpeg.startsWith("/9j/"),
             ))
         )
@@ -165,6 +170,8 @@ export function workshopServer(
       } catch (err) {
         return json(400, { error: err.message });
       }
+      if (req.url === "/portrait-depth")
+        return json(200, await art.depth(brief, controller.signal));
       if (req.url === "/turnaround")
         return json(200, await art.paint(brief, controller.signal));
       if (req.url === "/trace-map")

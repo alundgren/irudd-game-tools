@@ -1,3 +1,5 @@
+import { fitDepth } from "./depth-pins.js";
+import { fitHairCap } from "./portrait-hair.js";
 import { registerFace } from "./portrait-frame.js";
 import * as T from "three";
 import tidebell from "./tidebell.atlas.webp";
@@ -94,6 +96,49 @@ function preparePanel(image, tile) {
       "Each view needs a visible subject on magenta or transparency.",
     );
   const filled = mask.slice();
+  // Fine hair resamples saturated key pixels into pastel fringe colours.
+  // Extend clean neighbours through that narrow fringe without changing its silhouette.
+  let clean = 0;
+  for (let j = 0; j < tail; j++) {
+    const i = queue[j],
+      k = i * 4,
+      x = i % size,
+      y = Math.floor(i / size);
+    const magenta =
+      pixels[k] - pixels[k + 1] > 15 && pixels[k + 2] - pixels[k + 1] > 14;
+    const nearEdge =
+      x < 8 ||
+      x >= size - 8 ||
+      y < 8 ||
+      y >= size - 8 ||
+      !subject[i - 8] ||
+      !subject[i + 8] ||
+      !subject[i - 8 * size] ||
+      !subject[i + 8 * size];
+    let isolated = false;
+    if (magenta && !nearEdge && y < minY + (maxY - minY) * 0.15) {
+      let measured = 0,
+        purple = 0;
+      for (const [dx, dy] of [
+        [-13, 0],
+        [13, 0],
+        [0, 13],
+        [-9, 9],
+        [9, 9],
+        [0, 22],
+      ]) {
+        const v = i + dx + dy * size;
+        if (!mask[v]) continue;
+        measured++;
+        if (Math.min(pixels[4 * v], pixels[4 * v + 2]) - pixels[4 * v + 1] > 13)
+          purple++;
+      }
+      isolated = measured >= 2 && purple * 2 < measured;
+    }
+    if (magenta && (nearEdge || isolated)) filled[i] = 0;
+    else queue[clean++] = i;
+  }
+  tail = clean;
   for (let i = 0; i < tail; i++) {
     const at = queue[i],
       x = at % size;
@@ -235,6 +280,60 @@ export function palmColor(part, fallback) {
       .map((v) => v.toString(16).padStart(2, "0"))
       .join("")
   );
+}
+export function sourceHairCap(part, regions) {
+  return fitHairCap(part, atlases.get(part.paint.atlas), regions);
+}
+export function pairDepth(part, pairs) {
+  if (part?.shape !== "sweep" || !part.paint || part.paint.frame === "path")
+    throw new Error("Select a painted horizontal loft.");
+  if (!Array.isArray(pairs) || pairs.length > 24)
+    throw new Error("Use up to 24 paired depth landmarks.");
+  const b = part.paint,
+    [f, s] = atlases.get(b.atlas),
+    pins = [];
+  for (const a of pairs) {
+    if (
+      !Array.isArray(a) ||
+      a.length !== 5 ||
+      !a.every(Number.isFinite) ||
+      a.slice(0, 4).some((x) => x < 0 || x > 1) ||
+      a[4] < 0.035 ||
+      a[4] > 0.35
+    )
+      throw new Error(
+        "Use front and profile points and a radius from 0.035 to 0.35.",
+      );
+    const [fx, fy, sx, sy, r] = a,
+      y1 = (f.feet - fy * f.size) / f.span,
+      y2 = (s.feet - sy * s.size) / s.span;
+    if (Math.abs(y1 - y2) > 0.065)
+      throw new Error(
+        "Choose the same feature at matching height in both views.",
+      );
+    pins.push([
+      ((fx * f.size - f.mid) / f.span) * b.height - b.offset[0],
+      y1 * b.height - b.offset[1],
+      ((s.mid - sx * s.size) / s.span) * b.height - b.offset[2],
+      Math.max(0.001, r * b.height),
+    ]);
+  }
+  return { ...part, paint: { ...b, depthPins: pins } };
+}
+// Match independent sight lines. An uncertain point should not discard the other matches.
+export function withDepthPairs(part, pairs) {
+  if (!Array.isArray(pairs)) return part;
+  const pins = [];
+  for (const pair of pairs.slice(0, 24)) {
+    try {
+      pins.push(...pairDepth(part, [pair]).paint.depthPins);
+    } catch {
+      /* A profile point may be hidden or at another height. */
+    }
+  }
+  return pins.length
+    ? { ...part, paint: { ...part.paint, depthPins: pins } }
+    : part;
 }
 export function calibrateFace(part, marks) {
   const panel = atlases.get(part?.paint?.atlas)?.[0];
@@ -710,6 +809,7 @@ export function paintedMaterial(part) {
       sweepGeometry(binding.rest, binding.frame !== "path", sides),
       binding,
     );
+    if (binding.depthPins) fitDepth(rest, binding.depthPins, binding.height);
     const positions = rest.attributes.position,
       normals = rest.attributes.normal;
     const columns = sides + 1,

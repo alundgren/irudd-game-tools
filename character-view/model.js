@@ -1,3 +1,5 @@
+import { fitDepth } from "./depth-pins.js";
+import { separateHair, scalpMaterial, seatHair } from "./portrait-hair.js";
 import { mantleGeometry } from "./mantle.js";
 import { garmentOwners } from "./outfit-sets.js";
 import { paintMarkings } from "./markings.js";
@@ -495,7 +497,7 @@ export function createCharacter(form, silhouette, clay = false) {
       )
     : {};
   const groomedHeads = new Set(
-    form.parts.filter((p) => p.groom).map((p) => p.id),
+    form.parts.filter((p) => p.groom || p.hideSourceHair).map((p) => p.id),
   );
   const owners = garmentOwners(form);
   const objects = new Map(),
@@ -564,7 +566,7 @@ export function createCharacter(form, silhouette, clay = false) {
           geometry = sweepGeometry(
             fit?.knots ?? part.knots,
             Boolean(part.paint && part.paint.frame !== "path"),
-            part.anatomy === "face"
+            part.anatomy === "face" || part.sourceHairOnly
               ? 176
               : part.outfitRole === "skirt"
                 ? 64
@@ -573,8 +575,12 @@ export function createCharacter(form, silhouette, clay = false) {
           if (part.drape?.depth) pleat(geometry, part.knots, part.drape);
           if (part.drape?.slit)
             geometry = splitHem(geometry, part.knots, part.drape);
-          if (part.anatomy === "face") {
+          if (part.anatomy === "face" || part.sourceHairOnly) {
             portraitSurface(geometry, part.paint);
+          }
+          if (part.paint?.depthPins)
+            fitDepth(geometry, part.paint.depthPins, part.paint.height);
+          if (part.anatomy === "face" || part.sourceHairOnly) {
             deformFace(
               geometry,
               part.sculpt,
@@ -626,6 +632,28 @@ export function createCharacter(form, silhouette, clay = false) {
         else addEquipment(object, fit, material);
       }
       object.castShadow = true;
+    }
+    if (part.hairCap && object.isMesh) {
+      const outer = object.material;
+      const hair = separateHair(
+        object.geometry,
+        part.paint,
+        part.hairCap,
+        !part.hideSourceHair && !part.groom,
+      );
+      if (part.sourceHairOnly && hair) {
+        object.geometry.dispose();
+        object.geometry = hair;
+      } else {
+        if (!plainView) object.material = scalpMaterial(outer, part.hairCap);
+        if (hair) {
+          const shell = new T.Mesh(hair, outer);
+          shell.name = "Source hairstyle";
+          shell.castShadow = true;
+          shell.userData.baseHair = true;
+          object.add(shell);
+        }
+      }
     }
     if (part.anatomy === "face" && object.isMesh) {
       object.userData.faceSurface = true;
@@ -703,6 +731,17 @@ export function createCharacter(form, silhouette, clay = false) {
   }
   for (const part of form.parts)
     (mounts.get(part.parent) ?? group).add(objects.get(part.id));
+  for (const part of form.parts) {
+    if (!part.sourceHairOnly || !part.parent) continue;
+    const parent = form.parts.find((p) => p.id === part.parent);
+    if (parent?.knots)
+      seatHair(
+        objects.get(part.id),
+        objects.get(part.parent),
+        parent,
+        part.hairCap,
+      );
+  }
   const innerLayers = new Map();
   const fitted = form.parts
     .filter((p) => p.wearFit && p.parent && objects.get(p.id).visible)

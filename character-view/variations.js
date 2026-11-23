@@ -1,3 +1,4 @@
+import { reshapeSpine } from "./spine-edit.js";
 import { drawDecks, encodeDecks, decodeDecks } from "./choice-decks.js";
 import { paintSources, retainPaintSources } from "./paint-sources.js";
 import { placeComponent } from "./graft.js";
@@ -158,6 +159,7 @@ const allowedPartKeys = new Set([
   "blendSkin",
   "grip",
   "groom",
+  "hideSourceHair",
   "markings",
   "headLayer",
   "visibleIn",
@@ -194,6 +196,9 @@ export function applyOperations(preview, ops, library = {}, metric = false) {
     const { op, id, set, part } = action ?? {};
     const index = form.parts.findIndex((p) => p.id === id);
     switch (op) {
+      case "reshapeSpine":
+        form = reshapeSpine(form, id, action.knots);
+        break;
       case "placeComponent": {
         if (!Object.hasOwn(library, action.asset))
           throw new Error("Unknown component: " + action.asset + ".");
@@ -256,7 +261,8 @@ export function compactForm(form) {
   return {
     ...compact,
     parts: form.parts.map((p) => {
-      const { paint, mount, ...out } = p;
+      const { paint, mount, hairCap, ...out } = p;
+      if (hairCap) out.hasRemovableSourceHair = true;
       if (paint) out.paintSource = paint.atlas;
       if (mount) out.fittedTo = p.parent;
       if (paint && p.knots.length > 8) {

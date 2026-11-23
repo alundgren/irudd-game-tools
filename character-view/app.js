@@ -1,3 +1,6 @@
+import { spineHandles } from "./spine-handles.js";
+import { acceptsDepth } from "./portrait-depth.js";
+import { reshapeSpine } from "./spine-edit.js";
 import { wardrobeEditor } from "./wardrobe-editor.js";
 import { readReference, validReferences } from "./visual-references.js";
 import { acceptsMarkings, validMarkings } from "./markings.js";
@@ -171,6 +174,8 @@ let renderer,
   controls,
   gizmo,
   placeHandles,
+  placeSpine,
+  spinePreview,
   playback,
   direct = false,
   knot = null;
@@ -281,11 +286,18 @@ function editPart(change) {
     const preview = nudge(form, target, amounts),
       part = preview.parts.find((p) => p.id === target);
     if (!part) return;
-    const updated = change(part),
-      next = {
-        ...preview,
-        parts: preview.parts.map((p) => (p.id === target ? updated : p)),
-      };
+    const updated = change(part);
+    let next = preview;
+    if (
+      part.shape === "sweep" &&
+      updated.shape === "sweep" &&
+      updated.knots !== part.knots
+    )
+      next = reshapeSpine(preview, target, updated.knots);
+    next = {
+      ...next,
+      parts: next.parts.map((p) => (p.id === target ? updated : p)),
+    };
     commit(next, "Updated " + target + ".", true);
   } catch (e) {
     status(e.message);
@@ -825,6 +837,19 @@ function bindControls() {
       return next;
     });
   const newHairSeed = () => crypto.getRandomValues(new Uint32Array(1))[0];
+  $("#depth-mix").onchange = () =>
+    editPart((p) => ({
+      ...p,
+      paint: {
+        ...p.paint,
+        depthField: {
+          ...p.paint.depthField,
+          mix: Number($("#depth-mix").value) / 100,
+        },
+      },
+    }));
+  $("#hair-source").onclick = () =>
+    editPart((p) => ({ ...p, hideSourceHair: !p.hideSourceHair }));
   $("#hair-add").onclick = () =>
     editPart((p) => ({
       ...p,
@@ -1305,6 +1330,8 @@ async function generate(kind) {
         height,
         target,
         signal: generationController.signal,
+        depth: Boolean(target) && $("#paint-action").value === "depth",
+        scalp: Boolean(target) && $("#paint-action").value === "scalp",
         wearable: Boolean(target) && $("#paint-action").value === "wear",
         status,
       });
@@ -1337,11 +1364,13 @@ async function generate(kind) {
   }
 }
 function update() {
-  const preview = proposal
-    ? showCurrent
-      ? form
-      : proposal.form
-    : nudge(form, target, amounts);
+  const preview =
+    spinePreview ??
+    (proposal
+      ? showCurrent
+        ? form
+        : proposal.form
+      : nudge(form, target, amounts));
   gizmo?.detach();
   const shader = silhouette ? "Silhouette" : clay ? "Clay" : "Color";
   if (displayedForm !== preview || displayedInk !== shader) {
@@ -1399,15 +1428,25 @@ function update() {
     dest.value = target ?? form.parts.find(isFace)?.id ?? form.parts[0].id;
   }
   const part = form.parts.find((p) => p.id === target);
-  if (operation === "cloth" && part?.shape !== "sweep") operation = "shape";
+  if (["cloth", "spine"].includes(operation) && part?.shape !== "sweep")
+    operation = "shape";
   $("#paint-action-field").hidden = !connected || !part;
+  $("#depth-action").hidden = !acceptsDepth(part);
+  if ($("#depth-action").hidden && $("#paint-action").value === "depth")
+    $("#paint-action").value = "replace";
+  $("#depth-mix-field").hidden = !part?.paint?.depthField;
+  if (part?.paint?.depthField)
+    $("#depth-mix").value = Math.round(part.paint.depthField.mix * 100);
+  $("#scalp-action").hidden = !part?.hairCap || !!part?.sourceHairOnly;
+  if ($("#scalp-action").hidden && $("#paint-action").value === "scalp")
+    $("#paint-action").value = "replace";
   $("#paint-action").disabled = locked;
   for (const el of $("#operations").children) {
     pressed(el, operation === el.dataset.op);
     el.disabled =
       locked ||
       (el.dataset.op === "build" && Boolean(target)) ||
-      (el.dataset.op === "cloth" && part?.shape !== "sweep") ||
+      (["cloth", "spine"].includes(el.dataset.op) && part?.shape !== "sweep") ||
       (el.dataset.op === "face" &&
         (part ? !isFace(part) : !form.parts.some(isFace))) ||
       (el.dataset.op === "turn" && !target);
@@ -1485,6 +1524,14 @@ function update() {
       part?.anatomy === "face" ||
       part?.outfitRole === "head"
     );
+  $("#hair-source").hidden =
+    !(
+      part?.hairCap ||
+      form.parts.some((p) => p.parent === part?.id && p.sourceHairOnly)
+    ) || !!part?.groom;
+  $("#hair-source").textContent = part?.hideSourceHair
+    ? "Wear source hair"
+    : "Take off source hair";
   $("#hair-add").hidden = !!part?.groom;
   $("#hair-remove").hidden = !part?.groom;
   $("#hair-settings").hidden = !part?.groom;
@@ -1598,6 +1645,7 @@ function update() {
       !pulling &&
       operation !== "face" &&
       operation !== "cloth" &&
+      operation !== "spine" &&
       !locked,
     knot,
   );
@@ -1620,6 +1668,22 @@ function update() {
 function render() {
   if (!renderer) return;
   renderer.render(scene, camera);
+  if (placeSpine) {
+    const part = displayedForm?.parts.find((p) => p.id === target);
+    placeSpine(
+      displayedForm,
+      part,
+      findPart(figure, target),
+      knot,
+      operation === "spine" &&
+        direct &&
+        !pulling &&
+        !drawing &&
+        !proposal &&
+        !busy &&
+        !playback?.active,
+    );
+  }
   if (placeHandles) {
     const part = form.parts.find((p) => p.id === target);
     placeHandles(
@@ -1716,6 +1780,34 @@ function setup() {
     pick: selectTarget,
     finish: (p) => editPart(() => p),
     render,
+  });
+  placeSpine = spineHandles(stage, camera, {
+    preview: (next) => {
+      spinePreview = next;
+      update();
+    },
+    finish: (next, index) => {
+      spinePreview = null;
+      knot = index;
+      try {
+        commit(
+          next,
+          "Moved spine point " + (index + 1) + " and its attachments.",
+          true,
+        );
+      } catch (error) {
+        status(error.message);
+        update();
+      }
+    },
+    cancel: () => {
+      spinePreview = null;
+      update();
+    },
+    choose: (index) => {
+      knot = index;
+      update();
+    },
   });
   placeHandles = faceHandles(stage, {
     start: () => ({ ...amounts }),

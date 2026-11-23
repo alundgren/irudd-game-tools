@@ -480,6 +480,76 @@
           <a href="../examples/marsh-draw-5.form.json">5</a>.
         </p>
       </section>
+      <section class="method" id="portrait-test">
+        <h2>A face from one historical photograph</h2>
+        <figure>
+          <img
+            src="media/fitted-portrait.webp"
+            alt="Frederick Douglass in the source photograph, followed by the fitted face with and without its hairstyle and two unpainted versions of the same face"
+          />
+          <figcaption>
+            From left to right, the 1870 photograph, the fitted color model with
+            its source hairstyle, the same model with the hair off, the initial
+            clay face and the face with generated depth. All four 3D views use
+            the same camera.
+          </figcaption>
+        </figure>
+        <p>
+          The first request supplied the photograph with a neutral filename and
+          asked for a 3D likeness. The accepted head preserved the other 25
+          regions of the rescue-vest character. A second image pass inferred the
+          hidden scalp. The editor aligned it using pupil spacing and
+          eye-to-chin height and kept the original hairstyle as a removable
+          mesh. The earliest scalp fit lost its landmarks when the traced head
+          stopped above the neck. Reusing the generated pictures with a
+          full-portrait fit recovered the model.
+        </p>
+        <p>
+          A third image pass took 43 seconds and supplied frontal depth. Fitting
+          the brightness separately on every row produced sharp ridges at the
+          eyes and nose. One depth calibration across the face produced the
+          result at right. The new brow, cheeks and moustache remain visible in
+          clay. The source has a softer expression, and the ears and hairline
+          still need work. Likeness to this specific sitter has not been
+          independently scored.
+        </p>
+        <p>
+          Source photograph by George Francis Schreiber, Philadelphia, 26 April
+          1870. Library of Congress, Prints and Photographs Division, digital ID
+          ppmsca.69249.
+          <a href="https://www.loc.gov/item/2004671911/"
+            >Catalog and rights record</a
+          >
+          · <a href="../examples/fitted-portrait.form.json">Editable portrait</a
+          ><span class="live-demo" hidden>
+            · <a href="../#form=fitted-portrait">Open in the workshop</a></span
+          >
+        </p>
+      </section>
+      <section class="method">
+        <h2>Bend a creature with its attachments</h2>
+        <figure>
+          <img
+            src="media/spine-edit.webp"
+            alt="Side views of the original and extended glider, then a three-quarter view after a sideways bend"
+          />
+          <figcaption>
+            Left to right, rest, extended and bowed, then bent sideways. The
+            wing spars, limbs and dorsal plates follow their sockets on the
+            reshaped torso.
+          </figcaption>
+        </figure>
+        <p>
+          The editor changed all 13 direct attachment positions on this glider.
+          Each change stores ordinary part transforms in the editable form. A
+          whole-spine nudge can adjust bow, side bend, length and tip girth.
+          Individual points can also be dragged in the viewport.
+          <a href="../examples/arched-glider.form.json">Editable glider</a
+          ><span class="live-demo" hidden>
+            · <a href="../#form=arched-glider">Open in the workshop</a></span
+          >
+        </p>
+      </section>
       <section class="method">
         <h2>Cut and layer clothes on one wearer</h2>
         <figure>

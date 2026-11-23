@@ -1,3 +1,4 @@
+import { applyPortraitDepth } from "./portrait-depth.js";
 import { headSpace } from "./portrait-frame.js";
 import { profileCorrection, landmarkRelief } from "./portrait-relief.js";
 import { MathUtils, Vector3 } from "three";
@@ -148,5 +149,5 @@ export function portraitSurface(geometry, binding) {
   pos.needsUpdate = true;
   geometry.computeVertexNormals();
   geometry.computeBoundingBox();
-  return geometry;
+  return applyPortraitDepth(geometry, binding);
 }

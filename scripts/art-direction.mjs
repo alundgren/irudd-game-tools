@@ -12,6 +12,9 @@ export async function paintVariation(brief, signal) {
         ? "The first attachment shows the whole character. The second is a close-up of the selected geometry in isolation. Generate just one replacement for the selected part in isolation, with no body attached. Centre that single component in every panel. Preserve its function and orientation."
         : "Generate one complete original character. Show every foot, hand, horn and garment. Leave space between limbs in the front and side views where anatomically possible.",
     referenceInstructions(brief.references),
+    brief.scalp
+      ? "The third attachment supplies the exact identity in four views. Reconstruct the SAME adult with the scalp completely shaved, with anatomically complete ears and the matching natural skin of the bare scalp, including around the temples and behind both ears. Keep the original facial structure, eye spacing, age and facial hair. Show no head hair, tuft, wig, collar or clothing. The editor will fit the original hairstyle separately. Preserve the camera and neck orientation and the face proportions."
+      : "",
     "Deliver one square 2x2 orthographic turnaround. Top left exact front (+Z), top right exact profile with nose pointing LEFT, bottom left exact rear, bottom right opposite profile pointing RIGHT. Equal square cells. Same pose, floor and character scale in all views. The outermost points should have 5% margin. Even diffuse game lighting. Uniform saturated #ff00ff background fills every gap. No floor, shadow, gradients, dividing lines, typography or alternate figures.",
     "Follow the steering first and use the random cues for unresolved details. Keep adult humanoids in practical work or base layers. Return JSON with only image (PNG filename), summary (short description), and height (standing height or isolated part height in metres, .15 to 6).",
     brief.wearable
@@ -54,7 +57,7 @@ export async function fitArtwork(brief, signal) {
     "Format: {format:'irudd.trace-map.v1',height:number,regions:[{id:string,parent?:string,method:'loft'|'volume',front:[[x,y],...],side:[[x,y],...],outfitRole?:string,motionRole?:string}]}. Use numeric 0..1 values and double quoted JSON. Per polygon use 4–12 ordered outline vertices. Never encode a polygon as 4 scalar bounds. Both polygons for a given region must overlap in standing height on the actual subject. Cover the entire visible shape across the graph. Aim for 5–12 coherent regions. Combine minor markings, eyes, buckles and tiny details into their parent surface. Use a separate region only when its height spans at least 4% of the subject or separate motion is essential. A single isolated item may take fewer. Choose one primary root and attach other regions to meaningful parents. No cycles.",
     "Lofts produce smooth elliptical slices; use for body, face, limbs, garments. Volumes preserve disconnected contours or perforations; use for open loops, wings, wide branched fins or feet. Thin structures pointing sideways need a wider side box to give them thickness. Where limbs overlap in profile, infer anatomically plausible depth bounds. Don't interpret markings and textures as detachable geometry.",
     "For an axis that hooks or doubles back, especially a long horizontal tail, choose method 'path' and return spine:[[frontX,frontY,sideX,sideY,radiusWidth,radiusDepth],...] in order from the attachment socket embedded in its parent to the tip. Radii are fractions of full standing height. Use 4-12 corresponding points, wide at the root and fine at the tip. A path region needs no polygons. For a flat fin, ear or wing seen well in both pictures use method 'membrane' with front and side polygons. Add correspondence:'same' if moving from root to tip goes in the same horizontal image direction in front and profile, otherwise 'opposite'. Specify thickness as a fraction of standing height (.006-.04). Include the actual joint within the parent so the membrane meets the shoulder.",
-    "For a clearly humanoid face, fit a single loft including the face and cranium. Provide faceLandmarks:[[firstPupilX,firstPupilY],[secondPupilX,secondPupilY],[noseTipX,noseTipY],[lipCenterX,lipCenterY],[chinBottomX,chinBottomY]]. These five precise marks are in the full FRONT picture at normalized coordinates. This unlocks facial sculpting, eyelids and expressions on the actual new portrait. Eyes, lips and nose stay in that loft. On a request for only a person's head, keep this head as the root with any separate accessories attached. Nonhuman snouts and beaks can use a normal loft.",
+    "For a clearly humanoid face, fit a single loft including the face and cranium. Provide faceLandmarks:[[firstPupilX,firstPupilY],[secondPupilX,secondPupilY],[noseTipX,noseTipY],[lipCenterX,lipCenterY],[chinBottomX,chinBottomY]]. These five precise marks are in the full FRONT picture at normalized coordinates. This unlocks facial sculpting, eyelids and expressions on the actual new portrait. Eyes, lips and nose stay in that loft. On a request for only a person's head, keep this head as the root with any separate accessories attached. For an isolated portrait with readable front and left-facing profile, supply optional depthPairs:[[frontX,frontY,profileX,profileY,influenceRadius], ...]. Match up to eight independently visible surface points (e.g. lateral cheek prominence, brow, lip corner, outer jaw) at the same relative anatomical height in both views. Coordinates are normalized to each full panel. Radius is 0.06 to 0.25 of portrait height. Omit an occluded landmark. Nonhuman snouts and beaks can use a normal loft.",
     "Supported optional roles: torso, head, upper arm, forearm, hand, thigh, shin, foot, skirt, tail. Movement also supports wing or rigid. Assign thigh to a whole walking leg if there is no separate shin. Left and right are the character's own. +X is the character's left (image right in front view).",
     "For protected parts include the exact id in the new map at the matching location. The application can graft the protected 3D surface back. Keep physical proportions and the supplied height.",
     JSON.stringify({
@@ -72,4 +75,25 @@ export async function fitArtwork(brief, signal) {
       { effort: "medium" },
     )
   ).result;
+}
+
+/** Request a metric-shape cue for a painted face while keeping the accepted color artwork. */
+export async function paintDepth(brief, signal) {
+  const prompt = [
+    "Call the image generation tool exactly once. Return JSON with the key image containing the generated PNG filename.",
+    "Reconstruct the geometry of the head in the FIRST reference and render its front-facing orthographic linear Z depth buffer. The SECOND reference is its side profile for depth only. Deliver a single front view on black with the identical flat camera, crop and orientation as the FIRST image. Remove no features. Keep both eye centres, nostrils, lips, jaw and neck at their original image positions.",
+    "Render physical distance from camera as a smooth grayscale scalar field, like a high quality 3D scan z-pass. Closest is light (nose tip about 245/255); the plane through the front of the ears should be medium gray around 85/255. Far silhouette edges darken. All background is pure black. Pure grayscale foreground. No illumination, shadows, highlights, ambient occlusion, colored pixels, skin color, painted eyebrows, dark pupil dots, specular eyeballs, lettering or extra panels. A moustache is only its subtle raised physical shape. Each pixel is surface depth. Asymmetric surface features of this particular sitter matter.",
+    "User's direction: " + brief.instructions,
+  ].join("\n");
+  const { result, session } = await codexJob(
+    prompt,
+    brief.views.map((v) => ({ data: v.jpeg })),
+    signal,
+  );
+  const bytes = await generatedPng(session, result.image);
+  return {
+    requestId: brief.requestId,
+    revision: brief.revision,
+    png: bytes.toString("base64"),
+  };
 }

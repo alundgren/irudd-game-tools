@@ -9,6 +9,7 @@ import {
   traceHull,
   tracePath,
   calibrateFace,
+  pairDepth,
 } from "./turnaround.js";
 import { buildTraceMap } from "./trace-map.js";
 import { fitMapWithAgent } from "./art-variation.js";
@@ -54,7 +55,48 @@ export function bindTraceEditor({
     lastView = 0;
   const markButton = document.getElementById("trace-face"),
     applyMarks = document.getElementById("trace-face-apply");
-  let marks = null;
+  const depthButton = document.getElementById("trace-depth"),
+    fitButton = document.getElementById("trace-depth-apply");
+  let marks = null,
+    depth = null;
+  depthButton.onclick = () => {
+    marks = null;
+    depth = depth ? null : [];
+    message.textContent = "";
+    showMarks();
+    draw();
+  };
+  fitButton.onclick = () => {
+    try {
+      const source = selectedHead(),
+        form = getForm(),
+        existing = source.paint.depthPins ?? [];
+      if (existing.length >= 24)
+        throw new Error("This region already has 24 depth points.");
+      const matched = pairDepth(source, [
+        [
+          ...depth[0],
+          ...depth[1],
+          Number(document.getElementById("trace-depth-radius").value) / 100,
+        ],
+      ]);
+      matched.paint.depthPins = [...existing, ...matched.paint.depthPins];
+      accept(
+        {
+          ...form,
+          parts: form.parts.map((p) => (p.id === matched.id ? matched : p)),
+        },
+        matched.id,
+      );
+      depth = null;
+      dialog.close();
+      status(
+        "Fitted the surface to the paired views. Undo restores the previous depth.",
+      );
+    } catch (error) {
+      message.textContent = error.message;
+    }
+  };
   const selectedHead = () =>
     getForm().parts.find(
       (p) =>
@@ -64,6 +106,19 @@ export function bindTraceEditor({
         p.paint.frame !== "path",
     );
   function showMarks() {
+    depthButton.hidden = !selectedHead();
+    depthButton.textContent = depth
+      ? "Cancel depth point"
+      : "Match front and profile";
+    fitButton.hidden = !depth;
+    fitButton.disabled = depth?.length !== 2;
+    document.getElementById("trace-depth-settings").hidden = !depth;
+    if (depth)
+      message.textContent = [
+        "Mark a visible feature in the front view.",
+        "Mark the same feature in profile. Use the horizontal guide to match height.",
+        "Fit the depth point to reshape the front surface.",
+      ][depth.length];
     applyMarks.hidden = !marks;
     applyMarks.disabled = marks?.length !== 5;
     markButton.textContent = marks
@@ -77,6 +132,7 @@ export function bindTraceEditor({
           : "Inspect the five points, then fit the face.";
   }
   markButton.onclick = () => {
+    depth = null;
     marks = marks ? null : [];
     message.textContent = "";
     showMarks();
@@ -120,7 +176,16 @@ export function bindTraceEditor({
           ctx.fillText(String(i + 1), x * n + 7, y * n - 3);
         });
       }
-      const poly = marks ? [] : outlines[view];
+      if (depth?.[view]) {
+        const [x, y] = depth[view];
+        ctx.beginPath();
+        ctx.arc(x * n, y * n, 5, 0, Math.PI * 2);
+        ctx.fillStyle = "#fff5a0";
+        ctx.fill();
+        ctx.strokeStyle = "#213b35";
+        ctx.stroke();
+      }
+      const poly = marks || depth ? [] : outlines[view];
       if (poly.length) {
         ctx.beginPath();
         poly.forEach(([x, y], i) => ctx[i ? "lineTo" : "moveTo"](x * n, y * n));
@@ -159,6 +224,7 @@ export function bindTraceEditor({
     art = registeredArtwork().includes(id) ? id : select.value;
     select.value = art ?? "";
     marks = null;
+    depth = null;
     showMarks();
     outlines = [[], []];
     hover = null;
@@ -179,12 +245,19 @@ export function bindTraceEditor({
     if (marks) {
       marks.pop();
       showMarks();
+    } else if (depth) {
+      depth.pop();
+      showMarks();
     } else outlines[lastView].pop();
     draw();
   };
   document.getElementById("trace-clear").onclick = () => {
     if (marks) {
       marks = [];
+      showMarks();
+    }
+    if (depth) {
+      depth = [];
       showMarks();
     }
     outlines = [[], []];
@@ -197,6 +270,12 @@ export function bindTraceEditor({
     };
     canvas.onclick = (e) => {
       if (!art) return;
+      if (depth) {
+        if (view === depth.length) depth.push(point(e));
+        showMarks();
+        draw();
+        return;
+      }
       if (marks) {
         if (view === 0 && marks.length < 5) marks.push(point(e));
         showMarks();
