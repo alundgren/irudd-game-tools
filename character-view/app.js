@@ -23,15 +23,13 @@ import {
 import { parseDecks, drawDecks, deckText } from "./choice-decks.js";
 import { groomDefaults } from "./groom.js";
 import * as T from "three";
-import { optimizeForGame } from "./game-export.js";
+import { exportForm } from "./export-form.js";
 import { paintWithAgent } from "./art-variation.js";
 import { canBlend, bodyRegion } from "./blended-skin.js";
-import { prepareExpressions } from "./expressions.js";
 import { drawTool } from "./draw-tool.js";
 import { drawBranch, branchTypes } from "./branch-stroke.js";
 import { pullTool } from "./pull-tool.js";
 import { readSession, saveSession } from "./session.js";
-import { skinCharacter } from "./skin.js";
 import { motionPreview } from "./motion-preview.js";
 import {
   drawVariation,
@@ -46,7 +44,6 @@ import { appendPart, copyBranch, removePart } from "./parts.js";
 import { componentShelf, generateWorkshopForm } from "./components.js";
 import { extractComponent, placeComponent } from "./graft.js";
 import { generateForm } from "./generator.js";
-import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
 import { buildTraceMap } from "./trace-map.js";
 import tidebellMap from "../examples/tidebell.trace.json";
 import glider from "../examples/estuary-glider.form.json";
@@ -1254,45 +1251,43 @@ function bindControls() {
     }
   };
   $("#glb").onclick = async () => {
-    let exporting, rig, game;
+    const wardrobe =
+      $("#all-outfits").checked && Boolean(form.outfitSets?.length);
+    $("#glb").disabled = true;
     try {
-      exporting = createCharacter(form, false);
-      if ($("#with-motion").checked) rig = skinCharacter(form, exporting);
-      else prepareExpressions(exporting);
-      const exportScene = new T.Scene();
-      if (rig) {
-        for (const o of [...rig.actor.children]) exportScene.add(o);
-      } else exportScene.add(exporting);
-      if ($("#export-detail").value === "game")
-        game = await optimizeForGame(exportScene);
-      let bytes;
-      try {
-        bytes = await new GLTFExporter().parseAsync(exportScene, {
-          binary: true,
-          animations: rig?.clips ?? [],
-        });
-      } finally {
-        if (rig) for (const o of [...exportScene.children]) rig.actor.add(o);
-      }
+      const result = await exportForm(form, {
+        motion: $("#with-motion").checked,
+        game: $("#export-detail").value === "game",
+        wardrobe,
+        progress: async (name, index, count) => {
+          status(
+            name
+              ? `Preparing outfit ${index + 1}/${count} · ${name}`
+              : "Preparing GLB…",
+          );
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        },
+      });
       download(
-        new Blob([bytes], { type: "model/gltf-binary" }),
-        "character.glb",
+        new Blob([result.bytes], { type: "model/gltf-binary" }),
+        wardrobe ? "character-wardrobe.glb" : "character.glb",
       );
+      const exported = wardrobe
+        ? result.looks + " saved outfits"
+        : result.triangles
+          ? result.triangles.toLocaleString() + " triangles with one material"
+          : "the accepted 3D form";
       status(
-        game
-          ? "Exported " +
-              Math.round(game.triangles).toLocaleString() +
-              " triangles in " +
-              (bytes.byteLength / 1e6).toFixed(2) +
-              " MB with one material."
-          : "Exported the accepted 3D form.",
+        "Exported " +
+          exported +
+          " · " +
+          (result.bytes.byteLength / 1e6).toFixed(2) +
+          " MB.",
       );
     } catch (e) {
       status(e.message);
     } finally {
-      game?.dispose();
-      rig?.dispose();
-      if (exporting) disposeCharacter(exporting);
+      $("#glb").disabled = false;
     }
   };
   for (const key of axes) {
@@ -1755,6 +1750,7 @@ function update() {
   }
   const changed = axes.some((key) => Boolean(amounts[key])),
     locked = busy || Boolean(proposal);
+  $("#export-outfit-field").hidden = !form.outfitSets?.length;
   $("#pose-open").disabled = locked;
   $("#revision").textContent = proposal
     ? showCurrent

@@ -1,3 +1,4 @@
+import { clipsForScene } from "./wardrobe-scenes.js";
 import { gazeNames, setGaze } from "../character-view/ocular.js";
 import * as T from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
@@ -22,7 +23,9 @@ fill.position.set(-3, 2, -4);
 scene.add(fill);
 const grid = new T.GridHelper(18, 36, 0x71857c, 0xc3ccc6);
 scene.add(grid);
-let model,
+let asset,
+  fileName,
+  model,
   mixer,
   clips = [],
   action,
@@ -166,26 +169,27 @@ function pose() {
   }
   return { box, all };
 }
-function release(group) {
-  if (!group) return;
+function release(groups) {
+  if (!groups) return;
   const geometries = new Set(),
     materials = new Set(),
     textures = new Set(),
     skeletons = new Set();
-  group.traverse((o) => {
-    if (o.geometry) geometries.add(o.geometry);
-    if (o.skeleton) skeletons.add(o.skeleton);
-    for (const m of (Array.isArray(o.material)
-      ? o.material
-      : [o.material]
-    ).filter(Boolean)) {
-      materials.add(m);
-      for (const v of Object.values(m)) if (v?.isTexture) textures.add(v);
-    }
-  });
+  for (const group of groups)
+    group.traverse((o) => {
+      if (o.geometry) geometries.add(o.geometry);
+      if (o.skeleton) skeletons.add(o.skeleton);
+      for (const m of (Array.isArray(o.material)
+        ? o.material
+        : [o.material]
+      ).filter(Boolean)) {
+        materials.add(m);
+        for (const v of Object.values(m)) if (v?.isTexture) textures.add(v);
+      }
+    });
   for (const v of [...geometries, ...materials, ...textures, ...skeletons])
     v.dispose();
-  group.removeFromParent();
+  for (const group of groups) group.removeFromParent();
 }
 function selectClip() {
   mixer.stopAllAction();
@@ -195,7 +199,116 @@ function selectClip() {
   mixer.update(0);
   $("time").value = 0;
 }
-async function load(file, view, initialClip) {
+function showScene(index, view, initialClip, preserve = false) {
+  const phase = action ? action.time / action.getClip().duration : 0,
+    oldExpression = $("expression").value;
+  mixer?.stopAllAction();
+  if (model) mixer?.uncacheRoot(model);
+  if (model) {
+    expression("");
+    setGaze(model, 0, 0);
+  }
+  for (const m of meshes) m.material = m.userData.sourceMaterial;
+  model?.removeFromParent();
+  model = asset.scenes[index];
+  scene.add(model);
+  meshes = [];
+  $("picked-region").hidden = true;
+  model.traverse((o) => {
+    if (o.isMesh) {
+      o.userData.sourceMaterial = o.material;
+      meshes.push(o);
+    }
+  });
+  if (!meshes.length) throw new Error("This file contains no mesh.");
+  const targets = [
+    ...new Set(
+      meshes.flatMap((m) => Object.keys(m.morphTargetDictionary ?? {})),
+    ),
+  ];
+  const poses = targets.filter((k) => !gazeNames.includes(k));
+  $("look-fields").hidden = !targets.includes("LookLeft");
+  if (!preserve) $("look-x").value = $("look-y").value = 0;
+  $("expression-field").hidden = !poses.length;
+  $("expression").replaceChildren(
+    new Option("Rest", ""),
+    ...poses.map((k) => new Option(k === "BrowLift" ? "Raise brows" : k, k)),
+  );
+  mixer = new T.AnimationMixer(model);
+  clips = clipsForScene(asset, index);
+  const neutral = pose();
+  restPositions = neutral.all;
+  lastBounds = neutral.box;
+  faceBounds.makeEmpty();
+  const point = new T.Vector3();
+  meshes.forEach((mesh, index) => {
+    if (!mesh.userData.faceSurface) return;
+    const vertices = neutral.all[index];
+    for (let i = 0; i < vertices.length; i += 3)
+      faceBounds.expandByPoint(point.fromArray(vertices, i));
+  });
+  for (const option of $("camera-angle").querySelectorAll(
+    'option[value^="portrait"]',
+  ))
+    option.disabled = faceBounds.isEmpty();
+  if (faceBounds.isEmpty() && $("camera-angle").value.startsWith("portrait"))
+    $("camera-angle").value = "threequarter";
+  if (
+    Object.hasOwn(directions, view) &&
+    (!view.startsWith("portrait") || !faceBounds.isEmpty())
+  )
+    $("camera-angle").value = view;
+  const size = lastBounds.getSize(new T.Vector3());
+  if (!preserve) {
+    if (!$("camera-angle").value) $("camera-angle").value = "threequarter";
+    frameModel();
+  }
+  $("clip").replaceChildren(
+    new Option("Rest pose", ""),
+    ...clips.map((c) => new Option(c.name, c.name)),
+  );
+  if (clips.some((c) => c.name === initialClip)) $("clip").value = initialClip;
+  $("clip").disabled = !clips.length;
+  $("check").disabled = !clips.length;
+  $("report").textContent = "";
+  $("status").textContent =
+    fileName +
+    " · " +
+    size.y.toFixed(3) +
+    " m tall · " +
+    new Set(meshes.filter((m) => m.skeleton).map((m) => m.skeleton.bones[0]))
+      .size +
+    " skeletons · " +
+    clips.length +
+    " clips";
+  const triangles = meshes.reduce(
+    (n, m) =>
+      n + (m.geometry.index?.count ?? m.geometry.attributes.position.count) / 3,
+    0,
+  );
+  const surfaces = new Set(
+    meshes.flatMap((m) =>
+      Array.isArray(m.material) ? m.material : [m.material],
+    ),
+  );
+  $("stats").textContent =
+    triangles.toLocaleString() + " triangles · " + surfaces.size + " materials";
+  setSurface();
+  selectClip();
+  if (preserve) {
+    if (action) {
+      action.time = phase * action.getClip().duration;
+      mixer.update(0);
+      $("time").value = phase;
+    }
+    if (poses.includes(oldExpression)) {
+      $("expression").value = oldExpression;
+      expression(oldExpression);
+    }
+    gaze();
+  }
+}
+async function load(file, view, initialClip, initialOutfit) {
   if (!file) return;
   const ticket = ++generation;
   $("status").textContent = "Loading " + file.name + "…";
@@ -205,104 +318,35 @@ async function load(file, view, initialClip) {
       "",
     );
     if (ticket !== generation) {
-      release(gltf.scene);
+      release(gltf.scenes);
       return;
     }
     mixer?.stopAllAction();
+    if (model) mixer?.uncacheRoot(model);
     for (const m of meshes) m.material = m.userData.sourceMaterial;
-    release(model);
-    model = gltf.scene;
-    scene.add(model);
+    release(asset?.scenes);
+    asset = gltf;
+    model = mixer = action = null;
     meshes = [];
-    $("picked-region").hidden = true;
-    model.traverse((o) => {
-      if (o.isMesh) {
-        o.userData.sourceMaterial = o.material;
-        meshes.push(o);
-      }
-    });
-    if (!meshes.length) throw new Error("This file contains no mesh.");
-    const targets = [
-      ...new Set(
-        meshes.flatMap((m) => Object.keys(m.morphTargetDictionary ?? {})),
-      ),
-    ];
-    const poses = targets.filter((k) => !gazeNames.includes(k));
-    $("look-fields").hidden = !targets.includes("LookLeft");
-    $("look-x").value = $("look-y").value = 0;
-    $("expression-field").hidden = !poses.length;
-    $("expression").replaceChildren(
-      new Option("Rest", ""),
-      ...poses.map((k) => new Option(k === "BrowLift" ? "Raise brows" : k, k)),
+    fileName = file.name;
+    const labels = gltf.scenes.map(
+      (s, i) => s.userData.outfitName || s.name || "Scene " + (i + 1),
     );
-    mixer = new T.AnimationMixer(model);
-    clips = gltf.animations;
-    const neutral = pose();
-    restPositions = neutral.all;
-    lastBounds = neutral.box;
-    faceBounds.makeEmpty();
-    const point = new T.Vector3();
-    meshes.forEach((mesh, index) => {
-      if (!mesh.userData.faceSurface) return;
-      const vertices = neutral.all[index];
-      for (let i = 0; i < vertices.length; i += 3)
-        faceBounds.expandByPoint(point.fromArray(vertices, i));
-    });
-    for (const option of $("camera-angle").querySelectorAll(
-      'option[value^="portrait"]',
-    ))
-      option.disabled = faceBounds.isEmpty();
-    if (faceBounds.isEmpty() && $("camera-angle").value.startsWith("portrait"))
-      $("camera-angle").value = "threequarter";
-    if (
-      Object.hasOwn(directions, view) &&
-      (!view.startsWith("portrait") || !faceBounds.isEmpty())
-    )
-      $("camera-angle").value = view;
-    const size = lastBounds.getSize(new T.Vector3());
-    if (!$("camera-angle").value) $("camera-angle").value = "threequarter";
-    frameModel();
-    $("clip").replaceChildren(
-      new Option("Rest pose", ""),
-      ...clips.map((c) => new Option(c.name, c.name)),
+    const selected = initialOutfit ? labels.indexOf(initialOutfit) : -1;
+    const index = selected >= 0 ? selected : gltf.scenes.indexOf(gltf.scene);
+    $("wardrobe-look").replaceChildren(
+      ...labels.map((name, i) => new Option(name, String(i))),
     );
-    if (clips.some((c) => c.name === initialClip))
-      $("clip").value = initialClip;
-    $("clip").disabled = !clips.length;
-    $("check").disabled = !clips.length;
-    $("report").textContent = "";
-    $("status").textContent =
-      file.name +
-      " · " +
-      size.y.toFixed(3) +
-      " m tall · " +
-      new Set(meshes.filter((m) => m.skeleton).map((m) => m.skeleton.bones[0]))
-        .size +
-      " skeletons · " +
-      clips.length +
-      " clips";
-    const triangles = meshes.reduce(
-      (n, m) =>
-        n +
-        (m.geometry.index?.count ?? m.geometry.attributes.position.count) / 3,
-      0,
-    );
-    const surfaces = new Set(
-      meshes.flatMap((m) =>
-        Array.isArray(m.material) ? m.material : [m.material],
-      ),
-    );
-    $("stats").textContent =
-      triangles.toLocaleString() +
-      " triangles · " +
-      surfaces.size +
-      " materials";
-    setSurface();
-    selectClip();
+    $("wardrobe-look").value = String(index);
+    $("outfit-field").hidden = labels.length < 2;
+    showScene(index, view, initialClip);
   } catch (e) {
     if (ticket === generation) $("status").textContent = e.message;
   }
 }
+$("wardrobe-look").onchange = () => {
+  showScene(Number($("wardrobe-look").value), null, $("clip").value, true);
+};
 $("file").onchange = (e) => load(e.target.files[0]);
 async function openExample() {
   const params = new URLSearchParams(location.hash.slice(1));
@@ -323,6 +367,7 @@ async function openExample() {
         new File([blob], key + ".glb"),
         params.get("view"),
         params.get("clip"),
+        params.get("outfit"),
       );
     }
   } catch (e) {
@@ -343,13 +388,16 @@ $("check").onclick = async () => {
   if (!model || locked) return;
   locked = true;
   $("check").disabled = true;
-  const selected = $("clip").value,
+  $("wardrobe-look").disabled = true;
+  const measured = model,
+    selected = $("clip").value,
     oldTime = action?.time ?? 0,
     lines = [];
   try {
     for (const clip of clips) {
       $("report").textContent = "Sampling " + clip.name + "…";
       await new Promise(requestAnimationFrame);
+      if (measured !== model) return;
       $("clip").value = clip.name;
       selectClip();
       let floor = Infinity,
@@ -380,14 +428,18 @@ $("check").onclick = async () => {
     }
     $("report").textContent = lines.join("\n");
   } finally {
-    $("clip").value = selected;
-    selectClip();
-    if (action) {
-      action.time = oldTime;
-      mixer.update(0);
+    if (measured === model) {
+      $("clip").value = selected;
+      selectClip();
+      if (action) {
+        action.time = oldTime;
+        mixer.update(0);
+        $("time").value = oldTime / action.getClip().duration;
+      }
     }
     locked = false;
-    $("check").disabled = false;
+    $("wardrobe-look").disabled = false;
+    $("check").disabled = !clips.length;
   }
 };
 new ResizeObserver(() => {
