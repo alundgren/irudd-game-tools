@@ -1,0 +1,1252 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#172c2b" />
+    <title>Character workshop · irudd-game-tools</title>
+    <!-- STYLE -->
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <i aria-hidden="true" class="mark"></i
+        ><span>irudd<span class="brand-light"> / game tools</span></span>
+      </div>
+      <span class="mode">Character workshop</span>
+    </header>
+    <main>
+      <section class="viewer" aria-label="3D character viewport">
+        <div id="stage">
+          <canvas
+            id="viewport"
+            tabindex="0"
+            aria-label="3D model. Drag to orbit, scroll to zoom, or use the view buttons."
+          ></canvas>
+        </div>
+        <div class="stage-title">
+          <span class="overline" id="revision">Current form</span>
+          <h1 id="name">Whole form</h1>
+          <p id="look"></p>
+        </div>
+        <div class="measure" aria-hidden="true">
+          <span id="tick2">2 m</span><span id="tick1">1 m</span
+          ><span id="tick0">0 m</span>
+        </div>
+        <p id="failure" role="alert" hidden></p>
+        <div class="camera">
+          <div id="angles" aria-label="Camera angle" role="group">
+            <button data-angle="3/4" aria-pressed="true">¾</button
+            ><button
+              data-angle="Portrait"
+              title="Eye-level three-quarter view from the opposite side"
+            >
+              Portrait</button
+            ><button data-angle="Front">Front</button
+            ><button data-angle="Side">Side</button
+            ><button data-angle="Back">Back</button>
+          </div>
+          <button
+            id="scale-lock"
+            aria-pressed="false"
+            title="Keep a fixed world frame when switching forms"
+          >
+            World scale</button
+          ><button id="show-scale-room">Compare sizes</button
+          ><button id="reset" title="Reset camera angle and zoom">
+            Reset view
+          </button>
+        </div>
+        <div class="stage-foot">
+          <span>Drag to orbit · Scroll or pinch to zoom</span
+          ><span id="size"></span>
+        </div>
+      </section>
+      <aside aria-label="Form controls">
+        <nav class="panel-tabs" aria-label="Workshop tools">
+          <button data-tab="sculpt" aria-pressed="true">Sculpt</button
+          ><button data-tab="ai" aria-pressed="false">AI direction</button
+          ><button data-tab="files" aria-pressed="false">Forms</button>
+        </nav>
+        <section data-panel="sculpt">
+          <div class="section-title">
+            <h2>Shape nudges</h2>
+            <button id="undo" class="quiet" disabled>Undo</button>
+          </div>
+          <label class="field">Apply to<select id="target"></select></label>
+          <div class="switch" id="operations">
+            <button data-op="shape">Size</button
+            ><button data-op="move">Move</button
+            ><button data-op="turn">Turn</button
+            ><button data-op="face">Face</button
+            ><button data-op="build">Build</button
+            ><button data-op="cloth">Cloth</button
+            ><button data-op="spine">Spine</button>
+          </div>
+          <div id="features"></div>
+          <div class="actions">
+            <button id="direct" aria-pressed="false">Edit on model</button
+            ><button id="focus" type="button">Focus selection</button
+            ><button id="protect" aria-pressed="false">
+              Keep shape in AI edits
+            </button>
+          </div>
+          <div class="actions">
+            <button id="pull-tool" aria-pressed="false">Pull surface</button
+            ><button id="branch-tool" aria-pressed="false">
+              Draw appendage
+            </button>
+          </div>
+          <div id="branch-settings" hidden>
+            <p class="micro">
+              Drag from the character’s surface to draw a new appendage. Orbit
+              between strokes to work in a different plane.
+            </p>
+            <label class="field"
+              >Appendage<select id="branch-type"></select
+            ></label>
+            <label class="field"
+              >Base radius (cm)<input
+                id="branch-radius"
+                type="number"
+                value="6"
+                min=".5"
+                max="60"
+                step=".5"
+            /></label>
+            <label class="field"
+              >Color<input id="branch-color" type="color" value="#987453"
+            /></label>
+            <label class="check"
+              ><input id="branch-mirror" type="checkbox" />Mirror across the
+              character</label
+            >
+          </div>
+          <button id="place-branch" aria-pressed="false">Place a branch on a surface</button>
+          <div id="place-settings" hidden>
+            <label class="field">Placement<select id="place-mode"><option value="copy">Copy branch</option><option value="move">Move branch</option></select></label>
+            <label class="field">Branch size (%)<input id="place-scale" type="number" min="10" max="400" value="100"></label>
+            <label class="field">Turn around<select id="place-axis"><option value="surface">Surface normal</option><option value="view">View axis</option></select></label>
+            <label class="field">Turn (°)<input id="place-twist" type="number" min="-360" max="360" value="0"></label>
+            <label class="field">Seat inside surface (mm)<input id="place-depth" type="number" min="0" max="100" step="1" value="8"></label>
+            <p id="place-hint" class="micro" role="status"></p>
+          </div>
+          <div id="pull-settings" hidden>
+            <label class="field"
+              >Drag direction<select id="pull-direction">
+                <option>Screen plane</option>
+                <option>Normal</option>
+              </select></label
+            >
+            <label class="field"
+              >Reach in centimetres<input
+                type="number"
+                id="pull-size"
+                value="7"
+                min="1"
+                max="150"
+            /></label>
+            <label
+              ><input type="checkbox" id="pull-mirror" /> Mirror across this
+              part</label
+            >
+            <p class="micro">
+              Drag a spot on the model. In Normal mode, drag up to raise it or
+              down to indent it. Each drag is one undo step.
+            </p>
+          </div>
+          <label id="depth-mix-field" hidden
+            >Frontal depth influence
+            <input id="depth-mix" type="range" min="0" max="100" value="85"
+          /></label>
+          <details id="front-tools" hidden>
+            <summary>Match facial landmarks</summary>
+            <button id="front-open">Pair points with a portrait</button><button id="front-remove">Remove last landmark fit</button>
+            <label id="fit-last-mirror-label" class="check" hidden><input id="fit-last-mirror" type="checkbox">Mirror the latest depth fit</label>
+            <details id="rigid-fit-tools" hidden><summary>Rigid accessories</summary>
+              <label class="field">Pieces to fit together<select id="rigid-fit-parts" multiple size="5"></select></label>
+              <label class="field">Follow the attachment point of<select id="rigid-fit-pivot"></select></label>
+              <label class="field">Front clearance (mm)<input id="rigid-clear-mm" type="number" min="1" max="25" value="2" step="1"></label><button id="rigid-clear">Clear the face with selected front pieces</button>
+              <div class="actions"><button id="rigid-fit-apply">Keep these shapes rigid</button><button id="rigid-fit-release">Allow surface bending</button></div>
+            </details>
+            <label class="field" id="fit-last-field" hidden>Latest fit strength <output id="fit-last-value"></output><input id="fit-last" type="range" min="0" max="100" step="1"></label>
+          </details>
+          <details id="profile-tools" hidden>
+            <summary>Shape from a side portrait</summary>
+            <button id="profile-open">Trace a profile</button>
+            <div id="profile-settings" hidden>
+              <label class="field">Contour strength<input id="profile-mix" type="range" min="0" max="100" step="1"></label>
+              <label class="field" id="profile-relief-field" hidden>Rebuild cheek and nose depth<input id="profile-relief" type="range" min="0" max="100" step="1"></label>
+              <button id="profile-remove">Release profile</button>
+            </div>
+          </details>
+          <details id="eye-tools" hidden>
+            <summary>Fit movable eyes</summary>
+            <button id="eye-fit">Fit to face</button>
+            <div id="eye-settings" hidden>
+              <label class="field"
+                >Replace with a solid iris color<input
+                  id="eye-color"
+                  type="color"
+              /></label>
+              <label class="field"
+                >Nudge eye fit<select id="eye-axis">
+                  <option value="opening">Lid opening</option>
+                  <option value="width">Eye width</option>
+                  <option value="spacing">Eye spacing</option>
+                  <option value="lift">Eye line</option>
+                  <option value="iris">Iris size</option>
+                  <option value="x0">Right eye across</option>
+                  <option value="y0">Right eye up</option>
+                  <option value="x1">Left eye across</option>
+                  <option value="y1">Left eye up</option>
+                </select></label
+              >
+              <div class="actions">
+                <button id="eye-less">Decrease</button
+                ><button id="eye-more">Increase</button
+                ><button id="eye-remove">Restore source eyes</button>
+              </div>
+            </div>
+          </details>
+          <details id="hair-tools" hidden>
+            <summary>Style hair</summary>
+            <div class="actions">
+              <button id="hair-source" hidden>Take off source hair</button
+              ><button id="hair-add">Grow hair</button
+              ><button id="hair-remove">Remove groom</button>
+            </div>
+            <div id="hair-settings" hidden>
+              <label class="field"
+                >Hair construction<select id="hair-pattern">
+                  <option>Locks</option>
+                  <option>Side part</option>
+                  <option>Coils</option>
+                  <option>Braids</option>
+                  <option>Locs</option>
+                </select></label
+              >
+              <label class="field"
+                >Change<select id="hair-axis">
+                  <option value="length">Length</option>
+                  <option value="curl">Curl</option>
+                  <option value="sweep">Side sweep</option>
+                  <option value="gather">Gather into a tail</option>
+                  <option value="part">Part position</option>
+                  <option value="volume">Volume at crown</option>
+                </select></label
+              >
+              <div class="actions">
+                <button id="hair-less">Decrease</button
+                ><button id="hair-more">Increase</button
+                ><button id="hair-roll">Reroll locks</button>
+              </div>
+              <label class="field"
+                >Hair color<input type="color" id="hair-color"
+              /></label>
+            </div>
+          </details>
+          <details id="fibre-tools" hidden><summary>Grow strands along curves</summary>
+            <label class="field">Guide curves<select id="fibre-guides" multiple size="5"></select></label>
+            <label class="field">Strands per curve<input id="fibre-count" type="number" min="4" max="96" value="32"></label>
+            <label class="field">Wave (%)<input id="fibre-wave" type="number" min="0" max="100" value="28"></label>
+            <label class="field">Trailing length (% of curve)<input id="fibre-fall" type="number" min="0" max="100" value="20"></label>
+            <label class="field">Grey strands (%)<input id="fibre-grey" type="number" min="0" max="100" value="12"></label>
+            <label class="check"><input id="fibre-root" type="checkbox" checked>Seat roots on the parent surface</label>
+            <div class="actions"><button id="fibre-apply">Grow strands</button><button id="fibre-reroll">Reroll strands</button><button id="fibre-remove">Restore guide surface</button></div>
+          </details>
+          <details id="skin-tools">
+            <summary>Join organic surfaces</summary>
+            <p class="micro">
+              Blend unpainted sweeps and ellipsoids into a continuous skin. Each
+              region keeps its attachments and joints.
+            </p>
+            <div class="actions">
+              <button id="skin-body">Join body regions</button
+              ><button id="skin-part">Join selected region</button
+              ><button id="skin-clear">Separate regions</button>
+            </div>
+            <label class="field"
+              >Seam softness<select id="skin-softness">
+                <option value=".008">Firm</option>
+                <option value=".015" selected>Soft</option>
+                <option value=".028">Rounded</option>
+              </select></label
+            >
+            <label class="field"
+              >Shared skin color<input
+                id="skin-color"
+                type="color"
+                value="#82715b"
+            /></label>
+          </details>
+          <details id="marking-tools">
+            <summary>Surface markings</summary>
+            <label class="field"
+              >Pattern<select id="mark-kind">
+                <option>Bands</option>
+                <option>Spots</option>
+                <option>Rosettes</option>
+                <option>Countershade</option>
+              </select></label
+            >
+            <label class="field"
+              >Pigment<input id="mark-color" type="color" value="#e1ad66"
+            /></label>
+            <label class="field"
+              >Spacing (cm)<input
+                id="mark-spacing"
+                type="number"
+                min="6"
+                max="80"
+                value="22"
+            /></label>
+            <label class="field"
+              >Coverage (%)<input
+                id="mark-coverage"
+                type="number"
+                min="10"
+                max="90"
+                value="50"
+            /></label>
+            <label class="field"
+              >Direction (°)<input
+                id="mark-angle"
+                type="number"
+                min="-180"
+                max="180"
+                value="20"
+            /></label>
+            <div class="actions">
+              <button id="mark-apply">Apply to body</button
+              ><button id="mark-roll">Reroll placement</button
+              ><button id="mark-clear">Remove markings</button>
+            </div>
+          </details>
+          <div id="knot-tools" hidden>
+            <label class="field">Spine point<select id="knot"></select></label>
+            <div class="actions">
+              <button id="thinner">Thin point</button
+              ><button id="thicker">Thicken point</button
+              ><button id="insert-knot">Insert point</button>
+            </div>
+          </div>
+          <p class="micro">Changes are relative to the current form.</p>
+          <div class="actions">
+            <button class="solid" id="apply">Apply nudge</button
+            ><button id="roll">Small reroll</button
+            ><button id="clear">Reset</button>
+          </div>
+        </section>
+        <section data-panel="ai" class="direction" hidden>
+          <h2>AI variation</h2>
+          <label class="field" for="steering">Direction</label>
+          <textarea
+            id="steering"
+            rows="3"
+            maxlength="2000"
+            placeholder="Keep the face. Give it a long, low body and two extra pairs of legs."
+          ></textarea>
+          <details id="ai-marks">
+            <summary>Mark a location on the model</summary>
+            <label class="field">Point name<input id="ai-mark-name" maxlength="48" placeholder="Left lower rib"></label>
+            <button id="ai-mark-add" aria-pressed="false">Pick surface point</button>
+            <div id="ai-mark-list"></div>
+          </details>
+          <details id="reference-tools">
+            <summary>Visual references</summary>
+            <label class="field"
+              >Use image for<select id="reference-role">
+                <option>Face</option>
+                <option>Body silhouette</option>
+                <option>Garment</option>
+                <option>Color and surface</option>
+              </select></label
+            >
+            <button id="reference-add">Attach image</button
+            ><input
+              id="reference-file"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              hidden
+            />
+            <div class="alternates" id="reference-list"></div>
+          </details>
+          <label class="field"
+            >Variation range<select id="variation-range">
+              <option value="subtle">Refine details</option>
+              <option value="exploratory" selected>Explore a direction</option>
+              <option value="radical">Rework anatomy</option>
+            </select></label
+          >
+          <div class="actions">
+            <button id="draw-cue">Draw direction</button>
+          </div>
+          <details>
+            <summary>Your random choices</summary>
+            <label class="field"
+              >One choice group per line<textarea
+                id="deck-input"
+                rows="3"
+                maxlength="3200"
+                placeholder="Locomotion = wade | glide | burrow&#10;Surface = felt | scales | bark"
+              ></textarea>
+            </label>
+            <button id="apply-decks">Use these choices</button>
+          </details>
+          <div id="drawn-cues">
+            <label class="check"
+              ><input type="checkbox" id="pin-0" /><span
+                id="cue-0"
+              ></span></label
+            ><label class="check"
+              ><input type="checkbox" id="pin-1" /><span id="cue-1"></span
+            ></label>
+          </div>
+          <div id="chosen-decks"></div>
+          <details>
+            <summary>Replay a direction</summary>
+            <label class="field"
+              >Direction code<input
+                id="direction-code"
+                type="text"
+                spellcheck="false" /></label
+            ><button id="direction-replay">Use code</button>
+          </details>
+          <p class="micro" id="protected-list"></p>
+          <p class="micro" id="agent-help"></p>
+          <label id="repaint-branch-field" hidden
+            ><input id="repaint-branch" type="checkbox" checked /> Include
+            attached regions with the same artwork</label
+          >
+          <label class="field" id="paint-action-field" hidden
+            >Painted edit<select id="paint-action">
+              <option value="replace">Redesign this part</option>
+              <option value="wear">Fit a garment to this part</option>
+              <option value="repaint" id="repaint-action" hidden>
+                Repaint existing geometry
+              </option>
+              <option value="revise" id="revise-action" hidden>
+                Revise this portrait from its source art
+              </option>
+              <option value="depth" id="depth-action" hidden>
+                Fit facial relief from the source views
+              </option>
+              <option value="scalp" id="scalp-action" hidden>
+                Fit a clean scalp under this hair
+              </option>
+            </select></label
+          >
+          <div class="actions">
+            <button id="generate" class="solid"></button
+            ><button id="paint-generate" hidden>
+              Generate painted variation</button
+            ><button id="cancel-generation" hidden>Cancel generation</button
+            ><button id="import">Load proposal</button
+            ><input
+              id="file"
+              type="file"
+              accept=".json,application/json"
+              hidden
+            />
+          </div>
+          <div id="candidate" hidden>
+            <p id="summary"></p>
+            <button id="inspect-export">Inspect game export</button>
+            <div id="export-review" hidden aria-live="polite">
+              <button id="export-review-compare" hidden aria-pressed="false">Show earlier export</button>
+              <p id="export-review-caption"></p>
+              <img style="width:100%;height:auto" alt="Rest pose of the reloaded game model in clay and colour">
+              <img style="width:100%;height:auto" alt="Movement sample of the reloaded game model from the side and rear">
+            </div>
+            <label class="field"
+              >Refine this proposal<textarea
+                id="refine-note"
+                rows="2"
+                maxlength="2000"
+                placeholder="Keep the tail; move the cargo to the left hip."
+              ></textarea>
+            </label>
+            <div class="actions">
+              <button id="refine-send">Refine proposal</button
+              ><button id="refine-load" hidden>Load refinement</button
+              ><button id="refine-back" hidden>Previous proposal</button>
+            </div>
+            <div class="actions">
+              <button id="compare" aria-pressed="false">Show current</button
+              ><button id="accept" class="solid">Accept</button
+              ><button id="keep-candidate">Keep alternate &amp; return</button
+              ><button id="discard">Discard</button
+              ><button id="save-turnaround" hidden>Save new artwork</button
+              ><button id="save-map" hidden>Save part map</button>
+            </div>
+          </div>
+        </section>
+        <section data-panel="sculpt">
+          <div class="section-title"><h2>Wardrobe</h2></div>
+          <div
+            id="outfits"
+            class="stack"
+            role="group"
+            aria-label="Outfit"
+          ></div>
+          <details id="custom-wardrobe">
+            <summary>Cut clothing and save outfits</summary>
+            <fieldset id="garment-controls">
+              <label class="field"
+                >Garment cut<select id="garment-cut">
+                  <option>Cape</option>
+                  <option>Poncho</option>
+                  <option>Tabard</option>
+                  <option>Skirt</option>
+                </select></label
+              >
+              <label class="field"
+                >Fabric color<input type="color" id="cut-color" value="#3b6663"
+              /></label>
+              <button id="cut-garment">
+                <span id="cut-host">Fit to body</span>
+              </button>
+              <div id="layer-controls" hidden>
+                <label class="field"
+                  >Garment layer<select id="layer-list"></select
+                ></label>
+                <label class="field"
+                  >Visibility<select id="layer-show">
+                    <option value="auto">Follow base outfit</option>
+                    <option value="on">Wear</option>
+                    <option value="off">Take off</option>
+                  </select></label
+                >
+                <label class="field"
+                  >Overdye<input type="color" id="layer-dye" value="#ffffff"
+                /></label>
+                <label class="field"
+                  >Layer order (outermost last)<input
+                    type="number"
+                    id="layer-order"
+                    min="0"
+                    max="15"
+                    value="0"
+                /></label>
+                <button id="layer-apply">Apply layer settings</button>
+                <details id="cut-fit" hidden>
+                  <summary>Adjust the cut</summary>
+                  <label class="field">Material<select id="cut-surface"><option value="canvas">Woven canvas</option><option value="satin">Satin</option><option value="leather">Leather</option><option value="plain">Matte</option><option value="metal">Metal</option><option value="scales">Scales</option><option value="jacket">Jacket cloth</option></select></label>
+                  <label class="field">Fabric colour<input id="cut-fabric" type="color"></label>
+                  <label class="field"
+                    >Drop (cm)<input
+                      id="cut-drop"
+                      type="number"
+                      step=".1"
+                      min="2.5"
+                      max="800"
+                  /></label>
+                  <label class="field"
+                    >Front opening (°)<input
+                      id="cut-opening"
+                      type="number"
+                      min="2"
+                      max="150"
+                  /></label>
+                  <label class="field"
+                    >Hem flare (%)<input
+                      id="cut-flare"
+                      type="number"
+                      min="65"
+                      max="220"
+                  /></label>
+                  <label class="field"
+                    >Folds<input id="cut-folds" type="number" min="0" max="24"
+                  /></label>
+                  <label class="field"
+                    >Arm access<select id="cut-arms">
+                      <option>Covered</option>
+                      <option>Open sides</option>
+                      <option>Armholes</option>
+                    </select></label
+                  >
+                  <div id="skirt-pattern" hidden>
+                    <button id="skirt-trace">Trace waist to hem</button>
+                    <label class="field">Waist clearance (mm)<input id="skirt-clearance" type="number" min="0" max="60" step="1"></label>
+                    <label class="field">Diagonal gathers (−100 to 100)<input id="skirt-bias" type="number" min="-100" max="100"></label>
+                    <label class="field">Gather depth (%)<input id="skirt-gather" type="number" min="0" max="30"></label>
+                    <label class="field">Vertical pleats<input id="skirt-pleats" type="number" min="0" max="24"></label>
+                    <label class="field">Pleat depth (%)<input id="skirt-pleat-depth" type="number" min="0" max="35"></label>
+                    <label class="field">Hem tiers<input id="skirt-tiers" type="number" min="0" max="6"></label>
+                    <label class="field">Back train (cm)<input id="skirt-train" type="number" min="0" max="200"></label>
+                  </div>
+                  <button id="adjust-cut">Apply cut</button>
+                </details>
+              </div>
+              <label class="field"
+                >Outfit name<input
+                  id="outfit-name"
+                  maxlength="64"
+                  placeholder="Field survey"
+              /></label>
+              <button id="save-outfit">Save as new outfit</button>
+              <div id="outfit-saved" hidden>
+                <label class="field"
+                  >Saved outfits<select id="outfit-list"></select
+                ></label>
+                <div class="actions">
+                  <button id="wear-outfit">Wear outfit</button
+                  ><button id="update-outfit">Update saved outfit</button>
+                </div>
+              </div>
+            </fieldset>
+          </details>
+        </section>
+        <section data-panel="files" hidden>
+          <h2>Generate a starting form</h2>
+          <label class="field"
+            >Anatomy<select id="body-plan">
+              <option value="any">Any anatomy</option>
+              <option value="human">Humanoid</option>
+              <option value="figure">Jointed person in everyday clothes</option>
+              <option value="creature">Creature</option>
+              <option value="hybrid">Hybrid</option>
+            </select></label
+          >
+          <div class="actions">
+            <button id="fresh">Generate new form</button>
+          </div>
+        </section>
+        <section data-panel="files" hidden>
+          <h2>Build from artwork</h2>
+          <p class="micro">
+            Fit a 3D region to front and profile outlines from a four-view
+            turnaround.
+          </p>
+          <div class="actions">
+            <button id="trace-open">Trace a volume</button>
+          </div>
+        </section>
+        <section data-panel="files" hidden>
+          <details id="reuse-turnaround" hidden>
+            <summary>Reuse a turnaround on other regions</summary>
+            <p class="micro">Choose regions that line up in the same four views. Each keeps its shape and texture coordinates.</p>
+            <label class="field">Use the paint from<select id="reuse-source"></select></label>
+            <label class="field">Regions to repaint<select id="reuse-regions" multiple size="7"></select></label>
+            <button id="reuse-apply">Apply to selected regions</button>
+          </details>
+        </section>
+        <section data-panel="files" hidden>
+          <h2>Form files</h2>
+          <label class="field"
+            >GLB detail<select id="export-detail">
+              <option value="full">Full detail</option>
+              <option value="game">Game · reduced mesh and shared atlas</option>
+              <option value="portrait">Portrait · reduced mesh and 2048 px atlas</option>
+            </select></label
+          >
+          <label class="check" id="export-outfit-field" hidden><input id="all-outfits" type="checkbox" />Export all saved outfits as selectable scenes</label>
+          <div class="actions">
+            <button id="save">Save form</button
+            ><button id="open">Open form</button
+            ><button id="glb">Export GLB</button>
+          </div>
+          <label class="check"
+            ><input id="with-motion" type="checkbox" checked />Include skeleton
+            and motion clips</label
+          ><input id="openfile" type="file" accept=".json" hidden />
+          <p class="micro">
+            <a href="play-model.html" target="_blank" rel="noopener"
+              >Open the separate GLB player</a
+            >
+          </p>
+        </section>
+        <section data-panel="files" hidden>
+          <h2>Graft a part</h2>
+          <label class="field"
+            >Source<select id="donor-component"></select
+          ></label>
+          <div class="actions">
+            <button id="donor-open">Use a saved form</button
+            ><input id="donor-file" type="file" accept=".json" hidden />
+          </div>
+          <label class="field" id="donor-region-field" hidden
+            >Source branch<select id="donor-region"></select
+          ></label>
+          <label class="field"
+            >Destination part<select id="graft-target"></select></label
+          ><label class="field"
+            >Attachment<select id="graft-mode">
+              <option value="replace">Replace part, keep children</option>
+              <option value="wear">
+                Wear on this part in the current outfit
+              </option>
+              <option value="pattern">Recut garment pattern for this body</option>
+              <option value="replaceBranch">Replace whole branch</option>
+              <option value="attach">Attach above selection</option>
+            </select></label
+          >
+          <label class="check" id="graft-fit-field"
+            ><input id="graft-fit" type="checkbox" checked />Match destination
+            height</label
+          >
+          <div class="actions"><button id="graft">Graft component</button></div>
+        </section>
+        <section data-panel="files" hidden>
+          <h2>Saved variations</h2>
+          <label class="field"
+            >Name this version<input
+              id="alternate-name"
+              maxlength="96"
+              placeholder="Optional name"
+          /></label>
+          <div class="actions">
+            <button id="keep-current">Keep current form</button>
+          </div>
+          <div
+            id="alternate-list"
+            class="alternates"
+            aria-label="Saved variations"
+          ></div>
+        </section>
+        <section data-panel="files" hidden>
+          <h2>Reference studies</h2>
+          <p class="micro">
+            <a
+              href="../docs/workshop-results.html"
+              target="_blank"
+              rel="noopener"
+              >Compare renders and community references</a
+            >
+          </p>
+          <label class="field"
+            >Load an editable study<select id="studies"></select></label
+          ><button id="study">Load study</button>
+        </section>
+        <section data-panel="sculpt">
+          <details>
+            <summary>Build parts</summary>
+            <label class="field"
+              >Shape<select id="shape">
+                <option value="cage">Freeform control cage</option>
+                <option selected>ellipsoid</option>
+                <option>box</option>
+                <option>cone</option>
+                <option>cylinder</option>
+                <option>sweep</option>
+                <option>scute</option>
+                <option>hand</option>
+              </select></label
+            >
+            <div class="actions">
+              <button id="attach">Add part</button
+              ><button id="duplicate">Duplicate</button
+              ><button id="mirror">Mirror</button
+              ><button id="remove">Remove</button>
+            </div>
+            <div id="cage-tools" hidden>
+              <label class="field"
+                >Cage face<select id="cage-face"></select
+              ></label>
+              <div class="actions">
+                <button id="cage-inset">Inset face</button
+                ><button id="cage-extrude">Extrude face</button
+                ><button id="cage-crease">Toggle edge crease</button>
+              </div>
+              <label class="field"
+                >Tunnel through to<select id="cage-to"></select
+              ></label>
+              <button id="cage-tunnel">Open tunnel</button>
+              <label class="field"
+                >Move a corner<select id="cage-corner"></select
+              ></label>
+              <label class="field"
+                >Smoothing<select id="cage-level">
+                  <option value="0">Faceted</option>
+                  <option value="1">One subdivision</option>
+                  <option value="2">Two subdivisions</option>
+                </select></label
+              >
+            </div>
+            <div id="elbow-tools" hidden><div class="actions"><button id="bend-elbow">Bend elbow 15°</button><button id="open-elbow">Straighten elbow 15°</button></div><label class="field">Sleeve fabric<input id="sleeve-color" type="color" value="#214d47"></label><button id="recut-arm">Recut as plain fitted sleeves</button></div>
+            <label class="check" id="carry-pose-control" hidden><input type="checkbox" id="carry-pose"> Hold this arm in its carrying pose during movement</label>
+            <button id="fit-hand" hidden>Fit fingers to this hand</button>
+            <div id="join-tools" hidden>
+              <label class="field"
+                >Attach surface to parent<select
+                  id="join-patch"
+                ></select></label
+              ><label class="field"
+                >Seating depth in mm<input
+                  type="number"
+                  id="join-depth"
+                  min="1"
+                  max="80"
+                  value="8"
+              /></label>
+              <div class="actions">
+                <button id="join-seat">Seat on parent</button
+                ><button id="join-release">Release fitting</button>
+              </div>
+              <p id="join-reading" class="micro"></p>
+            </div>
+            <div id="grip-tools" hidden>
+              <label class="field"
+                >Fingers (plus thumb)<input
+                  id="finger-count"
+                  type="number"
+                  min="1"
+                  max="7"
+                  value="4" /></label
+              ><label class="field"
+                >Finger curl<input
+                  id="finger-curl"
+                  type="range"
+                  min="0"
+                  max="100" /></label
+              ><label class="field"
+                >Finger spread<input
+                  id="finger-spread"
+                  type="range"
+                  min="0"
+                  max="100"
+              /></label>
+            </div>
+            <details id="plate-field" hidden>
+              <summary>Grow a field of plates</summary>
+              <div id="growth-new">
+                <div class="trace-row">
+                  <label class="field">Surface<select id="growth-face"><option>Back</option><option>Top</option><option>Front</option><option>Left</option><option>Right</option></select></label>
+                  <label class="field">Tips point toward<select id="growth-direction"><option value="first">First spine point</option><option value="last">Last spine point</option></select></label>
+                </div>
+                <div class="trace-row">
+                  <label class="field">Rows<input id="growth-rows" type="number" value="6" min="2" max="12"></label>
+                  <label class="field">Across<select id="growth-columns"><option>1</option><option selected>3</option><option>5</option><option>7</option></select></label>
+                </div>
+                <label class="field">Plate colour<input id="growth-color" type="color" value="#c2ab7c"></label>
+                <button data-growth="create" data-result="Plate field grown">Grow fitted plates</button>
+              </div>
+              <div id="growth-edit" hidden>
+                <p id="growth-reading"></p>
+                <button data-growth="refit" data-result="Field refitted">Refit to spine</button>
+                <div id="growth-single" class="actions" hidden><button data-growth="one-tip" data-result="Individual tip rerolled">Reroll this tip &amp; pin it</button><button data-growth="release-tip" data-result="Individual tip follows the field">Unpin this tip</button></div>
+                <div class="actions"><button data-growth="rows" data-sign="-1" data-result="Row removed">One fewer row</button><button data-growth="rows" data-sign="1" data-result="Row added">One more row</button></div>
+                <div class="actions"><button data-growth="columns" data-sign="-1" data-result="Outer columns removed">Remove outer pair</button><button data-growth="columns" data-sign="1" data-result="Outer columns added">Add outer pair</button></div>
+                <div class="actions"><button data-growth="crest" data-sign="-1" data-result="Crest adjusted">Lower crest</button><button data-growth="crest" data-sign="1" data-result="Crest adjusted">Raise crest</button></div>
+                <div class="actions"><button data-growth="rise" data-sign="-1" data-result="Plate relief lowered">Flatter plates</button><button data-growth="rise" data-sign="1" data-result="Plate relief raised">Taller plates</button></div>
+                <div class="actions"><button data-growth="overlap" data-sign="-1" data-result="Overlap adjusted">Less overlap</button><button data-growth="overlap" data-sign="1" data-result="Overlap adjusted">More overlap</button></div>
+                <div class="actions"><button data-growth="wrap" data-sign="-1" data-result="Surface coverage adjusted">Narrower wrap</button><button data-growth="wrap" data-sign="1" data-result="Surface coverage adjusted">Wider wrap</button></div>
+                <div class="actions"><button data-growth="tips" data-result="Unpinned plate tips rerolled">Reroll field tips</button><button data-growth="layout" data-result="Plate layout rerolled">Reroll layout</button></div>
+              </div>
+            </details>
+            <div id="repeat-tools" hidden>
+              <label class="field"
+                >Repeat along spine<select id="repeat-side">
+                  <option>Back</option>
+                  <option>Front</option>
+                  <option>Top</option>
+                  <option>Left</option>
+                  <option>Right</option>
+                </select></label
+              >
+
+              <div class="trace-row">
+                <label class="field"
+                  >Rows<input
+                    type="number"
+                    id="repeat-count"
+                    value="5"
+                    min="1"
+                    max="16" /></label
+                ><label class="field"
+                  >Across<input
+                    type="number"
+                    id="repeat-cols"
+                    value="1"
+                    min="1"
+                    max="7"
+                /></label>
+              </div>
+              <label class="field"
+                >Plate width (cm)<input
+                  id="repeat-width"
+                  type="number"
+                  value="12"
+                  min="1"
+                  max="100"
+              /></label>
+              <label class="check"><input id="repeat-outfit" type="checkbox">Wear plates only with this outfit</label>
+              <label class="field">Armour colour<input id="repeat-color" type="color" value="#d4c6a7"></label>
+              <div class="actions">
+                <button id="repeat">Grow plate array</button>
+              </div>
+            </div>
+            <div id="paintpart">
+              <label class="field"
+                >Clothing region<select id="outfit-role"></select></label
+              ><label class="field"
+                >Movement<select id="motion-role"></select></label
+              ><label class="field"
+                >Surface<select id="surface">
+                  <option>plain</option>
+                  <option>canvas</option>
+                  <option>satin</option>
+                  <option>leather</option>
+                  <option>metal</option>
+                  <option>scales</option>
+                  <option>jacket</option>
+                </select></label
+              ><label class="field"
+                >Color <input id="part-color" type="color"
+              /></label>
+            </div>
+          </details>
+        </section>
+        <section class="display" data-panel="sculpt">
+          <h2>Movement</h2>
+          <div id="gaze-tools" hidden>
+            <label class="field"
+              >Look across<input
+                id="look-x"
+                type="range"
+                min="-100"
+                max="100"
+                value="0" /></label
+            ><label class="field"
+              >Look up or down<input
+                id="look-y"
+                type="range"
+                min="-100"
+                max="100"
+                value="0" /></label
+            ><button id="look-center">Centre gaze</button>
+          </div>
+          <div id="face-pose-tools" hidden>
+            <label class="field"
+              >Facial expression<select id="face-pose">
+                <option value="Rest">Rest</option>
+                <option value="Blink">Blink</option>
+                <option value="Smile">Smile</option>
+                <option value="BrowLift">Raise brows</option>
+              </select></label
+            ><label class="field"
+              >Expression amount<input
+                id="face-pose-amount"
+                type="range"
+                min="0"
+                max="100"
+                value="100"
+            /></label>
+          </div>
+          <label class="field"
+            >Pose or clip<select id="motion">
+              <option>Bind</option>
+              <option>Idle</option>
+              <option>Walk</option>
+              <option>Crouch</option>
+              <option>Reach</option>
+            </select></label
+          >
+          <button id="pose-open">Pose joints…</button>
+          <p id="pose-missing" class="micro" hidden></p>
+          <div id="playback" hidden>
+            <label class="field"
+              >Time<input
+                id="motion-time"
+                type="range"
+                min="0"
+                max="1000"
+                value="0"
+            /></label>
+            <div class="actions"><button id="motion-play">Pause</button></div>
+            <label class="check"
+              ><input id="show-bones" type="checkbox" />Show joints</label
+            >
+          </div>
+        </section>
+        <section class="display" data-panel="sculpt">
+          <h2>Display</h2>
+          <div
+            class="switch"
+            id="display"
+            aria-label="Material mode"
+            role="group"
+          >
+            <button data-mode="Color" aria-pressed="true">Studio color</button
+            ><button data-mode="Clay" aria-pressed="false">Clay</button
+            ><button data-mode="Silhouette" aria-pressed="false">
+              Silhouette
+            </button>
+          </div>
+        </section>
+        <p class="feedback" id="status" role="status"></p>
+      </aside>
+    </main>
+
+    <dialog id="pose-room" aria-labelledby="pose-title">
+      <div class="scale-heading">
+        <h2 id="pose-title">Pose joints</h2>
+        <button id="pose-cancel">Close</button>
+      </div>
+      <div id="pose-view">
+        <canvas
+          id="pose-canvas"
+          aria-label="Character with selectable joints and rotation handles"
+        ></canvas>
+      </div>
+      <div class="scale-controls">
+        <label class="field">Joint<select id="pose-joint"></select></label
+        ><label class="field"
+          >Tool<select id="pose-mode">
+            <option value="rotate">Rotate</option>
+            <option value="translate">Move</option>
+            <option id="pose-reach-mode" value="reach">Guide wrist</option>
+          </select></label
+        ><button id="pose-front">Front view</button
+        ><label class="check"
+          ><input type="checkbox" checked id="pose-dots" />Show joints</label
+        >
+      </div>
+      <div class="scale-controls" id="pose-reach-controls" hidden>
+        <button id="pose-reach-surface" aria-pressed="false">Choose a point on the model</button>
+        <label class="field">Point elbow<select id="pose-elbow-direction"><option value="original">Along existing bend</option><option value="clear">Give other arms room</option><option value="down">Toward floor</option><option value="left">Character left</option><option value="right">Character right</option><option value="back">Toward back</option></select></label>
+        <label class="field">Elbow turn in degrees<input type="number" id="pose-elbow-turn" min="-180" max="180" step="5" value="0"></label>
+      </div>
+      <p class="pose-help">
+        Choose a joint in the view or the list. Drag a handle to pose it. Drag
+        the background to orbit.
+      </p>
+      <div class="scale-controls">
+        <label class="field"
+          >Local axis<select id="pose-axis">
+            <option>X</option>
+            <option>Y</option>
+            <option>Z</option>
+          </select></label
+        ><label class="field"
+          ><span id="pose-unit">Step in degrees</span
+          ><input
+            id="pose-step"
+            type="number"
+            min="0.1"
+            max="180"
+            step="any"
+            value="15"
+        /></label>
+        <div class="actions">
+          <button id="pose-minus" aria-label="Negative joint nudge">−</button
+          ><button id="pose-plus" aria-label="Positive joint nudge">+</button>
+        </div>
+        <button id="pose-reset">Relax joint</button
+        ><button id="pose-undo">Undo pose edit</button>
+      </div>
+      <div class="scale-controls">
+        <label class="field"
+          >Pose name<input
+            id="pose-name"
+            maxlength="60"
+            placeholder="Pose name" /></label
+        ><button id="pose-save">Save pose</button>
+      </div>
+      <p id="pose-note" role="status"></p>
+    </dialog>
+    <dialog id="scale-room" aria-labelledby="scale-title">
+      <div class="scale-heading">
+        <h2 id="scale-title">Compare sizes</h2>
+        <button id="scale-close">Close</button>
+      </div>
+      <div id="scale-view">
+        <canvas
+          id="scale-canvas"
+          aria-label="Characters on a shared metric floor"
+        ></canvas>
+        <div id="scale-ruler" aria-hidden="true"></div>
+      </div>
+      <div class="scale-readings">
+        <p id="scale-reference-reading" hidden></p>
+        <p id="scale-current-reading"></p>
+      </div>
+      <div class="actions">
+        <button id="scale-pin">Pin current as reference</button
+        ><button id="scale-open">Open reference form…</button
+        ><button id="scale-forget">Clear reference</button
+        ><input id="scale-reference-file" type="file" accept=".json" hidden />
+      </div>
+      <div class="scale-controls">
+        <label class="field"
+          >Turn both models<input
+            id="scale-yaw"
+            type="range"
+            min="-180"
+            max="180"
+            step="1"
+            value="0" /></label
+        ><label><input id="scale-clay" type="checkbox" /> Clay</label>
+      </div>
+      <div class="scale-controls">
+        <label class="field"
+          >Measure current form to<select id="scale-metric">
+            <option value="overall">Highest visible point</option>
+            <option value="head">Top of head</option>
+          </select></label
+        >
+        <label class="field"
+          >Height above floor (m)<input
+            id="scale-metres"
+            type="number"
+            min=".05"
+            max="12"
+            step=".001" /></label
+        ><button id="scale-apply">Resize current form</button>
+      </div>
+      <p class="micro">
+        Both models stand on their lowest visible point. Head measurements use
+        the head mesh and exclude separate hats, hair and crests.
+      </p>
+      <p id="scale-note" role="status"></p>
+    </dialog>
+    <dialog id="front-room" aria-labelledby="front-title">
+      <div class="section-title"><h2 id="front-title">Match facial landmarks</h2><button id="front-close">Close</button></div>
+      <p>Pair the same point on both faces. The first two pairs set alignment. Each following pair moves the model feature towards the location in the photograph.</p>
+      <div class="trace-row"><label>Reference portrait<input id="front-file" type="file" accept="image/*"></label><label class="field">Reach (% of head height)<input id="front-reach" type="number" value="30" min="10" max="65" step="1"></label></div>
+      <div class="trace-row"><label class="field">Camera turn (°)<input id="fit-yaw" type="number" min="-180" max="180" step="1" value="0"></label><label class="field">Camera elevation (°)<input id="fit-pitch" type="number" min="-80" max="80" step="1" value="0"></label><label class="field">Move features<select id="fit-plane"><option value="plane">In the image plane</option><option value="depth">In depth only</option></select></label></div>
+      <label class="check" id="fit-mirror-label" hidden><input id="fit-mirror" type="checkbox">Mirror depth changes across the face</label>
+      <label class="field">Fit strength (%)<input id="fit-strength" type="number" value="100" min="0" max="100" step="1"></label>
+      <div class="front-pair"><figure><figcaption>Current head</figcaption><canvas id="front-model" width="600" height="600" aria-label="Mark a point on the current head"></canvas></figure><figure><figcaption>Photograph</figcaption><canvas id="front-photo" width="1" height="1" aria-label="Mark the same point on the photo"></canvas></figure></div>
+      <label><input id="front-transfer" type="checkbox"> Transfer this photograph’s colour onto the visible face</label>
+      <p id="front-reading" aria-live="polite"></p><div class="actions"><button id="front-undo">Undo point</button><button id="front-apply">Fit these landmarks</button></div>
+    </dialog>
+    <dialog id="profile-room" aria-labelledby="profile-title">
+      <div class="section-title"><h2 id="profile-title">Trace the face in profile</h2><button id="profile-close">Close</button></div>
+      <p id="profile-help">Use a cropped, level side portrait. Start at the forward brow ridge, follow the visible outline over the nose and lips, and finish at the front of the lower chin. Drag a point to adjust it.</p>
+      <div class="trace-row"><label><span id="profile-file-label">Side portrait</span><input id="profile-file" type="file" accept="image/*"></label><label class="field">Nose points<select id="profile-facing"><option value="right">Right</option><option value="left">Left</option></select></label></div>
+      <div id="profile-options">
+        <label><input id="profile-last" type="checkbox"> Fit this outline after all facial landmark edits</label>
+        <label><input id="profile-side-paint" type="checkbox"> Use this image for the sides of the head</label>
+        <button id="profile-ear" hidden>Mark the centre of the ear</button>
+      </div>
+      <canvas id="profile-image" hidden aria-label="Trace points on the reference portrait"></canvas>
+      <p id="profile-reading" aria-live="polite"></p>
+      <div class="actions"><button id="profile-undo">Undo point</button><button id="profile-apply">Fit selected face</button></div>
+    </dialog>
+    <dialog id="trace-dialog" aria-labelledby="trace-title">
+      <div class="section-title">
+        <h2 id="trace-title">Trace a volume</h2>
+        <button id="trace-cancel" class="quiet">Close</button>
+      </div>
+      <div class="trace-row">
+        <label class="field">Turnaround<select id="trace-art"></select></label>
+        <div class="actions">
+          <button id="trace-import">Import artwork</button
+          ><input
+            id="trace-file"
+            type="file"
+            accept="image/png,image/webp,image/jpeg"
+            hidden
+          />
+        </div>
+      </div>
+      <p>
+        Use four level views on magenta or transparency, ordered front, profile
+        facing left, back and opposite profile. Click around the same body part
+        in the two guides. An empty outline uses the full silhouette.
+      </p>
+      <label class="field"
+        >Reconstruction<select id="trace-method">
+          <option value="sweep">Editable cross sections</option>
+          <option value="path">Curved centreline</option>
+          <option value="same">Thin membrane · edges run the same way</option>
+          <option value="opposite">
+            Thin membrane · edges run opposite ways
+          </option>
+          <option value="volume">
+            Preserve openings and separate contours
+          </option>
+        </select></label
+      >
+      <div class="trace-guides">
+        <figure>
+          <canvas width="400" height="400" aria-label="Front outline"></canvas>
+          <figcaption>Front</figcaption>
+        </figure>
+        <figure>
+          <canvas
+            width="400"
+            height="400"
+            aria-label="Profile outline"
+          ></canvas>
+          <figcaption>Profile</figcaption>
+        </figure>
+      </div>
+      <div class="actions">
+        <button id="trace-face" hidden>Mark facial landmarks</button
+        ><button id="trace-face-apply" hidden>Fit marked face</button
+        ><button id="trace-depth" hidden>Match front and profile</button
+        ><button id="trace-depth-apply" hidden>Fit depth point</button
+        ><button id="trace-undo">Undo point</button
+        ><button id="trace-clear">Clear outlines</button>
+      </div>
+      <label class="field" id="trace-depth-settings" hidden
+        >Depth influence as % of region reference height<input
+          type="number"
+          min="3.5"
+          max="35"
+          step=".5"
+          value="15"
+          id="trace-depth-radius"
+      /></label>
+      <label class="field" id="trace-radius-field" hidden
+        >Root radius as % of height<input
+          type="number"
+          id="trace-radius"
+          min=".3"
+          max="35"
+          step=".1"
+          value="4"
+      /></label>
+      <p id="trace-path-help" class="micro" hidden>
+        Mark matching centres in order from root to tip in each view. The radius
+        tapers toward the tip.
+      </p>
+      <div class="trace-row">
+        <label class="field"
+          >Part name<input
+            id="trace-name"
+            value="Painted region"
+            maxlength="48" /></label
+        ><label class="field"
+          >Subject height (m)<input
+            id="trace-height"
+            type="number"
+            min=".15"
+            max="6"
+            step=".01"
+            value="1.75"
+        /></label>
+        <label class="field"
+          >Destination<select id="trace-mode">
+            <option value="new">New form</option>
+            <option value="add">Add to current form</option>
+          </select></label
+        >
+      </div>
+      <div class="actions">
+        <button
+          id="trace-biped"
+          title="Fit separate head, torso, arms and legs to a standing A-pose. Starts a new form."
+        >
+          Fit whole biped
+        </button>
+        <button class="solid" id="trace-add">Build volume</button>
+      </div>
+      <div class="actions">
+        <label id="trace-steer-field" class="field"
+          >Fit instructions<input
+            id="trace-steering"
+            placeholder="Keep the tail curved and the fins thin"
+            maxlength="1400" /></label
+        ><button id="trace-agent-fit" hidden>Fit parts with AI</button
+        ><button id="trace-map-import">Build from part map</button
+        ><input type="file" id="trace-map-file" accept=".json" hidden />
+      </div>
+      <p id="trace-feedback" role="status"></p>
+    </dialog>
+    <!-- APP -->
+  </body>
+</html>

@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>GLB playback · irudd game tools</title>
+    <style>
+      [hidden] {
+        display: none !important;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #f2f3ef;
+        color: #24362e;
+        font:
+          15px/1.5 system-ui,
+          sans-serif;
+      }
+      main {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 20rem;
+        min-height: 100dvh;
+      }
+      #stage {
+        position: relative;
+        min-height: 60vh;
+      }
+      canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+      aside {
+        padding: 2rem 1.4rem;
+        background: #fbfcf8;
+        border-left: 1px solid #cbd4cb;
+      }
+      h1 {
+        font-size: 1.55rem;
+        line-height: 1.15;
+        margin: 0 0 0.75rem;
+      }
+      label {
+        display: block;
+        margin: 1.2rem 0 0.35rem;
+      }
+      select,
+      input[type="range"],
+      input[type="file"],
+      button {
+        width: 100%;
+      }
+      select,
+      button {
+        padding: 0.55rem;
+        font: inherit;
+        border: 1px solid #aebcb2;
+        border-radius: 0.35rem;
+        background: white;
+      }
+      button {
+        margin-top: 0.6rem;
+        cursor: pointer;
+      }
+      pre {
+        white-space: pre-wrap;
+        font:
+          12px/1.6 ui-monospace,
+          monospace;
+      }
+      small {
+        color: #4e6156;
+      }
+      @media (max-width: 700px) {
+        main {
+          grid-template-columns: 1fr;
+        }
+        #stage {
+          height: 60dvh;
+        }
+        aside {
+          padding: 1rem;
+          border: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div id="stage" aria-label="Orbiting game preview"></div>
+      <aside>
+        <h1>GLB playback</h1>
+        <p>
+          Open an exported character to play its embedded animations in a fresh
+          Three.js scene. Each grid square is half a metre.
+        </p>
+        <label for="file">Character file</label
+        ><input id="file" type="file" accept=".glb,model/gltf-binary" />
+        <p id="status" role="status"></p>
+        <p id="stats"></p>
+        <p id="picked-region" hidden role="status"></p>
+        <label id="outfit-field" hidden>Outfit<select id="wardrobe-look"></select></label>
+        <label for="camera-angle">View</label
+        ><select id="camera-angle">
+          <option value="" hidden>Free orbit</option>
+          <option value="threequarter" selected>Three-quarter</option>
+          <option value="front">Front</option>
+          <option value="portrait" disabled>Face close-up</option>
+          <option value="portrait-side" disabled>Face in profile</option>
+          <option value="portrait-oblique" disabled>Face at three-quarter</option>
+          <option value="portrait-angle" disabled>Face at measured angles</option>
+          <option value="overhead">Overhead</option>
+          <option value="side">Profile</option>
+          <option value="back">Back</option>
+        </select>
+        <div id="portrait-orbit" hidden><label>Camera turn (°) <input id="portrait-yaw" type="number" min="-180" max="180" step="1" value="-30"></label><label>Camera elevation (°) <input id="portrait-pitch" type="number" min="-80" max="80" step="1" value="0"></label></div>
+        <label for="surface">Surface</label
+        ><select id="surface">
+          <option value="paint">Color</option>
+          <option value="clay">Clay</option>
+          <option value="ink">Silhouette</option>
+        </select>
+        <div id="look-fields" hidden>
+          <label
+            >Look across<input
+              type="range"
+              id="look-x"
+              min="-100"
+              max="100"
+              value="0" /></label
+          ><label
+            >Look up or down<input
+              type="range"
+              id="look-y"
+              min="-100"
+              max="100"
+              value="0"
+          /></label>
+        </div>
+        <label id="expression-field" hidden
+          >Facial expression<select id="expression"></select></label
+        ><label for="clip">Animation</label
+        ><select id="clip" disabled>
+          <option>Rest pose</option></select
+        ><label><input id="playing" type="checkbox" checked /> Play</label
+        ><label for="time">Timeline</label
+        ><input
+          type="range"
+          id="time"
+          min="0"
+          max="0.9999"
+          step=".001"
+          value="0"
+        /><button id="check" disabled>
+          Measure movement and ground contact
+        </button>
+        <pre id="report"></pre>
+        <small
+          >Movement is the greatest vertex displacement from the rest pose over
+          eight samples per clip. Negative ground heights indicate
+          penetration.</small
+        >
+      </aside>
+    </main>
+    <!-- APP -->
+  </body>
+</html>

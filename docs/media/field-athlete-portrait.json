@@ -1,0 +1,106 @@
+{
+  "experiment": "Portrait transfer onto the stock field athlete head using the existing editor.",
+  "source": "Original generated front and right-facing profile artwork with manually paired landmarks and traced contour.",
+  "modifiedPartIds": [
+    "head"
+  ],
+  "otherPartsUnchanged": 38,
+  "outfitAppearanceOriginAndPosesUnchanged": true,
+  "frontalLandmarkPairs": 15,
+  "profileContourPoints": 21,
+  "paintLayers": [
+    "frontal UV overlay",
+    "side registration"
+  ],
+  "exports": {
+    "detail": "Portrait reduced mesh and 2048 px atlas",
+    "baselineBytes": 3050984,
+    "fittedBytes": 4812308,
+    "clips": [
+      "Idle",
+      "Walk",
+      "Crouch",
+      "Reach",
+      "Pose · Hands on hips"
+    ],
+    "fittedTriangles": 24052,
+    "expressions": {
+      "Face_head_1": [
+        "Blink",
+        "Smile",
+        "BrowLift"
+      ],
+      "Lids_head_2": [
+        "Blink"
+      ],
+      "Iris_head_3": [
+        "LookLeft",
+        "LookRight",
+        "LookUp",
+        "LookDown"
+      ]
+    }
+  },
+  "views": {
+    "azimuthsDegrees": [
+      0,
+      -90,
+      -140
+    ],
+    "sameOrthographicCamera": {
+      "target": [
+        0.0001510418951511383,
+        1.7058963445358735,
+        0.01049286127473626
+      ],
+      "spanMetres": 0.43496126890182496
+    },
+    "resolutionPerRender": [
+      480,
+      480
+    ]
+  },
+  "profileGeometry": {
+    "centerlineNearEdgeSamples": 23,
+    "maxAbsoluteDepthChangeMm": 23.36
+  },
+  "gazeRightChangedPixels": 651,
+  "frontFitStrength": 0.5,
+  "profileContourStrength": 1,
+  "profileReliefStrength": 0.22,
+  "hairReview": {
+    "retainedEditableGroom": {
+      "pattern": "Locks",
+      "part": 0,
+      "length": 0.062,
+      "curl": 0.61,
+      "gather": 0,
+      "sweep": 0.88,
+      "volume": 0.54,
+      "nape": 0.96,
+      "seed": 4,
+      "color": "#382c23"
+    },
+    "comparison": "The offset side part still read as a smooth cap. Swept locks add visible texture and cover more of the rear scalp. Shortening the locks reduced overlap at the temple.",
+    "rearCoverageProxy": {
+      "azimuthDegrees": 180,
+      "testCropPixels": [
+        153,
+        252,
+        327,
+        325
+      ],
+      "measures": "Dark warm pixels in a fixed lower-rear crop of the 480 px orthographic GLB render. This is a visual proxy, without segment IDs.",
+      "firstFitPixels": 4476,
+      "sweptLocksPixels": 10419
+    }
+  },
+  "visualReview": "The changed brow, nose and lip profile is visible. The square jaw and tight lids still limit likeness. The locks are thicker and more regular than the source hair.",
+  "validation": {
+    "numErrors": 0,
+    "numWarnings": 0,
+    "numInfos": 0,
+    "numHints": 0,
+    "codes": []
+  }
+}

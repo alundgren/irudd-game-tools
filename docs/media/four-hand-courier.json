@@ -1,0 +1,1332 @@
+{
+  "experiment": "One-editor transfer: the fitted field athlete edited into a civilian four-handed courier in work armour using proposal operations only. No preset was rebuilt and no code changed.",
+  "date": "2026-11-23",
+  "source": {
+    "form": "examples/field-athlete-portrait.form.json",
+    "sha256": "2da81cc2b043ca31277dea2ce4636d03356ba37f99db18dc4b131fb6e9ff0953",
+    "leftUnmodified": true
+  },
+  "liveAI": {
+    "instructions": "Turn this two-armed athlete into an original civilian four-handed parcel courier wearing bulky practical work armour. Keep the head region, its face, eye rig, the standing stance and the saved pose \"Hands on hips\" exactly as they are; do not edit or remove the head or the existing upper arms' pose joints. Add a second, lower pair of arms: use placeBranch with copy:true on \"left upper arm\" and \"right upper arm\" to attach copies lower on the flanks of \"body\" (around the lower ribs), a little smaller. Give the lower pair a different job from the upper pair: bend them forward with bendElbow so the two lower hands meet in front of the belly and carry a box-shaped parcel (addPart a box parented to a lower hand). The upper hands stay free. Replace the athletic look with heavy civilian workwear: recolour and thicken the shirt into a padded work jacket, darken the shorts, and add bulky rigid armour shells as new swept parts parented to body, upper arms or shins (chest shell, shoulder guards, shin guards). At least one armour carrier must be a new sweep on the back or chest that receives real grown plates with growPlateField (rows 3-5, columns 3). Use muted courier colours: slate, ochre and a safety-orange accent. No weapons.",
+    "preserve": [
+      "head"
+    ],
+    "variation": {
+      "strength": "exploratory",
+      "seed": 2055499650,
+      "cues": [
+        "Change the carrying posture",
+        "Long arcs with short terminals"
+      ],
+      "magnitude": 47
+    },
+    "attempts": [
+      {
+        "route": "POST /variation on the already running workshop at 127.0.0.1:4179",
+        "seconds": 93,
+        "result": "502 The corrected proposal could not be applied. Unknown edit operation."
+      },
+      {
+        "route": "same server, instructions restricted to setPart, addPart, setForm, placeBranch and bendElbow",
+        "seconds": 91,
+        "result": "502 The corrected proposal could not be applied. Unknown edit operation."
+      },
+      {
+        "route": "scripts/workshop.mjs codexVariation called directly with the first brief, reply checked by readProposal from the current source",
+        "seconds": 60,
+        "result": "Applied on the first reply, no repair round."
+      }
+    ],
+    "note": "The running server on port 4179 serves an older editor build (its page has no Portrait export option and rejects face- artwork keys), so its two rejections are attributed to that process predating the current operation set. This is an inference: the server does not return the rejected reply. The process was not restarted.",
+    "summary": "Four-handed civilian courier with a padded slate jacket, ochre plated work armour and lower hands supporting a parcel; head, stance and saved pose preserved.",
+    "operations": [
+      {
+        "op": "setPart",
+        "id": "shirt body",
+        "set": {
+          "color": "#4f6069",
+          "surface": "canvas",
+          "knots": [
+            [
+              0,
+              0.105,
+              0.002,
+              0.193,
+              0.139
+            ],
+            [
+              0,
+              0.213,
+              0.002,
+              0.196,
+              0.143
+            ],
+            [
+              0,
+              0.307,
+              0.005,
+              0.214,
+              0.157
+            ],
+            [
+              0,
+              0.384,
+              0.008,
+              0.235,
+              0.164
+            ],
+            [
+              0,
+              0.477,
+              0.002,
+              0.247,
+              0.155
+            ],
+            [
+              0,
+              0.502,
+              -0.006,
+              0.249,
+              0.126
+            ],
+            [
+              0,
+              0.525,
+              -0.01,
+              0.217,
+              0.116
+            ],
+            [
+              0,
+              0.554,
+              -0.014,
+              0.137,
+              0.101
+            ],
+            [
+              0,
+              0.571,
+              -0.015,
+              0.106,
+              0.109
+            ]
+          ]
+        }
+      },
+      {
+        "op": "setPart",
+        "id": "collar",
+        "set": {
+          "color": "#a08348",
+          "surface": "canvas"
+        }
+      },
+      {
+        "op": "setPart",
+        "id": "left sleeve",
+        "set": {
+          "color": "#4f6069",
+          "surface": "canvas",
+          "size": [
+            1.18,
+            1,
+            1.18
+          ]
+        }
+      },
+      {
+        "op": "setPart",
+        "id": "right sleeve",
+        "set": {
+          "color": "#4f6069",
+          "surface": "canvas",
+          "size": [
+            1.18,
+            1,
+            1.18
+          ]
+        }
+      },
+      {
+        "op": "setPart",
+        "id": "left short leg",
+        "set": {
+          "color": "#303b43",
+          "surface": "canvas"
+        }
+      },
+      {
+        "op": "setPart",
+        "id": "right short leg",
+        "set": {
+          "color": "#303b43",
+          "surface": "canvas"
+        }
+      },
+      {
+        "op": "setPart",
+        "id": "trouser seat",
+        "set": {
+          "color": "#303b43",
+          "surface": "canvas"
+        }
+      },
+      {
+        "op": "setPart",
+        "id": "belt",
+        "set": {
+          "color": "#494237",
+          "surface": "leather"
+        }
+      },
+      {
+        "op": "placeBranch",
+        "id": "left upper arm",
+        "parent": "body",
+        "toWorld": [
+          0.18,
+          1.25,
+          0.015
+        ],
+        "copy": true,
+        "scale": 0.88,
+        "turn": [
+          -12,
+          -35,
+          -12
+        ]
+      },
+      {
+        "op": "placeBranch",
+        "id": "right upper arm",
+        "parent": "body",
+        "toWorld": [
+          -0.18,
+          1.25,
+          0.015
+        ],
+        "copy": true,
+        "scale": 0.88,
+        "turn": [
+          -12,
+          35,
+          12
+        ]
+      },
+      {
+        "op": "recutArmSleeves",
+        "id": "left upper arm copy",
+        "color": "#4f6069"
+      },
+      {
+        "op": "recutArmSleeves",
+        "id": "right upper arm copy",
+        "color": "#4f6069"
+      },
+      {
+        "op": "bendElbow",
+        "id": "left forearm copy",
+        "degrees": 110
+      },
+      {
+        "op": "bendElbow",
+        "id": "right forearm copy",
+        "degrees": 110
+      },
+      {
+        "op": "setPart",
+        "id": "left hand copy",
+        "set": {
+          "rotation": [
+            0,
+            0,
+            -85
+          ],
+          "grip": {
+            "side": -1,
+            "fingers": 4,
+            "curl": 0.48,
+            "spread": 0.08
+          }
+        }
+      },
+      {
+        "op": "setPart",
+        "id": "right hand copy",
+        "set": {
+          "rotation": [
+            0,
+            0,
+            85
+          ],
+          "grip": {
+            "side": 1,
+            "fingers": 4,
+            "curl": 0.48,
+            "spread": 0.08
+          }
+        }
+      },
+      {
+        "op": "addPart",
+        "part": {
+          "id": "courier parcel",
+          "shape": "box",
+          "parent": "left hand copy",
+          "position": [
+            -0.02,
+            -0.085,
+            0.115
+          ],
+          "rotation": [
+            0,
+            0,
+            85
+          ],
+          "size": [
+            0.29,
+            0.2,
+            0.23
+          ],
+          "color": "#a88c59",
+          "surface": "canvas",
+          "outfitRole": "accessory",
+          "motionRole": "rigid",
+          "visibleIn": [
+            "Work clothes"
+          ]
+        }
+      },
+      {
+        "op": "addPart",
+        "part": {
+          "id": "parcel sealing band",
+          "shape": "box",
+          "parent": "courier parcel",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            0.043,
+            0.204,
+            0.234
+          ],
+          "color": "#cb682e",
+          "surface": "plain",
+          "outfitRole": "accessory",
+          "motionRole": "rigid",
+          "visibleIn": [
+            "Work clothes"
+          ]
+        }
+      },
+      {
+        "op": "addPart",
+        "part": {
+          "id": "parcel routing label",
+          "shape": "box",
+          "parent": "courier parcel",
+          "position": [
+            0.083,
+            0.025,
+            0.117
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            0.065,
+            0.075,
+            0.005
+          ],
+          "color": "#d9d3be",
+          "surface": "plain",
+          "outfitRole": "accessory",
+          "motionRole": "rigid",
+          "visibleIn": [
+            "Work clothes"
+          ]
+        }
+      },
+      {
+        "op": "addPart",
+        "part": {
+          "id": "courier chest shell",
+          "shape": "sweep",
+          "parent": "body",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ],
+          "color": "#394951",
+          "surface": "metal",
+          "knots": [
+            [
+              0,
+              0.235,
+              0.148,
+              0.115,
+              0.022
+            ],
+            [
+              0,
+              0.257,
+              0.166,
+              0.168,
+              0.031
+            ],
+            [
+              0,
+              0.34,
+              0.181,
+              0.184,
+              0.037
+            ],
+            [
+              0,
+              0.425,
+              0.173,
+              0.194,
+              0.035
+            ],
+            [
+              0,
+              0.49,
+              0.144,
+              0.166,
+              0.029
+            ],
+            [
+              0,
+              0.511,
+              0.128,
+              0.118,
+              0.02
+            ]
+          ],
+          "outfitRole": "torso",
+          "motionRole": "rigid",
+          "visibleIn": [
+            "Work clothes"
+          ]
+        }
+      },
+      {
+        "op": "growPlateField",
+        "id": "courier chest shell",
+        "seed": 2055499650,
+        "tipSeed": 2055499651,
+        "face": "Front",
+        "rows": 4,
+        "columns": 3,
+        "start": 0.08,
+        "end": 0.92,
+        "wrap": 100,
+        "overlap": 0.28,
+        "crest": 0.16,
+        "rise": 0.85,
+        "direction": "first",
+        "color": "#a08348"
+      },
+      {
+        "op": "setPart",
+        "id": "chest badge",
+        "set": {
+          "position": [
+            0.108,
+            0.454,
+            0.221
+          ],
+          "size": [
+            0.065,
+            0.075,
+            0.016
+          ],
+          "color": "#d56b2d",
+          "surface": "plain"
+        }
+      },
+      {
+        "op": "addPart",
+        "part": {
+          "id": "left courier shoulder guard",
+          "shape": "sweep",
+          "parent": "left upper arm",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ],
+          "color": "#a08348",
+          "surface": "metal",
+          "knots": [
+            [
+              -0.013,
+              0.052,
+              0.008,
+              0.047,
+              0.062
+            ],
+            [
+              0,
+              0.027,
+              0.008,
+              0.094,
+              0.098
+            ],
+            [
+              0.018,
+              -0.035,
+              0.005,
+              0.102,
+              0.104
+            ],
+            [
+              0.033,
+              -0.105,
+              0,
+              0.089,
+              0.093
+            ],
+            [
+              0.041,
+              -0.132,
+              -0.002,
+              0.061,
+              0.067
+            ]
+          ],
+          "outfitRole": "upper arm",
+          "motionRole": "rigid",
+          "visibleIn": [
+            "Work clothes"
+          ]
+        }
+      },
+      {
+        "op": "addPart",
+        "part": {
+          "id": "right courier shoulder guard",
+          "shape": "sweep",
+          "parent": "right upper arm",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ],
+          "color": "#a08348",
+          "surface": "metal",
+          "knots": [
+            [
+              0.013,
+              0.052,
+              0.008,
+              0.047,
+              0.062
+            ],
+            [
+              0,
+              0.027,
+              0.008,
+              0.094,
+              0.098
+            ],
+            [
+              -0.018,
+              -0.035,
+              0.005,
+              0.102,
+              0.104
+            ],
+            [
+              -0.033,
+              -0.105,
+              0,
+              0.089,
+              0.093
+            ],
+            [
+              -0.041,
+              -0.132,
+              -0.002,
+              0.061,
+              0.067
+            ]
+          ],
+          "outfitRole": "upper arm",
+          "motionRole": "rigid",
+          "visibleIn": [
+            "Work clothes"
+          ]
+        }
+      },
+      {
+        "op": "addPart",
+        "part": {
+          "id": "left courier shin guard",
+          "shape": "sweep",
+          "parent": "left shin",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ],
+          "color": "#596870",
+          "surface": "metal",
+          "knots": [
+            [
+              0,
+              -0.025,
+              0.063,
+              0.048,
+              0.024
+            ],
+            [
+              0.003,
+              -0.05,
+              0.071,
+              0.077,
+              0.034
+            ],
+            [
+              0.008,
+              -0.145,
+              0.062,
+              0.079,
+              0.039
+            ],
+            [
+              0.011,
+              -0.25,
+              0.047,
+              0.066,
+              0.035
+            ],
+            [
+              0.014,
+              -0.345,
+              0.037,
+              0.051,
+              0.029
+            ],
+            [
+              0.015,
+              -0.368,
+              0.03,
+              0.031,
+              0.019
+            ]
+          ],
+          "outfitRole": "shin",
+          "motionRole": "rigid",
+          "visibleIn": [
+            "Work clothes"
+          ]
+        }
+      },
+      {
+        "op": "addPart",
+        "part": {
+          "id": "right courier shin guard",
+          "shape": "sweep",
+          "parent": "right shin",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ],
+          "color": "#596870",
+          "surface": "metal",
+          "knots": [
+            [
+              0,
+              -0.025,
+              0.063,
+              0.048,
+              0.024
+            ],
+            [
+              -0.003,
+              -0.05,
+              0.071,
+              0.077,
+              0.034
+            ],
+            [
+              -0.008,
+              -0.145,
+              0.062,
+              0.079,
+              0.039
+            ],
+            [
+              -0.011,
+              -0.25,
+              0.047,
+              0.066,
+              0.035
+            ],
+            [
+              -0.014,
+              -0.345,
+              0.037,
+              0.051,
+              0.029
+            ],
+            [
+              -0.015,
+              -0.368,
+              0.03,
+              0.031,
+              0.019
+            ]
+          ],
+          "outfitRole": "shin",
+          "motionRole": "rigid",
+          "visibleIn": [
+            "Work clothes"
+          ]
+        }
+      },
+      {
+        "op": "addPart",
+        "part": {
+          "id": "jacket safety zipper",
+          "shape": "sweep",
+          "parent": "body",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            1,
+            1
+          ],
+          "color": "#d56b2d",
+          "surface": "canvas",
+          "knots": [
+            [
+              0,
+              0.115,
+              0.145,
+              0.009,
+              0.006
+            ],
+            [
+              0,
+              0.17,
+              0.149,
+              0.009,
+              0.006
+            ],
+            [
+              0,
+              0.219,
+              0.151,
+              0.009,
+              0.006
+            ]
+          ],
+          "outfitRole": "torso",
+          "motionRole": "rigid",
+          "visibleIn": [
+            "Work clothes"
+          ]
+        }
+      }
+    ]
+  },
+  "agentSteering": {
+    "author": "Implementation agent (Claude), written by hand after inspecting the exported GLB of the AI-only proposal. Not AI-proposed through the workshop.",
+    "reasons": [
+      "AI-only export: lower arms crossed over the belly with the parcel tilted into the chest shell.",
+      "The branch copy also copied the saved pose joints, so the lower pair left the parcel in Hands on hips.",
+      "Bare thighs, knees and forearms read as sportswear, and only the chest carried plates."
+    ],
+    "changes": [
+      "setPart position/rotation/size on the six copied arm regions: lower pair re-posed into a forward cradle (values from a scratch placeBranch at 0.9 scale plus bendElbow 70).",
+      "setForm poses back to the four source joints so the saved pose is byte-identical and the lower pair keeps carrying.",
+      "setPart on the AI parcel so it rests across both lower hands.",
+      "addPart of 11 rigid swept garments: trouser thighs and shins, jacket arms and forearms and forearm guards on the upper pair, and a new courier pack carrier on the back.",
+      "growPlateField on the courier pack (Back, 3 rows, 3 columns).",
+      "Recoloured shoes and gloved the lower hands."
+    ],
+    "rounds": 3,
+    "operations": [
+      {
+        "op": "setPart",
+        "id": "left upper arm copy"
+      },
+      {
+        "op": "setPart",
+        "id": "left forearm copy"
+      },
+      {
+        "op": "setPart",
+        "id": "left hand copy"
+      },
+      {
+        "op": "setPart",
+        "id": "right upper arm copy"
+      },
+      {
+        "op": "setPart",
+        "id": "right forearm copy"
+      },
+      {
+        "op": "setPart",
+        "id": "right hand copy"
+      },
+      {
+        "op": "setForm"
+      },
+      {
+        "op": "setPart",
+        "id": "courier parcel"
+      },
+      {
+        "op": "addPart",
+        "id": "left trouser thigh"
+      },
+      {
+        "op": "addPart",
+        "id": "left trouser shin"
+      },
+      {
+        "op": "addPart",
+        "id": "left jacket arm"
+      },
+      {
+        "op": "addPart",
+        "id": "left jacket forearm"
+      },
+      {
+        "op": "addPart",
+        "id": "left forearm guard"
+      },
+      {
+        "op": "addPart",
+        "id": "right trouser thigh"
+      },
+      {
+        "op": "addPart",
+        "id": "right trouser shin"
+      },
+      {
+        "op": "addPart",
+        "id": "right jacket arm"
+      },
+      {
+        "op": "addPart",
+        "id": "right jacket forearm"
+      },
+      {
+        "op": "addPart",
+        "id": "right forearm guard"
+      },
+      {
+        "op": "addPart",
+        "id": "courier pack"
+      },
+      {
+        "op": "setPart",
+        "id": "left shoe"
+      },
+      {
+        "op": "setPart",
+        "id": "left shoe collar"
+      },
+      {
+        "op": "setPart",
+        "id": "left shoe tongue"
+      },
+      {
+        "op": "setPart",
+        "id": "right shoe"
+      },
+      {
+        "op": "setPart",
+        "id": "right shoe collar"
+      },
+      {
+        "op": "setPart",
+        "id": "right shoe tongue"
+      },
+      {
+        "op": "setPart",
+        "id": "left hand copy"
+      },
+      {
+        "op": "setPart",
+        "id": "right hand copy"
+      },
+      {
+        "op": "growPlateField",
+        "id": "courier pack"
+      }
+    ]
+  },
+  "recipe": {
+    "parts": 88,
+    "plates": 21,
+    "carriers": {
+      "courier chest shell": 12,
+      "courier pack": 9
+    },
+    "headRecordIdentical": true,
+    "eyesRigIdentical": true,
+    "posesIdentical": true,
+    "originFigureStanceIdentical": true,
+    "artworkIdentical": true,
+    "sourcePartsUnchanged": 24,
+    "sourcePartsChanged": [
+      "left sleeve",
+      "left shoe",
+      "left shoe tongue",
+      "left shoe collar",
+      "left short leg",
+      "right sleeve",
+      "right shoe",
+      "right shoe tongue",
+      "right shoe collar",
+      "right short leg",
+      "trouser seat",
+      "belt",
+      "shirt body",
+      "collar",
+      "chest badge"
+    ],
+    "aiOperations": 27,
+    "steeringOperations": 28
+  },
+  "preservation": {
+    "headRecordIdenticalToSource": true,
+    "includes": [
+      "frontFits",
+      "profileFit",
+      "eyesRig",
+      "groom",
+      "sculpt"
+    ],
+    "embeddedArtworkIdentical": true,
+    "savedPosesIdentical": true,
+    "figureOriginAndStanceIdentical": true,
+    "legAndUpperArmAnatomyRecordsUnchanged": true,
+    "exportedGazeMorphs": [
+      "LookLeft",
+      "LookRight",
+      "LookUp",
+      "LookDown"
+    ],
+    "restHeight": "1.856 m in both exports",
+    "faceCloseUps": "Tiles 9 and 11 of the sheet use the same player camera on the courier and the source athlete."
+  },
+  "aiOnlyExport": {
+    "triangles": "Exported 24,400 triangles with one material Ã‚Â· 6.10 MB.",
+    "note": "Not kept as a file. Superseded by the steered export."
+  },
+  "firstTransferOutputs": {
+    "form": {
+      "sha256": "c8f62a00cdc3c443a10061ec7e0646662fcf55d5e3298bdfbb1a0bff1e1718fb",
+      "bytes": 546837
+    },
+    "glb": {
+      "sha256": "8453c92d9c7f5865c37c2b3283cceb934b6bab1d762b734a1e140de27c355227",
+      "bytes": 6277064,
+      "triangles": 24955,
+      "materials": 1,
+      "textures": 2,
+      "skins": 4,
+      "skinJoints": 173,
+      "animations": [
+        "Idle",
+        "Walk",
+        "Crouch",
+        "Reach",
+        "Pose Ã‚Â· Hands on hips"
+      ],
+      "morphTargets": {
+        "undefined": [
+          "LookLeft",
+          "LookRight",
+          "LookUp",
+          "LookDown"
+        ]
+      },
+      "detail": "Portrait Ã‚Â· reduced mesh and 2048 px atlas",
+      "exportStatus": "Exported 24,955 triangles with one material Ã‚Â· 6.28 MB.",
+      "playerStatus": "four-hand-courier.glb Ã‚Â· 1.856 m tall Ã‚Â· 1 skeletons Ã‚Â· 5 clips",
+      "playerExpressions": [
+        "Rest",
+        "Blink",
+        "Smile",
+        "Raise brows"
+      ]
+    }
+  },
+  "firstTransferSheet": {
+    "path": "docs/media/four-hand-courier-first.webp",
+    "renderer": "dist-equivalent play-model.html built from the current source into a scratch folder, playing examples/four-hand-courier.glb",
+    "tiles": [
+      "three-quarter rest",
+      "front rest",
+      "profile rest",
+      "back rest",
+      "three-quarter Pose Ã‚Â· Hands on hips",
+      "front Walk 0.25",
+      "three-quarter Reach 0.5",
+      "front Crouch 0.5",
+      "face close-up",
+      "face close-up after setting look across to 100",
+      "source athlete face close-up",
+      "source athlete Pose Ã‚Â· Hands on hips"
+    ]
+  },
+  "firstTransferLimitations": [
+    "The parcel is parented to the lower left hand only. In Walk and Reach it slides off the lower right hand.",
+    "In Walk, Crouch and Reach the upper arms swing wide of the body. Not investigated.",
+    "Trouser, jacket and guard pieces are rigid per limb segment: skin shows at the knees in Walk and Crouch and in small gaps at the shoulders and elbows.",
+    "Grown plates are on two carriers only (12 chest, 9 pack). Shoulder, shin and forearm guards are plain swept shells.",
+    "The copied regions keep the editor ids ending in copy. There is no rename operation.",
+    "The shoes are recoloured sneakers, not boots.",
+    "The look-across tile shows no visible change from the neutral close-up. Gaze morph targets are present in the GLB but gaze movement was not confirmed visually.",
+    "No contact or crossing measurements were run."
+  ],
+  "outputs": {
+    "form": {
+      "path": "examples/four-hand-courier.form.json",
+      "sha256": "451b1532c3b3e966bbb7db1a7496f954caf9cba77be07b4cdee5c0e32a85b824",
+      "bytes": 994840
+    },
+    "glb": {
+      "path": "examples/four-hand-courier.glb",
+      "sha256": "d70abc361a48fd6c2025964053bad85fb4ec028a038bf952df606356fab4fe77",
+      "bytes": 6230952,
+      "triangles": 24955,
+      "materials": 1,
+      "restHeightMetres": 1.856,
+      "khronosErrors": 0,
+      "khronosWarnings": 0
+    },
+    "sheet": "docs/media/four-hand-courier.webp"
+  },
+  "carryingPoseTrial": {
+    "method": "Toggle Hold this arm in its carrying pose during movement on both lower upper arms. Compare the before and after exported triangles at 32 phases per cyclic clip. Fit the rigid parcel orientation and position by least squares from all parcel region vertices. Measure each hand vertex centroid in the parcel frame against its own rest position. Array order is left (parent hand), right (supporting hand). Non-coplanar triangle intersections indicate physical overlap, not penetration depth or pressure.",
+    "operations": [
+      {
+        "op": "setPart",
+        "id": "left upper arm copy",
+        "set": {
+          "holdArmPose": true
+        }
+      },
+      {
+        "op": "setPart",
+        "id": "right upper arm copy",
+        "set": {
+          "holdArmPose": true
+        }
+      }
+    ],
+    "otherRecipeDataIdentical": true,
+    "restMeshAndSkinIdentical": {
+      "rest": true,
+      "triangles": true,
+      "region_indices": true,
+      "indices": true,
+      "weights": true
+    },
+    "gripBefore": {
+      "Rest": {
+        "sampleCount": 1,
+        "peakHandCentroidDriftInParcelFrameMetres": [
+          0.0,
+          0.0
+        ],
+        "samplesWithHandParcelTriangleIntersection": [
+          1,
+          1
+        ]
+      },
+      "Idle": {
+        "sampleCount": 32,
+        "peakHandCentroidDriftInParcelFrameMetres": [
+          4.0646232609340864e-08,
+          0.057998569634783
+        ],
+        "samplesWithHandParcelTriangleIntersection": [
+          32,
+          32
+        ]
+      },
+      "Walk": {
+        "sampleCount": 32,
+        "peakHandCentroidDriftInParcelFrameMetres": [
+          4.0645952345049376e-08,
+          0.10386382986327818
+        ],
+        "samplesWithHandParcelTriangleIntersection": [
+          32,
+          32
+        ]
+      },
+      "Crouch": {
+        "sampleCount": 32,
+        "peakHandCentroidDriftInParcelFrameMetres": [
+          4.064534694163313e-08,
+          0.15415476484048313
+        ],
+        "samplesWithHandParcelTriangleIntersection": [
+          32,
+          32
+        ]
+      },
+      "Reach": {
+        "sampleCount": 32,
+        "peakHandCentroidDriftInParcelFrameMetres": [
+          0.013063705087880713,
+          0.3364530744451079
+        ],
+        "samplesWithHandParcelTriangleIntersection": [
+          32,
+          27
+        ]
+      },
+      "Pose Â· Hands on hips": {
+        "sampleCount": 1,
+        "peakHandCentroidDriftInParcelFrameMetres": [
+          4.064825663743633e-08,
+          3.9736308166850765e-08
+        ],
+        "samplesWithHandParcelTriangleIntersection": [
+          1,
+          1
+        ]
+      }
+    },
+    "gripAfter": {
+      "Rest": {
+        "sampleCount": 1,
+        "peakHandCentroidDriftInParcelFrameMetres": [
+          0.0,
+          0.0
+        ],
+        "samplesWithHandParcelTriangleIntersection": [
+          1,
+          1
+        ]
+      },
+      "Idle": {
+        "sampleCount": 32,
+        "peakHandCentroidDriftInParcelFrameMetres": [
+          4.0649497924022695e-08,
+          3.9739033016039664e-08
+        ],
+        "samplesWithHandParcelTriangleIntersection": [
+          32,
+          32
+        ]
+      },
+      "Walk": {
+        "sampleCount": 32,
+        "peakHandCentroidDriftInParcelFrameMetres": [
+          4.064022376812064e-08,
+          3.9798823123460066e-08
+        ],
+        "samplesWithHandParcelTriangleIntersection": [
+          32,
+          32
+        ]
+      },
+      "Crouch": {
+        "sampleCount": 32,
+        "peakHandCentroidDriftInParcelFrameMetres": [
+          4.064825663743633e-08,
+          3.9949860259643635e-08
+        ],
+        "samplesWithHandParcelTriangleIntersection": [
+          32,
+          32
+        ]
+      },
+      "Reach": {
+        "sampleCount": 32,
+        "peakHandCentroidDriftInParcelFrameMetres": [
+          4.064825663743633e-08,
+          3.9736308166850765e-08
+        ],
+        "samplesWithHandParcelTriangleIntersection": [
+          32,
+          32
+        ]
+      },
+      "Pose Â· Hands on hips": {
+        "sampleCount": 1,
+        "peakHandCentroidDriftInParcelFrameMetres": [
+          4.064825663743633e-08,
+          3.9736308166850765e-08
+        ],
+        "samplesWithHandParcelTriangleIntersection": [
+          1,
+          1
+        ]
+      }
+    },
+    "gazeAfter": {
+      "playerCanvas": [
+        780,
+        1090
+      ],
+      "pixelsChangedByMoreThan5RGB": 3400,
+      "changedPixelBounds": [
+        231,
+        475,
+        551,
+        509
+      ]
+    },
+    "beforeArmCheck": {
+      "pairsPerSample": 208,
+      "clips": {
+        "Rest": {
+          "samples": 1,
+          "samplesWithCrossArmIntersection": 1,
+          "samplesWithDistalArmToTorsoIntersection": 0
+        },
+        "Idle": {
+          "samples": 32,
+          "samplesWithCrossArmIntersection": 0,
+          "samplesWithDistalArmToTorsoIntersection": 0
+        },
+        "Walk": {
+          "samples": 32,
+          "samplesWithCrossArmIntersection": 0,
+          "samplesWithDistalArmToTorsoIntersection": 0
+        },
+        "Crouch": {
+          "samples": 32,
+          "samplesWithCrossArmIntersection": 21,
+          "samplesWithDistalArmToTorsoIntersection": 0
+        },
+        "Reach": {
+          "samples": 32,
+          "samplesWithCrossArmIntersection": 25,
+          "samplesWithDistalArmToTorsoIntersection": 0
+        },
+        "Pose Â· Hands on hips": {
+          "samples": 1,
+          "samplesWithCrossArmIntersection": 1,
+          "samplesWithDistalArmToTorsoIntersection": 1
+        }
+      }
+    },
+    "afterArmCheck": {
+      "pairsPerSample": 208,
+      "clips": {
+        "Rest": {
+          "samples": 1,
+          "samplesWithCrossArmIntersection": 1,
+          "samplesWithDistalArmToTorsoIntersection": 0
+        },
+        "Idle": {
+          "samples": 32,
+          "samplesWithCrossArmIntersection": 0,
+          "samplesWithDistalArmToTorsoIntersection": 0
+        },
+        "Walk": {
+          "samples": 32,
+          "samplesWithCrossArmIntersection": 0,
+          "samplesWithDistalArmToTorsoIntersection": 0
+        },
+        "Crouch": {
+          "samples": 32,
+          "samplesWithCrossArmIntersection": 0,
+          "samplesWithDistalArmToTorsoIntersection": 0
+        },
+        "Reach": {
+          "samples": 32,
+          "samplesWithCrossArmIntersection": 0,
+          "samplesWithDistalArmToTorsoIntersection": 0
+        },
+        "Pose Â· Hands on hips": {
+          "samples": 1,
+          "samplesWithCrossArmIntersection": 1,
+          "samplesWithDistalArmToTorsoIntersection": 1
+        }
+      }
+    },
+    "gripComparison": "docs/media/courier-grip.webp"
+  },
+  "currentLimitations": [
+    "The added arms and sleeves intersect the original arms at rest and in the named hands-on-hips pose.",
+    "Knees and sleeve gaps expose skin in some moving poses.",
+    "Holding the carry pose preserves the fitted grip under torso motion. It does not calculate where to put new hands or allow a sliding grasp."
+  ]
+}

@@ -1,0 +1,1267 @@
+{
+  "profileInputPoints": 33,
+  "frontPairs": 27,
+  "strandCount": 280,
+  "results": {
+    "before": {
+      "rows": 458,
+      "meanMm": 18.42,
+      "percentile95Mm": 36.2,
+      "maxMm": 36.68,
+      "faceTriangles": 3868,
+      "allTriangles": 24004,
+      "materials": 1,
+      "bytes": 1820872
+    },
+    "firstStrands": {
+      "rows": 458,
+      "meanMm": 18.48,
+      "percentile95Mm": 36.08,
+      "maxMm": 36.56,
+      "faceTriangles": 1843,
+      "allTriangles": 23280,
+      "materials": 1,
+      "bytes": 2003900
+    },
+    "paired": {
+      "rows": 458,
+      "meanMm": 0.75,
+      "percentile95Mm": 1.7,
+      "maxMm": 4.33,
+      "faceTriangles": 4977,
+      "allTriangles": 23870,
+      "materials": 1,
+      "bytes": 4809240
+    },
+    "final": {
+      "rows": 458,
+      "meanMm": 0.74,
+      "percentile95Mm": 2.0,
+      "maxMm": 4.03,
+      "faceTriangles": 4576,
+      "allTriangles": 24027,
+      "materials": 1,
+      "bytes": 6216328,
+      "islands": {
+        "right temple fringe": 20,
+        "right ear overhang": 20,
+        "right side wave": 20,
+        "right behind ear": 20,
+        "right nape wave": 20,
+        "right back fringe": 20,
+        "right central nape": 20,
+        "left temple fringe": 20,
+        "left ear overhang": 20,
+        "left side wave": 20,
+        "left behind ear": 20,
+        "left nape wave": 20,
+        "left back fringe": 20,
+        "left central nape": 20
+      },
+      "clips": [
+        "Idle",
+        "Walk",
+        "Crouch",
+        "Reach"
+      ],
+      "heightM": 1.5731
+    },
+    "game1024": {
+      "rows": 458,
+      "meanMm": 0.74,
+      "percentile95Mm": 2.0,
+      "maxMm": 4.03,
+      "faceTriangles": 4576,
+      "allTriangles": 24027,
+      "materials": 1,
+      "bytes": 3005036
+    }
+  },
+  "sources": {
+    "front": "dockworker-front-study.webp",
+    "side": "dockworker-profile-study.webp",
+    "method": "Two original ImageGen plates. The side study was steered from the earlier 3D head. The frontal study used that generated profile and the earlier head."
+  },
+  "method": "Intersect horizontal planes with exported face triangles. Compare foremost depth relative to the brow with the outside edge of the side plate. Exclude rows within two source pixels of a clicked point. Find strand islands by face-edge connectivity after merging positions to 1 micrometre.",
+  "rawFrontPairs": [
+    [
+      [
+        300,
+        37
+      ],
+      [
+        622,
+        74
+      ]
+    ],
+    [
+      [
+        300,
+        562
+      ],
+      [
+        636,
+        1062
+      ]
+    ],
+    [
+      [
+        227,
+        277
+      ],
+      [
+        500,
+        534
+      ]
+    ],
+    [
+      [
+        384,
+        276
+      ],
+      [
+        786,
+        532
+      ]
+    ],
+    [
+      [
+        180,
+        278
+      ],
+      [
+        425,
+        536
+      ]
+    ],
+    [
+      [
+        256,
+        277
+      ],
+      [
+        553,
+        532
+      ]
+    ],
+    [
+      [
+        356,
+        276
+      ],
+      [
+        729,
+        533
+      ]
+    ],
+    [
+      [
+        423,
+        275
+      ],
+      [
+        849,
+        536
+      ]
+    ],
+    [
+      [
+        221,
+        236
+      ],
+      [
+        494,
+        458
+      ]
+    ],
+    [
+      [
+        386,
+        239
+      ],
+      [
+        792,
+        464
+      ]
+    ],
+    [
+      [
+        302,
+        276
+      ],
+      [
+        641,
+        521
+      ]
+    ],
+    [
+      [
+        306,
+        364
+      ],
+      [
+        647,
+        693
+      ]
+    ],
+    [
+      [
+        244,
+        377
+      ],
+      [
+        556,
+        716
+      ]
+    ],
+    [
+      [
+        371,
+        375
+      ],
+      [
+        736,
+        713
+      ]
+    ],
+    [
+      [
+        304,
+        391
+      ],
+      [
+        647,
+        745
+      ]
+    ],
+    [
+      [
+        251,
+        436
+      ],
+      [
+        533,
+        836
+      ]
+    ],
+    [
+      [
+        308,
+        448
+      ],
+      [
+        642,
+        847
+      ]
+    ],
+    [
+      [
+        361,
+        436
+      ],
+      [
+        752,
+        837
+      ]
+    ],
+    [
+      [
+        307,
+        462
+      ],
+      [
+        646,
+        874
+      ]
+    ],
+    [
+      [
+        144,
+        145
+      ],
+      [
+        393,
+        212
+      ]
+    ],
+    [
+      [
+        456,
+        145
+      ],
+      [
+        858,
+        215
+      ]
+    ],
+    [
+      [
+        124,
+        334
+      ],
+      [
+        317,
+        675
+      ]
+    ],
+    [
+      [
+        476,
+        334
+      ],
+      [
+        952,
+        675
+      ]
+    ],
+    [
+      [
+        115,
+        400
+      ],
+      [
+        312,
+        795
+      ]
+    ],
+    [
+      [
+        484,
+        399
+      ],
+      [
+        957,
+        794
+      ]
+    ],
+    [
+      [
+        150,
+        487
+      ],
+      [
+        361,
+        939
+      ]
+    ],
+    [
+      [
+        455,
+        489
+      ],
+      [
+        910,
+        941
+      ]
+    ]
+  ],
+  "frontPairUnits": "Model panel 600 x 600, ImageGen front 1254 x 1254. First two pairs set the alignment.",
+  "sideRegistration": {
+    "curve": [
+      [
+        0,
+        0
+      ],
+      [
+        0.04429300052372754,
+        -0.0017035026477334944
+      ],
+      [
+        0.06643950078559122,
+        -0.01873925350606465
+      ],
+      [
+        0.11073250130931866,
+        -0.005110749403532812
+      ],
+      [
+        0.13287900157118254,
+        0.006814493511598634
+      ],
+      [
+        0.1550255018330463,
+        0.028960993773462212
+      ],
+      [
+        0.17717200209490988,
+        0.04770024727952647
+      ],
+      [
+        0.20102224646483965,
+        0.06643950078559112
+      ],
+      [
+        0.22316874672670345,
+        0.08006824634845568
+      ],
+      [
+        0.24531524698856721,
+        0.0936967504509875
+      ],
+      [
+        0.267461747250431,
+        0.10732549601385206
+      ],
+      [
+        0.2896082475122946,
+        0.12947199627571565
+      ],
+      [
+        0.31175474777415835,
+        0.1482112497817799
+      ],
+      [
+        0.3339012480360221,
+        0.16183999534464483
+      ],
+      [
+        0.3560477482978859,
+        0.17206149415171007
+      ],
+      [
+        0.40034074882161325,
+        0.1771722435552425
+      ],
+      [
+        0.4446337493453408,
+        0.16354349799237794
+      ],
+      [
+        0.46678024960720454,
+        0.14139699773051398
+      ],
+      [
+        0.4889267498690681,
+        0.042589497875994045
+      ],
+      [
+        0.5332197503927957,
+        0.04599674463179337
+      ],
+      [
+        0.5775127509165232,
+        0.0562182434388586
+      ],
+      [
+        0.6218057514402505,
+        0.0579217460865921
+      ],
+      [
+        0.666098751963978,
+        0.06303249549012452
+      ],
+      [
+        0.7103919939480382,
+        0.0579217460865921
+      ],
+      [
+        0.7342419968576355,
+        0.04599674463179337
+      ],
+      [
+        0.7785349973813628,
+        0.054514499330792776
+      ],
+      [
+        0.8006814976432265,
+        0.06814324489365733
+      ],
+      [
+        0.8228279979050903,
+        0.08006824634845568
+      ],
+      [
+        0.8671209984288176,
+        0.08858624250778742
+      ],
+      [
+        0.9114139989525453,
+        0.08517899575198809
+      ],
+      [
+        0.9557069994762728,
+        0.06814324489365733
+      ],
+      [
+        0.9778534997381364,
+        0.051107494035326176
+      ],
+      [
+        1,
+        0.0238502443699294
+      ]
+    ],
+    "amount": 1,
+    "stage": "finish",
+    "paint": {
+      "atlas": "side-346df2f12cdcda8ea62e3d7cef146649c911f13a128cbf1ce1bf89cd63c63053",
+      "brow": [
+        0.8213715729890048,
+        0.35087721082899304
+      ],
+      "chinY": 0.8189792209201389,
+      "ear": [
+        0.38099998191550927,
+        0.4869999638310185
+      ],
+      "facing": "right"
+    },
+    "relief": 0.95
+  },
+  "allHardwarePoses": {
+    "Rest": [
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 60
+        },
+        "1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 63
+        },
+        "bridgeFace": 0
+      }
+    ],
+    "Idle": [
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 60
+        },
+        "1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 63
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 60
+        },
+        "1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 63
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 60
+        },
+        "1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 63
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 60
+        },
+        "1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 63
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 60
+        },
+        "1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 63
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 60
+        },
+        "1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 63
+        },
+        "bridgeFace": 0
+      }
+    ],
+    "Walk": [
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 60
+        },
+        "1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 63
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 60
+        },
+        "1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 63
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 60
+        },
+        "1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 63
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 60
+        },
+        "1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 63
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 60
+        },
+        "1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 63
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 60
+        },
+        "1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 63
+        },
+        "bridgeFace": 0
+      }
+    ],
+    "Crouch": [
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 60
+        },
+        "1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 63
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 60
+        },
+        "1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 63
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 60
+        },
+        "1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 63
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 60
+        },
+        "1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 63
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 60
+        },
+        "1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 63
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 60
+        },
+        "1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 63
+        },
+        "bridgeFace": 0
+      }
+    ],
+    "Reach": [
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 60
+        },
+        "1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 63
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 60
+        },
+        "1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 63
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 60
+        },
+        "1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 63
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 60
+        },
+        "1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 63
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 60
+        },
+        "1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 63
+        },
+        "bridgeFace": 0
+      },
+      {
+        "-1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 60
+        },
+        "1": {
+          "face": 0,
+          "bridge": 12,
+          "temple": 16,
+          "earEnd": 63
+        },
+        "bridgeFace": 0
+      }
+    ]
+  },
+  "frameMeasurements": {
+    "before": {
+      "-1": {
+        "rimFaceCrossings": 0,
+        "rimToBridge": 37,
+        "rimToTemple": 50,
+        "armToHead": 44
+      },
+      "1": {
+        "rimFaceCrossings": 0,
+        "rimToBridge": 44,
+        "rimToTemple": 49,
+        "armToHead": 34
+      },
+      "bridgeFaceCrossings": 0,
+      "frameWidthMm": 151.72,
+      "widthOverFace": 0.767,
+      "innerGapMm": 11.11,
+      "faceTipVsEyesMm": 47.9
+    },
+    "final": {
+      "-1": {
+        "rimFaceCrossings": 0,
+        "rimToBridge": 12,
+        "rimToTemple": 16,
+        "armToHead": 60
+      },
+      "1": {
+        "rimFaceCrossings": 0,
+        "rimToBridge": 12,
+        "rimToTemple": 16,
+        "armToHead": 63
+      },
+      "bridgeFaceCrossings": 0,
+      "frameWidthMm": 149.12,
+      "widthOverFace": 0.738,
+      "innerGapMm": 15.63,
+      "faceTipVsEyesMm": 13.14
+    }
+  },
+  "originalPawnAngles": {
+    "steering": [
+      {
+        "point": "nose tip",
+        "before": 38.41999816894531,
+        "after": 5.199999809265137,
+        "deltaXYZmm": [
+          0.75,
+          -0.52,
+          -88.46
+        ]
+      },
+      {
+        "point": "near alar edge",
+        "before": 29.010000228881836,
+        "after": 27.889999389648438,
+        "deltaXYZmm": [
+          2.36,
+          -0.56,
+          -4.14
+        ]
+      },
+      {
+        "point": "near nostril",
+        "before": 28.420000076293945,
+        "after": 11.970000267028809,
+        "deltaXYZmm": [
+          1.44,
+          -0.5,
+          -37.33
+        ]
+      },
+      {
+        "point": "lower columella",
+        "before": 32.529998779296875,
+        "after": 6.389999866485596,
+        "deltaXYZmm": [
+          0.96,
+          -0.82,
+          -58.78
+        ]
+      },
+      {
+        "point": "far alar edge",
+        "before": 29.059999465942383,
+        "after": 16.40999984741211,
+        "deltaXYZmm": [
+          0.71,
+          -0.67,
+          -70.63
+        ]
+      },
+      {
+        "point": "bridge",
+        "before": 27.1299991607666,
+        "after": 16.729999542236328,
+        "deltaXYZmm": [
+          0.86,
+          -0.71,
+          -22.73
+        ]
+      }
+    ],
+    "obliqueAdditional": [
+      {
+        "point": "tip brow slope",
+        "before": 33.40999984741211,
+        "after": 7.78000020980835,
+        "deltaXYZmm": [
+          0.86,
+          -0.5,
+          -55.91
+        ]
+      },
+      {
+        "point": "outer near wing",
+        "before": 27.829999923706055,
+        "after": 25.290000915527344,
+        "deltaXYZmm": [
+          3.45,
+          -0.31,
+          -8.87
+        ]
+      },
+      {
+        "point": "nasal ridge",
+        "before": 26.829999923706055,
+        "after": 17.690000534057617,
+        "deltaXYZmm": [
+          0.99,
+          -0.68,
+          -20.18
+        ]
+      },
+      {
+        "point": "upper lip",
+        "before": 30.549999237060547,
+        "after": 23.700000762939453,
+        "deltaXYZmm": [
+          0.14,
+          -0.48,
+          -14.25
+        ]
+      }
+    ],
+    "frontalHoldout": [
+      {
+        "point": "tip",
+        "before": 4.78000020980835,
+        "after": 4.440000057220459,
+        "deltaXYZmm": [
+          0.83,
+          -0.44,
+          -71.2
+        ]
+      },
+      {
+        "point": "near wing",
+        "before": 3.049999952316284,
+        "after": 3.059999942779541,
+        "deltaXYZmm": [
+          3.43,
+          0.23,
+          -11.87
+        ]
+      },
+      {
+        "point": "far wing",
+        "before": 3.0199999809265137,
+        "after": 1.9299999475479126,
+        "deltaXYZmm": [
+          -2.85,
+          -0.77,
+          -16.71
+        ]
+      },
+      {
+        "point": "near mouth corner",
+        "before": 15.199999809265137,
+        "after": 13.899999618530273,
+        "deltaXYZmm": [
+          -1.28,
+          -0.49,
+          3.06
+        ]
+      },
+      {
+        "point": "far mouth corner",
+        "before": 13.710000038146973,
+        "after": 12.529999732971191,
+        "deltaXYZmm": [
+          0.48,
+          -1.09,
+          3.41
+        ]
+      },
+      {
+        "point": "lower lip",
+        "before": 5.610000133514404,
+        "after": 5.46999979019165,
+        "deltaXYZmm": [
+          0.04,
+          -0.15,
+          -0.28
+        ]
+      },
+      {
+        "point": "chin",
+        "before": 5.21999979019165,
+        "after": 5.21999979019165,
+        "deltaXYZmm": [
+          -0.02,
+          0.01,
+          1.17
+        ]
+      }
+    ],
+    "anchors": [
+      {
+        "point": "near pupil",
+        "before": 0.0,
+        "after": 2.0299999713897705,
+        "deltaXYZmm": [
+          1.68,
+          -0.89,
+          0.76
+        ]
+      },
+      {
+        "point": "far pupil",
+        "before": 0.0,
+        "after": 1.6100000143051147,
+        "deltaXYZmm": [
+          0.4,
+          -1.41,
+          -0.86
+        ]
+      }
+    ]
+  },
+  "portraitSHA256": "5fc7997733d1c777d635b57468f584c3d17f80575cd6a59676f3baecd6311389",
+  "sameBytesOnMobile": true,
+  "validator": {
+    "game": {
+      "numErrors": 0,
+      "numWarnings": 0
+    },
+    "portrait": {
+      "numErrors": 0,
+      "numWarnings": 0
+    },
+    "full": {
+      "numErrors": 0,
+      "numWarnings": 0
+    }
+  },
+  "eyeRig": {
+    "color": "#574331",
+    "opening": 1,
+    "width": 1,
+    "spacing": 1,
+    "lift": 0,
+    "iris": 1,
+    "source": true,
+    "offsets": [
+      [
+        -0.009000000000000001,
+        -0.013500000000000002
+      ],
+      [
+        -0.015,
+        -0.0027
+      ]
+    ],
+    "contours": [
+      {
+        "upper": [
+          0,
+          0.01036,
+          0.01667,
+          0.01593,
+          0.01329,
+          0.01422,
+          0.01572,
+          0.01276,
+          0
+        ],
+        "lower": [
+          0,
+          -0.00464,
+          -0.00754,
+          -0.01295,
+          -0.01366,
+          -0.01195,
+          -0.00986,
+          -0.00691,
+          0
+        ]
+      },
+      {
+        "upper": [
+          0,
+          0.01002,
+          0.01659,
+          0.01971,
+          0.02021,
+          0.01869,
+          0.01667,
+          0.01125,
+          0
+        ],
+        "lower": [
+          0,
+          -0.00903,
+          -0.01235,
+          -0.01814,
+          -0.01753,
+          -0.01439,
+          -0.00818,
+          -0.00525,
+          0
+        ]
+      }
+    ],
+    "stage": "finish"
+  },
+  "fullTrianglesBeforeReduction": 134888,
+  "eyeControlPixelCheck": {
+    "left": {
+      "changedPixels": 2770,
+      "bounds": [
+        233,
+        483,
+        540,
+        513
+      ]
+    },
+    "right": {
+      "changedPixels": 2810,
+      "bounds": [
+        233,
+        483,
+        542,
+        513
+      ]
+    },
+    "up": {
+      "changedPixels": 2301,
+      "bounds": [
+        233,
+        484,
+        541,
+        513
+      ]
+    },
+    "down": {
+      "changedPixels": 2447,
+      "bounds": [
+        233,
+        484,
+        542,
+        513
+      ]
+    },
+    "returned": {
+      "changedPixels": 0,
+      "bounds": null
+    }
+  }
+}

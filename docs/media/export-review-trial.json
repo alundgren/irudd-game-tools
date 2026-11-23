@@ -1,0 +1,257 @@
+{
+  "input": "examples/tucked-aviator.form.json at 1ccb212",
+  "rounds": [
+    {
+      "direction": "Inspect the attached game-export views. Identify and correct one visible defect that matters to the original direction. Describe the defect and change in the summary. Preserve unrelated work. If no defect is visible, return an empty operations list.",
+      "export": {
+        "source": "Reimported game GLB",
+        "triangles": 24002,
+        "restHeightMetres": 1.7587514547228373,
+        "clip": "Reach",
+        "timeSeconds": 1.2999999523162842,
+        "attachments": [
+          "Rest / front / clay, three-quarter / colour",
+          "Reach 1.30 s / profile / clay, rear three-quarter / colour"
+        ]
+      },
+      "summary": "Raise the trouser seatâ€™s low, rounded crotch protrusion to give the aviatorâ€™s trousers a cleaner fit; preserve the face, arms, sleeves and remaining outfit.",
+      "operations": [
+        {
+          "op": "setPart",
+          "id": "trouser seat",
+          "set": {
+            "knots": [
+              [
+                0,
+                -0.104,
+                -0.007908571428571428,
+                0.016231827416,
+                0.03361142857142857
+              ],
+              [
+                0,
+                -0.096,
+                -0.007908571428571428,
+                0.042202751281600004,
+                0.05733714285714286
+              ],
+              [
+                0,
+                -0.089,
+                -0.007908571428571428,
+                0.07791277159679999,
+                0.06920000000000001
+              ],
+              [
+                0,
+                -0.08304,
+                -0.004942857142857143,
+                0.17951941701714286,
+                0.10814971428571428
+              ],
+              [
+                0,
+                -0.04349714285714279,
+                -0.005931428571428571,
+                0.17951941701714286,
+                0.11215635474285714
+              ],
+              [
+                0,
+                0,
+                -0.007908571428571428,
+                0.1814965598742857,
+                0.11821732571428571
+              ],
+              [
+                0,
+                0.09812596871042467,
+                -0.0029657142857142855,
+                0.14715716114285715,
+                0.10711843657142857
+              ],
+              [
+                0,
+                0.11222042603428573,
+                0,
+                0.14378178285714285,
+                0.10489865874285714
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "direction": "The previous lift made the round bulge between the thighs more obvious. Inspect the two exports, particularly the front clay. Fit the cloth where the upper trouser legs meet the seat. Keep the waistband and the rest of the aviator fixed. The intended result is a soft inward crease between two legs, with no rounded cap projecting to the front, in the rest and reach poses.",
+      "export": {
+        "source": "Reimported game GLB",
+        "triangles": 24002,
+        "restHeightMetres": 1.7587514547228373,
+        "clip": "Reach",
+        "timeSeconds": 1.2999999523162842,
+        "cameraFrame": {
+          "center": [
+            0,
+            0.8790635668999747,
+            0.277464745280509
+          ],
+          "span": 1.9644875534030564
+        },
+        "matchedPreviousFrame": true,
+        "attachments": [
+          "Earlier proposal above, current below: Rest / front / clay, three-quarter / colour",
+          "Earlier proposal above, current below: Reach 1.30 s / profile / clay, rear three-quarter / colour"
+        ],
+        "previous": {
+          "source": "Reimported game GLB",
+          "triangles": 24002,
+          "restHeightMetres": 1.7587514547228373,
+          "clip": "Reach",
+          "timeSeconds": 1.2999999523162842,
+          "cameraFrame": {
+            "center": [
+              0,
+              0.8790635668999747,
+              0.277464745280509
+            ],
+            "span": 1.9644875534030564
+          },
+          "matchedPreviousFrame": false,
+          "attachments": [
+            "Rest / front / clay, three-quarter / colour",
+            "Reach 1.30 s / profile / clay, rear three-quarter / colour"
+          ]
+        }
+      },
+      "summary": "Recess the lower front seat into a soft crease between the upper trouser legs, keeping the waistband and remaining aviator fixed.",
+      "operations": [
+        {
+          "op": "setPart",
+          "id": "trouser seat",
+          "set": {
+            "pulls": [
+              {
+                "at": [
+                  0,
+                  -0.095,
+                  0.035
+                ],
+                "reach": [
+                  0.105,
+                  0.065,
+                  0.085
+                ],
+                "offset": [
+                  0,
+                  0.018,
+                  -0.065
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  -0.045,
+                  0.098
+                ],
+                "reach": [
+                  0.065,
+                  0.075,
+                  0.065
+                ],
+                "offset": [
+                  0,
+                  0,
+                  -0.05
+                ]
+              },
+              {
+                "at": [
+                  0,
+                  0.012,
+                  0.109
+                ],
+                "reach": [
+                  0.045,
+                  0.055,
+                  0.045
+                ],
+                "offset": [
+                  0,
+                  0,
+                  -0.018
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "op": "setPart",
+          "id": "left trouser thigh",
+          "set": {
+            "pulls": [
+              {
+                "at": [
+                  -0.069,
+                  -0.065,
+                  0.064
+                ],
+                "reach": [
+                  0.034,
+                  0.105,
+                  0.055
+                ],
+                "offset": [
+                  0.008,
+                  0,
+                  -0.014
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "op": "setPart",
+          "id": "right trouser thigh",
+          "set": {
+            "pulls": [
+              {
+                "at": [
+                  0.069,
+                  -0.065,
+                  0.064
+                ],
+                "reach": [
+                  0.034,
+                  0.105,
+                  0.055
+                ],
+                "offset": [
+                  -0.008,
+                  0,
+                  -0.014
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "result": "Both proposals rejected. The first concentrated the centre bulge. The second pushed the cloth far enough back to expose the body.",
+  "regionCheck": {
+    "resolution": [
+      256,
+      256
+    ],
+    "view": "rest front",
+    "betweenRounds": [
+      1,
+      2
+    ],
+    "previous": "trouser seat",
+    "current": "body (bare)",
+    "pixels": 103
+  },
+  "note": "The coverage test is limited to matched views and parts identified by the form as bare anatomy and outfit-specific clothing."
+}

@@ -1,0 +1,112 @@
+{
+  "source": "This four-look GLB is an export of relay-wardrobe.form.json through the workshop Forms tab with Game detail, all saved outfits and motion enabled.",
+  "byteLength": 16056316,
+  "three": [
+    {
+      "name": "Relay practice",
+      "phase": "0.375",
+      "stats": "23,999 triangles · 1 materials",
+      "motion": "Idle · movement 0.022 m · lowest vertex 0.004 m\nWalk · movement 0.364 m · lowest vertex 0.004 m\nCrouch · movement 0.409 m · lowest vertex 0.004 m\nReach · movement 0.725 m · lowest vertex 0.004 m"
+    },
+    {
+      "name": "Training layer",
+      "phase": "0.375",
+      "stats": "23,999 triangles · 1 materials",
+      "motion": "Idle · movement 0.022 m · lowest vertex 0.004 m\nWalk · movement 0.363 m · lowest vertex 0.004 m\nCrouch · movement 0.404 m · lowest vertex 0.004 m\nReach · movement 0.725 m · lowest vertex 0.004 m"
+    },
+    {
+      "name": "Survey suit",
+      "phase": "0.375",
+      "stats": "24,009 triangles · 1 materials",
+      "motion": "Idle · movement 0.022 m · lowest vertex 0.004 m\nWalk · movement 0.367 m · lowest vertex 0.004 m\nCrouch · movement 0.414 m · lowest vertex 0.004 m\nReach · movement 0.728 m · lowest vertex 0.004 m"
+    },
+    {
+      "name": "Concert dress",
+      "phase": "0.375",
+      "stats": "23,996 triangles · 1 materials",
+      "motion": "Idle · movement 0.022 m · lowest vertex 0.004 m\nWalk · movement 0.364 m · lowest vertex 0.004 m\nCrouch · movement 0.409 m · lowest vertex 0.004 m\nReach · movement 0.725 m · lowest vertex 0.004 m"
+    },
+    {
+      "name": "Relay practice",
+      "phase": "0.375",
+      "stats": "23,999 triangles · 1 materials",
+      "motion": "Idle · movement 0.022 m · lowest vertex 0.004 m\nWalk · movement 0.364 m · lowest vertex 0.004 m\nCrouch · movement 0.409 m · lowest vertex 0.004 m\nReach · movement 0.725 m · lowest vertex 0.004 m"
+    }
+  ],
+  "blenderVersion": "5.3.0 Release Candidate",
+  "blenderCollections": {
+    "Relay practice": {
+      "armatures": 1,
+      "meshes": 2,
+      "joints": 31,
+      "triangles": 23999,
+      "tracks": [
+        "Reach",
+        "Crouch",
+        "Walk",
+        "Idle"
+      ],
+      "walkMovementMeters": 0.2225
+    },
+    "Training layer": {
+      "armatures": 1,
+      "meshes": 2,
+      "joints": 31,
+      "triangles": 23999,
+      "tracks": [
+        "Reach.001",
+        "Crouch.001",
+        "Walk.001",
+        "Idle.001"
+      ],
+      "walkMovementMeters": 0.2225
+    },
+    "Survey suit": {
+      "armatures": 1,
+      "meshes": 2,
+      "joints": 31,
+      "triangles": 24009,
+      "tracks": [
+        "Reach.002",
+        "Crouch.002",
+        "Walk.002",
+        "Idle.002"
+      ],
+      "walkMovementMeters": 0.2234
+    },
+    "Concert dress": {
+      "armatures": 1,
+      "meshes": 2,
+      "joints": 190,
+      "triangles": 23996,
+      "tracks": [
+        "Reach.003",
+        "Crouch.003",
+        "Walk.003",
+        "Idle.003"
+      ],
+      "walkMovementMeters": 0.2225
+    }
+  },
+  "validation": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "comparison": {
+    "meshAndMorphAccessors": [
+      20,
+      20,
+      20,
+      22
+    ],
+    "animationTracks": [
+      29,
+      29,
+      29,
+      334
+    ],
+    "equalToSeparateExports": true,
+    "walkPhase": 0.375,
+    "firstAndRecalledPixelsIdentical": true
+  }
+}

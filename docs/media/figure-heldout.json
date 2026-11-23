@@ -1,0 +1,755 @@
+{
+ "reference": {
+  "title": "Amelia Earhart standing in front of the Lockheed Electra (GPN-2002-000211)",
+  "source": "https://commons.wikimedia.org/wiki/File:Amelia_Earhart_-_GPN-2002-000211.jpg",
+  "license": "Public domain (NASA / Smithsonian Institution)"
+ },
+ "frozenCommit": "332603b",
+ "protocol": "Offline request/proposal exchange in dist/character-view.html. Each attempt is a complete proposal against a fresh request. No code changed between attempts.",
+ "attempts": [
+  {
+   "summary": "Tall slim aviator in a dark tucked shirt, pale wide trousers and a neck scarf.",
+   "operations": [
+    {
+     "op": "buildFigure",
+     "figure": {
+      "height": 1.73,
+      "heads": 7.6,
+      "shoulders": 0.92,
+      "chest": 0.9,
+      "waist": 0.86,
+      "hips": 0.94,
+      "limbs": 0.86,
+      "legs": 1.03,
+      "skin": "#d9ab8c",
+      "face": 1,
+      "hair": "Coils",
+      "hairColor": "#7a5a3c",
+      "stance": {
+       "arms": 9,
+       "elbows": 12,
+       "feet": 0.9,
+       "curl": 0.3
+      },
+      "top": {
+       "kind": "shirt",
+       "sleeves": "long",
+       "color": "#2b2f38",
+       "trim": "#2b2f38",
+       "ease": 0.3,
+       "length": 0
+      },
+      "bottom": {
+       "kind": "trousers",
+       "color": "#c9c3b4",
+       "ease": 0.9,
+       "belt": "#2a2420"
+      },
+      "shoes": {
+       "kind": "sneakers",
+       "color": "#2b2622",
+       "sole": "#3a322c"
+      }
+     }
+    },
+    {
+     "op": "addPart",
+     "part": {
+      "id": "neck scarf",
+      "shape": "sweep",
+      "parent": "body",
+      "color": "#e6e0d0",
+      "surface": "canvas",
+      "motionRole": "rigid",
+      "visibleIn": [
+       "Work clothes"
+      ],
+      "knots": [
+       [
+        0,
+        0.5,
+        -0.012,
+        0.08,
+        0.082
+       ],
+       [
+        0,
+        0.532,
+        -0.012,
+        0.07,
+        0.073
+       ]
+      ]
+     }
+    },
+    {
+     "op": "addPart",
+     "part": {
+      "id": "scarf knot",
+      "shape": "sweep",
+      "parent": "body",
+      "color": "#e6e0d0",
+      "surface": "canvas",
+      "motionRole": "rigid",
+      "visibleIn": [
+       "Work clothes"
+      ],
+      "knots": [
+       [
+        0,
+        0.515,
+        0.062,
+        0.03,
+        0.022
+       ],
+       [
+        0.004,
+        0.47,
+        0.088,
+        0.036,
+        0.02
+       ],
+       [
+        0.01,
+        0.41,
+        0.1,
+        0.03,
+        0.014
+       ],
+       [
+        0.014,
+        0.37,
+        0.1,
+        0.014,
+        0.008
+       ]
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "summary": "Revision 1: painted head, longer legs, narrower trousers and a fuller scarf.",
+   "operations": [
+    {
+     "op": "buildFigure",
+     "figure": {
+      "height": 1.73,
+      "heads": 7.5,
+      "shoulders": 0.95,
+      "chest": 0.9,
+      "waist": 0.86,
+      "hips": 0.94,
+      "limbs": 0.86,
+      "legs": 1.07,
+      "skin": "#d9ab8c",
+      "face": 1,
+      "hair": "Coils",
+      "hairColor": "#7a5a3c",
+      "stance": {
+       "arms": 9,
+       "elbows": 12,
+       "feet": 0.9,
+       "curl": 0.3
+      },
+      "top": {
+       "kind": "shirt",
+       "sleeves": "long",
+       "color": "#2b2f38",
+       "trim": "#2b2f38",
+       "ease": 0.3,
+       "length": 0
+      },
+      "bottom": {
+       "kind": "trousers",
+       "color": "#c9c3b4",
+       "ease": 0.6,
+       "belt": "#2a2420"
+      },
+      "shoes": {
+       "kind": "sneakers",
+       "color": "#2b2622",
+       "sole": "#3a322c"
+      }
+     }
+    },
+    {
+     "op": "placeComponent",
+     "asset": "coast-face",
+     "id": "head",
+     "mode": "replace"
+    },
+    {
+     "op": "addPart",
+     "part": {
+      "id": "neck scarf",
+      "shape": "sweep",
+      "parent": "body",
+      "color": "#e6e0d0",
+      "surface": "canvas",
+      "motionRole": "rigid",
+      "visibleIn": [
+       "Work clothes"
+      ],
+      "knots": [
+       [
+        0,
+        0.505,
+        -0.012,
+        0.082,
+        0.084
+       ],
+       [
+        0,
+        0.53,
+        -0.012,
+        0.076,
+        0.079
+       ],
+       [
+        0,
+        0.556,
+        -0.014,
+        0.066,
+        0.07
+       ]
+      ]
+     }
+    },
+    {
+     "op": "addPart",
+     "part": {
+      "id": "scarf knot",
+      "shape": "ellipsoid",
+      "parent": "body",
+      "position": [
+       0,
+       0.5,
+       0.078
+      ],
+      "size": [
+       0.05,
+       0.04,
+       0.035
+      ],
+      "color": "#e6e0d0",
+      "surface": "canvas",
+      "motionRole": "rigid",
+      "visibleIn": [
+       "Work clothes"
+      ]
+     }
+    },
+    {
+     "op": "addPart",
+     "part": {
+      "id": "scarf tail left",
+      "shape": "sweep",
+      "parent": "body",
+      "color": "#e6e0d0",
+      "surface": "canvas",
+      "motionRole": "rigid",
+      "visibleIn": [
+       "Work clothes"
+      ],
+      "knots": [
+       [
+        0.006,
+        0.5,
+        0.08,
+        0.02,
+        0.012
+       ],
+       [
+        0.03,
+        0.455,
+        0.092,
+        0.03,
+        0.01
+       ],
+       [
+        0.045,
+        0.4,
+        0.094,
+        0.022,
+        0.007
+       ]
+      ]
+     }
+    },
+    {
+     "op": "addPart",
+     "part": {
+      "id": "scarf tail right",
+      "shape": "sweep",
+      "parent": "body",
+      "color": "#ddd6c4",
+      "surface": "canvas",
+      "motionRole": "rigid",
+      "visibleIn": [
+       "Work clothes"
+      ],
+      "knots": [
+       [
+        -0.006,
+        0.5,
+        0.08,
+        0.02,
+        0.012
+       ],
+       [
+        -0.022,
+        0.46,
+        0.094,
+        0.028,
+        0.01
+       ],
+       [
+        -0.026,
+        0.42,
+        0.097,
+        0.02,
+        0.007
+       ]
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "summary": "Revision 2: built-in head with tousled brown hair, wide trousers with a fuller seat.",
+   "operations": [
+    {
+     "op": "buildFigure",
+     "figure": {
+      "height": 1.73,
+      "heads": 7.4,
+      "shoulders": 0.95,
+      "chest": 0.9,
+      "waist": 0.86,
+      "hips": 0.94,
+      "limbs": 0.86,
+      "legs": 1.07,
+      "skin": "#c9997c",
+      "face": 3,
+      "hair": "Coils",
+      "hairColor": "#7a5a3c",
+      "stance": {
+       "arms": 9,
+       "elbows": 12,
+       "feet": 0.9,
+       "curl": 0.3
+      },
+      "top": {
+       "kind": "shirt",
+       "sleeves": "long",
+       "color": "#2b2f38",
+       "trim": "#2b2f38",
+       "ease": 0.3,
+       "length": 0
+      },
+      "bottom": {
+       "kind": "trousers",
+       "color": "#c9c3b4",
+       "ease": 0.85,
+       "belt": "#2a2420"
+      },
+      "shoes": {
+       "kind": "sneakers",
+       "color": "#2b2622",
+       "sole": "#3a322c"
+      }
+     }
+    },
+    {
+     "op": "setPart",
+     "id": "trouser seat",
+     "set": {
+      "size": [
+       1.09,
+       1,
+       1.08
+      ]
+     }
+    },
+    {
+     "op": "addPart",
+     "part": {
+      "id": "neck scarf",
+      "shape": "sweep",
+      "parent": "body",
+      "color": "#e6e0d0",
+      "surface": "canvas",
+      "motionRole": "rigid",
+      "visibleIn": [
+       "Work clothes"
+      ],
+      "knots": [
+       [
+        0,
+        0.505,
+        -0.012,
+        0.082,
+        0.084
+       ],
+       [
+        0,
+        0.53,
+        -0.012,
+        0.076,
+        0.079
+       ],
+       [
+        0,
+        0.552,
+        -0.014,
+        0.066,
+        0.07
+       ]
+      ]
+     }
+    },
+    {
+     "op": "addPart",
+     "part": {
+      "id": "scarf knot",
+      "shape": "ellipsoid",
+      "parent": "body",
+      "position": [
+       0,
+       0.5,
+       0.078
+      ],
+      "size": [
+       0.046,
+       0.036,
+       0.032
+      ],
+      "color": "#e6e0d0",
+      "surface": "canvas",
+      "motionRole": "rigid",
+      "visibleIn": [
+       "Work clothes"
+      ]
+     }
+    },
+    {
+     "op": "addPart",
+     "part": {
+      "id": "scarf tail left",
+      "shape": "sweep",
+      "parent": "body",
+      "color": "#e6e0d0",
+      "surface": "canvas",
+      "motionRole": "rigid",
+      "visibleIn": [
+       "Work clothes"
+      ],
+      "knots": [
+       [
+        0.006,
+        0.5,
+        0.08,
+        0.02,
+        0.012
+       ],
+       [
+        0.03,
+        0.455,
+        0.092,
+        0.03,
+        0.01
+       ],
+       [
+        0.045,
+        0.4,
+        0.094,
+        0.022,
+        0.007
+       ]
+      ]
+     }
+    },
+    {
+     "op": "addPart",
+     "part": {
+      "id": "scarf tail right",
+      "shape": "sweep",
+      "parent": "body",
+      "color": "#ddd6c4",
+      "surface": "canvas",
+      "motionRole": "rigid",
+      "visibleIn": [
+       "Work clothes"
+      ],
+      "knots": [
+       [
+        -0.006,
+        0.5,
+        0.08,
+        0.02,
+        0.012
+       ],
+       [
+        -0.022,
+        0.46,
+        0.094,
+        0.028,
+        0.01
+       ],
+       [
+        -0.026,
+        0.42,
+        0.097,
+        0.02,
+        0.007
+       ]
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "summary": "Revision 3: restore the waistband and belt, keep the wide trouser leg slightly narrower.",
+   "operations": [
+    {
+     "op": "buildFigure",
+     "figure": {
+      "height": 1.73,
+      "heads": 7.4,
+      "shoulders": 0.95,
+      "chest": 0.9,
+      "waist": 0.86,
+      "hips": 0.94,
+      "limbs": 0.86,
+      "legs": 1.07,
+      "skin": "#c9997c",
+      "face": 3,
+      "hair": "Coils",
+      "hairColor": "#7a5a3c",
+      "stance": {
+       "arms": 9,
+       "elbows": 12,
+       "feet": 0.9,
+       "curl": 0.3
+      },
+      "top": {
+       "kind": "shirt",
+       "sleeves": "long",
+       "color": "#2b2f38",
+       "trim": "#2b2f38",
+       "ease": 0.3,
+       "length": 0
+      },
+      "bottom": {
+       "kind": "trousers",
+       "color": "#c9c3b4",
+       "ease": 0.7,
+       "belt": "#2a2420"
+      },
+      "shoes": {
+       "kind": "sneakers",
+       "color": "#2b2622",
+       "sole": "#3a322c"
+      }
+     }
+    },
+    {
+     "op": "addPart",
+     "part": {
+      "id": "neck scarf",
+      "shape": "sweep",
+      "parent": "body",
+      "color": "#e6e0d0",
+      "surface": "canvas",
+      "motionRole": "rigid",
+      "visibleIn": [
+       "Work clothes"
+      ],
+      "knots": [
+       [
+        0,
+        0.505,
+        -0.012,
+        0.082,
+        0.084
+       ],
+       [
+        0,
+        0.53,
+        -0.012,
+        0.076,
+        0.079
+       ],
+       [
+        0,
+        0.552,
+        -0.014,
+        0.066,
+        0.07
+       ]
+      ]
+     }
+    },
+    {
+     "op": "addPart",
+     "part": {
+      "id": "scarf knot",
+      "shape": "ellipsoid",
+      "parent": "body",
+      "position": [
+       0,
+       0.5,
+       0.078
+      ],
+      "size": [
+       0.046,
+       0.036,
+       0.032
+      ],
+      "color": "#e6e0d0",
+      "surface": "canvas",
+      "motionRole": "rigid",
+      "visibleIn": [
+       "Work clothes"
+      ]
+     }
+    },
+    {
+     "op": "addPart",
+     "part": {
+      "id": "scarf tail left",
+      "shape": "sweep",
+      "parent": "body",
+      "color": "#e6e0d0",
+      "surface": "canvas",
+      "motionRole": "rigid",
+      "visibleIn": [
+       "Work clothes"
+      ],
+      "knots": [
+       [
+        0.006,
+        0.5,
+        0.08,
+        0.02,
+        0.012
+       ],
+       [
+        0.03,
+        0.455,
+        0.092,
+        0.03,
+        0.01
+       ],
+       [
+        0.045,
+        0.4,
+        0.094,
+        0.022,
+        0.007
+       ]
+      ]
+     }
+    },
+    {
+     "op": "addPart",
+     "part": {
+      "id": "scarf tail right",
+      "shape": "sweep",
+      "parent": "body",
+      "color": "#ddd6c4",
+      "surface": "canvas",
+      "motionRole": "rigid",
+      "visibleIn": [
+       "Work clothes"
+      ],
+      "knots": [
+       [
+        -0.006,
+        0.5,
+        0.08,
+        0.02,
+        0.012
+       ],
+       [
+        -0.022,
+        0.46,
+        0.094,
+        0.028,
+        0.01
+       ],
+       [
+        -0.026,
+        0.42,
+        0.097,
+        0.02,
+        0.007
+       ]
+      ]
+     }
+    }
+   ]
+  }
+ ],
+ "transfer": {
+  "summary": "Transfer: a short, heavy dock worker in a hooded jacket and boots.",
+  "operations": [
+   {
+    "op": "buildFigure",
+    "figure": {
+     "height": 1.6,
+     "heads": 6.9,
+     "shoulders": 1.12,
+     "chest": 1.25,
+     "waist": 1.5,
+     "hips": 1.2,
+     "belly": 0.75,
+     "limbs": 1.3,
+     "legs": 0.95,
+     "skin": "#ae7f5d",
+     "face": 1,
+     "hair": "Bald",
+     "hairColor": "#706b62",
+     "stance": {
+      "arms": 20,
+      "elbows": 18,
+      "feet": 1.25,
+      "curl": 0.4
+     },
+     "top": {
+      "kind": "hoodie",
+      "sleeves": "long",
+      "color": "#6b5a3e",
+      "trim": "#3a342a",
+      "ease": 0.8,
+      "length": 0.6
+     },
+     "bottom": {
+      "kind": "trousers",
+      "color": "#3d4148",
+      "ease": 0.6,
+      "belt": "#2a2420"
+     },
+     "shoes": {
+      "kind": "boots",
+      "color": "#4a3a2c",
+      "sole": "#2a2420"
+     }
+    }
+   },
+   {
+    "op": "placeComponent",
+    "asset": "foreman-face",
+    "id": "head",
+    "mode": "replace"
+   }
+  ]
+ },
+ "playback": {
+  "note": "The committed examples were rebuilt from the same proposals on commit 06a1b69. Readings are from that rebuild.",
+  "tucked-aviator": "1.758 m, 24,004 triangles, 1 material, 1 skeleton, Idle/Walk/Crouch/Reach, lowest vertex 0.000 m in every clip",
+  "hooded-docker": "1.620 m, 24,001 triangles, 1 material, 1 skeleton, Idle/Walk/Crouch/Reach, lowest vertex 0.000 m in every clip"
+ },
+ "judgement": "Visual assessment by the implementing agent only. No blinded or independent human rating was collected."
+}
