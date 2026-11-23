@@ -10,6 +10,6 @@ One form is active at a time. Start fresh, or open an editable [reference study]
 
 [Research plan and later 2D reference-sheet study](docs/character-creator.html) · [Credited character-creator benchmarks](docs/creator-benchmarks.md)
 
-Geometry and examples are original procedural work. The original face and surface atlases were made for this project with the OpenAI image generation tool. Three.js supplies rendering and GLB export under MIT.
+Geometry and examples are original procedural work. The face, fabric, jacket and four-view turnaround artwork was generated specifically for this project with the OpenAI image generation tool and is distributed with the project under MIT. Source examples from commercial games are linked for study. The three painted volumes are editable lofts reconstructed from separate front and profile outlines with a four-view texture bake. **Forms → Trace a volume** also accepts your own turnaround. Imported art travels with the saved form. Three.js supplies rendering and GLB export under MIT.
 
 [MIT license](LICENSE).
