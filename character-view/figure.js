@@ -57,6 +57,7 @@ export function readFigure(raw = {}) {
             gather: number(f.groom.gather, 0, 1, 0),
             sweep: number(f.groom.sweep, -1, 1, 0.2),
             volume: number(f.groom.volume, 0, 1, 0.4),
+            nape: number(f.groom.nape, 0, 1, 0),
             seed: Number.isInteger(f.groom.seed)
               ? clamp(f.groom.seed, 0, 4294967295)
               : 1,
@@ -241,9 +242,12 @@ export function buildFigure(raw = {}) {
     const name = side > 0 ? "left " : "right ";
     const spread = f.stance.arms * rad,
       bend = f.stance.elbows * rad;
+    // The joint sits one arm radius inside the shoulder line, so a heavier
+    // arm fills the same shoulder instead of standing proud of it.
+    const armRadius = 0.046 * k * m;
     const shoulder = new Vector3(
-      side * (sw - 0.022 * k),
-      shoulderY - 0.052 * k,
+      side * (sw + 0.024 * k - armRadius),
+      shoulderY - 0.006 * k - armRadius,
       -0.01 * k,
     );
     const upperDir = new Vector3(
@@ -642,27 +646,33 @@ export function buildFigure(raw = {}) {
   const beltY = lerp(hipY, waistY, 0.35 + 0.62 * f.bottom.rise);
   if (f.bottom.kind !== "none") {
     const ease = (0.009 + f.bottom.ease * 0.012) * k;
-    // The seat keeps its full width down to the crotch seam. Both trouser
-    // legs start inside it, so there is no separate wedge between them.
+    // The seat keeps its full width down to the crotch seam and loses depth
+    // on the way. Both legs come forward of it there, so the front closes in
+    // a crease between them instead of a panel.
     const legScale = k * lerp(1, m, 0.85) * lerp(1, f.hips, 0.3);
     const legEase = f.bottom.ease * 0.01 * k + 0.003 * k;
     const seamW = 0.086 * k * lerp(1, f.hips, 0.7) + 0.083 * legScale + legEase;
     const seamD = 0.089 * legScale + 0.007 * k + legEase;
+    // The gusset between the legs covers the body and stays behind the front
+    // of both thighs, so it closes the gap without showing as its own panel.
+    const gusset = [
+      [crotch - 0.046 * k, seamW * 0.1, 0.034 * k, -0.008 * k],
+      [crotch - 0.034 * k, seamW * 0.26, 0.058 * k, -0.008 * k],
+      [crotch - 0.014 * k, seamW * 0.48, 0.07 * k, -0.008 * k],
+    ];
     const seat = fitted(
       [
-        [crotch - 0.05 * k, seamW * 0.16, 0.04 * k, -0.006 * k],
-        [crotch - 0.02 * k, seamW * 0.42, 0.066 * k, -0.006 * k],
         [
           crotch + 0.004 * k,
           Math.max(seamW, hipW * 0.97),
-          Math.max(seamD, hipD * 0.93),
-          -0.007 * k,
+          Math.max(seamD * 0.64, 0.092 * k),
+          -0.005 * k,
         ],
         [
           lerp(crotch, hipY, 0.5),
           Math.max(seamW, hipW * 0.99),
-          Math.max(seamD, hipD * 0.98) + bellyOut * 0.1,
-          -0.007 * k + bellyOut * 0.1,
+          Math.max(seamD * 0.86, hipD * 0.94) + bellyOut * 0.1,
+          -0.006 * k + bellyOut * 0.1,
         ],
         ...torsoRows
           .slice(2, 5)
@@ -688,7 +698,7 @@ export function buildFigure(raw = {}) {
     sweep(
       "trouser seat",
       bodyOrigin,
-      rings(bodyOrigin, seat),
+      rings(bodyOrigin, [...gusset, ...seat]),
       f.bottom.color,
       garment(),
       "body",

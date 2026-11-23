@@ -163,3 +163,34 @@ test("reach turns the elbow about the forearm pivot", () => {
   }
   rig.dispose();
 });
+
+test("trousers and shorts cover the body between the legs", () => {
+  const draw = randomStream(11);
+  for (let n = 0; n < 24; n++) {
+    const figure = randomFigure(draw);
+    figure.bottom.kind = n % 2 ? "shorts" : "trousers";
+    const form = buildFigure(figure),
+      body = form.parts.find((p) => p.id === "body").knots,
+      seat = form.parts.find((p) => p.id === "trouser seat").knots;
+    for (const [, y, z, , depth] of body) {
+      const i = seat.findIndex((row) => row[1] > y);
+      if (i < 1) continue;
+      const a = seat[i - 1],
+        b = seat[i],
+        t = (y - a[1]) / (b[1] - a[1]);
+      const centre = a[2] + (b[2] - a[2]) * t,
+        cover = a[4] + (b[4] - a[4]) * t;
+      assert.ok(centre + cover > z + depth, `front at ${y.toFixed(3)}`);
+      assert.ok(centre - cover < z - depth, `back at ${y.toFixed(3)}`);
+    }
+  }
+});
+
+test("a cropped groom carries the hairline to the nape", () => {
+  const form = buildFigure({
+    groom: { pattern: "Side part", length: 0.06, nape: 1 },
+  });
+  validateForm(form);
+  assert.equal(form.parts.find((p) => p.id === "head").groom.nape, 1);
+  assert.equal(readFigure({ groom: { nape: 4 } }).groom.nape, 1);
+});

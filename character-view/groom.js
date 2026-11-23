@@ -26,6 +26,8 @@ export function validGroom(g) {
     (g.pattern === undefined || fibrePatterns.includes(g.pattern)) &&
     (g.part === undefined ||
       (Number.isFinite(g.part) && Math.abs(g.part) <= 1)) &&
+    (g.nape === undefined ||
+      (Number.isFinite(g.nape) && g.nape >= 0 && g.nape <= 1)) &&
     Number.isInteger(g.seed) &&
     /^#[0-9a-f]{6}$/i.test(g.color)
   );
@@ -140,9 +142,17 @@ export function groomGeometry(box, options, geometry, transform) {
   const cy = box.max.y - ry + h * (0.013 + 0.04 * volume),
     cz = center.z - 0.012 * h;
   const clear = headClearance(box, geometry, transform, rx, rz, cz);
+  // A cropped cut carries the hairline down the back of the skull and a
+  // little way over the temples. Without it the hair ends above the ears.
+  const nape = options.nape ?? 0;
   function edge(a) {
     const front = (1 + Math.cos(a)) / 2;
-    return 2.12 - 0.96 * front ** 2 + 0.07 * Math.sin(2 * a + 0.4) * sweep;
+    return (
+      2.12 -
+      0.96 * front ** 2 +
+      0.07 * Math.sin(2 * a + 0.4) * sweep +
+      0.62 * nape * (1 - front) ** 1.5
+    );
   }
   function scalp(a, phi, inflate = 1) {
     return clear(
