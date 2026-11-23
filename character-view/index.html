@@ -139,6 +139,32 @@
               down to indent it. Each drag is one undo step.
             </p>
           </div>
+          <details id="hair-tools" hidden>
+            <summary>Style hair</summary>
+            <div class="actions">
+              <button id="hair-add">Grow hair</button
+              ><button id="hair-remove">Remove groom</button>
+            </div>
+            <div id="hair-settings" hidden>
+              <label class="field"
+                >Change<select id="hair-axis">
+                  <option value="length">Length</option>
+                  <option value="curl">Curl</option>
+                  <option value="sweep">Side sweep</option>
+                  <option value="gather">Gather into a tail</option>
+                  <option value="volume">Volume at crown</option>
+                </select></label
+              >
+              <div class="actions">
+                <button id="hair-less">Decrease</button
+                ><button id="hair-more">Increase</button
+                ><button id="hair-roll">Reroll locks</button>
+              </div>
+              <label class="field"
+                >Hair color<input type="color" id="hair-color"
+              /></label>
+            </div>
+          </details>
           <details id="skin-tools">
             <summary>Join organic surfaces</summary>
             <p class="micro">
@@ -198,6 +224,18 @@
           <div class="actions">
             <button id="draw-cue">Draw direction</button>
           </div>
+          <details>
+            <summary>Your random choices</summary>
+            <label class="field"
+              >One choice group per line<textarea
+                id="deck-input"
+                rows="3"
+                maxlength="3200"
+                placeholder="Locomotion = wade | glide | burrow&#10;Surface = felt | scales | bark"
+              ></textarea>
+            </label>
+            <button id="apply-decks">Use these choices</button>
+          </details>
           <div id="drawn-cues">
             <label class="check"
               ><input type="checkbox" id="pin-0" /><span
@@ -207,6 +245,7 @@
               ><input type="checkbox" id="pin-1" /><span id="cue-1"></span
             ></label>
           </div>
+          <div id="chosen-decks"></div>
           <details>
             <summary>Replay a direction</summary>
             <label class="field"
@@ -228,6 +267,7 @@
             <button id="generate" class="solid"></button
             ><button id="paint-generate" hidden>
               Generate painted variation</button
+            ><button id="cancel-generation" hidden>Cancel generation</button
             ><button id="import">Load proposal</button
             ><input
               id="file"
@@ -399,6 +439,7 @@
                   <option>Right</option>
                 </select></label
               >
+
               <div class="trace-row">
                 <label class="field"
                   >Rows<input
@@ -535,6 +576,11 @@
       <label class="field"
         >Reconstruction<select id="trace-method">
           <option value="sweep">Editable cross sections</option>
+          <option value="path">Curved centreline</option>
+          <option value="same">Thin membrane · edges run the same way</option>
+          <option value="opposite">
+            Thin membrane · edges run opposite ways
+          </option>
           <option value="volume">
             Preserve openings and separate contours
           </option>
@@ -558,6 +604,19 @@
         <button id="trace-undo">Undo point</button
         ><button id="trace-clear">Clear outlines</button>
       </div>
+      <label class="field" id="trace-radius-field" hidden
+        >Root radius as % of height<input
+          type="number"
+          id="trace-radius"
+          min=".3"
+          max="35"
+          step=".1"
+          value="4"
+      /></label>
+      <p id="trace-path-help" class="micro" hidden>
+        Mark matching centres in order from root to tip in each view. The radius
+        tapers toward the tip.
+      </p>
       <div class="trace-row">
         <label class="field"
           >Part name<input
@@ -590,7 +649,12 @@
         <button class="solid" id="trace-add">Build volume</button>
       </div>
       <div class="actions">
-        <button id="trace-agent-fit" hidden>Fit parts with AI</button
+        <label id="trace-steer-field" class="field"
+          >Fit instructions<input
+            id="trace-steering"
+            placeholder="Keep the tail curved and the fins thin"
+            maxlength="1400" /></label
+        ><button id="trace-agent-fit" hidden>Fit parts with AI</button
         ><button id="trace-map-import">Build from part map</button
         ><input type="file" id="trace-map-file" accept=".json" hidden />
       </div>

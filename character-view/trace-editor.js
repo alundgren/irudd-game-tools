@@ -6,6 +6,7 @@ import {
   guidePosition,
   traceOutline,
   traceHull,
+  tracePath,
 } from "./turnaround.js";
 import { buildTraceMap } from "./trace-map.js";
 import { fitMapWithAgent } from "./art-variation.js";
@@ -35,6 +36,13 @@ export function bindTraceEditor({
 }) {
   const dialog = document.getElementById("trace-dialog"),
     select = document.getElementById("trace-art");
+  const method = document.getElementById("trace-method");
+  method.onchange = () => {
+    const path = method.value === "path";
+    document.getElementById("trace-radius-field").hidden = !path;
+    document.getElementById("trace-path-help").hidden = !path;
+    draw();
+  };
   const canvases = [...dialog.querySelectorAll("canvas")],
     message = document.getElementById("trace-feedback");
   let outlines = [[], []],
@@ -53,11 +61,11 @@ export function bindTraceEditor({
       if (poly.length) {
         ctx.beginPath();
         poly.forEach(([x, y], i) => ctx[i ? "lineTo" : "moveTo"](x * n, y * n));
-        if (poly.length > 2) ctx.closePath();
+        if (poly.length > 2 && method.value !== "path") ctx.closePath();
         ctx.fillStyle = "#153b4780";
         ctx.strokeStyle = "#fffbd8";
         ctx.lineWidth = 2;
-        if (poly.length > 2) ctx.fill();
+        if (poly.length > 2 && method.value !== "path") ctx.fill();
         ctx.stroke();
         for (const [x, y] of poly) {
           ctx.beginPath();
@@ -96,6 +104,7 @@ export function bindTraceEditor({
     Object.assign(added, getForm().artwork);
     refresh(selected?.paint?.atlas ?? art);
     message.textContent = "";
+    method.onchange();
     document.getElementById("trace-mode").value = "new";
     dialog.showModal();
   };
@@ -149,6 +158,7 @@ export function bindTraceEditor({
   const agentFit = document.getElementById("trace-agent-fit");
   agentFit.hidden =
     document.querySelector('meta[name="workshop-agent"]')?.content !== "local";
+  document.getElementById("trace-steer-field").hidden = agentFit.hidden;
   agentFit.onclick = async () => {
     const chosen = art,
       height = Number(document.getElementById("trace-height").value);
@@ -161,7 +171,8 @@ export function bindTraceEditor({
       const { form, missed } = await fitMapWithAgent(
         chosen,
         height,
-        "Identify and articulate the pictured character or item.",
+        document.getElementById("trace-steering").value.trim() ||
+          "Identify and articulate the pictured character or item.",
         {
           revision: crypto.randomUUID(),
           requestId: crypto.randomUUID(),
@@ -223,7 +234,10 @@ export function bindTraceEditor({
   };
   document.getElementById("trace-add").onclick = () => {
     try {
-      if (outlines.some((p) => p.length > 0 && p.length < 3))
+      if (
+        method.value !== "path" &&
+        outlines.some((p) => p.length > 0 && p.length < 3)
+      )
         throw new Error(
           "Close each outline with at least three points, or clear it for the whole silhouette.",
         );
@@ -239,11 +253,30 @@ export function bindTraceEditor({
       let id = name,
         n = 2;
       while (used.has(id)) id = name + " " + n++;
-      const make =
-        document.getElementById("trace-method").value === "volume"
-          ? traceHull
-          : traceOutline;
-      const part = make(id, art, height, outlines);
+      let part;
+      if (method.value === "path") {
+        if (outlines[0].length !== outlines[1].length || outlines[0].length < 2)
+          throw new Error(
+            "Mark the same number of centreline points in each view.",
+          );
+        const radius =
+          Number(document.getElementById("trace-radius").value) / 100;
+        const last = outlines[0].length - 1;
+        const spine = outlines[0].map((xy, i) => {
+          const r = radius * (1 - (0.9 * i) / last);
+          return [...xy, ...outlines[1][i], r, r];
+        });
+        part = tracePath(id, art, height, spine);
+      } else if (method.value === "sweep")
+        part = traceOutline(id, art, height, outlines);
+      else {
+        part = traceHull(id, art, height, outlines);
+        if (method.value !== "volume")
+          part.hull.membrane = {
+            slope: method.value === "same" ? -1 : 1,
+            thickness: 0.016,
+          };
+      }
       const parent = fresh ? null : getTarget(),
         object = parent && figurePart(parent);
       if (object) {

@@ -61,3 +61,30 @@ test("exportable volume has an actual opening, separate islands and metric heigh
   invalid.parts[0].hull.rows[2][1] = [[0.3, -0.4]];
   assert.throws(() => validateForm(invalid));
 });
+test("a membrane keeps a slanted, thin cross section between its two supplied projections", () => {
+  const hull = {
+    atlas: "test",
+    height: 1,
+    pivot: [0, 0, 0],
+    resolution: 56,
+    frames: Array.from({ length: 4 }, () => [0.5, 0.98, 0.9]),
+    rows: [0, 0.25, 0.5, 0.75, 1].map((y) => [y, [[-0.5, 0.5]], [[-0.3, 0.3]]]),
+    membrane: { slope: -1, thickness: 0.024 },
+  };
+  const mat = new MeshBasicMaterial({ side: DoubleSide }),
+    mesh = new Mesh(volumeGeometry(hull), mat);
+  function cross(x) {
+    const hits = new Raycaster(
+      new Vector3(x, 0.49, 2),
+      new Vector3(0, 0, -1),
+    ).intersectObject(mesh);
+    assert.ok(hits.length >= 2);
+    return [hits.at(-1).point.z, hits[0].point.z];
+  }
+  const left = cross(-0.28),
+    right = cross(0.28);
+  assert.ok(left[0] > 0.1 && right[1] < -0.1);
+  assert.ok(left[1] - left[0] < 0.07);
+  mesh.geometry.dispose();
+  mat.dispose();
+});

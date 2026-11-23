@@ -43,6 +43,13 @@ function bindStudy(form, locate) {
     if (!Object.hasOwn(anchors, p.shape)) {
       const parent = locate(p.id, p);
       if (parent) links[p.id] = parent;
+      if (
+        parent === "head" &&
+        /^(silver crown|swept lock |sideburn |silver wave |dark bob crown|cut bob |cropped fringe )/.test(
+          p.id,
+        )
+      )
+        p.headLayer = "hair";
     }
   // Bind accessories first so anatomical parents are still in world space.
   return bindHumanoid(bindParts(form, links));

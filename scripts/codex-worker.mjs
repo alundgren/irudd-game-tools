@@ -13,7 +13,7 @@ import { join, resolve, dirname, basename } from "node:path";
 import { createInterface } from "node:readline";
 
 const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
-export async function codexJob(prompt, views, signal) {
+export async function codexJob(prompt, views, signal, { effort } = {}) {
   const dir = await mkdtemp(join(tmpdir(), "irudd-form-"));
   try {
     const out = join(dir, "response.json"),
@@ -31,6 +31,7 @@ export async function codexJob(prompt, views, signal) {
       [
         "exec",
         "--ephemeral",
+        ...(effort ? ["-c", "model_reasoning_effort=" + effort] : []),
         "--skip-git-repo-check",
         "--sandbox",
         "read-only",

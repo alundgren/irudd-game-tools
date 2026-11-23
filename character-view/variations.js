@@ -1,3 +1,4 @@
+import { drawDecks, encodeDecks, decodeDecks } from "./choice-decks.js";
 import { paintSources, retainPaintSources } from "./paint-sources.js";
 import { placeComponent } from "./graft.js";
 const ideas = {
@@ -81,6 +82,9 @@ export function redrawDirection(previous, strength, seed) {
   );
   return {
     ...fresh,
+    ...(previous?.decks?.length
+      ? { decks: drawDecks(previous.decks, fresh.seed, previous.decks) }
+      : {}),
     pins,
     cues: fresh.cues.map((cue, i) =>
       pins[i] === null ? cue : drawVariation(strength, pins[i]).cues[i],
@@ -89,19 +93,22 @@ export function redrawDirection(previous, strength, seed) {
 }
 export function directionCode(variation) {
   const pins = variation.pins ?? [];
-  return [
-    variation.strength,
-    variation.seed.toString(36),
-    ...(pins.some((v) => v !== null)
-      ? pins.map((v) => (v === null ? "_" : v.toString(36)))
-      : []),
-  ].join("/");
+  return (
+    [
+      variation.strength,
+      variation.seed.toString(36),
+      ...(pins.some((v) => v !== null)
+        ? pins.map((v) => (v === null ? "_" : v.toString(36)))
+        : []),
+    ].join("/") +
+    (variation.decks?.length ? "~" + encodeDecks(variation.decks) : "")
+  );
 }
 export function replayDirection(code) {
-  const [strength, draw, ...locked] = String(code)
-    .trim()
-    .toLowerCase()
-    .split("/");
+  const [base, decksToken, ...excess] = String(code).trim().split("~");
+  if (excess.length) throw new Error("Enter a saved direction code.");
+  const decks = decksToken === undefined ? [] : decodeDecks(decksToken);
+  const [strength, draw, ...locked] = base.toLowerCase().split("/");
   function seed(s) {
     if (!/^[0-9a-z]{1,7}$/.test(s) || parseInt(s, 36) > 0xffffffff)
       throw new Error("Enter a saved direction code.");
@@ -114,7 +121,7 @@ export function replayDirection(code) {
   )
     throw new Error("Enter a saved direction code.");
   return redrawDirection(
-    { strength, pins: locked.map((s) => (s === "_" ? null : seed(s))) },
+    { strength, decks, pins: locked.map((s) => (s === "_" ? null : seed(s))) },
     strength,
     seed(draw),
   );
@@ -149,6 +156,8 @@ const allowedPartKeys = new Set([
   "drape",
   "blendSkin",
   "grip",
+  "groom",
+  "headLayer",
   "visibleIn",
   "outfitRole",
   "pulls",
@@ -260,10 +269,19 @@ export function compactForm(form) {
     }),
   };
 }
+export function designDirection(variation) {
+  if (!variation?.decks?.length) return variation;
+  const { decks, ...draw } = variation;
+  return {
+    ...draw,
+    drawnChoices: decks.map(({ label, value }) => ({ category: label, value })),
+  };
+}
 export function agentDesign(brief) {
   const { views, current, preview, library = {}, ...fields } = brief;
   return {
     ...fields,
+    variation: designDirection(brief.variation),
     library: Object.values(library).map(({ key, title, parts, bounds }) => ({
       key,
       title,

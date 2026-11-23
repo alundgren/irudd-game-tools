@@ -1,7 +1,7 @@
 import { startingForm, validateForm, motionRoles } from "./recipe.js";
 import { outfitRoles } from "./wardrobe.js";
 import { bindParts } from "./rig.js";
-import { traceOutline, traceHull } from "./turnaround.js";
+import { traceOutline, traceHull, tracePath } from "./turnaround.js";
 
 function polygon(points) {
   if (
@@ -50,9 +50,11 @@ export function buildTraceMap(
       typeof r.id !== "string" ||
       !r.id.trim() ||
       r.id.length > 64 ||
-      !["volume", "loft"].includes(r.method)
+      !["volume", "loft", "path", "membrane"].includes(r.method)
     )
-      throw new Error("Each region needs a name and a volume or loft method.");
+      throw new Error(
+        "Each region needs a name and a supported reconstruction method.",
+      );
     if (r.parent && !ids.has(r.parent))
       throw new Error("Unknown parent for " + r.id + ".");
     if (
@@ -62,12 +64,24 @@ export function buildTraceMap(
       throw new Error("Unknown role on " + r.id + ".");
     let part;
     try {
-      part = (r.method === "volume" ? traceHull : traceOutline)(
-        r.id,
-        atlas,
-        height,
-        [polygon(r.front), polygon(r.side)],
-      );
+      if (r.method === "path") part = tracePath(r.id, atlas, height, r.spine);
+      else
+        part = (r.method !== "loft" ? traceHull : traceOutline)(
+          r.id,
+          atlas,
+          height,
+          [polygon(r.front), polygon(r.side)],
+        );
+      if (r.method === "membrane") {
+        if (!["same", "opposite"].includes(r.correspondence))
+          throw new Error(
+            "Choose same or opposite edge correspondence in the two pictures.",
+          );
+        part.hull.membrane = {
+          slope: r.correspondence === "same" ? -1 : 1,
+          thickness: r.thickness ?? 0.016,
+        };
+      }
     } catch (error) {
       if (!missed || !r.parent) throw new Error(r.id + ": " + error.message);
       missed.push(r.id);

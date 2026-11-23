@@ -52,6 +52,7 @@ function build(h) {
   const step = span.map((v) => v / res);
   const source = h.rows.map(([y, front, side]) => ({
     y,
+
     x: Float32Array.from({ length: res }, (_, i) =>
       radial(front, min[0] + i * step[0]),
     ),
@@ -59,6 +60,32 @@ function build(h) {
       radial(side, min[2] + i * step[2]),
     ),
   }));
+  function field(row, ix, iz) {
+    if (!h.membrane) return section(row.x, row.z, ix, iz);
+    // Keep one unbroken membrane. Per-row depth fits turn a scalloped
+    // boundary into horizontal shelves wherever a notch opens or closes.
+    const x = min[0] + ix * step[0],
+      z = min[2] + iz * step[2];
+    const front = spans[0] >= spans[2];
+    let t = front ? (x - lo[0]) / spans[0] : (z - lo[2]) / spans[2];
+    t = MathUtils.clamp(t, 0, 1);
+    if (h.membrane.slope < 0) t = 1 - t;
+    const cross = front ? z : x;
+    const plane = front
+      ? MathUtils.lerp(lo[2], hi[2], t)
+      : MathUtils.lerp(lo[0], hi[0], t);
+    const half = Math.max(
+      1.8 * (front ? step[2] : step[0]),
+      h.membrane.thickness * (0.52 + 0.25 * Math.sin(Math.PI * t)),
+    );
+    return Math.max(
+      -2,
+      Math.min(
+        1 - (front ? row.x[ix] : row.z[iz]),
+        1 - Math.abs(cross - plane) / half,
+      ),
+    );
+  }
   const limit = Math.max(16000, 24 * res * res);
   const mc = new MarchingCubes(res, material, false, false, limit);
   mc.isolation = 0;
@@ -73,11 +100,7 @@ function build(h) {
       t = MathUtils.clamp((y - a.y) / (b.y - a.y), 0, 1);
     for (let iz = 1; iz < res - 1; iz++)
       for (let ix = 1; ix < res - 1; ix++) {
-        let v = MathUtils.lerp(
-          section(a.x, a.z, ix, iz),
-          section(b.x, b.z, ix, iz),
-          t,
-        );
+        let v = MathUtils.lerp(field(a, ix, iz), field(b, ix, iz), t);
         v = Math.min(
           v,
           (y - source[0].y) / step[1] + 0.4,

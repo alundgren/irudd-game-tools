@@ -2,6 +2,7 @@ import * as T from "three";
 import { paintSources } from "./paint-sources.js";
 import { pullSurface } from "./surface-pull.js";
 
+import { groomGeometry } from "./groom.js";
 import { handGeometry } from "./hands.js";
 import { blendSkin } from "./blended-skin.js";
 import { fitGarment } from "./garment-fit.js";
@@ -326,6 +327,7 @@ function baseParts(recipe, material, silhouette) {
   for (const side of [-1, 1])
     oval(side * 0.088, 1.606, 0.002, 0.021, 0.039, 0.019, skin);
   groups.head.add(createFace(recipe, silhouette, material));
+  const hairStart = groups.head.children.length;
   if (recipe.hair !== "Bald")
     shell(
       [
@@ -355,6 +357,8 @@ function baseParts(recipe, material, silhouette) {
     }
     oval(0, 1.755, 0, 0.076, 0.045, 0.077, hair);
   }
+  for (const child of groups.head.children.slice(hairStart))
+    child.userData.baseHair = true;
   region = "torso";
   if (work && recipe.collar !== false) {
     for (const side of [-1, 1]) {
@@ -486,6 +490,9 @@ export function createCharacter(form, silhouette, clay = false) {
         plainView,
       )
     : {};
+  const groomedHeads = new Set(
+    form.parts.filter((p) => p.groom).map((p) => p.id),
+  );
   const objects = new Map(),
     localLooks = new Map();
   for (const part of form.parts) {
@@ -548,7 +555,7 @@ export function createCharacter(form, silhouette, clay = false) {
         case "sweep":
           geometry = sweepGeometry(
             fit?.knots ?? part.knots,
-            Boolean(part.paint),
+            Boolean(part.paint && part.paint.frame !== "path"),
             part.anatomy === "face"
               ? 176
               : part.outfitRole === "skirt"
@@ -609,6 +616,37 @@ export function createCharacter(form, silhouette, clay = false) {
       object.userData.faceSurface = true;
       object.facePaint = part.paint;
     }
+    if (part.groom) {
+      const scalp = object.isMesh
+        ? object
+        : object.children.find((c) => c.userData.faceSurface);
+      if (scalp) {
+        for (const child of object.children.slice())
+          if (child.userData.baseHair) object.remove(child);
+        scalp.geometry.computeBoundingBox();
+        const bounds = scalp.geometry.boundingBox.clone();
+        if (scalp !== object) {
+          scalp.updateMatrix();
+          bounds.applyMatrix4(scalp.matrix);
+        }
+        const shades = [0.75, 0.92, 1.05, 1.17];
+        groomGeometry(
+          bounds,
+          part.groom,
+          scalp.geometry,
+          scalp === object ? null : scalp.matrix,
+        ).forEach((g, i) => {
+          const shade = new T.Color(part.groom.color).multiplyScalar(shades[i]);
+          const strands = new T.Mesh(
+            g,
+            material("#" + shade.getHexString(), i === 0 ? "scalp" : "strands"),
+          );
+          strands.name = "Hair " + i;
+          strands.castShadow = true;
+          object.add(strands);
+        });
+      }
+    }
     if (part.pulls?.length) pullSurface(object).apply(part.pulls);
     object.name = part.id;
     object.position.fromArray(part.position);
@@ -616,6 +654,7 @@ export function createCharacter(form, silhouette, clay = false) {
     object.rotation.set(...part.rotation.map(T.MathUtils.degToRad));
     object.visible =
       !object.userData.hiddenByOutfit &&
+      !(part.headLayer === "hair" && groomedHeads.has(part.parent)) &&
       (!part.visibleIn || part.visibleIn.includes(form.outfit));
     objects.set(part.id, object);
     object.userData.partId = part.id;

@@ -218,6 +218,51 @@ export function guidePosition(atlas, view, h) {
   const p = atlases.get(atlas)[view];
   return (p.feet - h * p.span) / p.size;
 }
+// The same landmarks, measured in both pictures, define a curved axis in metres.
+export function tracePath(id, atlas, height, spine) {
+  const panels = atlases.get(atlas);
+  if (!panels || !Array.isArray(spine) || spine.length < 2 || spine.length > 48)
+    throw new Error("Mark 2 to 48 matching centreline points.");
+  const knots = spine.map((row) => {
+    if (
+      !Array.isArray(row) ||
+      row.length !== 6 ||
+      !row.every(Number.isFinite) ||
+      row.slice(0, 4).some((v) => v < 0 || v > 1) ||
+      row.slice(4).some((v) => v <= 0 || v > 0.6)
+    )
+      throw new Error(
+        "Each path point needs matching front/profile coordinates and two positive radii.",
+      );
+    const [fx, fy, sx, sy, rw, rd] = row,
+      [f, s] = panels;
+    const yf = guideHeight(atlas, 0, fy),
+      ys = guideHeight(atlas, 1, sy);
+    if (Math.abs(yf - ys) > 0.15)
+      throw new Error(
+        "A paired path landmark lies at different heights in the two views.",
+      );
+    return [
+      ((fx * f.size - f.mid) / f.span) * height,
+      (yf + ys) * 0.5 * height,
+      ((s.mid - sx * s.size) / s.span) * height,
+      Math.max(0.0006, rw * height),
+      Math.max(0.0006, rd * height),
+    ];
+  });
+  const pivot = knots[0].slice(0, 3),
+    local = knots.map((row) => row.map((x, i) => (i < 3 ? x - pivot[i] : x)));
+  return {
+    id,
+    shape: "sweep",
+    position: pivot,
+    size: [1, 1, 1],
+    rotation: [0, 0, 0],
+    color: "#ffffff",
+    knots: local,
+    paint: { atlas, height, offset: pivot, rest: local, frame: "path" },
+  };
+}
 function polygonInterval(points, y) {
   const hits = [];
   for (let i = 0; i < points.length; i++) {
@@ -631,7 +676,7 @@ export function paintedMaterial(part) {
     const region = viewsByAtlas.get(binding.atlas)?.views.get(binding.region);
     const sides = binding.portrait ? 80 : 20;
     const rest = portraitSurface(
-      sweepGeometry(binding.rest, true, sides),
+      sweepGeometry(binding.rest, binding.frame !== "path", sides),
       binding,
     );
     const positions = rest.attributes.position,

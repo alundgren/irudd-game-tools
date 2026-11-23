@@ -422,7 +422,69 @@
         </details>
       </article>
       <section class="method">
+        <h2>One brief, six live geometry draws</h2>
+        <p>
+          Each attempt began with the same ellipsoid and the same request for a
+          peaceful marsh companion that could carry samples. Draws 1 and 2
+          reused the same direction code. Draws 3 to 6 sampled fresh directions.
+          Every returned model was kept.
+        </p>
+        <figure>
+          <img
+            src="media/marsh-directions.webp"
+            alt="Four accepted marsh companions, in colour above and black silhouette below"
+          />
+          <figcaption>
+            In draw order, 1, 2, 3 and 5. Each column uses its own framing so
+            the outline is easy to compare.
+          </figcaption>
+        </figure>
+        <p>
+          The two repeated directions produced 20- and 24-part animals with
+          different leg plans. One new direction yielded a stack of shells on
+          six paddles, another a horizontal body carrying underslung panniers.
+          The editor measured heights of 1.45, 1.69, 1.34 and 1.20 metres.
+          Requests 4 and 6 reached the four-minute deadline without a model.
+        </p>
+        <p>
+          At the same rendered height, the two repeated-direction silhouettes
+          differed by 0.483 on a 0–1 scale of one minus mask intersection over
+          union. Pairs with different directions ranged from 0.436 to 0.709.
+          These four results show that the agent can vary a shared brief. A
+          larger paired sample is needed to estimate how much extra variety the
+          cue draw contributes. Primitive feet and repeated jar shapes remain
+          visible.
+        </p>
+        <p>
+          In an earlier six-request pilot, four proposals failed with an
+          undefined-field error, one had invalid geometry, and one timed out.
+          The editor now supplies identity transforms for new regions and gives
+          the agent a correction attempt. It also accepts artist-written choice
+          groups, each with its own pin, for explicit control over what gets
+          sampled.
+        </p>
+        <p>
+          <a href="media/marsh-directions.json"
+            >All six outcomes, wording, seeds, region IDs and distances</a
+          >
+          · Editable models <a href="../examples/marsh-draw-1.form.json">1</a>,
+          <a href="../examples/marsh-draw-2.form.json">2</a>,
+          <a href="../examples/marsh-draw-3.form.json">3</a> and
+          <a href="../examples/marsh-draw-5.form.json">5</a>.
+        </p>
+      </section>
+      <section class="method">
         <h2>Faces and moving skin in a game</h2>
+        <figure>
+          <img
+            src="media/groom-directions.webp"
+            alt="The same head with its original hair, newly grown locks, longer curls and gathered hair, from front and back"
+          />
+          <figcaption>
+            Four edits to the same head. Length, curl, crown volume, sweep and
+            gathering change actual geometry. Each adjustment can be undone.
+          </figcaption>
+        </figure>
         <figure>
           <img
             src="media/scout-expressions.webp"
@@ -458,13 +520,47 @@
         </p>
       </section>
       <section class="method">
-        <h2>Two live painted rerolls</h2>
+        <h2>Live painted rerolls</h2>
         <p>
           Both trials started in the editor with an existing model, a random
           design direction and written instructions. The local Codex CLI
           generated fresh artwork and supplied matching front and profile
           outlines. These files reopen with their source art and editable
           regions.
+        </p>
+        <h3>A hooked tail and two thin fins</h3>
+        <p>
+          Maxis selected Himmelslaub’s Lok-nau-tan for its graceful aquatic
+          build. We used that quality as a held-out target for an original reef
+          cartographer. A single ellipsoid, written instructions and a direction
+          draw produced the first painted model in 219 seconds.
+          <a href="https://www.spore.com/what/ga_captains"
+            >Maxis Captain Postcard Challenge winners</a
+          >
+        </p>
+        <figure>
+          <img
+            src="media/reef-cartographer.webp"
+            alt="Side, rear and three-quarter views before and after refitting the fins and tail"
+          />
+          <figcaption>
+            The upper row is the first fit. The lower row is a second AI fit of
+            the same source image.
+          </figcaption>
+        </figure>
+        <p>
+          The initial horizontal cross sections turned a hooked tail into a
+          bowl. Fitting a curved centreline through corresponding front and
+          profile landmarks restored the hook. Thin membranes now join the
+          shoulders. The first AI refit request timed out. The next returned
+          twelve editable regions, including two wing membranes and an
+          eight-landmark tail. Its game-detail GLB passed Khronos validation.
+          The webbed hands remain coarse.
+        </p>
+        <p>
+          <a href="../examples/reef-cartographer.form.json"
+            >Open the editable reef cartographer</a
+          >
         </p>
         <h3>A new body plan</h3>
         <figure>

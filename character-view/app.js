@@ -1,3 +1,5 @@
+import { parseDecks, drawDecks, deckText } from "./choice-decks.js";
+import { groomDefaults } from "./groom.js";
 import * as T from "three";
 import { optimizeForGame } from "./game-export.js";
 import { paintWithAgent } from "./art-variation.js";
@@ -124,6 +126,7 @@ function restoreSessionState(saved) {
     status("The previous session could not be restored.");
   }
 }
+let generationController;
 let clay = false,
   worldScale = false,
   silhouette = false,
@@ -332,6 +335,26 @@ function bindControls() {
   $("#variation-range").value = variation.strength;
   $("#variation-range").onchange = redraw;
   $("#draw-cue").onclick = redraw;
+  $("#deck-input").value = deckText(variation.decks);
+  $("#apply-decks").onclick = () => {
+    try {
+      const decks = drawDecks(
+        parseDecks($("#deck-input").value),
+        variation.seed,
+        variation.decks,
+      );
+      const { decks: old, ...rest } = variation;
+      variation = decks.length ? { ...rest, decks } : rest;
+      request = null;
+      persist();
+      update();
+      status(
+        decks.length ? "Drew from your choices." : "Removed custom choices.",
+      );
+    } catch (e) {
+      status(e.message);
+    }
+  };
   for (let i = 0; i < 2; i++)
     $("#pin-" + i).onchange = () => {
       const pins = [...(variation.pins ?? [null, null])];
@@ -345,6 +368,7 @@ function bindControls() {
     try {
       variation = replayDirection($("#direction-code").value);
       $("#variation-range").value = variation.strength;
+      $("#deck-input").value = deckText(variation.decks);
       request = null;
       persist();
       update();
@@ -556,6 +580,45 @@ function bindControls() {
       else delete next.motionRole;
       return next;
     });
+  const newHairSeed = () => crypto.getRandomValues(new Uint32Array(1))[0];
+  $("#hair-add").onclick = () =>
+    editPart((p) => ({
+      ...p,
+      groom: {
+        ...groomDefaults,
+        color: (p.look ?? form.appearance).hairColor,
+        seed: newHairSeed(),
+      },
+    }));
+  $("#hair-remove").onclick = () =>
+    editPart((p) => {
+      const { groom, ...bare } = p;
+      return bare;
+    });
+  for (const [button, sign] of [
+    ["hair-less", -1],
+    ["hair-more", 1],
+  ]) {
+    $("#" + button).onclick = () =>
+      editPart((p) => {
+        const k = $("#hair-axis").value;
+        const value = Math.min(
+          k === "length" ? 2 : 1,
+          Math.max(
+            k === "sweep" ? -1 : 0,
+            p.groom[k] + sign * (k === "length" ? 0.18 : 0.15),
+          ),
+        );
+        return { ...p, groom: { ...p.groom, [k]: Number(value.toFixed(3)) } };
+      });
+  }
+  $("#hair-color").onchange = () =>
+    editPart((p) => ({
+      ...p,
+      groom: { ...p.groom, color: $("#hair-color").value },
+    }));
+  $("#hair-roll").onclick = () =>
+    editPart((p) => ({ ...p, groom: { ...p.groom, seed: newHairSeed() } }));
   $("#surface").onchange = () =>
     editPart((p) => ({ ...p, surface: $("#surface").value }));
   $("#part-color").onchange = () =>
@@ -799,6 +862,7 @@ function bindControls() {
   $("#generate").onclick = generate;
   $("#paint-generate").hidden = !connected;
   $("#paint-generate").onclick = () => generate("paint");
+  $("#cancel-generation").onclick = () => generationController?.abort();
   $("#save-turnaround").onclick = async () => {
     if (proposal?.art)
       download(await (await fetch(proposal.art.url)).blob(), "turnaround.webp");
@@ -979,6 +1043,7 @@ async function generate(kind) {
       return;
     }
     const views = referenceViews(kind === "paint" ? target : null);
+    generationController = new AbortController();
     busy = true;
     update();
     status("Generating a variation…");
@@ -993,6 +1058,7 @@ async function generate(kind) {
         views,
         height,
         target,
+        signal: generationController.signal,
         wearable: Boolean(target) && $("#paint-action").value === "wear",
         status,
       });
@@ -1002,6 +1068,7 @@ async function generate(kind) {
       return;
     }
     const res = await fetch("/variation", {
+      signal: generationController.signal,
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...request, views }),
@@ -1012,8 +1079,13 @@ async function generate(kind) {
     showCurrent = false;
     status("Review the proposed form.");
   } catch (e) {
-    status(e.message);
+    status(
+      generationController?.signal.aborted
+        ? "Generation cancelled. You can keep editing this form."
+        : e.message,
+    );
   } finally {
+    generationController = null;
     busy = false;
     update();
   }
@@ -1051,6 +1123,7 @@ function update() {
   $("#name").textContent = target ?? "Whole form";
   $("#look").textContent = preview.parts.length + " parts";
   $("#candidate").hidden = !proposal;
+  $("#cancel-generation").hidden = !generationController;
   $("#save-turnaround").hidden = !proposal?.art;
   $("#save-map").hidden = !proposal?.art?.map;
   $("#summary").textContent = proposal?.summary || "";
@@ -1131,6 +1204,17 @@ function update() {
   pressed($("#branch-tool"), drawing);
   $("#branch-settings").hidden = !drawing;
   const joined = form.parts.filter((p) => p.blendSkin);
+  $("#hair-tools").hidden =
+    locked ||
+    !(
+      part?.shape === "head" ||
+      part?.anatomy === "face" ||
+      part?.outfitRole === "head"
+    );
+  $("#hair-add").hidden = !!part?.groom;
+  $("#hair-remove").hidden = !part?.groom;
+  $("#hair-settings").hidden = !part?.groom;
+  if (part?.groom) $("#hair-color").value = part.groom.color;
   $("#skin-tools").hidden = !form.parts.some(canBlend);
   $("#skin-part").disabled = locked || !canBlend(part);
   $("#skin-part").textContent = part?.blendSkin
@@ -1163,6 +1247,37 @@ function update() {
     $("#pin-" + i).checked = variation.pins?.[i] != null;
     $("#pin-" + i).disabled = locked;
   });
+  const choices = $("#chosen-decks");
+  choices.replaceChildren();
+  for (const entry of variation.decks ?? []) {
+    const label = document.createElement("label"),
+      pin = document.createElement("input");
+    label.className = "check";
+    pin.type = "checkbox";
+    pin.checked = entry.pin !== null;
+    pin.disabled = locked;
+    pin.onchange = () => {
+      const decks = variation.decks.map((d) =>
+        d.label === entry.label
+          ? { ...d, pin: pin.checked ? variation.seed : null }
+          : d,
+      );
+      variation = {
+        ...variation,
+        decks: drawDecks(decks, variation.seed, decks),
+      };
+      request = null;
+      persist();
+      update();
+    };
+    label.append(
+      pin,
+      document.createTextNode("Keep " + entry.label + " · " + entry.value),
+    );
+    choices.append(label);
+  }
+  $("#apply-decks").disabled = locked;
+  $("#deck-input").disabled = locked;
   if (document.activeElement !== $("#direction-code"))
     $("#direction-code").value = directionCode(variation);
   $("#direction-replay").disabled = locked;

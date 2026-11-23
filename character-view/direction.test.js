@@ -1,3 +1,4 @@
+import { parseDecks, drawDecks } from "./choice-decks.js";
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
@@ -50,4 +51,29 @@ test("new parts with omitted local transforms receive independent metric default
   assert.deepEqual(p.frameSize, [1, 1, 1]);
   assert.notEqual(p.frameSize, p.size);
   assert.deepEqual(preview.parts, []);
+});
+test("operator choices remain independent, replay across Unicode and visit every allowed value", () => {
+  const definitions = parseDecks(
+    "Fötter = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10\nFinish = linen | 🪶 feathers",
+  );
+  const counts = new Map();
+  for (let seed = 0; seed < 2000; seed++) {
+    const [a, b] = drawDecks(definitions, seed);
+    assert.equal(
+      drawDecks(definitions.slice().reverse(), seed)[1].value,
+      a.value,
+    );
+    counts.set(a.value, (counts.get(a.value) ?? 0) + 1);
+  }
+  assert.equal(counts.size, 10);
+  assert.ok([...counts.values()].every((n) => n > 145 && n < 255));
+  let prior = redrawDirection(null, "radical", 25);
+  prior.decks = drawDecks(definitions, prior.seed);
+  prior.decks[0].pin = prior.seed;
+  const next = redrawDirection(prior, "radical", 0xffffffff);
+  assert.equal(next.decks[0].value, prior.decks[0].value);
+  assert.deepEqual(replayDirection(directionCode(next)), next);
+  for (const bad of ["empty", "X = a | a", "X = a | b\nX = c | d"])
+    assert.throws(() => parseDecks(bad));
+  assert.throws(() => replayDirection("radical/3~junk"));
 });

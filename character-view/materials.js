@@ -4,6 +4,41 @@ import swatchesUrl from "./surfaces.atlas.webp";
 
 const surfaces = new Map();
 export async function loadSurfaces() {
+  for (const [key, frequency] of [
+    ["strands", 11],
+    ["scalp", 108],
+  ]) {
+    const c = document.createElement("canvas");
+    c.width = key === "scalp" ? 1024 : 192;
+    c.height = 128;
+    const ctx = c.getContext("2d"),
+      im = ctx.createImageData(c.width, c.height);
+    for (let y = 0; y < c.height; y++)
+      for (let x = 0; x < c.width; x++) {
+        const u = x / c.width,
+          v = y / c.height;
+        const w =
+          2 *
+          Math.PI *
+          (u * frequency + 0.085 * Math.sin(2 * Math.PI * (2 * v + u)));
+        const fiber =
+          0.52 * Math.sin(w) +
+          0.32 * Math.sin(3 * w + 1.1) +
+          0.16 * Math.sin(5 * w + 0.6);
+        const level = Math.round(
+          218 + 31 * fiber + 5 * Math.sin(2 * Math.PI * (v + 3 * u)),
+        );
+        const i = (x + y * c.width) * 4;
+        im.data[i] = im.data[i + 1] = im.data[i + 2] = level;
+        im.data[i + 3] = 255;
+      }
+    ctx.putImageData(im, 0, 0);
+    const t = new T.CanvasTexture(c);
+    t.colorSpace = T.SRGBColorSpace;
+    t.wrapS = T.RepeatWrapping;
+    t.anisotropy = 4;
+    surfaces.set(key, t);
+  }
   const [image, jacket] = await Promise.all(
     [swatchesUrl, jacketUrl].map((url) => new T.ImageLoader().loadAsync(url)),
   );
@@ -95,7 +130,14 @@ export function surfaceMaterial(color, kind = "plain") {
   return new T.MeshStandardMaterial({
     color,
     map: texture ?? null,
-    roughness: kind === "metal" ? 0.47 : kind === "leather" ? 0.66 : 0.88,
+    roughness:
+      kind === "metal"
+        ? 0.47
+        : kind === "leather"
+          ? 0.66
+          : ["strands", "scalp"].includes(kind)
+            ? 0.64
+            : 0.88,
     metalness: kind === "metal" ? 0.38 : 0,
     ...(texture
       ? { bumpMap: texture, bumpScale: kind === "scales" ? 0.003 : 0.0007 }

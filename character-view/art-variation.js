@@ -9,9 +9,10 @@ import { buildTraceMap } from "./trace-map.js";
 import { startingForm, validateForm } from "./recipe.js";
 import { extractComponent, placeComponent } from "./graft.js";
 
-async function post(path, value) {
+async function post(path, value, signal) {
   const response = await fetch(path, {
     method: "POST",
+    signal,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(value),
   });
@@ -58,7 +59,7 @@ export async function fitMapWithAgent(
   atlas,
   height,
   instructions,
-  { revision, requestId, preserve = [], status = () => {} },
+  { revision, requestId, preserve = [], status = () => {}, signal },
 ) {
   const brief = {
     format: "irudd.trace-request.v1",
@@ -72,7 +73,7 @@ export async function fitMapWithAgent(
   let problem;
   const attempts = [];
   for (let i = 0; i < 2; i++) {
-    const map = await post("/trace-map", brief);
+    const map = await post("/trace-map", brief, signal);
     attempts.push(map);
     try {
       const form = buildTraceMap(map, atlas, height);
@@ -125,7 +126,7 @@ export async function fitMapWithAgent(
 export async function paintWithAgent(
   request,
   base,
-  { views, height, target, wearable = false, status },
+  { views, height, target, wearable = false, status, signal },
 ) {
   if (target && !wearable && request.preserve.includes(target))
     throw new Error(
@@ -144,7 +145,7 @@ export async function paintWithAgent(
     wearable,
   };
   status("Generating an original four-view turnaround…");
-  const art = await post("/turnaround", payload);
+  const art = await post("/turnaround", payload, signal);
   if (art.requestId !== request.requestId || art.revision !== request.revision)
     throw new Error("This artwork belongs to an earlier edit.");
   const bytes = Uint8Array.from(atob(art.png), (c) => c.charCodeAt(0));
@@ -168,6 +169,7 @@ export async function paintWithAgent(
         revision: request.revision,
         requestId: request.requestId,
         preserve: target ? [] : request.preserve,
+        signal,
         status,
       },
     ));
@@ -179,6 +181,7 @@ export async function paintWithAgent(
         missed.join(", ") +
         ". ";
   } catch (error) {
+    signal?.throwIfAborted();
     // A failed fit still leaves usable artwork and an editable 3D candidate.
     // Protected whole-form edits require a valid named mapping.
     if (!target && request.preserve.length)

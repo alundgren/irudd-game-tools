@@ -19,6 +19,7 @@ export async function codexVariation(brief, signal, repair) {
       prompt,
       (brief.views ?? []).map((v) => ({ data: v.jpeg })),
       signal,
+      { effort: "medium" },
     )
   ).result;
 }
@@ -95,7 +96,7 @@ export function workshopServer(
     const controller = new AbortController();
     const timeout = setTimeout(
       () => controller.abort(),
-      req.url === "/turnaround" ? 420_000 : 240_000,
+      req.url === "/trace-map" ? 240_000 : 420_000,
     );
     res.on("close", () => {
       if (!res.writableEnded) controller.abort();
@@ -165,6 +166,7 @@ export function workshopServer(
             throw new Error(
               "The corrected proposal could not be applied. " + error.message,
             );
+          timeout.refresh();
           repair = {
             problem: error.message,
             previousReply: JSON.stringify(raw).slice(0, 55000),
