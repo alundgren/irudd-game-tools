@@ -7,7 +7,13 @@ import {
   wearOutfit,
 } from "./outfit-sets.js";
 
-export function wardrobeEditor({ getForm, getTarget, commit, status }) {
+export function wardrobeEditor({
+  getForm,
+  getTarget,
+  commit,
+  status,
+  traceOutline,
+}) {
   const $ = (id) => document.getElementById(id);
   let previousForm,
     previousTarget,
@@ -49,15 +55,40 @@ export function wardrobeEditor({ getForm, getTarget, commit, status }) {
     if (order) style.order = order;
     commit(setLayer(form, layerId, style), "Updated garment layer.");
   });
+  whenClicked("skirt-trace", () => {
+    const form = getForm(),
+      p = form.parts.find((x) => x.id === layerId);
+    if (p?.cut?.kind !== "Skirt") throw new Error("Select a skirt first.");
+    traceOutline((outline) =>
+      commit(
+        {
+          ...form,
+          parts: form.parts.map((q) =>
+            q.id === p.id ? { ...q, cut: { ...q.cut, outline } } : q,
+          ),
+        },
+        "Applied the waist-to-hem outline.",
+      ),
+    );
+  });
   whenClicked("adjust-cut", () => {
     const form = getForm(),
       part = form.parts.find((p) => p.id === layerId);
     if (!part?.cut) throw new Error("Select a cut garment.");
     const cut = {
       ...part.cut,
-      armAccess: $("cut-arms").value,
+      ...(part.cut.kind === "Skirt"
+        ? {
+            bias: Number($("skirt-bias").value) / 100,
+            gather: Number($("skirt-gather").value) / 100,
+            train: Number($("skirt-train").value) / 100,
+            tiers: Number($("skirt-tiers").value),
+          }
+        : {
+            armAccess: $("cut-arms").value,
+            opening: Number($("cut-opening").value),
+          }),
       drop: Number($("cut-drop").value) / 100,
-      opening: Number($("cut-opening").value),
       flare: Number($("cut-flare").value) / 100,
       folds: Number($("cut-folds").value),
     };
@@ -92,8 +123,19 @@ export function wardrobeEditor({ getForm, getTarget, commit, status }) {
     $("cut-fit").hidden = !p?.cut;
     if (p?.cut) {
       $("cut-drop").value = +(p.cut.drop * 100).toFixed(1);
-      $("cut-opening").value = p.cut.opening;
-      $("cut-arms").value = armAccess(p.cut);
+      const skirt = p.cut.kind === "Skirt";
+      $("skirt-pattern").hidden = !skirt;
+      $("cut-opening").parentElement.hidden = skirt;
+      $("cut-arms").parentElement.hidden = skirt;
+      if (skirt) {
+        $("skirt-bias").value = Math.round(100 * p.cut.bias);
+        $("skirt-gather").value = Math.round(100 * p.cut.gather);
+        $("skirt-tiers").value = p.cut.tiers;
+        $("skirt-train").value = Math.round(100 * p.cut.train);
+      } else {
+        $("cut-opening").value = p.cut.opening;
+        $("cut-arms").value = armAccess(p.cut);
+      }
       $("cut-flare").value = Math.round(p.cut.flare * 100);
       $("cut-folds").value = p.cut.folds;
     }

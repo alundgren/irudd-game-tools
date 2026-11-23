@@ -1,3 +1,4 @@
+import { traceSkirt } from "./skirt-pattern.js";
 import { profileTrace } from "./profile-fit.js";
 
 export function profileEditor(save) {
@@ -12,6 +13,12 @@ export function profileEditor(save) {
     points = [],
     dragging = -1,
     revision = 0;
+  let skirtSave = null;
+  const defaultHelp = byId("profile-help").textContent;
+  const read = () =>
+    skirtSave
+      ? traceSkirt(points)
+      : profileTrace(points, byId("profile-facing").value);
   function draw(message) {
     canvas.hidden = !picture;
     const scale = picture ? canvas.width / picture.naturalWidth : 1;
@@ -35,7 +42,7 @@ export function profileEditor(save) {
     apply.disabled = true;
     if (points.length >= 4) {
       try {
-        profileTrace(points, byId("profile-facing").value);
+        read();
         apply.disabled = false;
       } catch (e) {
         message ??= e.message;
@@ -44,10 +51,20 @@ export function profileEditor(save) {
     byId("profile-undo").disabled = !points.length;
     readout.textContent =
       message ??
-      (picture
-        ? points.length +
-          " points. Finish at the forward edge of the lower chin."
-        : "Choose a cropped side view of the face.");
+      (skirtSave
+        ? !picture
+          ? "Choose a front view of the garment."
+          : points.length === 0
+            ? "Mark the centre of the waistband."
+            : points.length === 1
+              ? "Mark its left or right edge."
+              : "Mark the same edge down to the hem. " +
+                points.length +
+                " points."
+        : picture
+          ? points.length +
+            " points. Finish at the forward edge of the lower chin."
+          : "Choose a cropped side view of the face.");
   }
   function point(e) {
     const rect = canvas.getBoundingClientRect();
@@ -92,7 +109,10 @@ export function profileEditor(save) {
         ) < 6,
     );
     if (dragging < 0) {
-      if (points.length >= 96 || (points.length && at[1] <= points.at(-1)[1]))
+      if (
+        points.length >= (skirtSave ? 65 : 96) ||
+        (points.length > (skirtSave ? 1 : 0) && at[1] <= points.at(-1)[1])
+      )
         return draw(
           "Place the next point below the previous one, or drag a point to adjust it.",
         );
@@ -117,8 +137,7 @@ export function profileEditor(save) {
   byId("profile-facing").onchange = () => draw();
   byId("profile-close").onclick = () => dialog.close();
   apply.onclick = () => {
-    const fit = profileTrace(points, byId("profile-facing").value);
-    save(fit);
+    (skirtSave ?? save)(read());
     dialog.close();
   };
   dialog.addEventListener("close", () => {
@@ -130,7 +149,25 @@ export function profileEditor(save) {
     canvas.width = 1;
     canvas.height = 1;
   });
-  return () => {
+  return (onSkirt = null) => {
+    skirtSave = typeof onSkirt === "function" ? onSkirt : null;
+    byId("profile-title").textContent = skirtSave
+      ? "Trace a skirt silhouette"
+      : "Trace the face in profile";
+    byId("profile-help").textContent = skirtSave
+      ? "Mark the centre and one edge of the waistband, then follow that edge down to the hem. The trace scales to the wearer’s waist and chosen garment length."
+      : defaultHelp;
+    byId("profile-file-label").textContent = skirtSave
+      ? "Garment reference"
+      : "Side portrait";
+    byId("profile-facing").parentElement.hidden = !!skirtSave;
+    apply.textContent = skirtSave ? "Use this outline" : "Fit selected face";
+    canvas.setAttribute(
+      "aria-label",
+      skirtSave
+        ? "Trace the waist and garment edge"
+        : "Trace points on the reference portrait",
+    );
     draw();
     dialog.showModal();
   };

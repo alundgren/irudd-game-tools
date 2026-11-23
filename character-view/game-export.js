@@ -277,7 +277,7 @@ function remap(g, groups, ratio, tiles, size) {
     indices = [],
     sourceOrder = [];
   for (const b of groups) {
-    const simplified = simplify(g, b, ratio, input),
+    const simplified = simplify(g, b, b.ratio ?? ratio, input),
       lookup = new Map();
     const [x, y, w, h] = tiles.get(b.material).uv;
     for (const i of simplified) {
@@ -344,7 +344,8 @@ export async function optimizeForGame(
     tiles = new Map();
   let initial = 0,
     eyeTriangles = 0,
-    fittedFaceTriangles = 0;
+    fittedFaceTriangles = 0,
+    foldedClothTriangles = 0;
   root.traverseVisible((m) => {
     if (!m.isMesh) return;
     const groups = batches(m);
@@ -352,6 +353,8 @@ export async function optimizeForGame(
       initial += b.count / 3;
       if (m.userData.eyePiece) eyeTriangles += b.count / 3;
       else if (m.userData.fittedEyes) fittedFaceTriangles += b.count / 3;
+      else if (b.material.userData.foldedCloth)
+        foldedClothTriangles += b.count / 3;
       const e = tiles.get(b.material) ?? { material: b.material, weight: 0 };
       // Dense facial meshes retain more texture space, while tiny hardware
       // shares the remainder. All weights have a lower bound for padding.
@@ -366,18 +369,29 @@ export async function optimizeForGame(
   // Thin moving eye layers need closely matching surfaces after simplification.
   // Reserve part of the existing triangle budget so their depths stay ordered.
   const eyes = Math.min(eyeTriangles, triangles * 0.22),
-    faces = Math.min(fittedFaceTriangles * 0.55, triangles * 0.34);
+    faces = Math.min(fittedFaceTriangles * 0.55, triangles * 0.34),
+    cloth = Math.min(
+      foldedClothTriangles * 0.6,
+      (triangles - eyes - faces) * 0.32,
+    );
   const page = atlas([...tiles.values()], size),
     ratio = Math.min(
       0.55,
-      (triangles - eyes - faces) /
-        Math.max(1, initial - eyeTriangles - fittedFaceTriangles),
+      (triangles - eyes - faces - cloth) /
+        Math.max(
+          1,
+          initial - eyeTriangles - fittedFaceTriangles - foldedClothTriangles,
+        ),
     );
   page.material.vertexColors = meshes.some(([mesh]) =>
     Boolean(mesh.geometry.attributes.color),
   );
   let count = 0;
   for (const [mesh, groups] of meshes) {
+    // Both sides of a close-fitting folded panel need enough samples to stay ordered.
+    for (const batch of groups)
+      if (batch.material.userData.foldedCloth && foldedClothTriangles)
+        batch.ratio = cloth / foldedClothTriangles;
     if (page.material.vertexColors) whiteVertexColors(mesh.geometry);
     const original = mesh.geometry,
       joined = mergeVertices(original, 1e-5);

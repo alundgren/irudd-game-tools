@@ -131,13 +131,15 @@ export function surfaceMaterial(color, kind = "plain") {
     color,
     map: texture ?? null,
     roughness:
-      kind === "metal"
-        ? 0.47
-        : kind === "leather"
-          ? 0.66
-          : ["strands", "scalp"].includes(kind)
-            ? 0.64
-            : 0.88,
+      kind === "satin"
+        ? 0.34
+        : kind === "metal"
+          ? 0.47
+          : kind === "leather"
+            ? 0.66
+            : ["strands", "scalp"].includes(kind)
+              ? 0.64
+              : 0.88,
     metalness: kind === "metal" ? 0.38 : 0,
     ...(texture
       ? { bumpMap: texture, bumpScale: kind === "scales" ? 0.003 : 0.0007 }

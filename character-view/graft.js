@@ -1,3 +1,4 @@
+import { skirtOutline } from "./skirt-pattern.js";
 import { sweepGeometry } from "./surface.js";
 import { headSpace } from "./portrait-frame.js";
 import { Box3, Vector3, Matrix4, Euler, Quaternion, MathUtils } from "three";
@@ -197,11 +198,27 @@ export function cutGarment(form, id, kind, color = "#405d59") {
     n = 2;
   while (g.byId.has(key)) key = kind.toLowerCase() + " " + n++;
   pivot.y = box.max.y - 0.016 * size.y;
+  if (kind === "Skirt") {
+    pivot.y = box.min.y + size.y * 0.42;
+    const floor = bodyFrame(form).min.y;
+    cut.drop = MathUtils.clamp((pivot.y - floor) * 0.965, 0.025, 8);
+    cut.width = MathUtils.clamp(size.x * 0.86, 0.025, 8);
+    cut.depth = MathUtils.clamp(size.z * 0.91, 0.025, 8);
+    Object.assign(cut, {
+      outline: structuredClone(skirtOutline),
+      bias: 0.65,
+      gather: 0.12,
+      tiers: 2,
+      train: 0,
+      folds: 7,
+    });
+    delete cut.opening;
+  }
   const part = {
     id: key,
     shape: "mantle",
     color,
-    surface: "canvas",
+    surface: kind === "Skirt" ? "satin" : "canvas",
     wearFit: true,
     cut,
     motionRole: "skirt",

@@ -1,3 +1,4 @@
+import { addSkirtCage, weightSkirt, animateSkirts } from "./skirt-rig.js";
 import { authoredClips, bindPoseJoints } from "./poses.js";
 import { bindMantleArms } from "./mantle-rig.js";
 import { whiteVertexColors } from "./markings.js";
@@ -299,7 +300,12 @@ export function skinCharacter(form, model) {
       anchor = s.points[i];
     }
   }
-  for (const s of regions.values()) s.fingers = bindFingers(s, bones, index);
+  const skirtCages = [];
+  for (const s of regions.values()) {
+    s.fingers = bindFingers(s, bones, index);
+    s.skirtCage = addSkirtCage(s, bones, index);
+    if (s.skirtCage) skirtCages.push(s.skirtCage);
+  }
   actor.updateMatrixWorld(true);
   const skeleton = new T.Skeleton(bones),
     point = new T.Vector3();
@@ -335,6 +341,8 @@ export function skinCharacter(form, model) {
       }
       if (source === s.object)
         bindMantleArms(s, regions, geometry, ids, blend, index, weights);
+      if (source === s.object && s.skirtCage)
+        weightSkirt(s.skirtCage, geometry, ids, blend, index);
       if (s.fingers.has(source))
         weightFingers(s.fingers.get(source), ids, blend, index, s.bones[0]);
       geometry.setAttribute(
@@ -418,6 +426,9 @@ export function skinCharacter(form, model) {
     actor.children.find(
       (o) => o.isSkinnedMesh && !o.userData.faceSurface && !o.userData.eyePiece,
     ) ?? actor.children.find((o) => o.isSkinnedMesh);
+  const poses = authoredClips(bindings, form.poses);
+  if (skinned && skirtCages.length)
+    animateSkirts(actor, skinned, regions, skirtCages, [...clips, ...poses]);
   if (skinned) {
     const supported = [...regions.values()].some((r) =>
       ["thigh", "foot", "skirt", "axial spine"].includes(r.role),
@@ -429,7 +440,7 @@ export function skinCharacter(form, model) {
       supported ? clips : clips.filter((c) => ["Fly", "Swim"].includes(c.name)),
     );
   }
-  clips.push(...authoredClips(bindings, form.poses));
+  clips.push(...poses);
   return {
     actor,
     bindings,

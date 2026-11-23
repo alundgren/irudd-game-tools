@@ -622,6 +622,8 @@ export function createCharacter(form, silhouette, clay = false) {
         if (!plainView) {
           object.material = object.material.clone();
           object.material.vertexColors = true;
+          if (part.cut.kind === "Skirt")
+            object.material.userData.foldedCloth = true;
         } else geometry.deleteAttribute("color");
       }
       if (geometry.handRig) object.handRig = geometry.handRig;
@@ -771,8 +773,12 @@ export function createCharacter(form, silhouette, clay = false) {
       host.traverseVisible((node) => {
         const role = roles.get(node.userData.partId);
         if (
-          ["thigh", "shin", "upper arm"].includes(role) ||
-          (armAccess(p.cut) !== "Open sides" &&
+          (p.cut.kind === "Skirt"
+            ? ["thigh", "shin", "foot"]
+            : ["thigh", "shin", "upper arm"]
+          ).includes(role) ||
+          (p.cut.kind !== "Skirt" &&
+            armAccess(p.cut) !== "Open sides" &&
             ["forearm", "hand"].includes(role))
         )
           limbs.push(node);

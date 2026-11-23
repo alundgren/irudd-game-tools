@@ -12,7 +12,12 @@ export function bindMantleArms(
   index,
   jointWeights,
 ) {
-  if (region.part.shape !== "mantle" || !region.part.wearFit) return;
+  if (
+    region.part.shape !== "mantle" ||
+    !region.part.wearFit ||
+    region.part.cut.kind === "Skirt"
+  )
+    return;
   const carrier = regions.get(region.part.parent)?.object;
   if (!carrier) return;
   const segments = [];

@@ -62,6 +62,7 @@ export function validPoses(poses) {
 export function bindPoseJoints(skeleton) {
   const bindings = new Map();
   for (const bone of skeleton.bones) {
+    if (bone.userData.garmentSupport) continue;
     const { region: part = "", digit, station = 0, segment } = bone.userData;
     const address = {
       part,

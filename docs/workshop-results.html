@@ -640,6 +640,21 @@
           >
         </p>
       </section>
+      <section class="method" id="traced-wardrobe">
+        <h2>Can the relay runner wear Lady Ursula’s skirt?</h2>
+        <figure><img src="media/relay-wardrobe.webp" alt="One runner on the same floor in a training layer, pale running trousers, a dark concert skirt and a pressure suit." />
+          <figcaption>Four reduced GLBs, rendered in a separate Three.js player with the same camera. All measure 1.764 m. The source form retains its original 14 body regions and their paint. The concert outfit adds a single editable skirt.</figcaption></figure>
+        <p>The running outfit uses Vesbesit’s Faith Connors as its target. The concert skirt takes its outline from simcrazy5’s Lady Ursula. Both players’ creations were selected by PC Gamer. In the workshop, mark the waist centre, one waistband edge and that side of the garment down to the floor. This trial used 18 clicks on the published screenshot of the Sim. Only the normalized trace is saved. <a href="https://www.pcgamer.com/the-most-fabulous-fan-made-sims/">PC Gamer selection</a> · <a href="https://cdn.mos.cms.futurecdn.net/912c6594e92d298e0ff7544ea5027eba.png">Faith by Vesbesit</a> · <a href="https://cdn.mos.cms.futurecdn.net/c38d266847f1f93501612b14d85bab2f.png">Lady Ursula by simcrazy5</a></p>
+        <figure><img src="media/relay-drape.webp" alt="Front and unpainted oblique views reveal diagonal satin folds and three bands above the hem. A step and side crouch show the cloth lifting over the legs." />
+          <figcaption>Front, clay three-quarter, walk and crouch. The first reduced model lost the diagonal gathers. Giving the two cloth surfaces 7,680 of the final 23,996 triangles recovered the diagonal ridges and tiered hem.</figcaption></figure>
+        <table><thead><tr><th>Front silhouette</th><th>Ursula’s traced skirt</th><th>Runner’s exported skirt</th></tr></thead><tbody>
+          <tr><td>Knee width ÷ hip width</td><td>0.87</td><td>0.88</td></tr>
+          <tr><td>Lower hem width ÷ hip width</td><td>1.18</td><td>1.21</td></tr>
+        </tbody></table>
+        <p>Widths are horizontal slices at 27%, 57% and 93% of the waist-to-floor cut. The runner’s fitted widths are 52.4, 46.2 and 63.4 cm. The waistband follows the runner’s own torso. The source has an embroidered clasp, a wrapped bodice and several shallower folds. This version retains the runner’s original top and shoes. Its crouch looks stiff where the skirt expands over both knees.</p>
+        <p>The initial moving skirt crossed 315 fabric triangles against the legs in the worst of eight walking samples. The revised export uses 156 cloth joints driven by the actual leg surfaces during its baked clips. Across rest and 25 samples in each of four clips, the exported skirt had zero triangle crossings against the torso or either leg, including shoes. Its lowest sampled hem point was 1.2 cm above the floor. New game-engine animations would need their own cloth tracks. Loading the original running outfit again produced identical mesh positions, indices, weights and front-view pixels.</p>
+        <p><a href="../examples/relay-wardrobe.form.json">Edit all four outfits</a> · <a href="../examples/relay-concert.glb">Download the concert GLB</a> · <span class="live-demo" hidden><a data-player="relay-concert" data-clip="Walk">Play the walking export</a> · </span><a href="media/relay-wardrobe.json">Measurements and reproduction</a></p>
+      </section>
       <section class="method" id="garment-motion">
         <h2>Can the wearer reach through a cape?</h2>
         <figure>

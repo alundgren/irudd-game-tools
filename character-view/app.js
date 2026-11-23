@@ -538,7 +538,11 @@ function refreshReferences(locked = false) {
 }
 function bindControls() {
   bindAlternates();
+  const traceOutline = profileEditor((profileFit) =>
+    editPart((p) => ({ ...p, profileFit })),
+  );
   updateWardrobe = wardrobeEditor({
+    traceOutline,
     getForm: () => nudge(form, target, amounts),
     getTarget: () => target,
     commit,
@@ -907,9 +911,7 @@ function bindControls() {
         ? { ...rest, frontFits: frontFits.slice(0, -1) }
         : rest;
     });
-  $("#profile-open").onclick = profileEditor((profileFit) =>
-    editPart((p) => ({ ...p, profileFit })),
-  );
+  $("#profile-open").onclick = () => traceOutline();
   $("#profile-mix").onchange = () =>
     editPart((p) => ({
       ...p,

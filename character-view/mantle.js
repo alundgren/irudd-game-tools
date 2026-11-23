@@ -1,6 +1,7 @@
 import { BufferGeometry, Float32BufferAttribute, MathUtils } from "three";
 
-export const garmentCuts = ["Cape", "Poncho", "Tabard"];
+import { skirtGeometry, validSkirtOutline } from "./skirt-pattern.js";
+export const garmentCuts = ["Cape", "Poncho", "Tabard", "Skirt"];
 export const armAccessOptions = ["Covered", "Open sides", "Armholes"];
 export function armAccess(c) {
   return (
@@ -12,16 +13,27 @@ export function validCut(c) {
   return (
     c &&
     garmentCuts.includes(c.kind) &&
-    armAccessOptions.includes(armAccess(c)) &&
+    (c.kind === "Skirt" || armAccessOptions.includes(armAccess(c))) &&
     ["width", "depth", "drop"].every(
       (k) => Number.isFinite(c[k]) && c[k] >= 0.025 && c[k] <= 8,
     ) &&
     Number.isFinite(c.flare) &&
     c.flare >= 0.65 &&
     c.flare <= 2.2 &&
-    Number.isFinite(c.opening) &&
-    c.opening >= 2 &&
-    c.opening <= 150 &&
+    (c.kind === "Skirt"
+      ? validSkirtOutline(c.outline) &&
+        Number.isFinite(c.bias) &&
+        Math.abs(c.bias) <= 1 &&
+        Number.isFinite(c.gather) &&
+        c.gather >= 0 &&
+        c.gather <= 0.3 &&
+        Number.isFinite(c.train) &&
+        c.train >= 0 &&
+        c.train <= 2 &&
+        Number.isInteger(c.tiers) &&
+        c.tiers >= 0 &&
+        c.tiers <= 6
+      : Number.isFinite(c.opening) && c.opening >= 2 && c.opening <= 150) &&
     Number.isInteger(c.folds) &&
     c.folds >= 0 &&
     c.folds <= 24
@@ -30,6 +42,7 @@ export function validCut(c) {
 // A single fabric panel wraps an open neckline. Two surfaces share sewn
 // boundaries around the hem, front opening and armholes.
 export function mantleGeometry(c) {
+  if (c.kind === "Skirt") return skirtGeometry(c);
   const arms = armAccess(c);
   const columns = 96,
     rows = 34,

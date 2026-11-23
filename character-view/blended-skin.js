@@ -21,7 +21,7 @@ export const canBlend = (p) =>
 export const bodyRegion = (p) =>
   canBlend(p) &&
   !["skirt", "accessory"].includes(p.outfitRole) &&
-  !["canvas", "leather", "metal"].includes(p.surface) &&
+  !["canvas", "satin", "leather", "metal"].includes(p.surface) &&
   !/(eye|pupil|iris|tooth|teeth|claw|beak|plate|buckle|strap|boot|lens|saddle|sleeve|shirt|coat|robe|skirt|gown|tunic|dress|belt|pouch|vest|pack|collar|cuff|hat)/i.test(
     p.id,
   );
