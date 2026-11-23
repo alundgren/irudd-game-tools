@@ -103,12 +103,16 @@ export function generateWorkshopForm(
         ],
         { target: "head" },
       ).form;
-    // A painted head brings its own complexion. Carry it to the bare body.
-    const tone = form.parts.find((p) => p.id === "head")?.color;
-    if (/^#[0-9a-f]{6}$/i.test(tone ?? ""))
+    // A painted head brings its own complexion in its artwork, not in its
+    // part colour. Sample the face and carry that tone to the bare body.
+    const head = form.parts.find((p) => p.id === "head"),
+      tone = head?.paint ? palmColor(head, null) : null;
+    if (/^#[0-9a-f]{6}$/i.test(tone ?? "")) {
       form.parts = form.parts.map((p) =>
         p.bare || p.shape === "hand" ? { ...p, color: tone } : p,
       );
+      form.appearance = { ...form.appearance, skin: tone };
+    }
     form.origin = { ...form.origin, seed };
     return form;
   }
