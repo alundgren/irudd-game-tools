@@ -407,6 +407,19 @@
           </div>
           <div id="candidate" hidden>
             <p id="summary"></p>
+            <label class="field"
+              >Refine this proposal<textarea
+                id="refine-note"
+                rows="2"
+                maxlength="2000"
+                placeholder="Keep the tail; move the cargo to the left hip."
+              ></textarea>
+            </label>
+            <div class="actions">
+              <button id="refine-send">Refine proposal</button
+              ><button id="refine-load" hidden>Load refinement</button
+              ><button id="refine-back" hidden>Previous proposal</button>
+            </div>
             <div class="actions">
               <button id="compare" aria-pressed="false">Show current</button
               ><button id="accept" class="solid">Accept</button

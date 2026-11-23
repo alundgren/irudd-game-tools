@@ -1,0 +1,187 @@
+{
+  "target": {
+    "name": "Sanu-Kish Merchant",
+    "creator": "Karl-EL",
+    "selection": "https://www.spore.com/what/ga_captains",
+    "reference": "https://www.spore.com/static/war/images/community/500297662577.png"
+  },
+  "first": {
+    "seconds": 104.7,
+    "direction": "Make a new species of estuary cargo merchant from this accepted character. Use the editor's drawn lower anatomy and trade good. Build that lower body below the existing arm bearing torso, replacing both old legs and feet as needed. Keep all four arms, hands, digits, their IDs, mounting torso, and the saved Greet and offer pose. The Spore reference illustrates the flowing garment and shrewd shopkeeper silhouette. Make an original practical field coat with a genuine open front and rear split, raised asymmetric collar and two short outer shoulder panels; remove the closed robe that hides the lower body. Make the profile clearly nonhuman with a longer curved snout or swept-back ears. The trade good must be visibly modeled and attached. Keep four distinct hands clear in front, side and three-quarter. Aim for a recognizable unpainted silhouette, warm linen and aged copper details. Each added structural piece must be visible under Work clothes. Preserve real-world scale and the identity of retained parts.",
+    "draw": {
+      "strength": "radical",
+      "seed": 3560218268,
+      "cues": [
+        "Branch the spine or tail",
+        "Unequal limbs that balance the body"
+      ],
+      "magnitude": 72,
+      "decks": [
+        {
+          "label": "Lower anatomy",
+          "options": [
+            "four broad splayed mud-walking feet on a low, long body",
+            "a tapering aquatic tail with two broad lateral fins",
+            "six segmented shore-crab legs splayed to the sides"
+          ],
+          "pin": null,
+          "value": "a tapering aquatic tail with two broad lateral fins"
+        },
+        {
+          "label": "Trade good",
+          "options": [
+            "fans of dried reeds in a basket",
+            "three lidded ceramic jars",
+            "a net of round yellow river fruit"
+          ],
+          "pin": null,
+          "value": "a net of round yellow river fruit"
+        }
+      ],
+      "pins": [
+        null,
+        null
+      ]
+    },
+    "preserved": [
+      "bent arm -1 0",
+      "palm -1 0",
+      "bent arm -1 1",
+      "palm -1 1",
+      "bent arm 1 0",
+      "palm 1 0",
+      "bent arm 1 1",
+      "palm 1 1"
+    ],
+    "result": "../../examples/river-fruit-first.form.json"
+  },
+  "refinement": {
+    "seconds": 69.0,
+    "direction": "Refine this aquatic merchant as rendered. Keep the four arm chains, their four hands, the saved greeting pose, the aquatic tail and the seven yellow fruit in their woven net. The net currently hangs directly in front between the fins. Move the entire net and its fruit together to the character's left rear hip, with the yellow fruit centered around world X +0.37 to +0.43 m, Y 0.70 to 0.84 m, and Z -0.12 m. Attach it visibly with a practical sling from the left hip. From the front, the cargo should break the side silhouette and clear the torso centerline; from the side, keep it behind the nearest hand. The existing coat edges look like thin vertical rods. Build two broad, overlapping, asymmetrically scalloped linen coat panels, a narrow copper edge and an open center split through which the tail can be seen. Make the fins properly aquatic: one taller swept dorsal fin further back along the tail, and two separate broad lateral fins rising clear of the floor. Give the snout a clear downturned, tapered tip. Preserve the source scale and the original four-handed gesture. Use the actual region pivots and bounds in spatialGuide when deciding placements. Keep every new part visible in Work clothes.",
+    "proposalOperations": 18,
+    "renderedRegionBounds": 69,
+    "result": "../../examples/quayside-merchant.form.json"
+  },
+  "reducedGLBs": {
+    "merchant-gesture": {
+      "size": [
+        0.9274,
+        1.9403,
+        0.4693
+      ],
+      "triangles": 20684,
+      "clips": [
+        "Idle",
+        "Walk",
+        "Crouch",
+        "Reach",
+        "Pose · Greet and offer"
+      ],
+      "palmTravel": {
+        "palm -1 0": 0.5632,
+        "palm 1 0": 0.2381,
+        "palm -1 1": 0.3775,
+        "palm 1 1": 0.0
+      }
+    },
+    "delta-merchant": {
+      "size": [
+        0.9965,
+        1.8914,
+        1.2947
+      ],
+      "triangles": 24002,
+      "clips": [
+        "Idle",
+        "Walk",
+        "Crouch",
+        "Reach",
+        "Swim",
+        "Pose · Greet and offer"
+      ],
+      "palmTravel": {
+        "palm -1 0": 0.5642,
+        "palm 1 0": 0.2385,
+        "palm -1 1": 0.3775,
+        "palm 1 1": 0.0
+      },
+      "fruitCount": 7,
+      "fruitCenter": [
+        -0.0007,
+        0.4741,
+        0.3067
+      ],
+      "finClearance": {
+        "broad left balancing fin": 0.0059,
+        "broad right steering fin": 0.0134
+      },
+      "frontCoatWidths": {
+        "field coat left front": 0.1337,
+        "field coat right front": 0.1337
+      }
+    },
+    "quayside-merchant": {
+      "size": [
+        1.106,
+        1.8914,
+        1.2982
+      ],
+      "triangles": 24024,
+      "clips": [
+        "Idle",
+        "Walk",
+        "Crouch",
+        "Reach",
+        "Swim",
+        "Pose · Greet and offer"
+      ],
+      "palmTravel": {
+        "palm -1 0": 0.5626,
+        "palm 1 0": 0.2381,
+        "palm -1 1": 0.3778,
+        "palm 1 1": 0.0
+      },
+      "fruitCount": 7,
+      "fruitCenter": [
+        0.3994,
+        0.7791,
+        -0.1233
+      ],
+      "finClearance": {
+        "broad left balancing fin": 0.1612,
+        "broad right steering fin": 0.1649
+      },
+      "frontCoatWidths": {
+        "field coat left front": 0.26,
+        "field coat right front": 0.24
+      }
+    }
+  },
+  "silhouetteDistance": {
+    "measure": "1 minus intersection over union at the same world scale. Columns are front, three-quarter, side, rear.",
+    "firstAgainstOriginal": [
+      0.1834,
+      0.2112,
+      0.3675,
+      0.1836
+    ],
+    "secondAgainstFirst": [
+      0.199,
+      0.2302,
+      0.2939,
+      0.1991
+    ],
+    "secondAgainstOriginal": [
+      0.2136,
+      0.3131,
+      0.4435,
+      0.2136
+    ]
+  },
+  "finContact": {
+    "method": "Rest pose. No intersecting triangles detected. Minimum sampled vertex-to-triangle surface distances in mm.",
+    "left": 24.73,
+    "right": 77.23,
+    "dorsal": 16.75
+  }
+}

@@ -39,7 +39,12 @@ export function saveSession(state) {
   // Small forms are synchronous, including previously saved workshop sessions.
   // Large artworks stay in IndexedDB, where an entire document is committed atomically.
   try {
-    if (Object.keys(state.form.artwork ?? {}).length === 0) {
+    const forms = [
+      state.form,
+      state.review?.proposal?.form,
+      ...(state.review?.history ?? []).map((p) => p.form),
+    ];
+    if (forms.every((form) => !Object.keys(form?.artwork ?? {}).length)) {
       localStorage.setItem(key, JSON.stringify(state));
       return Promise.resolve();
     }

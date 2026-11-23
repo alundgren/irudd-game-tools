@@ -1,4 +1,5 @@
 import { fitEyeSettings } from "./ocular.js";
+import { spatialGuide } from "./spatial-guide.js";
 import { poseEditor } from "./pose-editor.js";
 import { scaleRoom } from "./scale-room.js";
 import { visibleBounds } from "./dimensions.js";
@@ -142,12 +143,34 @@ function restoreSessionState(saved) {
         target = request.nudge.target;
         instructions = request.instructions;
       }
+      const review = saved.review;
+      if (review?.proposal?.form) {
+        restoredReviewAtLink = review.hash === location.hash;
+        validateForm(review.proposal.form);
+        proposal = review.proposal;
+        const earlier = Array.isArray(review.history)
+          ? review.history.slice(-8)
+          : [];
+        for (const p of earlier) validateForm(p.form);
+        reviewHistory = earlier;
+        if (
+          review.pending?.revision === revision &&
+          review.pending.format === "irudd.form-request.v1"
+        ) {
+          validateForm(review.pending.preview);
+          refineRequest = review.pending;
+        }
+        $("#refine-note").value = review.notes ?? "";
+      }
     }
   } catch {
     status("The previous session could not be restored.");
   }
 }
 let generationController, updateWardrobe;
+let reviewHistory = [],
+  refineRequest = null,
+  restoredReviewAtLink = false;
 let clay = false,
   worldScale = false,
   silhouette = false,
@@ -202,6 +225,15 @@ function status(text) {
 }
 function persist() {
   saveSession({
+    review: proposal
+      ? {
+          proposal,
+          hash: location.hash,
+          history: reviewHistory,
+          pending: refineRequest,
+          notes: $("#refine-note").value,
+        }
+      : null,
     form,
     revision,
     request,
@@ -217,7 +249,13 @@ function persist() {
     ),
   );
 }
+function clearReview() {
+  reviewHistory = [];
+  refineRequest = null;
+  $("#refine-note").value = "";
+}
 function clearDraft() {
+  clearReview();
   knot = null;
   amounts = neutral();
   request = null;
@@ -342,6 +380,7 @@ function candidateForm() {
     : proposal.form;
 }
 function returnToDraft(message) {
+  clearReview();
   variation = redrawDirection(variation, variation.strength);
   proposal = null;
   request = null;
@@ -382,6 +421,7 @@ function bindAlternates() {
           proposal = { alternate: true, summary: item.title, form: stored };
           showCurrent = false;
           switchTab("ai");
+          persist();
           update();
           status("Compare the saved variation with your current form.");
         } catch (e) {
@@ -1216,6 +1256,22 @@ function bindControls() {
   $("#agent-help").textContent = connected
     ? "Sends the current form, nudges and direction to your local Codex CLI."
     : "Give the exported JSON to your agent, then load its proposal here.";
+  $("#refine-note").oninput = () => {
+    $("#refine-send").disabled = busy || !$("#refine-note").value.trim();
+    persist();
+  };
+  $("#refine-send").onclick = refineProposal;
+  $("#refine-load").onclick = () => $("#file").click();
+  $("#refine-back").onclick = () => {
+    if (busy || !reviewHistory.length) return;
+    proposal = reviewHistory.pop();
+    refineRequest = null;
+    showCurrent = false;
+    $("#refine-note").value = "";
+    persist();
+    update();
+    status("Restored the previous proposal.");
+  };
   $("#generate").onclick = generate;
   $("#paint-generate").hidden = !connected;
   $("#paint-action").onchange = () => {
@@ -1244,8 +1300,14 @@ function bindControls() {
     try {
       if (file.size > 8_000_000) throw new Error("Proposal exceeds 8 MB.");
       const raw = JSON.parse(await file.text());
-      proposal = readProposal(raw, request, revision);
+      if (proposal && refineRequest)
+        await receiveRefinement(raw, refineRequest, proposal);
+      else {
+        proposal = readProposal(raw, request, revision);
+        await restoreArtwork(proposal.form);
+      }
       showCurrent = false;
+      persist();
       update();
       status("Review the proposed form.");
     } catch (e) {
@@ -1364,6 +1426,107 @@ function referenceViews(selectedId = null) {
   }
   return views;
 }
+function exportBrief(brief, images, filename) {
+  const data = {
+    ...agentDesign(brief),
+    views: images,
+    ...(brief.references?.length ? { references: brief.references } : {}),
+  };
+  download(
+    new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }),
+    filename,
+  );
+}
+async function requestGeometry(brief, images, signal) {
+  const response = await fetch("/variation", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...brief, views: images }),
+    signal,
+  });
+  const raw = await response.json();
+  if (!response.ok) throw new Error(raw.error || "Generation failed.");
+  return raw;
+}
+async function receiveRefinement(raw, brief, parent) {
+  const next = readProposal(raw, brief, revision);
+  const artwork = { ...candidateForm().artwork, ...next.form.artwork };
+  if (Object.keys(artwork).length) next.form = { ...next.form, artwork };
+  await restoreArtwork(next.form);
+  if (
+    parent !== proposal ||
+    brief !== refineRequest ||
+    revision !== brief.revision
+  )
+    throw new Error("The proposal changed while the refinement was loading.");
+  reviewHistory.push(parent);
+  if (reviewHistory.length > 8) reviewHistory.shift();
+  proposal = { ...next, refinementRound: brief.refinement.round };
+  showCurrent = false;
+  refineRequest = null;
+  $("#refine-note").value = "";
+}
+async function refineProposal() {
+  const direction = $("#refine-note").value.trim(),
+    parent = proposal;
+  if (busy || !parent || !direction) return;
+  try {
+    // The accepted form stays available for comparison through every round.
+    showCurrent = false;
+    update();
+    const base = candidateForm(),
+      ids = new Set(base.parts.map((p) => p.id));
+    const brief = makeBrief(
+      base,
+      revision,
+      null,
+      neutral(),
+      direction,
+      variation,
+      [...protectedIds].filter((id) => ids.has(id)),
+      componentShelf(),
+    );
+    if (references.length) brief.references = references;
+    brief.refinement = {
+      previousSummary: parent.summary,
+      earlierDirection: request?.instructions ?? "",
+      round: (parent.refinementRound ?? 0) + 1,
+    };
+    brief.spatialGuide = spatialGuide(figure);
+    const images = referenceViews();
+    refineRequest = brief;
+    persist();
+    if (!connected) {
+      exportBrief(brief, images, "form-refinement-request.json");
+      status(
+        "Refinement request exported. Load its reply to compare both proposals.",
+      );
+      return;
+    }
+    generationController = new AbortController();
+    busy = true;
+    update();
+    status("Refining the visible proposal…");
+    const raw = await requestGeometry(
+      brief,
+      images,
+      generationController.signal,
+    );
+    await receiveRefinement(raw, brief, parent);
+    status("Review the refinement or return to the previous proposal.");
+  } catch (e) {
+    status(
+      generationController?.signal.aborted
+        ? "Refinement cancelled. The previous proposal is still available."
+        : e.message,
+    );
+  } finally {
+    generationController = null;
+    busy = false;
+    persist();
+    update();
+  }
+}
 async function generate(kind) {
   if (busy || proposal) return;
   const direction = $("#steering").value.trim();
@@ -1380,23 +1543,10 @@ async function generate(kind) {
       componentShelf(),
     );
     if (references.length) request.references = references;
+    request.spatialGuide = spatialGuide(figure);
     persist();
     if (!connected) {
-      const packaged = {
-        ...agentDesign(request),
-        views: referenceViews(),
-        ...(references.length ? { references } : {}),
-      };
-      const url = URL.createObjectURL(
-        new Blob([JSON.stringify(packaged, null, 2)], {
-          type: "application/json",
-        }),
-      );
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "form-request.json";
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      exportBrief(request, referenceViews(), "form-request.json");
       status(
         "Request exported. Ask your agent to return the proposal as JSON.",
       );
@@ -1433,14 +1583,11 @@ async function generate(kind) {
       status("Review the painted 3D proposal.");
       return;
     }
-    const res = await fetch("/variation", {
-      signal: generationController.signal,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...request, views }),
-    });
-    const raw = await res.json();
-    if (!res.ok) throw new Error(raw.error || "Generation failed.");
+    const raw = await requestGeometry(
+      request,
+      views,
+      generationController.signal,
+    );
     proposal = readProposal(raw, request, revision);
     showCurrent = false;
     status("Review the proposed form.");
@@ -1453,6 +1600,7 @@ async function generate(kind) {
   } finally {
     generationController = null;
     busy = false;
+    persist();
     update();
   }
 }
@@ -1492,6 +1640,22 @@ function update() {
   $("#name").textContent = target ?? "Whole form";
   $("#look").textContent = preview.parts.length + " parts";
   $("#candidate").hidden = !proposal;
+  $("#refine-send").disabled = busy || !$("#refine-note").value.trim();
+  $("#refine-send").textContent = connected
+    ? "Refine proposal"
+    : "Export refinement request";
+  $("#refine-note").disabled = busy;
+  $("#refine-load").hidden = !refineRequest || connected;
+  $("#refine-back").hidden = !reviewHistory.length;
+  for (const id of [
+    "refine-load",
+    "refine-back",
+    "accept",
+    "discard",
+    "compare",
+    "keep-candidate",
+  ])
+    $("#" + id).disabled = busy;
   refreshReferences(locked);
   $("#keep-current").disabled = locked;
   $("#keep-candidate").hidden = Boolean(proposal?.alternate);
@@ -2117,6 +2281,9 @@ async function startWorkshop() {
       loadSurfaces(),
       loadTurnarounds(),
       restoreArtwork(form),
+      ...[proposal, ...reviewHistory]
+        .filter(Boolean)
+        .map((p) => restoreArtwork(p.form)),
     ])
       .then(() => {
         assetsReady = true;
@@ -2138,7 +2305,7 @@ async function startWorkshop() {
         displayedForm = null;
         update();
         if (initial) chooseAngle("3/4", true);
-        openExample();
+        if (!restoredReviewAtLink) openExample();
         window.addEventListener("hashchange", openExample);
       })
       .catch((e) => {
