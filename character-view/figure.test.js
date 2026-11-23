@@ -213,6 +213,32 @@ test("trousers and shorts cover the body between the legs", () => {
   }
 });
 
+test("cargo pockets sit on the outside of each thigh", () => {
+  for (const kind of ["trousers", "shorts"]) {
+    const form = buildFigure({ bottom: { kind, pockets: "cargo" } });
+    validateForm(form);
+    for (const [side, sign] of [
+      ["left ", 1],
+      ["right ", -1],
+    ]) {
+      const pocket = form.parts.find((p) => p.id === side + "cargo pocket"),
+        thigh = form.parts.find((p) => p.id === side + "thigh");
+      assert.equal(pocket.parent, side + "thigh");
+      const reach = (part) =>
+        Math.max(...part.knots.map((row) => sign * row[0] + row[3]));
+      assert.ok(reach(pocket) > reach(thigh) + 0.01);
+    }
+  }
+  assert.equal(
+    readFigure({ bottom: { pockets: "holster" } }).bottom.pockets,
+    "none",
+  );
+  assert.equal(
+    buildFigure().parts.some((p) => p.id.includes("pocket")),
+    false,
+  );
+});
+
 test("a cropped groom carries the hairline to the nape", () => {
   const form = buildFigure({
     groom: { pattern: "Side part", length: 0.06, nape: 1 },

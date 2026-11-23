@@ -19,6 +19,7 @@ const pick = (v, options) => (options.includes(v) ? v : options[0]);
 export const figureTops = ["shirt", "tee", "jacket", "hoodie", "none"];
 export const figureSleeves = ["long", "rolled", "short", "none"];
 export const figureBottoms = ["trousers", "shorts", "none"];
+export const figurePockets = ["none", "cargo"];
 export const figureShoes = ["sneakers", "boots", "none"];
 export const figureHair = ["Crop", "Sweep", "Coils", "Bald"];
 export const figureGrooms = ["Locks", "Side part", "Coils", "Braids", "Locs"];
@@ -84,6 +85,7 @@ export function readFigure(raw = {}) {
       belt: hex(bottom.belt, "#4a3a2c"),
       rise: number(bottom.rise, 0, 1, 0.45),
       cuffs: bottom.cuffs === true,
+      pockets: pick(bottom.pockets, figurePockets),
     },
     shoes: {
       kind: pick(shoes.kind, figureShoes),
@@ -674,6 +676,57 @@ export function buildFigure(raw = {}) {
           name + "shin",
         );
       }
+      if (bottom.pockets === "cargo") {
+        // A cargo pocket is a flat pouch on the outside of the thigh with a
+        // flap over its mouth. It follows the thigh.
+        const shorts = bottom.kind === "shorts",
+          from = shorts ? 0.27 : 0.44,
+          to = shorts ? 0.5 : 0.72;
+        const out = (t, proud) => {
+          const i = upper.findIndex((row) => row[0] >= t),
+            a = upper[Math.max(0, i - 1)],
+            b = upper[i < 0 ? upper.length - 1 : i];
+          const w = lerp(
+            a[1],
+            b[1],
+            b[0] > a[0] ? clamp((t - a[0]) / (b[0] - a[0]), 0, 1) : 0,
+          );
+          return side * (w + proud * k);
+        };
+        const pouch = (id, rows) =>
+          sweep(
+            name + id,
+            hipJoint,
+            limbKnots(
+              hipJoint,
+              hipJoint,
+              thighDir,
+              thighLength,
+              rows.map(([t, w, d, proud]) => [
+                t,
+                w * k,
+                d * k,
+                out(t, proud),
+                0.004 * k,
+              ]),
+              [0, 0],
+            ),
+            bottom.color,
+            garment(),
+            name + "thigh",
+          );
+        pouch("cargo pocket", [
+          [from, 0.007, 0.04, -0.002],
+          [from + 0.03, 0.014, 0.047, -0.003],
+          [to - 0.03, 0.016, 0.049, -0.003],
+          [to, 0.008, 0.043, -0.003],
+        ]);
+        pouch("pocket flap", [
+          [from - 0.012, 0.008, 0.049, 0.002],
+          [from + 0.05, 0.01, 0.051, 0.006],
+          [from + 0.065, 0.004, 0.047, 0.006],
+        ]);
+      }
     }
   }
 
@@ -892,7 +945,7 @@ export function randomFigure(draw) {
   const between = (a, b) => a + (b - a) * draw(),
     choose = (items) => items[Math.floor(draw() * items.length)];
   const heavy = draw() < 0.3 ? between(0.15, 0.7) : 0;
-  return {
+  const figure = {
     height: between(1.52, 1.93),
     heads: between(7, 7.8),
     shoulders: between(0.88, 1.14),
@@ -941,4 +994,7 @@ export function randomFigure(draw) {
       color: choose(["#d8d4c8", "#4a3a2c", "#2c2f33", "#a8472f"]),
     },
   };
+  // Drawn last, so earlier seeds keep the rest of their figure.
+  figure.bottom.pockets = draw() < 0.25 ? "cargo" : "none";
+  return figure;
 }
