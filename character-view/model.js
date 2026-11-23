@@ -1,3 +1,6 @@
+import { mantleGeometry } from "./mantle.js";
+import { garmentOwners } from "./outfit-sets.js";
+import { paintMarkings } from "./markings.js";
 import { headSpace } from "./portrait-frame.js";
 import * as T from "three";
 import { paintSources } from "./paint-sources.js";
@@ -494,6 +497,7 @@ export function createCharacter(form, silhouette, clay = false) {
   const groomedHeads = new Set(
     form.parts.filter((p) => p.groom).map((p) => p.id),
   );
+  const owners = garmentOwners(form);
   const objects = new Map(),
     localLooks = new Map();
   for (const part of form.parts) {
@@ -538,6 +542,9 @@ export function createCharacter(form, silhouette, clay = false) {
         : null;
       let geometry;
       switch (part.shape) {
+        case "mantle":
+          geometry = mantleGeometry(part.cut);
+          break;
         case "volume":
           geometry = volumeGeometry(part.hull);
           break;
@@ -596,6 +603,12 @@ export function createCharacter(form, silhouette, clay = false) {
                 coat ? (fit.bare ? "plain" : "canvas") : part.surface,
               ),
       );
+      if (part.shape === "mantle") {
+        if (!plainView) {
+          object.material = object.material.clone();
+          object.material.vertexColors = true;
+        } else geometry.deleteAttribute("color");
+      }
       if (geometry.handRig) object.handRig = geometry.handRig;
       if (coat && fit.suit && !plainView) {
         const textile = expeditionMaterial(
@@ -654,10 +667,25 @@ export function createCharacter(form, silhouette, clay = false) {
     object.position.fromArray(part.position);
     object.scale.fromArray(part.size);
     object.rotation.set(...part.rotation.map(T.MathUtils.degToRad));
+    const owner = owners.get(part.id),
+      layer =
+        owner && Object.hasOwn(form.layerStyles ?? {}, owner)
+          ? form.layerStyles[owner]
+          : null;
+    if (layer?.dye && !plainView) {
+      const dye = new T.Color(layer.dye);
+      object.traverse((node) => {
+        if (!node.isMesh) return;
+        node.material = node.material.clone();
+        node.material.color.multiply(dye);
+        node.material.emissive?.multiply(dye);
+      });
+    }
     object.visible =
       !object.userData.hiddenByOutfit &&
       !(part.headLayer === "hair" && groomedHeads.has(part.parent)) &&
-      (!part.visibleIn || part.visibleIn.includes(form.outfit));
+      (layer?.show ??
+        (!part.visibleIn || part.visibleIn.includes(form.outfit)));
     objects.set(part.id, object);
     object.userData.partId = part.id;
   }
@@ -675,11 +703,31 @@ export function createCharacter(form, silhouette, clay = false) {
   }
   for (const part of form.parts)
     (mounts.get(part.parent) ?? group).add(objects.get(part.id));
-  for (const p of form.parts)
-    if (p.wearFit && p.parent && objects.get(p.id).visible)
-      fitGarment(objects.get(p.parent), objects.get(p.id));
+  const innerLayers = new Map();
+  const fitted = form.parts
+    .filter((p) => p.wearFit && p.parent && objects.get(p.id).visible)
+    .sort(
+      (a, b) =>
+        (form.layerStyles?.[a.id]?.order ?? 0) -
+        (form.layerStyles?.[b.id]?.order ?? 0),
+    );
+  for (const p of fitted) {
+    const inner = innerLayers.get(p.parent) ?? [],
+      mesh = objects.get(p.id);
+    fitGarment(objects.get(p.parent), mesh, inner);
+    inner.push(mesh);
+    innerLayers.set(p.parent, inner);
+  }
   blendSkin(form, objects, material);
   sculptBuild(group, form.build);
+  if (!plainView)
+    for (const part of form.parts) {
+      if (!part.markings) continue;
+      const mesh = objects.get(part.id),
+        fit = fitWardrobe(part, form);
+      if (mesh?.isMesh && mesh.visible && (!fit || fit.preserve || fit.bare))
+        paintMarkings(mesh, part.markings);
+    }
   return group;
 }
 

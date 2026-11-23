@@ -726,3 +726,9 @@ textarea {
 .alternate .remove-alternate {
   padding: 0.2rem 0.45rem;
 }
+#garment-controls {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}

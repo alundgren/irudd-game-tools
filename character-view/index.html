@@ -190,6 +190,49 @@
                 value="#82715b"
             /></label>
           </details>
+          <details id="marking-tools">
+            <summary>Surface markings</summary>
+            <label class="field"
+              >Pattern<select id="mark-kind">
+                <option>Bands</option>
+                <option>Spots</option>
+                <option>Rosettes</option>
+                <option>Countershade</option>
+              </select></label
+            >
+            <label class="field"
+              >Pigment<input id="mark-color" type="color" value="#e1ad66"
+            /></label>
+            <label class="field"
+              >Spacing (cm)<input
+                id="mark-spacing"
+                type="number"
+                min="6"
+                max="80"
+                value="22"
+            /></label>
+            <label class="field"
+              >Coverage (%)<input
+                id="mark-coverage"
+                type="number"
+                min="10"
+                max="90"
+                value="50"
+            /></label>
+            <label class="field"
+              >Direction (°)<input
+                id="mark-angle"
+                type="number"
+                min="-180"
+                max="180"
+                value="20"
+            /></label>
+            <div class="actions">
+              <button id="mark-apply">Apply to body</button
+              ><button id="mark-roll">Reroll placement</button
+              ><button id="mark-clear">Remove markings</button>
+            </div>
+          </details>
           <div id="knot-tools" hidden>
             <label class="field">Spine point<select id="knot"></select></label>
             <div class="actions">
@@ -214,6 +257,25 @@
             maxlength="2000"
             placeholder="Keep the face. Give it a long, low body and two extra pairs of legs."
           ></textarea>
+          <details id="reference-tools">
+            <summary>Visual references</summary>
+            <label class="field"
+              >Use image for<select id="reference-role">
+                <option>Face</option>
+                <option>Body silhouette</option>
+                <option>Garment</option>
+                <option>Color and surface</option>
+              </select></label
+            >
+            <button id="reference-add">Attach image</button
+            ><input
+              id="reference-file"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              hidden
+            />
+            <div class="alternates" id="reference-list"></div>
+          </details>
           <label class="field"
             >Variation range<select id="variation-range">
               <option value="subtle">Refine details</option>
@@ -296,6 +358,93 @@
             role="group"
             aria-label="Outfit"
           ></div>
+          <details id="custom-wardrobe">
+            <summary>Cut clothing and save outfits</summary>
+            <fieldset id="garment-controls">
+              <label class="field"
+                >Garment cut<select id="garment-cut">
+                  <option>Cape</option>
+                  <option>Poncho</option>
+                  <option>Tabard</option>
+                </select></label
+              >
+              <label class="field"
+                >Fabric color<input type="color" id="cut-color" value="#3b6663"
+              /></label>
+              <button id="cut-garment">
+                <span id="cut-host">Fit to body</span>
+              </button>
+              <div id="layer-controls" hidden>
+                <label class="field"
+                  >Garment layer<select id="layer-list"></select
+                ></label>
+                <label class="field"
+                  >Visibility<select id="layer-show">
+                    <option value="auto">Follow base outfit</option>
+                    <option value="on">Wear</option>
+                    <option value="off">Take off</option>
+                  </select></label
+                >
+                <label class="field"
+                  >Overdye<input type="color" id="layer-dye" value="#ffffff"
+                /></label>
+                <label class="field"
+                  >Layer order (outermost last)<input
+                    type="number"
+                    id="layer-order"
+                    min="0"
+                    max="15"
+                    value="0"
+                /></label>
+                <button id="layer-apply">Apply layer settings</button>
+                <details id="cut-fit" hidden>
+                  <summary>Adjust the cut</summary>
+                  <label class="field"
+                    >Drop (cm)<input
+                      id="cut-drop"
+                      type="number"
+                      step=".1"
+                      min="2.5"
+                      max="800"
+                  /></label>
+                  <label class="field"
+                    >Front opening (°)<input
+                      id="cut-opening"
+                      type="number"
+                      min="2"
+                      max="150"
+                  /></label>
+                  <label class="field"
+                    >Hem flare (%)<input
+                      id="cut-flare"
+                      type="number"
+                      min="65"
+                      max="220"
+                  /></label>
+                  <label class="field"
+                    >Folds<input id="cut-folds" type="number" min="0" max="24"
+                  /></label>
+                  <button id="adjust-cut">Apply cut</button>
+                </details>
+              </div>
+              <label class="field"
+                >Outfit name<input
+                  id="outfit-name"
+                  maxlength="64"
+                  placeholder="Field survey"
+              /></label>
+              <button id="save-outfit">Save as new outfit</button>
+              <div id="outfit-saved" hidden>
+                <label class="field"
+                  >Saved outfits<select id="outfit-list"></select
+                ></label>
+                <div class="actions">
+                  <button id="wear-outfit">Wear outfit</button
+                  ><button id="update-outfit">Update saved outfit</button>
+                </div>
+              </div>
+            </fieldset>
+          </details>
         </section>
         <section data-panel="files" hidden>
           <h2>Generate a starting form</h2>

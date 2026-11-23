@@ -481,6 +481,66 @@
         </p>
       </section>
       <section class="method">
+        <h2>Cut and layer clothes on one wearer</h2>
+        <figure>
+          <img
+            src="media/field-wardrobe.webp"
+            alt="The coastal biologist in a rescue vest, a brown tabard and a dark green cape over the tabard"
+          />
+          <figcaption>
+            Three saved outfits on the same wearer. The second has an open-sided
+            tabard cut to the torso. The third has a longer cape cut around the
+            tabard as an outer layer. Both garments retain editable
+            measurements.
+          </figcaption>
+        </figure>
+        <p>
+          The original 26 regions survived exactly. Two fitted layers bring the
+          total to 28. Saved outfits record visibility, dye, order and base
+          clothing. Wearing an earlier set restores the clothing shown when it
+          was saved. The exported wet-weather set played all four animations
+          with its lowest vertex 4 mm above the floor at eight samples per clip.
+          Cloth uses fitted geometry and skeletal animation. Wide arm movements
+          can still pass through a hanging panel.
+        </p>
+        <p>
+          <a href="../examples/field-wardrobe.form.json"
+            >Editable outfit collection</a
+          >
+          · <a href="../examples/field-wardrobe.glb">Download the rigged GLB</a
+          ><span class="live-demo" hidden>
+            · <a href="../#form=field-wardrobe">Open in the workshop</a> ·
+            <a
+              href="../examples/field-wardrobe.glb"
+              data-player="field-wardrobe"
+              >Play the GLB</a
+            ></span
+          >.
+        </p>
+        <h2>One skin across separate limbs</h2>
+        <figure>
+          <img
+            src="media/surface-markings.webp"
+            alt="Five views of the same glider, unmarked, banded, spotted, ringed and countershaded"
+          />
+          <figcaption>
+            One 3D pigment field sampled by 17 regions. The artist controls
+            spacing in centimetres, coverage, direction, color and placement.
+            All vertices carry the resulting color into the GLB.
+          </figcaption>
+        </figure>
+        <p>
+          The ringed animal fell from 70,086 triangles and 21 materials to
+          23,997 triangles and one material. At a fixed camera, full and game
+          exports shared more than 99% of the silhouette at rest and during
+          Walk. Mean absolute color difference within the shared mask was under
+          3 out of 255 per channel.
+          <a href="media/marking-export-report.json">Read the measurements</a> ·
+          <a href="../examples/rosette-glider.form.json">Open the marked form</a
+          >.
+        </p>
+      </section>
+      <section class="method">
         <h2>Can the artist choose the anatomy?</h2>
         <p>
           One artist-written choice group specified
@@ -600,6 +660,15 @@
           <a href="../examples/reef-cartographer.form.json"
             >Open the editable reef cartographer</a
           >
+          · <a href="../examples/reef-cartographer.glb">Download the game GLB</a
+          ><span class="live-demo" hidden>
+            · <a href="../#form=reef-cartographer">Open in the workshop</a> ·
+            <a
+              href="../examples/reef-cartographer.glb"
+              data-player="reef-cartographer"
+              >Play the GLB</a
+            ></span
+          >
         </p>
         <h3>A new body plan</h3>
         <figure>
@@ -706,7 +775,15 @@
             the wrist.
           </figcaption>
         </figure>
-        <p>The biologist with both hands fitted was 1.764 m tall in the independent player at both export settings. Game export reduced 389,658 triangles and 26 materials to 24,004 triangles and one material. The two fixed camera angles gave 99.2–99.5% silhouette overlap at rest and during Reach. All 27 finger joints remained in the exported animation. This compares outlines at the test resolution. Pupil detail and small seams require separate close-up inspection.</p>
+        <p>
+          The biologist with both hands fitted was 1.764 m tall in the
+          independent player at both export settings. Game export reduced
+          389,658 triangles and 26 materials to 24,004 triangles and one
+          material. The two fixed camera angles gave 99.2–99.5% silhouette
+          overlap at rest and during Reach. All 27 finger joints remained in the
+          exported animation. This compares outlines at the test resolution.
+          Pupil detail and small seams require separate close-up inspection.
+        </p>
         <h3>Can faces be recognized from shape alone?</h3>
         <p>
           We started all six faces from the same head, hairstyle and paint.
@@ -836,6 +913,19 @@
       </footer>
     </main>
     <script>
+      if (
+        /^https?:$/.test(location.protocol) &&
+        ["localhost", "127.0.0.1"].includes(location.hostname)
+      ) {
+        document
+          .querySelectorAll("[data-player]")
+          .forEach(
+            (a) => (a.href = "../play-model.html#model=" + a.dataset.player),
+          );
+        document
+          .querySelectorAll(".live-demo")
+          .forEach((s) => (s.hidden = false));
+      }
       document.querySelectorAll("[data-mode]").forEach(
         (b) =>
           (b.onclick = () => {

@@ -1,3 +1,6 @@
+import { wardrobeEditor } from "./wardrobe-editor.js";
+import { readReference, validReferences } from "./visual-references.js";
+import { acceptsMarkings, validMarkings } from "./markings.js";
 import { fitHand } from "./graft.js";
 import { palmColor } from "./turnaround.js";
 import {
@@ -91,6 +94,7 @@ let form = generateForm(),
   target = null,
   instructions = "",
   request = null;
+let references = [];
 let restored = false,
   customDonor = null,
   assetsReady = false;
@@ -102,6 +106,7 @@ function restoreSessionState(saved) {
     if (saved && typeof saved.revision === "string") {
       form = validateForm(saved.form);
       restored = true;
+      if (validReferences(saved.references)) references = saved.references;
       revision = saved.revision;
       protectedIds = new Set(
         (Array.isArray(saved.protectedIds) ? saved.protectedIds : []).filter(
@@ -134,7 +139,7 @@ function restoreSessionState(saved) {
     status("The previous session could not be restored.");
   }
 }
-let generationController;
+let generationController, updateWardrobe;
 let clay = false,
   worldScale = false,
   silhouette = false,
@@ -193,6 +198,7 @@ function persist() {
     target,
     amounts: { ...amounts },
     instructions,
+    references,
   }).catch(() =>
     status(
       "Browser storage is unavailable. Use Save form to keep this revision.",
@@ -452,8 +458,62 @@ function bindAlternates() {
   $("#keep-current").onclick = () => keep(false);
   refresh().catch(() => {});
 }
+let renderedReferences, referencesLocked;
+function refreshReferences(locked = false) {
+  if (renderedReferences === references && referencesLocked === locked) return;
+  renderedReferences = references;
+  referencesLocked = locked;
+  const list = $("#reference-list");
+  list.replaceChildren(
+    ...references.map((ref, i) => {
+      const row = document.createElement("div"),
+        image = document.createElement("img"),
+        label = document.createElement("span");
+      row.className = "alternate";
+      image.src = "data:image/jpeg;base64," + ref.jpeg;
+      image.alt = ref.label;
+      label.textContent = ref.role + " · " + ref.label;
+      const remove = button("Remove", () => {
+        references = references.filter((_, j) => i !== j);
+        request = null;
+        persist();
+        refreshReferences();
+      });
+      remove.setAttribute("aria-label", "Remove " + ref.label);
+      remove.disabled = locked;
+      row.append(image, label, remove);
+      return row;
+    }),
+  );
+  $("#reference-add").disabled = locked || references.length >= 2;
+  $("#reference-role").disabled = locked;
+}
 function bindControls() {
   bindAlternates();
+  updateWardrobe = wardrobeEditor({
+    getForm: () => nudge(form, target, amounts),
+    getTarget: () => target,
+    commit,
+    status,
+  });
+  $("#reference-add").onclick = () => $("#reference-file").click();
+  $("#reference-file").onchange = async (e) => {
+    const file = e.target.files[0],
+      role = $("#reference-role").value;
+    e.target.value = "";
+    if (!file) return;
+    try {
+      const ref = await readReference(file, role);
+      if (busy || proposal || references.length >= 2) return;
+      references = [...references, ref];
+      request = null;
+      persist();
+      refreshReferences();
+      status("Attached " + ref.label + " for " + role.toLowerCase() + ".");
+    } catch (error) {
+      status(error.message);
+    }
+  };
   bindTraceEditor({
     getForm: () => form,
     getTarget: () => target,
@@ -517,6 +577,50 @@ function bindControls() {
       status(error.message);
     }
   };
+  function changeMarkings(action) {
+    try {
+      const base = nudge(form, target, amounts);
+      const selected = base.parts.filter((p) =>
+        target ? p.id === target && acceptsMarkings(p) : bodyRegion(p),
+      );
+      const seed = selected.find((p) => p.markings)?.markings.seed;
+      const markings = {
+        kind: $("#mark-kind").value,
+        color: $("#mark-color").value,
+        spacing: Number($("#mark-spacing").value) / 100,
+        coverage: Number($("#mark-coverage").value) / 100,
+        angle: Number($("#mark-angle").value),
+        seed:
+          action === "roll" || seed === undefined
+            ? crypto.getRandomValues(new Uint32Array(1))[0]
+            : seed,
+      };
+      if (action !== "clear" && !validMarkings(markings))
+        throw new Error("Check the spacing, coverage and direction ranges.");
+      const chosen = new Set(selected.map((p) => p.id));
+      const parts = base.parts.map((p) => {
+        if (!chosen.has(p.id)) return p;
+        const edited = { ...p };
+        if (action === "clear") delete edited.markings;
+        else edited.markings = markings;
+        return edited;
+      });
+      commit(
+        { ...base, parts },
+        action === "clear"
+          ? "Removed surface markings."
+          : "Applied " +
+              markings.kind.toLowerCase() +
+              " to " +
+              chosen.size +
+              " regions.",
+      );
+    } catch (error) {
+      status(error.message);
+    }
+  }
+  for (const action of ["apply", "roll", "clear"])
+    $("#mark-" + action).onclick = () => changeMarkings(action);
   function skinChange(kind) {
     try {
       const base = nudge(form, target, amounts);
@@ -881,15 +985,7 @@ function bindControls() {
     $("#openfile").value = "";
     if (!f) return;
     try {
-      if (f.size > 8000000) throw new Error("Form exceeds 8 MB.");
-      const data = JSON.parse(await f.text());
-      if (data.format !== "irudd.form.v1")
-        throw new Error("Choose a saved form.");
-      validateForm(data.form);
-      await restoreArtwork(data.form);
-      commit(data.form, "Form opened.");
-      switchTab("sculpt");
-      chooseAngle("3/4", true);
+      await openForm(f);
     } catch (e) {
       status(e.message);
     }
@@ -1000,7 +1096,10 @@ function bindControls() {
   };
   for (const outfit of outfits) {
     const el = button(outfit, () =>
-      commit({ ...nudge(form, target, amounts), outfit }, "Wardrobe updated."),
+      commit(
+        { ...nudge(form, target, amounts), outfit, layerStyles: {} },
+        "Wardrobe updated.",
+      ),
     );
     el.className = "outfit";
     $("#outfits").append(el);
@@ -1166,9 +1265,14 @@ async function generate(kind) {
       [...protectedIds],
       componentShelf(),
     );
+    if (references.length) request.references = references;
     persist();
     if (!connected) {
-      const packaged = { ...agentDesign(request), views: referenceViews() };
+      const packaged = {
+        ...agentDesign(request),
+        views: referenceViews(),
+        ...(references.length ? { references } : {}),
+      };
       const url = URL.createObjectURL(
         new Blob([JSON.stringify(packaged, null, 2)], {
           type: "application/json",
@@ -1265,6 +1369,7 @@ function update() {
   $("#name").textContent = target ?? "Whole form";
   $("#look").textContent = preview.parts.length + " parts";
   $("#candidate").hidden = !proposal;
+  refreshReferences(locked);
   $("#keep-current").disabled = locked;
   $("#keep-candidate").hidden = Boolean(proposal?.alternate);
   for (const b of $("#alternate-list").querySelectorAll("button"))
@@ -1349,6 +1454,29 @@ function update() {
   $("#pull-tool").disabled = locked;
   pressed($("#branch-tool"), drawing);
   $("#branch-settings").hidden = !drawing;
+  const markTargets = part
+    ? acceptsMarkings(part)
+      ? [part]
+      : []
+    : form.parts.filter(bodyRegion);
+  const marked = markTargets.find((p) => p.markings)?.markings;
+  const markTools = $("#marking-tools");
+  markTools.hidden = !markTargets.length;
+  if (markTools.dataset.context !== revision + ":" + target) {
+    markTools.dataset.context = revision + ":" + target;
+    if (marked) {
+      $("#mark-kind").value = marked.kind;
+      $("#mark-color").value = marked.color;
+      $("#mark-spacing").value = Math.round(marked.spacing * 100);
+      $("#mark-coverage").value = Math.round(marked.coverage * 100);
+      $("#mark-angle").value = marked.angle;
+    }
+  }
+  $("#mark-apply").textContent = part
+    ? "Apply to selected region"
+    : "Apply to body";
+  $("#mark-apply").disabled = $("#mark-roll").disabled = locked;
+  $("#mark-clear").disabled = locked || !marked;
   const joined = form.parts.filter((p) => p.blendSkin);
   $("#hair-tools").hidden =
     locked ||
@@ -1476,9 +1604,14 @@ function update() {
   const hasBody = preview.parts.some(
     (p) => Object.hasOwn(anchors, p.shape) || p.outfitRole || p.visibleIn,
   );
+  updateWardrobe?.(form, target, locked);
   for (const el of $("#outfits").children) {
     pressed(el, hasBody && el.textContent === preview.outfit);
-    el.disabled = locked || !hasBody || el.textContent === form.outfit;
+    el.disabled =
+      locked ||
+      !hasBody ||
+      (el.textContent === form.outfit &&
+        !Object.keys(form.layerStyles ?? {}).length);
   }
   for (const el of $("#display").children)
     pressed(el, el.dataset.mode === shader);
@@ -1664,6 +1797,37 @@ function setup() {
   chooseAngle("3/4", true);
   new ResizeObserver(resize).observe(stage);
 }
+let openTicket = 0;
+async function openForm(blob, ticket = ++openTicket, fromRevision = revision) {
+  if (blob.size > 8000000) throw new Error("Form exceeds 8 MB.");
+  const data = JSON.parse(await blob.text());
+  if (data.format !== "irudd.form.v1") throw new Error("Choose a saved form.");
+  validateForm(data.form);
+  await restoreArtwork(data.form);
+  if (ticket !== openTicket || revision !== fromRevision || busy || proposal)
+    return;
+  target = null;
+  commit(data.form, "Form opened.");
+  switchTab("sculpt");
+  chooseAngle("3/4", true);
+}
+async function openExample() {
+  const slug = new URLSearchParams(location.hash.slice(1)).get("form");
+  if (!slug || !connected) return;
+  if (!/^[a-z0-9-]{1,80}$/.test(slug)) {
+    status("Unknown workshop example.");
+    return;
+  }
+  const initialRevision = revision,
+    ticket = ++openTicket;
+  try {
+    const res = await fetch("/examples/" + slug + ".form.json");
+    if (!res.ok) throw new Error("This example is unavailable.");
+    await openForm(await res.blob(), ticket, initialRevision);
+  } catch (error) {
+    status(error.message);
+  }
+}
 async function startWorkshop() {
   try {
     restoreSessionState(await readSession());
@@ -1694,6 +1858,8 @@ async function startWorkshop() {
         displayedForm = null;
         update();
         if (initial) chooseAngle("3/4", true);
+        openExample();
+        window.addEventListener("hashchange", openExample);
       })
       .catch((e) => {
         console.error(e);

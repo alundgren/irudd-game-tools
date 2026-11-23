@@ -153,6 +153,7 @@ export async function paintWithAgent(
     views,
     height,
     paintTarget: target,
+    ...(request.references?.length ? { references: request.references } : {}),
     wearable,
   };
   status("Generating an original four-view turnaround…");

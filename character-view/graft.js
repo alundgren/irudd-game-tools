@@ -1,6 +1,7 @@
 import { Box3, Vector3, Matrix4, Euler, Quaternion, MathUtils } from "three";
 
 import { paintSources, retainPaintSources } from "./paint-sources.js";
+import { mantleGeometry, garmentCuts } from "./mantle.js";
 import { volumeBounds } from "./volume.js";
 const anatomyBoxes = {
   head: [
@@ -88,7 +89,11 @@ function bounds(parts, world) {
     pnt = new Vector3();
   for (const p of parts) {
     const transform = world(p.id);
-    if (p.shape === "sweep") {
+    if (p.shape === "mantle") {
+      const g = mantleGeometry(p.cut);
+      box.union(g.boundingBox.applyMatrix4(transform));
+      g.dispose();
+    } else if (p.shape === "sweep") {
       for (const [x, y, z, w, d] of p.knots) {
         for (const dx of [-w, w])
           for (const dz of [-d, d])
@@ -112,6 +117,46 @@ function bounds(parts, world) {
     }
   }
   return box;
+}
+export function cutGarment(form, id, kind, color = "#405d59") {
+  const g = graph(form.parts),
+    host = g.byId.get(id);
+  if (!host || !garmentCuts.includes(kind))
+    throw new Error("Select the body region the garment should cover.");
+  const box = bounds([host], g.world),
+    size = box.getSize(new Vector3()),
+    pivot = box.getCenter(new Vector3());
+  const width = MathUtils.clamp(size.x * 1.06, 0.035, 6),
+    depth = MathUtils.clamp(size.z * 1.05, 0.035, 6),
+    drop = MathUtils.clamp(
+      size.y * (kind === "Cape" ? 1.42 : kind === "Tabard" ? 1.28 : 1.02),
+      0.07,
+      7,
+    );
+  const cut = {
+    kind,
+    width,
+    depth,
+    drop,
+    flare: kind === "Poncho" ? 1.35 : 1,
+    opening: kind === "Cape" ? 65 : kind === "Tabard" ? 15 : 4,
+    folds: kind === "Tabard" ? 5 : 12,
+  };
+  let key = kind.toLowerCase(),
+    n = 2;
+  while (g.byId.has(key)) key = kind.toLowerCase() + " " + n++;
+  pivot.y = box.max.y - 0.016 * size.y;
+  const part = {
+    id: key,
+    shape: "mantle",
+    color,
+    surface: "canvas",
+    wearFit: true,
+    cut,
+    motionRole: "skirt",
+    visibleIn: [form.outfit],
+  };
+  return { id: key, form: attachAt(form, part, id, pivot.toArray()) };
 }
 export function extractComponent(form, id, includeChildren = true) {
   const g = graph(form.parts),

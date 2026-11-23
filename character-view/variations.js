@@ -154,9 +154,11 @@ const allowedPartKeys = new Set([
   "mount",
   "sculpt",
   "drape",
+  "cut",
   "blendSkin",
   "grip",
   "groom",
+  "markings",
   "headLayer",
   "visibleIn",
   "outfitRole",
@@ -278,10 +280,26 @@ export function designDirection(variation) {
   };
 }
 export function agentDesign(brief) {
-  const { views, current, preview, library = {}, ...fields } = brief;
+  const {
+    views,
+    references = [],
+    current,
+    preview,
+    library = {},
+    ...fields
+  } = brief;
   return {
     ...fields,
     variation: designDirection(brief.variation),
+    ...(references.length
+      ? {
+          visualReferences: references.map(({ role, label }, i) => ({
+            role,
+            label,
+            attachment: i + 3,
+          })),
+        }
+      : {}),
     library: Object.values(library).map(({ key, title, parts, bounds }) => ({
       key,
       title,

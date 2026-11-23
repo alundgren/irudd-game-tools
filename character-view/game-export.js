@@ -1,3 +1,4 @@
+import { whiteVertexColors } from "./markings.js";
 import * as T from "three";
 import { mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
 import { MeshoptSimplifier } from "three/addons/libs/meshopt_simplifier.module.js";
@@ -21,7 +22,9 @@ function simplifyInputs(g) {
     u = g.attributes.uv,
     w = g.attributes.skinWeight,
     bones = g.attributes.skinIndex;
-  const stride = w ? 12 : 5,
+  const color = g.attributes.color,
+    colorOffset = w ? 12 : 5;
+  const stride = colorOffset + (color ? 3 : 0),
     attr = new Float32Array(stride * p.count);
   for (let i = 0; i < p.count; i++) {
     const out = i * stride;
@@ -30,6 +33,11 @@ function simplifyInputs(g) {
     attr[out + 2] = n.getZ(i);
     attr[out + 3] = u.getX(i);
     attr[out + 4] = u.getY(i);
+    if (color) {
+      attr[out + colorOffset] = color.getX(i);
+      attr[out + colorOffset + 1] = color.getY(i);
+      attr[out + colorOffset + 2] = color.getZ(i);
+    }
     if (!w) continue;
     for (let j = 0; j < 4; j++) {
       const influence = w.array[4 * i + j],
@@ -47,9 +55,12 @@ function simplifyInputs(g) {
     p,
     attr,
     stride,
-    weights: w
-      ? [0.1, 0.1, 0.1, 0.13, 0.13, 0.35, 0.35, 0.35, 0.35, 0.22, 0.22, 0.22]
-      : [0.1, 0.1, 0.1, 0.13, 0.13],
+    weights: [
+      ...(w
+        ? [0.1, 0.1, 0.1, 0.13, 0.13, 0.35, 0.35, 0.35, 0.35, 0.22, 0.22, 0.22]
+        : [0.1, 0.1, 0.1, 0.13, 0.13]),
+      ...(color ? [0.25, 0.25, 0.25] : []),
+    ],
   };
 }
 function simplify(g, b, ratio, input) {
@@ -350,8 +361,12 @@ export async function optimizeForGame(
     throw new Error("The selected wardrobe has no visible mesh.");
   const page = atlas([...tiles.values()], size),
     ratio = Math.min(0.55, triangles / initial);
+  page.material.vertexColors = meshes.some(([mesh]) =>
+    Boolean(mesh.geometry.attributes.color),
+  );
   let count = 0;
   for (const [mesh, groups] of meshes) {
+    if (page.material.vertexColors) whiteVertexColors(mesh.geometry);
     const original = mesh.geometry,
       joined = mergeVertices(original, 1e-5);
     mesh.geometry = remap(joined, groups, ratio, tiles, size);

@@ -1,3 +1,7 @@
+import {
+  referenceInstructions,
+  validReferences,
+} from "../character-view/visual-references.js";
 import { agentDesign } from "../character-view/variations.js";
 import { createServer } from "node:http";
 import { paintVariation, fitArtwork } from "./art-direction.mjs";
@@ -9,6 +13,8 @@ import { validateForm, readProposal } from "../character-view/recipe.js";
 export async function codexVariation(brief, signal, repair) {
   const prompt =
     "You are the geometry author for a game character editor. Use the JSON brief as design input. Do not use tools, access the filesystem or execute code. Return a single JSON proposal following replyFormat. Preserve ids on retained parts.\n" +
+    referenceInstructions(brief.references) +
+    "\n" +
     JSON.stringify(agentDesign(brief)) +
     (repair
       ? "\nThe editor could not apply your first proposal. Return a complete corrected proposal for this same request. Preserve the original design intent.\n" +
@@ -17,7 +23,9 @@ export async function codexVariation(brief, signal, repair) {
   return (
     await codexJob(
       prompt,
-      (brief.views ?? []).map((v) => ({ data: v.jpeg })),
+      [...(brief.views ?? []), ...(brief.references ?? [])].map((v) => ({
+        data: v.jpeg,
+      })),
       signal,
       { effort: "medium" },
     )
@@ -56,7 +64,7 @@ export function workshopServer(
       const file =
         req.url === "/play-model.html"
           ? "dist/play-model.html"
-          : /^\/(?:docs\/(?:workshop-results\.html|character-creator\.html|creator-benchmarks\.md|media\/[a-z0-9-]+\.(?:webp|json))|examples\/[a-z0-9-]+\.form\.json|README\.md|LICENSE)$/.test(
+          : /^\/(?:docs\/(?:workshop-results\.html|character-creator\.html|creator-benchmarks\.md|media\/[a-z0-9-]+\.(?:webp|json))|examples\/[a-z0-9-]+(?:\.form\.json|\.glb)|README\.md|LICENSE)$/.test(
                 req.url,
               )
             ? req.url.slice(1)
@@ -68,6 +76,7 @@ export function workshopServer(
             html: "text/html; charset=utf-8",
             webp: "image/webp",
             json: "application/json",
+            glb: "model/gltf-binary",
           };
           res.writeHead(200, {
             "Content-Type":
@@ -134,6 +143,11 @@ export function workshopServer(
           brief.views.length !== 2
         )
           throw new Error("Artwork needs two views and a physical height.");
+        if (
+          brief.references !== undefined &&
+          (req.url === "/trace-map" || !validReferences(brief.references))
+        )
+          throw new Error("Choose up to two valid visual references.");
         if (brief.repair && JSON.stringify(brief.repair).length > 60000)
           throw new Error("The repair map is too large.");
         if (

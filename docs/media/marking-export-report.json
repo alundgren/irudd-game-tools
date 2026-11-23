@@ -1,0 +1,17 @@
+{
+  "full": "70,086 triangles \u00b7 21 materials",
+  "game": "23,997 triangles \u00b7 1 materials",
+  "game-static": "23,997 triangles \u00b7 1 materials",
+  "game Rest": {
+    "iou": 0.9947,
+    "meanRGB": 2.73
+  },
+  "game Walk": {
+    "iou": 0.9945,
+    "meanRGB": 2.75
+  },
+  "game-static Rest": {
+    "iou": 0.9948,
+    "meanRGB": 3.22
+  }
+}

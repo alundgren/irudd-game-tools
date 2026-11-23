@@ -8,13 +8,17 @@ const directions = Array.from({ length: angles }, (_, i) => [
 ]);
 // A garment can contain many overlapping panels. Sample the covered body region in
 // its local frame, then ease any penetrating surface vertices outside the body.
-export function fitGarment(host, garment) {
+export function fitGarment(host, garment, innerLayers = []) {
   host.updateWorldMatrix(true, true);
   const hostInverse = host.matrixWorld.clone().invert(),
     point = new Vector3();
   const cloud = [];
-  function collect(node) {
-    if (node !== host && node.userData.partId) return;
+  function collect(node, includeParts = false) {
+    if (
+      !node.visible ||
+      (!includeParts && node !== host && node.userData.partId)
+    )
+      return;
     if (node.isMesh) {
       const p = node.geometry.attributes.position,
         m = new Matrix4().multiplyMatrices(hostInverse, node.matrixWorld);
@@ -22,9 +26,10 @@ export function fitGarment(host, garment) {
       for (let i = 0; i < p.count; i += stride)
         cloud.push(new Vector3().fromBufferAttribute(p, i).applyMatrix4(m));
     }
-    node.children.forEach(collect);
+    for (const child of node.children) collect(child, includeParts);
   }
   collect(host);
+  for (const inner of innerLayers) collect(inner, true);
   if (!cloud.length) return;
   let low = Infinity,
     high = -Infinity;

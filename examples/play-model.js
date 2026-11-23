@@ -217,6 +217,26 @@ async function load(file) {
   }
 }
 $("file").onchange = (e) => load(e.target.files[0]);
+async function openExample() {
+  const key = new URLSearchParams(location.hash.slice(1)).get("model");
+  if (
+    !key ||
+    !/^https?:$/.test(location.protocol) ||
+    !/^[a-z0-9-]{1,80}$/.test(key)
+  )
+    return;
+  const ticket = ++generation;
+  try {
+    const response = await fetch("/examples/" + key + ".glb");
+    if (!response.ok) throw new Error("This example is unavailable.");
+    const blob = await response.blob();
+    if (ticket === generation) await load(new File([blob], key + ".glb"));
+  } catch (e) {
+    if (ticket === generation) $("status").textContent = e.message;
+  }
+}
+openExample();
+window.addEventListener("hashchange", openExample);
 $("clip").onchange = selectClip;
 $("time").oninput = () => {
   if (action) {

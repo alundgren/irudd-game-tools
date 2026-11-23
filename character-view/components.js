@@ -1,3 +1,5 @@
+import { bodyRegion } from "./blended-skin.js";
+import { markingKinds } from "./markings.js";
 import { palmColor } from "./turnaround.js";
 import { extractComponent, placeComponent, fitHand } from "./graft.js";
 import { paintedStudies } from "../examples/painted-studies.js";
@@ -168,6 +170,19 @@ export function generateWorkshopForm(
       (p) => p.outfitRole === "hand" && p.shape === "sweep",
     ))
       form = fitHand(form, hand.id, palmColor(hand, form.appearance.skin));
-  form.origin = { generator: 3, seed, kind: anatomy };
+  if (anatomy !== "human" && draw() < 0.72) {
+    const markings = {
+      kind: pick(markingKinds),
+      color: pick(["#e6bd7c", "#2f4241", "#dbc6b6", "#9e6650", "#60746d"]),
+      spacing: 0.12 + draw() * 0.3,
+      coverage: 0.29 + draw() * 0.37,
+      angle: Math.round(-40 + draw() * 80),
+      seed: Math.floor(draw() * 4294967296),
+    };
+    form.parts = form.parts.map((p) =>
+      bodyRegion(p) ? { ...p, markings } : p,
+    );
+  }
+  form.origin = { generator: 4, seed, kind: anatomy };
   return form;
 }
