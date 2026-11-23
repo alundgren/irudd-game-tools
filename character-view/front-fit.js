@@ -58,6 +58,7 @@ export function validFrontFit(pass) {
   return (
     pass &&
     validView(pass.view) &&
+    (pass.overlay === undefined || /^face-[a-f0-9]{64}$/.test(pass.overlay)) &&
     Number.isFinite(pass.radius) &&
     pass.radius >= 0.1 &&
     pass.radius <= 0.65 &&
@@ -310,6 +311,18 @@ export function applyFrontFit(mesh, pass, retainProfile = false, owner = mesh) {
   g.computeVertexNormals();
   g.computeBoundingBox();
   g.computeBoundingSphere();
+  carryFaceEdits(mesh, owner, { center, factor }, move, (x, y, z) =>
+    keepDepth(...move(x, y, z)),
+  );
+}
+
+export function carryFaceEdits(
+  mesh,
+  owner,
+  { center, factor },
+  move,
+  moveSurface = move,
+) {
   // A spectacle rim, an ear and its attached hair occupy different local frames.
   // Carry nearby vertices through the same field as the face; the part records
   // and the independently editable attachments remain intact.
@@ -328,7 +341,7 @@ export function applyFrontFit(mesh, pass, retainProfile = false, owner = mesh) {
     const pivot = new Vector3().fromArray(anchor).divide(factor).add(center);
     const before = pivot.clone().applyMatrix4(mesh.matrixWorld);
     const after = new Vector3()
-      .fromArray(keepDepth(...move(pivot.x, pivot.y, pivot.z)))
+      .fromArray(moveSurface(pivot.x, pivot.y, pivot.z))
       .applyMatrix4(mesh.matrixWorld);
     const parent = branch.parent;
     branch.position.add(
@@ -384,10 +397,12 @@ export function applyFrontFit(mesh, pass, retainProfile = false, owner = mesh) {
       const x = ep.getX(i),
         y = ep.getY(i),
         z = ep.getZ(i),
-        rest = keepDepth(...move(x, y, z));
+        rest = moveSurface(x, y, z);
       for (const target of targets) {
-        const to = keepDepth(
-          ...move(x + target.getX(i), y + target.getY(i), z + target.getZ(i)),
+        const to = moveSurface(
+          x + target.getX(i),
+          y + target.getY(i),
+          z + target.getZ(i),
         );
         target.setXYZ(i, to[0] - rest[0], to[1] - rest[1], to[2] - rest[2]);
       }

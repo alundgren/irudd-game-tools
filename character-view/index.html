@@ -176,6 +176,7 @@
             <button id="profile-open">Trace a profile</button>
             <div id="profile-settings" hidden>
               <label class="field">Contour strength<input id="profile-mix" type="range" min="0" max="100" step="1"></label>
+              <label class="field" id="profile-relief-field" hidden>Rebuild cheek and nose depth<input id="profile-relief" type="range" min="0" max="100" step="1"></label>
               <button id="profile-remove">Release profile</button>
             </div>
           </details>
@@ -244,6 +245,15 @@
                 >Hair color<input type="color" id="hair-color"
               /></label>
             </div>
+          </details>
+          <details id="fibre-tools" hidden><summary>Grow strands along curves</summary>
+            <label class="field">Guide curves<select id="fibre-guides" multiple size="5"></select></label>
+            <label class="field">Strands per curve<input id="fibre-count" type="number" min="4" max="96" value="32"></label>
+            <label class="field">Wave (%)<input id="fibre-wave" type="number" min="0" max="100" value="28"></label>
+            <label class="field">Trailing length (% of curve)<input id="fibre-fall" type="number" min="0" max="100" value="20"></label>
+            <label class="field">Grey strands (%)<input id="fibre-grey" type="number" min="0" max="100" value="12"></label>
+            <label class="check"><input id="fibre-root" type="checkbox" checked>Seat roots on the parent surface</label>
+            <div class="actions"><button id="fibre-apply">Grow strands</button><button id="fibre-reroll">Reroll strands</button><button id="fibre-remove">Restore guide surface</button></div>
           </details>
           <details id="skin-tools">
             <summary>Join organic surfaces</summary>
@@ -606,6 +616,7 @@
             >GLB detail<select id="export-detail">
               <option value="full">Full detail</option>
               <option value="game">Game · reduced mesh and shared atlas</option>
+              <option value="portrait">Portrait · reduced mesh and 2048 px atlas</option>
             </select></label
           >
           <label class="check" id="export-outfit-field" hidden><input id="all-outfits" type="checkbox" />Export all saved outfits as selectable scenes</label>
@@ -1038,12 +1049,18 @@
       <label class="check" id="fit-mirror-label" hidden><input id="fit-mirror" type="checkbox">Mirror depth changes across the face</label>
       <label class="field">Fit strength (%)<input id="fit-strength" type="number" value="100" min="0" max="100" step="1"></label>
       <div class="front-pair"><figure><figcaption>Current head</figcaption><canvas id="front-model" width="600" height="600" aria-label="Mark a point on the current head"></canvas></figure><figure><figcaption>Photograph</figcaption><canvas id="front-photo" width="1" height="1" aria-label="Mark the same point on the photo"></canvas></figure></div>
+      <label><input id="front-transfer" type="checkbox"> Transfer this photograph’s colour onto the visible face</label>
       <p id="front-reading" aria-live="polite"></p><div class="actions"><button id="front-undo">Undo point</button><button id="front-apply">Fit these landmarks</button></div>
     </dialog>
     <dialog id="profile-room" aria-labelledby="profile-title">
       <div class="section-title"><h2 id="profile-title">Trace the face in profile</h2><button id="profile-close">Close</button></div>
       <p id="profile-help">Use a cropped, level side portrait. Start at the forward brow ridge, follow the visible outline over the nose and lips, and finish at the front of the lower chin. Drag a point to adjust it.</p>
       <div class="trace-row"><label><span id="profile-file-label">Side portrait</span><input id="profile-file" type="file" accept="image/*"></label><label class="field">Nose points<select id="profile-facing"><option value="right">Right</option><option value="left">Left</option></select></label></div>
+      <div id="profile-options">
+        <label><input id="profile-last" type="checkbox"> Fit this outline after all facial landmark edits</label>
+        <label><input id="profile-side-paint" type="checkbox"> Use this image for the sides of the head</label>
+        <button id="profile-ear" hidden>Mark the centre of the ear</button>
+      </div>
       <canvas id="profile-image" hidden aria-label="Trace points on the reference portrait"></canvas>
       <p id="profile-reading" aria-live="polite"></p>
       <div class="actions"><button id="profile-undo">Undo point</button><button id="profile-apply">Fit selected face</button></div>

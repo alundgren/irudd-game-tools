@@ -187,7 +187,20 @@ export function loadTurnarounds() {
 export function registeredArtwork() {
   return [...atlases.keys()];
 }
+export const portraitImage = (id) => artworkImages.get(id);
+async function registerPortraitImage(id, url) {
+  if (!artworkImages.has(id))
+    artworkImages.set(id, await new T.ImageLoader().loadAsync(url));
+}
 export async function restoreArtwork(form) {
+  const referenced = form.parts
+    .flatMap((p) => [
+      p.profileFit?.paint?.atlas,
+      ...(p.frontFits ?? []).map((f) => f.overlay),
+    ])
+    .filter(Boolean);
+  if (referenced.some((id) => !Object.hasOwn(form.artwork ?? {}, id)))
+    throw new Error("A registered portrait image is missing from this form.");
   await Promise.all(
     Object.entries(form.artwork ?? {}).map(async ([id, url]) => {
       if (!/^data:image\/webp;base64,/i.test(url))
@@ -196,9 +209,14 @@ export async function restoreArtwork(form) {
         atob(url.slice(url.indexOf(",") + 1)),
         (c) => c.charCodeAt(0),
       );
-      if (id !== (await artworkId(bytes)))
+      const kind = id.split("-")[0];
+      if (
+        !["art", "side", "face"].includes(kind) ||
+        id !== (await artworkId(bytes, kind))
+      )
         throw new Error("The saved artwork does not match its content hash.");
-      await registerTurnaround(id, url);
+      if (kind !== "art") await registerPortraitImage(id, url);
+      else await registerTurnaround(id, url);
     }),
   );
 }
@@ -217,16 +235,17 @@ export function paintGuide(ctx, id, index) {
       ctx.canvas.height,
     );
 }
-async function artworkId(bytes) {
+async function artworkId(bytes, kind = "art") {
   const hash = await crypto.subtle.digest("SHA-256", bytes);
   return (
-    "art-" +
+    kind +
+    "-" +
     Array.from(new Uint8Array(hash), (byte) =>
       byte.toString(16).padStart(2, "0"),
     ).join("")
   );
 }
-export async function importArtwork(file) {
+export async function importArtwork(file, kind = "art") {
   if (file.size > 12_000_000)
     throw new Error("Choose an image smaller than 12 MB.");
   const source = URL.createObjectURL(file);
@@ -244,16 +263,20 @@ export async function importArtwork(file) {
   const blob = await new Promise((resolve) =>
     canvas.toBlob(resolve, "image/webp", 0.92),
   );
+  return storeArtworkBlob(blob, kind);
+}
+export async function storeArtworkBlob(blob, kind) {
   if (!blob || blob.size > 2_400_000)
     throw new Error("Resize this turnaround to fit the 2.4 MB image limit.");
-  const id = await artworkId(await blob.arrayBuffer());
+  const id = await artworkId(await blob.arrayBuffer(), kind);
   const url = await new Promise((resolve, reject) => {
     const r = new FileReader();
     r.onload = () => resolve(r.result);
     r.onerror = reject;
     r.readAsDataURL(blob);
   });
-  await registerTurnaround(id, url);
+  if (kind !== "art") await registerPortraitImage(id, url);
+  else await registerTurnaround(id, url);
   return { id, url };
 }
 export function palmColor(part, fallback) {

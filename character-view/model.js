@@ -11,6 +11,7 @@ import * as T from "three";
 import { paintSources } from "./paint-sources.js";
 import { pullSurface } from "./surface-pull.js";
 
+import { growGuideFibres } from "./guide-fibres.js";
 import { groomGeometry } from "./groom.js";
 import { handGeometry } from "./hands.js";
 import { blendSkin } from "./blended-skin.js";
@@ -21,14 +22,16 @@ import { expeditionMaterial } from "./expedition.js";
 import { fittedScute } from "./scutes.js";
 import { sculptBuild } from "./body-sculpt.js";
 import { fitWardrobe, addEquipment } from "./wardrobe.js";
+import { paintSidePortrait, applyPortraitPlates } from "./side-portrait.js";
 import { clearFaceHardware } from "./face-hardware.js";
-import { applyFrontFit } from "./front-fit.js";
+import { applyFrontFit, carryFaceEdits, headFrame } from "./front-fit.js";
 import { fitHeadProfile } from "./profile-fit.js";
 import { deformFace, portraitSurface } from "./facial-sculpt.js";
 import { volumeGeometry } from "./volume.js";
 import {
   volumeMaterial,
   paintedMaterial,
+  portraitImage,
   preparePaintRegions,
 } from "./turnaround.js";
 import { surfaceMaterial } from "./materials.js";
@@ -338,7 +341,15 @@ function baseParts(recipe, material, silhouette) {
     skin,
   );
   for (const side of [-1, 1])
-    oval(side * 0.088, 1.606, 0.002, 0.021, 0.039, 0.019, skin);
+    oval(
+      side * 0.088,
+      1.606,
+      0.002,
+      0.021,
+      0.039,
+      0.019,
+      skin,
+    ).userData.earSurface = true;
   groups.head.add(createFace(recipe, silhouette, material));
   const hairStart = groups.head.children.length;
   if (recipe.hair !== "Bald")
@@ -478,7 +489,12 @@ function baseParts(recipe, material, silhouette) {
   return groups;
 }
 
-export function createCharacter(form, silhouette, clay = false) {
+export function createCharacter(
+  form,
+  silhouette,
+  clay = false,
+  fibreBudget = 0,
+) {
   const plainView = silhouette || clay;
   const group = new T.Group(),
     materials = new Map();
@@ -801,12 +817,13 @@ export function createCharacter(form, silhouette, clay = false) {
       : owner.children.find((c) => c.userData.faceSurface);
     if (face) {
       if (part.shape === "head") face.geometry = face.geometry.clone();
-      if (part.profileFit) fitHeadProfile(face, part.profileFit);
+      if (part.profileFit && !part.profileFit.stage)
+        fitHeadProfile(face, part.profileFit);
     }
   }
   fitSurfaceJoins(form, objects);
   for (const p of form.parts)
-    if (p.eyesRig) {
+    if (p.eyesRig && !p.eyesRig.stage) {
       const root = objects.get(p.id);
       const face = root?.userData.faceSurface
         ? root
@@ -822,8 +839,57 @@ export function createCharacter(form, silhouette, clay = false) {
           : owner.children.find((c) => c.userData.faceSurface);
       if (face)
         for (const pass of p.frontFits)
-          applyFrontFit(face, pass, !!p.profileFit, owner);
+          applyFrontFit(
+            face,
+            pass,
+            !!p.profileFit && !p.profileFit.stage,
+            owner,
+          );
     }
+  for (const p of form.parts) {
+    if (p.profileFit?.stage !== "finish") continue;
+    const owner = objects.get(p.id);
+    const face = owner.userData.faceSurface
+      ? owner
+      : owner.children.find((c) => c.userData.faceSurface);
+    if (!face) continue;
+    const frame = headFrame(face);
+    const result = fitHeadProfile(face, p.profileFit);
+    if (result) {
+      carryFaceEdits(face, owner, frame, result.move);
+      const paint = p.profileFit.paint;
+      if (paint && !plainView)
+        paintSidePortrait(
+          face,
+          owner,
+          result,
+          paint,
+          portraitImage(paint.atlas),
+        );
+    }
+  }
+  if (!plainView)
+    for (const part of form.parts) {
+      const plates = part.frontFits
+        ?.filter((pass) => pass.overlay)
+        .map((pass) => portraitImage(pass.overlay))
+        .filter(Boolean);
+      if (!plates?.length) continue;
+      const owner = objects.get(part.id),
+        face = owner.userData.faceSurface
+          ? owner
+          : owner.children.find((c) => c.userData.faceSurface);
+      if (face) applyPortraitPlates(face, plates);
+    }
+  for (const p of form.parts) {
+    if (p.eyesRig?.stage !== "finish") continue;
+    const owner = objects.get(p.id),
+      face = owner.userData.faceSurface
+        ? owner
+        : owner.children.find((c) => c.userData.faceSurface);
+    if (face)
+      attachEyes(face, p.eyesRig, plainView ? material("#adb4ad") : null);
+  }
   fitSurfaceJoins(form, objects, true);
   const hardwareFitted = new Set();
   for (const p of form.parts) {
@@ -841,6 +907,7 @@ export function createCharacter(form, silhouette, clay = false) {
     );
     hardwareFitted.add(p.parent);
   }
+  growGuideFibres(form, objects, plainView, material, fibreBudget);
   if (!plainView)
     for (const part of form.parts) {
       if (!part.markings) continue;
@@ -857,6 +924,7 @@ export function disposeCharacter(group) {
   group.traverse((part) => {
     if (part.isMesh) {
       part.geometry.dispose();
+      if (part.userData.ownedPortraitTexture) part.material.map?.dispose();
       materials.add(part.material);
     }
   });

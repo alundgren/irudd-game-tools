@@ -78,3 +78,39 @@ test("a fitted section preserves rear vertices, carries the input UVs and accoun
     nose = sectionDepth(geo, row - 0.001, row + 0.001, 3).near[1];
   assert.ok(Math.abs(((nose - upper) * 0.9) / (span * 1.3) - 0.1) < 0.012);
 });
+
+test("a finishing profile rebuilds central relief without changing the frontal projection", () => {
+  const shape = new Mesh(new SphereGeometry(0.5, 96, 96));
+  const source = shape.geometry.attributes.position.clone();
+  const fit = {
+    stage: "finish",
+    relief: 0.95,
+    amount: 1,
+    curve: [
+      [0, 0],
+      [0.17, 0.026],
+      [0.39, 0.18],
+      [0.53, 0.014],
+      [0.7, 0.055],
+      [1, -0.07],
+    ],
+  };
+  assert.ok(validProfile(fit));
+  assert.equal(validProfile({ ...fit, relief: 1.3 }), false);
+  assert.equal(validProfile({ ...fit, stage: undefined }), false);
+  const frame = fitHeadProfile(shape, fit);
+  const pos = shape.geometry.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    assert.equal(pos.getX(i), source.getX(i));
+    assert.equal(pos.getY(i), source.getY(i));
+    if (source.getZ(i) < -0.18) assert.equal(pos.getZ(i), source.getZ(i));
+    assert.ok(Number.isFinite(pos.getZ(i)));
+  }
+  const y = frame.brow - 0.39 * (frame.brow - frame.chin);
+  const measured = sectionDepth(shape.geometry, y - 0.002, y + 0.002, 3)
+    .near[1];
+  assert.ok(
+    Math.abs((measured - frame.front) / (frame.brow - frame.chin) - 0.18) <
+      0.03,
+  );
+});

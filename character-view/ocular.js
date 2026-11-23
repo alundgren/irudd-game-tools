@@ -49,6 +49,7 @@ export function validEyes(settings) {
       ([k, [lo, hi]]) =>
         Number.isFinite(settings[k]) && settings[k] >= lo && settings[k] <= hi,
     ) &&
+    (settings.stage === undefined || settings.stage === "finish") &&
     (settings.source === undefined || typeof settings.source === "boolean") &&
     (settings.contours === undefined ||
       (Array.isArray(settings.contours) &&

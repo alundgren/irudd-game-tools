@@ -251,10 +251,16 @@ export function extractComponent(form, id, includeChildren = true) {
   box.min.sub(displacement);
   box.max.sub(displacement);
   const artwork = {};
-  for (const p of partList)
-    if ((p.paint || p.hull) && form.artwork?.[(p.paint ?? p.hull).atlas])
-      artwork[(p.paint ?? p.hull).atlas] =
-        form.artwork[(p.paint ?? p.hull).atlas];
+  for (const p of partList) {
+    for (const id of [
+      p.paint?.atlas,
+      p.hull?.atlas,
+      p.profileFit?.paint?.atlas,
+      ...(p.frontFits ?? []).map((pass) => pass.overlay),
+    ]) {
+      if (id && form.artwork?.[id]) artwork[id] = form.artwork[id];
+    }
+  }
   const sources = retainPaintSources(
     { parts: partList },
     paintSources(form),

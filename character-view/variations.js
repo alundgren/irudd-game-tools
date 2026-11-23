@@ -167,6 +167,7 @@ const allowedPartKeys = new Set([
   "blendSkin",
   "grip",
   "groom",
+  "fibres",
   "hideSourceHair",
   "markings",
   "headLayer",

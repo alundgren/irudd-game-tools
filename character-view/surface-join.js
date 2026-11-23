@@ -35,7 +35,7 @@ function ownMeshes(root) {
 }
 // Bounds are in world metres. Partition long carriers so fitting a small root
 // only visits triangles that could improve the nearest surface point.
-function surfaceIndex(root) {
+export function surfaceIndex(root) {
   const faces = [];
   for (const mesh of ownMeshes(root)) {
     const g = mesh.geometry,
@@ -326,12 +326,17 @@ function seatBranch(mesh, carrier, part, nearest) {
   }
   deform(mesh, part.id);
 }
-export function fitSurfaceJoins(form, objects, rigidFaceMounts = false) {
+export function fitSurfaceJoins(form, objects, afterFaceFits = false) {
+  const byId = new Map(form.parts.map((p) => [p.id, p]));
+  const late = (part) => {
+    for (let node = part; node; node = byId.get(node.parent))
+      if (node.rigidFaceAnchor || node.fibres) return true;
+    return false;
+  };
   const chosen = form.parts.filter(
-    (p) => p.surfaceJoin && Boolean(p.rigidFaceAnchor) === rigidFaceMounts,
+    (p) => p.surfaceJoin && late(p) === afterFaceFits,
   );
   if (!chosen.length) return;
-  const byId = new Map(form.parts.map((p) => [p.id, p]));
   function depth(p) {
     let n = 0;
     while (p?.parent) {

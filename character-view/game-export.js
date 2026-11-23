@@ -3,6 +3,7 @@ import * as T from "three";
 import { mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
 import { MeshoptSimplifier } from "three/addons/libs/meshopt_simplifier.module.js";
 
+export const gameTriangleTarget = 24000;
 function batches(mesh) {
   const g = mesh.geometry,
     materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
@@ -336,7 +337,7 @@ function remap(g, groups, ratio, tiles, size) {
 }
 export async function optimizeForGame(
   root,
-  { triangles = 24000, size = 1024 } = {},
+  { triangles = gameTriangleTarget, size = 1024 } = {},
 ) {
   await MeshoptSimplifier.ready;
   root.updateMatrixWorld(true);
@@ -345,14 +346,19 @@ export async function optimizeForGame(
   let initial = 0,
     eyeTriangles = 0,
     fittedFaceTriangles = 0,
-    foldedClothTriangles = 0;
+    foldedClothTriangles = 0,
+    fibreTriangles = 0;
+  const portraitFace = (mesh) =>
+    mesh.userData.fittedEyes ||
+    (mesh.userData.faceSurface && mesh.material.userData?.portraitPlate);
   root.traverseVisible((m) => {
     if (!m.isMesh) return;
     const groups = batches(m);
     for (const b of groups) {
       initial += b.count / 3;
-      if (m.userData.eyePiece) eyeTriangles += b.count / 3;
-      else if (m.userData.fittedEyes) fittedFaceTriangles += b.count / 3;
+      if (b.material.userData.fibreLOD) fibreTriangles += b.count / 3;
+      else if (m.userData.eyePiece) eyeTriangles += b.count / 3;
+      else if (portraitFace(m)) fittedFaceTriangles += b.count / 3;
       else if (b.material.userData.foldedCloth)
         foldedClothTriangles += b.count / 3;
       const e = tiles.get(b.material) ?? { material: b.material, weight: 0 };
@@ -368,19 +374,24 @@ export async function optimizeForGame(
     throw new Error("The selected wardrobe has no visible mesh.");
   // Thin moving eye layers need closely matching surfaces after simplification.
   // Reserve part of the existing triangle budget so their depths stay ordered.
-  const eyes = Math.min(eyeTriangles, triangles * 0.22),
-    faces = Math.min(fittedFaceTriangles * 0.55, triangles * 0.34),
+  const available = triangles - fibreTriangles;
+  const eyes = Math.min(eyeTriangles, available * 0.22),
+    faces = Math.min(fittedFaceTriangles * 0.55, available * 0.34),
     cloth = Math.min(
       foldedClothTriangles * 0.6,
-      (triangles - eyes - faces) * 0.32,
+      (available - eyes - faces) * 0.32,
     );
   const page = atlas([...tiles.values()], size),
     ratio = Math.min(
       0.55,
-      (triangles - eyes - faces - cloth) /
+      (available - eyes - faces - cloth) /
         Math.max(
           1,
-          initial - eyeTriangles - fittedFaceTriangles - foldedClothTriangles,
+          initial -
+            fibreTriangles -
+            eyeTriangles -
+            fittedFaceTriangles -
+            foldedClothTriangles,
         ),
     );
   page.material.vertexColors = meshes.some(([mesh]) =>
@@ -390,14 +401,15 @@ export async function optimizeForGame(
   for (const [mesh, groups] of meshes) {
     // Both sides of a close-fitting folded panel need enough samples to stay ordered.
     for (const batch of groups)
-      if (batch.material.userData.foldedCloth && foldedClothTriangles)
+      if (batch.material.userData.fibreLOD) batch.ratio = 1;
+      else if (batch.material.userData.foldedCloth && foldedClothTriangles)
         batch.ratio = cloth / foldedClothTriangles;
     if (page.material.vertexColors) whiteVertexColors(mesh.geometry);
     const original = mesh.geometry,
       joined = mergeVertices(original, 1e-5);
     const share = mesh.userData.eyePiece
       ? eyes / eyeTriangles
-      : mesh.userData.fittedEyes
+      : portraitFace(mesh)
         ? faces / fittedFaceTriangles
         : ratio;
     mesh.geometry = remap(joined, groups, share, tiles, size);

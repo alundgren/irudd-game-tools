@@ -7,7 +7,8 @@ export function profileTrace(points, facing = "right") {
     throw new Error("Mark 4–96 points from the brow down to the chin.");
   const [x, y] = points[0],
     height = points.at(-1)[1] - y;
-  if (!(height > 0)) throw new Error("Start at the brow and finish below it at the chin.");
+  if (!(height > 0))
+    throw new Error("Start at the brow and finish below it at the chin.");
   const curve = points.map(([px, py]) => [
     (py - y) / height,
     px === x ? 0 : ((px - x) / height) * (facing === "left" ? -1 : 1),
@@ -22,6 +23,13 @@ export function profileTrace(points, facing = "right") {
 export function validProfile(fit) {
   const c = fit?.curve;
   return (
+    (fit?.stage === undefined || fit.stage === "finish") &&
+    (fit?.relief === undefined ||
+      (fit.stage === "finish" &&
+        Number.isFinite(fit.relief) &&
+        fit.relief >= 0 &&
+        fit.relief <= 1)) &&
+    (!fit?.paint || (fit.stage === "finish" && validSidePaint(fit.paint))) &&
     Array.isArray(c) &&
     c.length >= 4 &&
     c.length <= 96 &&
@@ -41,6 +49,22 @@ export function validProfile(fit) {
     c.at(-1)[0] === 1
   );
 }
+function validSidePaint(p) {
+  const point = (v) =>
+    Array.isArray(v) &&
+    v.length === 2 &&
+    v.every((n) => Number.isFinite(n) && n >= 0 && n <= 1);
+  return (
+    /^side-[a-f0-9]{64}$/.test(p.atlas) &&
+    ["right", "left"].includes(p.facing) &&
+    point(p.brow) &&
+    point(p.ear) &&
+    Number.isFinite(p.chinY) &&
+    p.chinY > p.brow[1] + 0.025 &&
+    p.chinY <= 1 &&
+    (p.facing === "right" ? 1 : -1) * (p.brow[0] - p.ear[0]) > 0.02
+  );
+}
 function sample(curve, t) {
   if (t <= 0) return curve[0][1];
   const i = curve.findIndex((p) => p[0] >= t);
@@ -51,11 +75,19 @@ function sample(curve, t) {
 }
 // Sample intersections of triangle edges with horizontal planes. Projected
 // depth includes the nose tip or lips even on an irregular imported portrait.
-export function sectionDepth(geometry, bottom, top, rows = 193) {
+export function sectionDepth(
+  geometry,
+  bottom,
+  top,
+  rows = 193,
+  withWidth = false,
+) {
   const pos = geometry.attributes.position,
     idx = geometry.index;
   const near = new Float64Array(rows).fill(-Infinity),
     rear = new Float64Array(rows).fill(Infinity);
+  const left = withWidth ? new Float64Array(rows).fill(Infinity) : null;
+  const right = withWidth ? new Float64Array(rows).fill(-Infinity) : null;
   const dy = (top - bottom) / (rows - 1);
   for (let i = 0, n = idx?.count ?? pos.count; i < n; i += 3) {
     for (let k = 0; k < 3; k++) {
@@ -70,16 +102,22 @@ export function sectionDepth(geometry, bottom, top, rows = 193) {
       const first = Math.max(0, Math.ceil((ya - bottom) / dy - 1e-8)),
         last = Math.min(rows - 1, Math.floor((yb - bottom) / dy + 1e-8));
       for (let row = first; row <= last; row++) {
-        const z = za + (zb - za) * ((bottom + row * dy - ya) / (yb - ya));
+        const f = (bottom + row * dy - ya) / (yb - ya);
+        const z = za + (zb - za) * f;
+        if (withWidth) {
+          const x = pos.getX(a) + (pos.getX(b) - pos.getX(a)) * f;
+          left[row] = Math.min(left[row], x);
+          right[row] = Math.max(right[row], x);
+        }
         near[row] = Math.max(near[row], z);
         rear[row] = Math.min(rear[row], z);
       }
     }
   }
-  return { near, rear };
+  return { near, rear, left, right };
 }
 export function fitHeadProfile(mesh, fit) {
-  if (!fit.amount) return;
+  if (!fit.amount && !fit.paint) return;
   const g = mesh.geometry;
   g.computeBoundingBox();
   const box = g.boundingBox,
@@ -100,7 +138,13 @@ export function fitHeadProfile(mesh, fit) {
   const bottom = Math.max(box.min.y + height * 0.002, chin - pad),
     top = Math.min(box.max.y - height * 0.002, brow + pad);
   if (brow >= top || chin <= bottom) return;
-  const { near, rear } = sectionDepth(g, bottom, top, rows);
+  const { near, rear, left, right } = sectionDepth(
+    g,
+    bottom,
+    top,
+    rows,
+    Boolean(fit.relief),
+  );
   const rowAt = (y) =>
     MathUtils.clamp(((y - bottom) / (top - bottom)) * (rows - 1), 0, rows - 1);
   function depth(values, y) {
@@ -114,14 +158,67 @@ export function fitHeadProfile(mesh, fit) {
   const p = g.attributes.position;
   const midX = (box.min.x + box.max.x) * 0.5,
     halfWidth = (box.max.x - box.min.x) * 0.5;
-  for (let i = 0; i < p.count; i++) {
-    const y = p.getY(i);
-    if (y <= bottom || y >= top) continue;
+  const finish = fit.stage === "finish";
+  const dimension = (span * scale.y) / scale.z;
+  // Separate central features from the broader cheek plane: the whole cheek
+  // must not inherit every notch traced underneath a nose or lip.
+  const nasalBase = [sample(fit.curve, 0.07), sample(fit.curve, 0.55)];
+  const mouthBase = [sample(fit.curve, 0.56), sample(fit.curve, 0.8)];
+  const gaussian = (v) => Math.exp(-v * v);
+  function rebuild(x, y, z, target, t, front) {
+    const l = depth(left, y),
+      r = depth(right, y);
+    if (!Number.isFinite(l + r) || r <= l) return z;
+    const radial = MathUtils.clamp(
+      (x - (l + r) * 0.5) / ((r - l) * 0.5),
+      -1,
+      1,
+    );
+    const ax = Math.abs(radial),
+      baseZ = box.min.z + 0.48 * (base - box.min.z);
+    const frontWeight = MathUtils.smoothstep(
+      z,
+      baseZ - 0.01 * dimension,
+      baseZ + 0.3 * (front - baseZ),
+    );
+    if (frontWeight === 0) return z;
+    const nasal =
+      MathUtils.smoothstep(t, -0.03, 0.13) *
+      (1 - MathUtils.smoothstep(t, 0.48, 0.61));
+    const oral =
+      MathUtils.smoothstep(t, 0.51, 0.62) *
+      (1 - MathUtils.smoothstep(t, 0.76, 0.84));
+    const nr =
+      base +
+      dimension *
+        MathUtils.lerp(...nasalBase, MathUtils.clamp((t - 0.07) / 0.48, 0, 1));
+    const mr =
+      base +
+      dimension *
+        MathUtils.lerp(...mouthBase, MathUtils.clamp((t - 0.56) / 0.24, 0, 1));
+    const nose = nasal * Math.max(0, target - nr),
+      lips = oral * (target - mr);
+    const core = target - nose - lips;
+    const width = 0.21 + 0.08 * gaussian((t - 0.43) / 0.1);
+    const surface =
+      baseZ +
+      (core - baseZ) * Math.pow(Math.max(0, 1 - radial * radial), 0.43) +
+      nose * gaussian(ax / width) +
+      lips * gaussian(ax / 0.43);
+    const socket = gaussian((ax - 0.4) / 0.18) * gaussian((t - 0.15) / 0.11);
+    const cheek = gaussian((ax - 0.55) / 0.23) * gaussian((t - 0.39) / 0.17);
+    return MathUtils.lerp(
+      z,
+      Math.min(target, surface + dimension * (0.037 * cheek - 0.047 * socket)),
+      frontWeight,
+    );
+  }
+  function move(px, y, z) {
+    if (y <= bottom || y >= top) return [px, y, z];
     const front = depth(near, y),
       back = depth(rear, y);
-    if (!Number.isFinite(front - back) || front <= back) continue;
-    const t = (brow - y) / span,
-      z = p.getZ(i);
+    if (!Number.isFinite(front - back) || front <= back) return [px, y, z];
+    const t = (brow - y) / span;
     const edgeY = MathUtils.clamp(y, chin, brow);
     const target = base + (sample(fit.curve, t) * span * scale.y) / scale.z;
     const fade =
@@ -142,12 +239,25 @@ export function fitHeadProfile(mesh, fit) {
     const nasal = Math.exp(-(((t - 0.36) / 0.24) ** 2)),
       lip = Math.exp(-(((t - 0.65) / 0.12) ** 2));
     const width = 0.65 - 0.41 * nasal - 0.2 * lip;
-    const x = Math.abs(p.getX(i) - midX) / Math.max(halfWidth, 1e-6);
+    const x = Math.abs(px - midX) / Math.max(halfWidth, 1e-6);
     const lateral = Math.exp(-((x / width) ** 2));
-    p.setZ(i, z + shift * fraction * fraction * lateral * fade * fit.amount);
+    // A finishing trace constrains the visible outline, including off-centre
+    // high points. A monotone depth map keeps the surface ordered after a retraction.
+    const weight = finish ? fraction : fraction * fraction * lateral;
+    let adjusted = z + shift * weight;
+    if (fit.relief)
+      adjusted = MathUtils.lerp(
+        adjusted,
+        rebuild(px, y, z, target, t, front),
+        fit.relief,
+      );
+    return [px, y, MathUtils.lerp(z, adjusted, fade * fit.amount)];
   }
+  for (let i = 0; i < p.count; i++)
+    p.setZ(i, move(p.getX(i), p.getY(i), p.getZ(i))[2]);
   p.needsUpdate = true;
   g.computeVertexNormals();
   g.computeBoundingBox();
   g.computeBoundingSphere();
+  return { move, brow, chin, front: base, scale };
 }

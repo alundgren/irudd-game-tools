@@ -1,8 +1,10 @@
+import { capturePortraitPlate } from "./portrait-plate.js";
+import { storeArtworkBlob } from "./turnaround.js";
 import * as T from "three";
 import { headFrame, registerFrontPairs, portraitAxes } from "./front-fit.js";
 
-// Keep the photograph local. The recipe records the artist's selected surface
-// positions and the corresponding offsets at the scale of the current head.
+// A geometry-only fit records landmarks. An optional colour transfer stores
+// just the visible area as an editable, portable layer in the face UV layout.
 export function frontEditor({
   getFace,
   getRenderer,
@@ -26,6 +28,7 @@ export function frontEditor({
     half = 1,
     pairs = [],
     pending = null,
+    saving = false,
     token = 0,
     scene = null;
   const yaw = byId("fit-yaw"),
@@ -95,7 +98,7 @@ export function frontEditor({
         pairs.length +
         " pairs. Select another feature on the model, or apply the fit.";
     byId("front-undo").disabled = !pending && !pairs.length;
-    apply.disabled = !!pending || pairs.length < 3;
+    apply.disabled = saving || !!pending || pairs.length < 3;
     reading.textContent = note;
   }
   function xy(canvas, e) {
@@ -161,7 +164,11 @@ export function frontEditor({
     draw();
   };
   byId("front-close").onclick = () => dialog.close();
-  apply.onclick = () => {
+  apply.onclick = async () => {
+    if (saving) return;
+    const current = token;
+    saving = true;
+    apply.disabled = true;
     try {
       const pass = registerFrontPairs(
         pairs,
@@ -173,10 +180,27 @@ export function frontEditor({
         0,
         1,
       );
-      save(pass);
+      let artwork;
+      if (byId("front-transfer").checked) {
+        const blob = await capturePortraitPlate(
+          probe,
+          camera,
+          photo,
+          pairs,
+          half,
+        );
+        artwork = await storeArtworkBlob(blob, "face");
+        if (token !== current) return;
+        pass.overlay = artwork.id;
+      }
+      const error = save(pass, artwork);
+      if (error) throw new Error(error);
       dialog.close();
     } catch (e) {
-      draw(e.message);
+      saving = false;
+      if (current === token) draw(e.message);
+    } finally {
+      saving = false;
     }
   };
   picker.onchange = async () => {
@@ -280,6 +304,7 @@ export function frontEditor({
     yaw.value = pitch.value = "0";
     plane.value = "plane";
     byId("fit-mirror").checked = false;
+    byId("front-transfer").checked = false;
     captureModel();
     dialog.showModal();
     draw();

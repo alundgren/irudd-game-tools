@@ -9,6 +9,7 @@ import { editCage } from "./control-cage.js";
 import { spineHandles } from "./spine-handles.js";
 import { acceptsDepth } from "./portrait-depth.js";
 import { reshapeSpine } from "./spine-edit.js";
+import { fibreEditor } from "./fibre-editor.js";
 import { wardrobeEditor } from "./wardrobe-editor.js";
 import { readReference, validReferences } from "./visual-references.js";
 import { acceptsMarkings, validMarkings } from "./markings.js";
@@ -176,7 +177,7 @@ function restoreSessionState(saved) {
     status("The previous session could not be restored.");
   }
 }
-let generationController, updateWardrobe;
+let generationController, updateWardrobe, updateFibres;
 let reviewHistory = [],
   refineRequest = null,
   restoredReviewAtLink = false;
@@ -276,6 +277,25 @@ function clearDraft() {
 }
 function commit(next, message, keepKnot = false) {
   const selectedKnot = knot;
+  if (
+    next.artwork &&
+    Object.keys(next.artwork).some((id) => !id.startsWith("art-"))
+  ) {
+    const keep = new Set(
+      next.parts.flatMap((p) => [
+        p.profileFit?.paint?.atlas,
+        ...(p.frontFits ?? []).map((f) => f.overlay),
+      ]),
+    );
+    next = {
+      ...next,
+      artwork: Object.fromEntries(
+        Object.entries(next.artwork).filter(
+          ([id]) => id.startsWith("art-") || keep.has(id),
+        ),
+      ),
+    };
+  }
   validateForm(next);
   history.push(form);
   if (history.length > 64) history.shift();
@@ -340,7 +360,7 @@ function selectTarget(id) {
   update();
   status("");
 }
-function editPart(change) {
+function editPart(change, artwork) {
   try {
     const preview = nudge(form, target, amounts),
       part = preview.parts.find((p) => p.id === target);
@@ -357,10 +377,12 @@ function editPart(change) {
       ...next,
       parts: next.parts.map((p) => (p.id === target ? updated : p)),
     };
+    if (artwork) next.artwork = { ...next.artwork, [artwork.id]: artwork.url };
     commit(next, "Updated " + target + ".", true);
   } catch (e) {
     status(e.message);
     update();
+    return e.message;
   }
 }
 function download(blob, name) {
@@ -397,13 +419,13 @@ function focusFace() {
   chooseAngle("Front");
   $("#focus").click();
 }
-function candidateForm() {
-  return form.artwork && !proposal.painted && !proposal.alternate
+function candidateForm(candidate = proposal) {
+  return form.artwork && !candidate.painted && !candidate.alternate
     ? {
-        ...proposal.form,
-        artwork: { ...form.artwork, ...proposal.form.artwork },
+        ...candidate.form,
+        artwork: { ...form.artwork, ...candidate.form.artwork },
       }
-    : proposal.form;
+    : candidate.form;
 }
 function returnToDraft(message) {
   clearReview();
@@ -562,8 +584,13 @@ function refreshReferences(locked = false) {
 }
 function bindControls() {
   bindAlternates();
-  const traceOutline = profileEditor((profileFit) =>
-    editPart((p) => ({ ...p, profileFit })),
+  const traceOutline = profileEditor((profileFit, artwork) =>
+    editPart((p) => ({ ...p, profileFit }), artwork),
+  );
+  updateFibres = fibreEditor(
+    () => nudge(form, target, amounts),
+    commit,
+    status,
   );
   updateWardrobe = wardrobeEditor({
     traceOutline,
@@ -939,8 +966,11 @@ function bindControls() {
     getRenderer: () => renderer,
     restoreView: render,
     status,
-    save: (pass) =>
-      editPart((p) => ({ ...p, frontFits: [...(p.frontFits ?? []), pass] })),
+    save: (pass, artwork) =>
+      editPart(
+        (p) => ({ ...p, frontFits: [...(p.frontFits ?? []), pass] }),
+        artwork,
+      ),
   });
   function mountAccessories(rigid) {
     const selected = new Set(
@@ -1032,6 +1062,14 @@ function bindControls() {
         amount: Number($("#profile-mix").value) / 100,
       },
     }));
+  $("#profile-relief").onchange = () =>
+    editPart((p) => ({
+      ...p,
+      profileFit: {
+        ...p.profileFit,
+        relief: Number($("#profile-relief").value) / 100,
+      },
+    }));
   $("#profile-remove").onclick = () =>
     editPart((p) => {
       const { profileFit, ...rest } = p;
@@ -1040,14 +1078,17 @@ function bindControls() {
   $("#eye-fit").onclick = () =>
     editPart((p) => {
       let original;
+      const finish =
+        p.profileFit?.stage === "finish" ||
+        p.frontFits?.some((pass) => pass.overlay);
       try {
-        if (p.frontFits?.length) {
+        if (finish || p.frontFits?.length) {
           const preview = nudge(form, target, amounts);
           original = createCharacter(
             {
               ...preview,
               parts: preview.parts.map((q) =>
-                q.id === p.id ? { ...q, frontFits: [] } : q,
+                q.id === p.id && !finish ? { ...q, frontFits: [] } : q,
               ),
             },
             false,
@@ -1055,7 +1096,9 @@ function bindControls() {
         }
         const face = selectedFace(original ?? figure, p.id);
         if (!face) throw new Error("Select a registered face.");
-        return { ...p, eyesRig: fitEyeSettings(face) };
+        const eyesRig = fitEyeSettings(face);
+        if (finish) eyesRig.stage = "finish";
+        return { ...p, eyesRig };
       } finally {
         if (original) disposeCharacter(original);
       }
@@ -1332,7 +1375,8 @@ function bindControls() {
     try {
       const result = await exportForm(form, {
         motion: $("#with-motion").checked,
-        game: $("#export-detail").value === "game",
+        game: $("#export-detail").value !== "full",
+        atlasSize: $("#export-detail").value === "portrait" ? 2048 : 1024,
         wardrobe,
         progress: async (name, index, count) => {
           status(
@@ -1490,8 +1534,12 @@ function bindControls() {
       if (proposal && refineRequest)
         await receiveRefinement(raw, refineRequest, proposal);
       else {
-        proposal = readProposal(raw, request, revision);
-        await restoreArtwork(proposal.form);
+        const pendingRequest = request,
+          candidate = readProposal(raw, request, revision);
+        await restoreArtwork(candidateForm(candidate));
+        if (request !== pendingRequest || revision !== pendingRequest.revision)
+          return;
+        proposal = candidate;
       }
       showCurrent = false;
       persist();
@@ -2033,6 +2081,11 @@ function update() {
   }
   $("#profile-tools").hidden = $("#eye-tools").hidden;
   $("#profile-settings").hidden = !part?.profileFit;
+  $("#profile-relief-field").hidden = part?.profileFit?.stage !== "finish";
+  if (part?.profileFit)
+    $("#profile-relief").value = Math.round(
+      100 * (part.profileFit.relief ?? 0),
+    );
   if (part?.profileFit)
     $("#profile-mix").value = Math.round(part.profileFit.amount * 100);
   $("#eye-settings").hidden = !part?.eyesRig;
@@ -2253,6 +2306,7 @@ function update() {
     (p) => Object.hasOwn(anchors, p.shape) || p.outfitRole || p.visibleIn,
   );
   updateWardrobe?.(form, target, locked);
+  updateFibres?.(form, target, locked);
   for (const el of $("#outfits").children) {
     pressed(el, hasBody && el.textContent === preview.outfit);
     el.disabled =
@@ -2597,7 +2651,7 @@ async function startWorkshop() {
       restoreArtwork(form),
       ...[proposal, ...reviewHistory]
         .filter(Boolean)
-        .map((p) => restoreArtwork(p.form)),
+        .map((p) => restoreArtwork(candidateForm(p))),
     ])
       .then(() => {
         assetsReady = true;

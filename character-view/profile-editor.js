@@ -1,3 +1,4 @@
+import { importArtwork } from "./turnaround.js";
 import { traceSkirt } from "./skirt-pattern.js";
 import { profileTrace } from "./profile-fit.js";
 
@@ -13,7 +14,11 @@ export function profileEditor(save) {
     points = [],
     dragging = -1,
     revision = 0;
-  let skirtSave = null;
+  let skirtSave = null,
+    ear = null,
+    choosingEar = false,
+    saving = false;
+  const usePaint = () => !skirtSave && byId("profile-side-paint").checked;
   const defaultHelp = byId("profile-help").textContent;
   const read = () =>
     skirtSave
@@ -39,11 +44,18 @@ export function profileEditor(save) {
         ctx.stroke();
       }
     }
+    if (picture && ear && usePaint()) {
+      ctx.fillStyle = "#f9a740";
+      ctx.beginPath();
+      ctx.arc(ear[0] * scale, ear[1] * scale, 5, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+    byId("profile-ear").hidden = !usePaint();
     apply.disabled = true;
     if (points.length >= 4) {
       try {
         read();
-        apply.disabled = false;
+        apply.disabled = saving || (usePaint() && !ear);
       } catch (e) {
         message ??= e.message;
       }
@@ -51,6 +63,9 @@ export function profileEditor(save) {
     byId("profile-undo").disabled = !points.length;
     readout.textContent =
       message ??
+      (choosingEar
+        ? "Click the ear opening in the side portrait."
+        : undefined) ??
       (skirtSave
         ? !picture
           ? "Choose a front view of the garment."
@@ -87,6 +102,8 @@ export function profileEditor(save) {
       if (revision !== token) return;
       picture = im;
       points = [];
+      ear = null;
+      choosingEar = false;
       const ratio = Math.min(1200 / im.naturalWidth, 850 / im.naturalHeight);
       canvas.width = Math.max(1, Math.round(im.naturalWidth * ratio));
       canvas.height = Math.max(1, Math.round(im.naturalHeight * ratio));
@@ -99,6 +116,12 @@ export function profileEditor(save) {
   };
   canvas.onpointerdown = (e) => {
     if (!picture || e.button !== 0) return;
+    if (choosingEar) {
+      ear = point(e);
+      choosingEar = false;
+      draw();
+      return;
+    }
     const at = point(e),
       rect = canvas.getBoundingClientRect();
     dragging = points.findIndex(
@@ -136,9 +159,54 @@ export function profileEditor(save) {
   };
   byId("profile-facing").onchange = () => draw();
   byId("profile-close").onclick = () => dialog.close();
-  apply.onclick = () => {
-    (skirtSave ?? save)(read());
-    dialog.close();
+  byId("profile-side-paint").onchange = () => {
+    choosingEar = false;
+    byId("profile-last").disabled = usePaint();
+    if (usePaint()) byId("profile-last").checked = true;
+    draw();
+  };
+  byId("profile-ear").onclick = () => {
+    choosingEar = true;
+    draw();
+  };
+  apply.onclick = async () => {
+    if (saving) return;
+    const token = revision;
+    try {
+      const trace = read();
+      if (skirtSave) {
+        skirtSave(trace);
+        dialog.close();
+        return;
+      }
+      if (byId("profile-last").checked || usePaint()) trace.stage = "finish";
+      let artwork;
+      if (usePaint()) {
+        saving = true;
+        draw("Preparing the side portrait.");
+        const w = picture.naturalWidth,
+          h = picture.naturalHeight;
+        const brow = [points[0][0] / w, points[0][1] / h],
+          chinY = points.at(-1)[1] / h;
+        const registration = {
+          brow,
+          chinY,
+          ear: [ear[0] / w, ear[1] / h],
+          facing: byId("profile-facing").value,
+        };
+        artwork = await importArtwork(picker.files[0], "side");
+        if (token !== revision) return;
+        trace.paint = { atlas: artwork.id, ...registration };
+      }
+      const error = save(trace, artwork);
+      if (error) throw new Error(error);
+      dialog.close();
+    } catch (error) {
+      saving = false;
+      if (token === revision) draw(error.message);
+    } finally {
+      saving = false;
+    }
   };
   dialog.addEventListener("close", () => {
     revision++;
@@ -150,6 +218,12 @@ export function profileEditor(save) {
     canvas.height = 1;
   });
   return (onSkirt = null) => {
+    byId("profile-options").hidden = typeof onSkirt === "function";
+    byId("profile-last").checked = false;
+    byId("profile-last").disabled = false;
+    byId("profile-side-paint").checked = false;
+    ear = null;
+    choosingEar = false;
     skirtSave = typeof onSkirt === "function" ? onSkirt : null;
     byId("profile-title").textContent = skirtSave
       ? "Trace a skirt silhouette"

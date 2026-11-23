@@ -3,10 +3,13 @@ import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
 import { createCharacter, disposeCharacter } from "./model.js";
 import { prepareExpressions } from "./expressions.js";
 import { skinCharacter } from "./skin.js";
-import { optimizeForGame } from "./game-export.js";
+import { optimizeForGame, gameTriangleTarget } from "./game-export.js";
 import { wearOutfit } from "./outfit-sets.js";
 
-export async function exportForm(form, { wardrobe, motion, game, progress }) {
+export async function exportForm(
+  form,
+  { wardrobe, motion, game, progress, atlasSize = 1024 },
+) {
   const looks = wardrobe ? form.outfitSets?.map((s) => s.name) : [null];
   if (!looks?.length)
     throw new Error("Save an outfit before exporting the wardrobe.");
@@ -16,7 +19,12 @@ export async function exportForm(form, { wardrobe, motion, game, progress }) {
       if (progress) await progress(name, index, looks.length);
       const look = name === null ? form : wearOutfit(form, name);
       const scene = new Scene();
-      const source = createCharacter(look, false);
+      const source = createCharacter(
+        look,
+        false,
+        false,
+        game ? Math.floor(0.4 * gameTriangleTarget) : 0,
+      );
       const entry = { scene, source };
       entries.push(entry);
       if (name !== null) {
@@ -36,7 +44,7 @@ export async function exportForm(form, { wardrobe, motion, game, progress }) {
         prepareExpressions(source);
         scene.add(source);
       }
-      if (game) entry.game = await optimizeForGame(scene);
+      if (game) entry.game = await optimizeForGame(scene, { size: atlasSize });
     }
     const clips = entries.map((e) => e.rig?.clips ?? []);
     const bytes = await new GLTFExporter().parseAsync(

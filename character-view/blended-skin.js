@@ -15,6 +15,7 @@ export const canBlend = (p) =>
     p &&
       ["sweep", "ellipsoid"].includes(p.shape) &&
       !p.paint &&
+      !p.fibres &&
       !p.wearFit &&
       !p.drape,
   );

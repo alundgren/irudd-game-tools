@@ -107,6 +107,7 @@ export function paintMarkings(mesh, m) {
   const iterations = Math.min(5, Math.floor(Math.log2(16000 / triangles)));
   if (
     iterations > 0 &&
+    !mesh.material.userData.fibreLOD &&
     !mesh.blendOwners &&
     !mesh.handRig &&
     !mesh.userData.faceSurface &&
@@ -130,7 +131,8 @@ export function paintMarkings(mesh, m) {
     pos = geo.attributes.position,
     normals = geo.attributes.normal;
   const rgb = new Float32Array(pos.count * 3),
-    base = mat.color.clone(),
+    base = new Color(),
+    previous = mat.vertexColors ? geo.attributes.color : null,
     accent = new Color(m.color);
   const p = new Vector3(),
     n = new Vector3(),
@@ -139,6 +141,8 @@ export function paintMarkings(mesh, m) {
   for (let i = 0; i < pos.count; i++) {
     p.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld);
     n.fromBufferAttribute(normals, i).applyNormalMatrix(normalMatrix);
+    if (previous) base.fromBufferAttribute(previous, i).multiply(mat.color);
+    else base.copy(mat.color);
     const t = sample(p, n);
     rgb[i * 3] = MathUtils.lerp(base.r, accent.r, t);
     rgb[i * 3 + 1] = MathUtils.lerp(base.g, accent.g, t);
