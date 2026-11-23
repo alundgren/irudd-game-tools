@@ -1,4 +1,4 @@
-"""Measure intersections between cut fabric and arms in exported workshop GLBs.
+"""Measure garment intersections or contact between named regions in a workshop GLB.
 
 Usage: python scripts/measure-garments.py model.glb --garments cape tabard
 Requires NumPy and SciPy. The inputs are the binary meshes and animation clips
@@ -31,6 +31,8 @@ class WorkshopMesh:
         self.inverse_bind = self.read(skin["inverseBindMatrices"]).reshape(-1, 4, 4).transpose(0, 2, 1)
         primitive, = self.gltf["meshes"][node["mesh"]]["primitives"]
         attrs = primitive["attributes"]
+        self.region_names = node.get("extras", {}).get("regionNames", [])
+        self.region_indices = self.read(attrs["_REGION"]).ravel() if "_REGION" in attrs else None
         self.rest = self.read(attrs["POSITION"])
         self.triangles = self.read(primitive["indices"]).reshape(-1, 3)
         self.indices = self.read(attrs["JOINTS_0"])
@@ -51,6 +53,13 @@ class WorkshopMesh:
     def influence(self, predicate):
         selected = np.array([predicate(self.nodes[j]) for j in self.joints], dtype=bool)
         return (selected[self.indices] * self.weights).sum(axis=1)
+
+    def region_faces(self, name):
+        if self.region_indices is not None and name in self.region_names:
+            mask = self.region_indices[self.triangles] == self.region_names.index(name)
+            return self.triangles[mask.sum(axis=1) >= 2]
+        influence = self.influence(lambda n: n.get("extras", {}).get("region") == name)
+        return self.triangles[influence[self.triangles].mean(axis=1) > .8]
 
     def pose(self, clip, phase):
         pose = [
@@ -181,16 +190,36 @@ def measure(filename, garments, samples):
     return result
 
 
+def contact_report(filename, pairs, samples):
+    mesh = WorkshopMesh(filename)
+    faces = [(mesh.region_faces(child), mesh.region_faces(parent)) for child, parent in pairs]
+    if any(not len(a) or not len(b) for a, b in faces):
+        raise ValueError("A named region could not be identified in this export.")
+    clips = {}
+    for clip in [None, *mesh.gltf.get("animations", [])]:
+        rows = [[] for pair in pairs]
+        for phase in (np.arange(samples) / samples if clip else [0]):
+            vertices = mesh.pose(clip, phase) if clip else mesh.rest
+            for row, (a, b) in zip(rows, faces):
+                count, _ = crossings(vertices[a], vertices[b])
+                row.append(count)
+        clips[clip["name"] if clip else "Rest"] = rows
+    return {"pairs": pairs, "faceSelection": "region attribute" if mesh.region_indices is not None else "joint influence",
+            "measure": "intersecting child triangles per sampled pose", "clips": clips}
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("model", type=Path)
     parser.add_argument("--garments", nargs="+", default=["cape", "tabard"])
+    parser.add_argument("--contact", action="append", nargs=2, metavar=("CHILD", "PARENT"), help="Check physical contact for this pair in rest and each clip. May be repeated.")
     parser.add_argument("--samples", type=int, default=8)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     if not 2 <= args.samples <= 128:
         parser.error("Choose 2–128 samples per clip.")
-    result = json.dumps(measure(args.model, args.garments, args.samples), indent=2)
+    report = contact_report(args.model, args.contact, args.samples) if args.contact else measure(args.model, args.garments, args.samples)
+    result = json.dumps(report, indent=2)
     if args.output:
         args.output.write_text(result + "\n", encoding="utf-8")
     else:

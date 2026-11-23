@@ -83,6 +83,53 @@ function setSurface() {
   }
 }
 $("surface").onchange = setSurface;
+const pointerRay = new T.Raycaster(),
+  cursor = new T.Vector2();
+let pressedAt;
+renderer.domElement.addEventListener("pointerdown", (e) => {
+  pressedAt = [e.clientX, e.clientY];
+});
+renderer.domElement.addEventListener("pointerup", (e) => {
+  if (
+    !pressedAt ||
+    Math.hypot(e.clientX - pressedAt[0], e.clientY - pressedAt[1]) > 4
+  )
+    return;
+  pressedAt = null;
+  const rect = renderer.domElement.getBoundingClientRect();
+  cursor.set(
+    ((e.clientX - rect.left) * 2) / rect.width - 1,
+    1 - ((e.clientY - rect.top) * 2) / rect.height,
+  );
+  pointerRay.setFromCamera(cursor, camera);
+  for (const m of meshes) if (m.isSkinnedMesh) m.computeBoundingSphere();
+  const hit = pointerRay.intersectObjects(meshes, false)[0],
+    label = $("picked-region");
+  label.hidden = true;
+  if (!hit) return;
+  const attr = hit.object.geometry.attributes._region,
+    names = hit.object.userData.regionNames;
+  let name;
+  if (attr && names && hit.face) {
+    const ids = [hit.face.a, hit.face.b, hit.face.c].map((i) => attr.getX(i));
+    name = names[ids[1] === ids[2] ? ids[1] : ids[0]];
+  } else {
+    let n = hit.object;
+    while (n && !n.userData.partId) n = n.parent;
+    name = n?.userData.partId;
+  }
+  if (name) {
+    label.hidden = false;
+    label.textContent =
+      name +
+      " · (" +
+      hit.point
+        .toArray()
+        .map((n) => n.toFixed(3))
+        .join(", ") +
+      ") m";
+  }
+});
 function expression(value) {
   for (const m of meshes)
     if (m.morphTargetDictionary)
@@ -165,6 +212,7 @@ async function load(file, view, initialClip) {
     model = gltf.scene;
     scene.add(model);
     meshes = [];
+    $("picked-region").hidden = true;
     model.traverse((o) => {
       if (o.isMesh) {
         o.userData.sourceMaterial = o.material;

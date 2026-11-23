@@ -144,6 +144,7 @@ function withMetricFrame(part, enabled) {
     : part;
 }
 const allowedPartKeys = new Set([
+  "surfaceJoin",
   "eyesRig",
   "cage",
   "shape",

@@ -687,6 +687,25 @@
               >
             </div>
             <button id="fit-hand" hidden>Fit fingers to this hand</button>
+            <div id="join-tools" hidden>
+              <label class="field"
+                >Attach surface to parent<select
+                  id="join-patch"
+                ></select></label
+              ><label class="field"
+                >Seating depth in mm<input
+                  type="number"
+                  id="join-depth"
+                  min="1"
+                  max="80"
+                  value="8"
+              /></label>
+              <div class="actions">
+                <button id="join-seat">Seat on parent</button
+                ><button id="join-release">Release fitting</button>
+              </div>
+              <p id="join-reading" class="micro"></p>
+            </div>
             <div id="grip-tools" hidden>
               <label class="field"
                 >Fingers (plus thumb)<input

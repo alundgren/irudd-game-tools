@@ -303,6 +303,8 @@ export function skinCharacter(form, model) {
   actor.updateMatrixWorld(true);
   const skeleton = new T.Skeleton(bones),
     point = new T.Vector3();
+  const regionNames = form.parts.map((p) => p.id);
+  const regionIndices = new Map(regionNames.map((id, i) => [id, i]));
   const byMaterial = new Map();
   for (const s of regions.values())
     for (const source of s.meshes) {
@@ -319,8 +321,8 @@ export function skinCharacter(form, model) {
           : null;
         const mix = secondary ? owners.weight[i] : 1;
         const [a, b, f, g] = weights(point, primary.points);
-        ids[i * 4] = f > 0 ? index.get(primary.bones[a]) : 0;
-        ids[i * 4 + 1] = g > 0 ? index.get(primary.bones[b]) : 0;
+        ids[i * 4] = f * mix > 0 ? index.get(primary.bones[a]) : 0;
+        ids[i * 4 + 1] = g * mix > 0 ? index.get(primary.bones[b]) : 0;
         blend[i * 4] = f * mix;
         blend[i * 4 + 1] = g * mix;
         if (secondary && mix < 1) {
@@ -335,6 +337,13 @@ export function skinCharacter(form, model) {
         bindMantleArms(s, regions, geometry, ids, blend, index, weights);
       if (s.fingers.has(source))
         weightFingers(s.fingers.get(source), ids, blend, index, s.bones[0]);
+      geometry.setAttribute(
+        "_region",
+        new T.Uint8BufferAttribute(
+          new Uint8Array(pos.count).fill(regionIndices.get(s.part.id)),
+          1,
+        ),
+      );
       geometry.setAttribute("skinIndex", new T.BufferAttribute(ids, 4));
       geometry.setAttribute("skinWeight", new T.BufferAttribute(blend, 4));
       if (!geometry.index)
@@ -360,6 +369,7 @@ export function skinCharacter(form, model) {
           if (source.userData.fittedEyes) face.userData.fittedEyes = true;
         }
         face.bind(skeleton, new T.Matrix4());
+        face.userData.regionNames = regionNames;
         face.frustumCulled = false;
         face.castShadow = true;
         actor.add(face);
@@ -383,6 +393,7 @@ export function skinCharacter(form, model) {
     for (const g of geometries) g.dispose();
     const mesh = new T.SkinnedMesh(combined, materials);
     mesh.name = "Character surface";
+    mesh.userData.regionNames = regionNames;
     mesh.bind(skeleton, new T.Matrix4());
     mesh.castShadow = true;
     mesh.frustumCulled = false;

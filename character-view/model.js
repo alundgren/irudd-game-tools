@@ -1,3 +1,4 @@
+import { fitSurfaceJoins } from "./surface-join.js";
 import { attachEyes } from "./ocular.js";
 import { cageGeometry } from "./control-cage.js";
 import { fitDepth } from "./depth-pins.js";
@@ -781,6 +782,7 @@ export function createCharacter(form, silhouette, clay = false) {
   }
   blendSkin(form, objects, material);
   sculptBuild(group, form);
+  fitSurfaceJoins(form, objects);
   for (const p of form.parts)
     if (p.eyesRig) {
       const root = objects.get(p.id);

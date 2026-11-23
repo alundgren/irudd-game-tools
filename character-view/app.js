@@ -978,6 +978,28 @@ function bindControls() {
     }));
   $("#hair-roll").onclick = () =>
     editPart((p) => ({ ...p, groom: { ...p.groom, seed: newHairSeed() } }));
+  $("#join-seat").onclick = () =>
+    editPart((p) => {
+      const depth = Number($("#join-depth").value) / 1000;
+      const join =
+        p.shape === "cage"
+          ? {
+              faces: [
+                ...new Set([
+                  ...(p.surfaceJoin?.faces ?? []),
+                  Number($("#join-patch").value),
+                ]),
+              ],
+              depth,
+            }
+          : { end: $("#join-patch").value, depth };
+      return { ...p, surfaceJoin: join };
+    });
+  $("#join-release").onclick = () =>
+    editPart((p) => {
+      const { surfaceJoin, ...free } = p;
+      return free;
+    });
   $("#cage-face").onchange = () => {
     cageFace = Number($("#cage-face").value);
     direct = true;
@@ -1905,6 +1927,46 @@ function update() {
   $("#protected-list").hidden = !protectedIds.size;
   $("#fit-hand").hidden =
     locked || part?.shape !== "sweep" || part?.outfitRole !== "hand";
+  $("#join-tools").hidden =
+    locked ||
+    !part?.parent ||
+    !["cage", "sweep"].includes(part.shape) ||
+    Boolean(part.paint);
+  if (!$("#join-tools").hidden) {
+    const patch = $("#join-patch"),
+      last = patch.value,
+      same = patch.dataset.owner === part.id;
+    const choices =
+      part.shape === "cage"
+        ? part.cage.faces.map((_, i) => [String(i), "Face " + (i + 1)])
+        : [
+            ["first", "First end"],
+            ["last", "Last end"],
+            ["along", "Full strip along surface"],
+          ];
+    patch.replaceChildren(...choices.map(([v, label]) => new Option(label, v)));
+    patch.dataset.owner = part.id;
+    patch.value =
+      same && choices.some(([v]) => v === last)
+        ? last
+        : part.shape === "cage"
+          ? String(cageFace)
+          : (part.surfaceJoin?.end ?? "first");
+    $("#join-depth").value = Math.round(
+      1000 * (part.surfaceJoin?.depth ?? 0.008),
+    );
+    $("#join-release").hidden = !part.surfaceJoin;
+    $("#join-reading").textContent = part.surfaceJoin
+      ? "Fitted to " +
+        part.parent +
+        " · " +
+        (part.surfaceJoin.faces
+          ? "faces " + part.surfaceJoin.faces.map((i) => i + 1).join(", ")
+          : part.surfaceJoin.end === "along"
+            ? "entire strip"
+            : part.surfaceJoin.end + " end")
+      : "";
+  }
   $("#cage-tools").hidden = part?.shape !== "cage" || locked;
   if (!$("#cage-tools").hidden) {
     const cage = part.cage;

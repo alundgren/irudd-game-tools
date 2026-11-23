@@ -299,6 +299,7 @@ export function blendSkin(form, objects, material) {
     .filter(
       (p) =>
         p.blendSkin &&
+        !p.surfaceJoin &&
         canBlend(p) &&
         (!p.outfitRole || form.outfit === "Work clothes"),
     )
