@@ -3,7 +3,8 @@ import {
   mkdtemp,
   readFile,
   writeFile,
-  rm,
+  unlink,
+  rmdir,
   lstat,
   realpath,
   readdir,
@@ -15,14 +16,16 @@ import { createInterface } from "node:readline";
 const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 export async function codexJob(prompt, views, signal, { effort } = {}) {
   const dir = await mkdtemp(join(tmpdir(), "irudd-form-"));
+  const out = join(dir, "response.json");
+  const ownedFiles = [out];
   try {
-    const out = join(dir, "response.json"),
-      argumentsForImages = [];
+    const argumentsForImages = [];
     for (const [i, view] of views.entries()) {
       const path = join(
         dir,
         "view-" + i + "." + (view.type === "png" ? "png" : "jpg"),
       );
+      ownedFiles.push(path);
       await writeFile(path, Buffer.from(view.data, "base64"));
       argumentsForImages.push("-i", path);
     }
@@ -83,7 +86,19 @@ export async function codexJob(prompt, views, signal, { effort } = {}) {
       .replace(/\s*\x60{3}$/, "");
     return { result: JSON.parse(response), session };
   } finally {
-    await rm(dir, { recursive: true, force: true });
+    for (const file of ownedFiles) {
+      try {
+        await unlink(file);
+      } catch (error) {
+        if (error.code !== "ENOENT") throw error;
+      }
+    }
+    try {
+      await rmdir(dir);
+    } catch (error) {
+      // Leave unexpected contents where they are.
+      if (!["ENOENT", "ENOTEMPTY", "EEXIST"].includes(error.code)) throw error;
+    }
   }
 }
 
