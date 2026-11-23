@@ -12,6 +12,8 @@ MIT-licensed tools for making games. The first tool is a 3D character workshop b
 
 The latest studies test editable armour, moving limbs and a face guided by a historical portrait. The porter's broad dorsal shield becomes eight raised teeth over two actual AI edits. The four-arm merchant carries a jar and receives payment with the other lower hand. [Crest comparison](docs/character-creator.html#rerolled-crest) &middot; [Walking-arm comparison](docs/character-creator.html#walking-arms) &middot; [Athlete face comparison](docs/character-creator.html#athlete-portrait).
 
+The [four-handed courier](examples/four-hand-courier.form.json) started as the fitted athlete. Select a supporting upper arm and enable **Hold this arm in its carrying pose during movement** to brace an existing grip while the rest of the body moves. The [courier comparison](docs/character-creator.html#four-hand-courier) shows where the first fit lost its grip and where the sleeves still intersect.
+
 ![Original four-arm pose, corrected wrist and elbow placement, and a two-arm control.](docs/media/arm-revision.webp)
 
 [Compare the arm repair in motion](docs/workshop-results.html#jointed-arms). The [two-arm conductor](examples/jointed-conductor.form.json) and the [four-arm wardrobe](examples/festival-wardrobe.form.json) share a portrait and torso. Select an upper arm, forearm or hand and use **Bend elbow 15°**. The [wardrobe GLB](examples/festival-wardrobe.glb) includes practice clothes, a stage costume and a bulky pressure suit with 33 fitted plates.

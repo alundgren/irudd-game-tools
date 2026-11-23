@@ -217,6 +217,18 @@ export function buildClips(root, regions) {
         natural: true,
       });
   }
+  // Heavy props can be supported by several hands. Keep their authored
+  // shoulder-to-fingertip pose as the torso moves. Saved joint poses still
+  // use the artist's own tracks.
+  const heldHands = new Set();
+  for (const region of regions.values()) {
+    if (region.role !== "hand") continue;
+    const parent = regions.get(region.part.parent);
+    const upper =
+      parent?.role === "forearm" ? regions.get(parent.part.parent) : parent;
+    if (upper?.role === "upper arm" && upper.part.holdArmPose)
+      heldHands.add(region);
+  }
   const openHands = [...armMovement.values()].some((m) => m.natural);
   if (arms.length > 2) {
     const ordered = [...arms].sort(
@@ -314,7 +326,12 @@ export function buildClips(root, regions) {
           placeFoot(leg, dz, lift, drop, add);
         }
       for (const s of regions.values()) {
-        if (name === "Reach" && s.fingers?.size) {
+        if (
+          name === "Reach" &&
+          s.fingers?.size &&
+          !heldHands.has(s) &&
+          !s.part.holdArmPose
+        ) {
           for (const fingers of s.fingers.values())
             for (const digit of fingers)
               for (const [j, bone] of digit.chain.entries()) {
@@ -355,6 +372,7 @@ export function buildClips(root, regions) {
               );
           }
         } else if (s.role === "upper arm") {
+          if (s.part.holdArmPose) continue;
           const motion = armMovement.get(s);
           const pair = pairedAxes.get(s);
           if (pair) {

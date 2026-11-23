@@ -190,6 +190,7 @@ const allowedPartKeys = new Set([
   "outfitRole",
   "pulls",
   "motionRole",
+  "holdArmPose",
   "look",
   "frameSize",
   "bare",

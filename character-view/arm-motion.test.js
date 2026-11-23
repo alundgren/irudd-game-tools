@@ -165,4 +165,43 @@ test("neighbouring arms keep separate swing paths with fixed sockets and an upri
   }
   assert.ok(travel > 0.1);
   rig.dispose();
+
+  const held = new Set(["arm-1/1", "arm1/1"]);
+  const carry = skinCharacter(
+    {
+      parts: parts.map((p) =>
+        held.has(p.id) ? { ...p, holdArmPose: true } : p,
+      ),
+      poses: [
+        {
+          name: "Lift",
+          joints: [
+            { part: "arm1/1", station: 0, turn: [0.5, 0, 0, Math.sqrt(0.75)] },
+          ],
+        },
+      ],
+    },
+    model,
+  );
+  const attached = (id) => carry.regions.get(id).bones[0];
+  const carrier = attached("pitcher"),
+    other = attached("hand-1/1");
+  const relative = () =>
+    carrier.worldToLocal(other.getWorldPosition(new Vector3()));
+  const seat = relative(),
+    replay = new AnimationMixer(carry.actor);
+  for (const clip of carry.clips) {
+    if (clip.name.startsWith("Pose")) continue;
+    replay.stopAllAction();
+    replay.clipAction(clip).play();
+    for (let i = 0; i < 16; i++) {
+      replay.setTime((clip.duration * i) / 16);
+      assert.ok(relative().distanceTo(seat) < 1e-6, clip.name);
+    }
+  }
+  replay.stopAllAction();
+  replay.clipAction(carry.clips.find((c) => c.name.endsWith("Lift"))).play();
+  replay.setTime(0.5);
+  assert.ok(relative().distanceTo(seat) > 0.05);
+  carry.dispose();
 });

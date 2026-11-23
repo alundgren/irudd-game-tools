@@ -16,6 +16,7 @@ import { wardrobeEditor } from "./wardrobe-editor.js";
 import { readReference, validReferences } from "./visual-references.js";
 import { acceptsMarkings, validMarkings } from "./markings.js";
 import { armChain, bendElbow, recutArmSleeves, fitHand } from "./graft.js";
+import { movementRoles } from "./skin.js";
 import { palmColor } from "./turnaround.js";
 import {
   listAlternates,
@@ -1310,6 +1311,9 @@ function bindControls() {
       }
     };
   }
+  $("#carry-pose").onchange = () => {
+    editPart((p) => ({ ...p, holdArmPose: $("#carry-pose").checked }));
+  };
   $("#recut-arm").onclick = () => {
     try {
       commit(
@@ -2366,6 +2370,8 @@ function update() {
   $("#protected-list").hidden = !protectedIds.size;
   const arm = armChain(preview.parts, target);
   $("#elbow-tools").hidden = locked || !arm;
+  $("#carry-pose-control").hidden = locked || !part || movementRoles(preview.parts).get(part.id) !== "upper arm";
+  $("#carry-pose").checked = part?.holdArmPose === true;
   $("#recut-arm").disabled =
     !arm || arm.upper.shape !== "sweep" || arm.lower.shape !== "sweep";
   $("#fit-hand").hidden =
