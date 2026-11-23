@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Character creator research plan · irudd-game-tools</title>
+<style>
+:root { color-scheme:light dark; --ink:var(--foreground,light-dark(#182725,#e3ede8)); --sub:var(--muted-foreground,light-dark(#455c58,#afc4bc)); --rule:var(--border,light-dark(#b7c6bd,#3d514b)); --plate:light-dark(#e5eee7,#253932); --shape:light-dark(#26443e,#bdd8c8); --signal:light-dark(#9e4622,#ffb08b); --tone:light-dark(#267063,#8ed9c3); }
+* {box-sizing:border-box}
+body {max-width:56rem; width:calc(100% - 2rem); margin:1.4rem auto 3rem; color:var(--ink); font:1rem/1.55 var(--font-sans,"Segoe UI",sans-serif)}
+h1,h2,h3,p,figure,dl {margin:0}
+h1,h2 {font-family:"Iowan Old Style","Georgia",serif; font-weight:500; line-height:1.07; letter-spacing:-.035em}
+h1 {font-size:clamp(2.35rem,6vw,4.4rem);max-width:15em;margin:.45rem 0 .65rem}
+h2 {font-size:clamp(1.65rem,3.7vw,2.45rem);margin:1.45rem 0 .55rem}
+h3 {font-size:1.08rem;margin:1rem 0 .3rem}
+.eyebrow, .code {font:600 .78rem/1.4 var(--font-mono,Consolas,monospace);letter-spacing:.055em;color:var(--tone)}
+.intro {font-size:1.13rem;max-width:68ch}
+figure {margin:1.15rem 0 .65rem}
+svg {display:block;width:100%;height:auto;background:var(--plate);border-radius:.65rem}
+figcaption,.hint {font-size:.93rem;color:var(--sub);margin-top:.45rem}
+a {color:var(--tone);text-underline-offset:.18em}
+details {border-top:1px solid var(--rule)}
+details:last-of-type {border-bottom:1px solid var(--rule)}
+summary {cursor:pointer;padding:.72rem 0;font-weight:650}
+summary::marker {color:var(--tone)}
+summary:focus-visible,a:focus-visible {outline:2px solid var(--signal);outline-offset:3px}
+details>div {padding:0 0 1rem;max-width:75ch}
+dt {font-weight:650;color:var(--tone);margin-top:.55rem}
+dd {margin:0}
+p+p {margin-top:.55rem}
+code {font-family:var(--font-mono,Consolas,monospace);font-size:.92em;overflow-wrap:anywhere}
+@media(max-width:32rem){body{width:calc(100% - 1.2rem);margin-top:.7rem}summary{padding:.82rem 0}}
+@media print {body{width:100%;max-width:none;color:#142522} details::details-content{display:block;content-visibility:visible} summary{break-after:avoid} figure{break-inside:avoid}}
+</style>
+</head>
+<body><main>
+<header><p class="eyebrow">irudd-game-tools / Research plan</p>
+<h1>One character, many outfits</h1>
+<p class="intro">Can a player reroll a single feature, keep what they like, and recognize the same person in a game and an illustration? Start with a measured Three.js figure. Let the player steer its shape, then test what an image generator can carry into a new scene.</p></header>
+
+<figure>
+<svg viewBox="0 0 680 230" role="img" aria-labelledby="plate-title plate-desc">
+<title id="plate-title">Three wardrobe studies at the same scale</title>
+<desc id="plate-desc">A schematic adult in a base layer, work clothes, and a pressure suit. All share a floor and a skull height of 1.72 metres. The helmet extends above the skull.</desc>
+<defs>
+<g id="person" fill="var(--shape)">
+<path d="M-9 41 Q-9 35 0 35 Q9 35 9 42 L8 51 Q7 57 3 58 L4 62 L16 66 Q20 68 22 78 L31 102 L33 111 L30 116 L26 113 L25 105 L15 86 L13 98 L16 112 L13 140 L10 159 L9 181 L13 186 L13 190 L2 190 L0 185 L2 158 L2 143 L0 125 L-3 144 L-6 162 L-8 184 L-8 190 L-19 190 L-19 186 L-15 180 L-14 159 L-13 141 L-16 113 L-13 98 L-15 85 L-25 106 L-26 113 L-30 116 L-33 112 L-31 102 L-22 77 Q-21 69 -16 66 L-4 62 L-3 58 Q-9 55 -9 41Z"/>
+</g>
+</defs>
+<g stroke="var(--rule)" fill="none"><path d="M82 10H661 M82 100H661 M82 190H661 M82 10V190"/><path d="M77 55h10 m-10 90h10"/></g>
+<path d="M82 35H661" stroke="var(--signal)" stroke-dasharray="5 5"/>
+<g fill="var(--sub)" font-size="13" font-family="monospace" text-anchor="end"><text x="72" y="17">2 m</text><text x="72" y="40" fill="var(--signal)">1.72 m</text><text x="72" y="105">1 m</text><text x="72" y="194">0 m</text></g>
+<use href="#person" x="185"/><g transform="translate(185)" stroke="var(--plate)" stroke-width="2" fill="none"><path d="M-11 68 Q0 78 11 68 M-13 99 Q0 103 13 99 M-14 117h12 M3 117h12"/></g>
+<g transform="translate(365)"><use href="#person"/><g fill="var(--shape)"><path d="M-18 65L-25 76L-34 105L-25 108L-16 91L-18 108Q0 115 18 108L16 90L25 108L34 105L24 74L17 65L5 61L0 67L-5 61Z"/><path d="M-17 109H17L16 147L13 181H0L1 150L-1 132L-5 153L-6 181H-17L-17 154Z"/></g><g fill="none" stroke="var(--plate)" stroke-width="2"><path d="M-5 65L0 71L5 65 M0 71V108 M-16 105H16 M4 80h8 M-13 140l8 2"/></g></g>
+<g transform="translate(545)"><use href="#person"/><g fill="var(--shape)"><rect x="-15" y="27" width="30" height="34" rx="13"/><path d="M-19 60L-30 65L-36 79L-32 83L-39 101L-41 112L-37 120L-29 118L-26 103L-19 90L-18 108L-22 119L-18 150L-22 185L-24 190H-5L-4 153L0 128L3 150L1 190H22L19 181L18 149L22 121L17 106L19 90L26 104L28 117L36 120L40 114L38 103L32 84L36 79L29 65L17 60Z"/></g><g fill="none" stroke="var(--plate)" stroke-width="2.5"><rect x="-10" y="34" width="20" height="14" rx="5"/><path d="M-13 60Q0 66 13 60 M-18 102Q0 109 18 102 M-16 145l12 2 M4 147l12-2 M-8 73h16v13H-8Z"/></g></g>
+<g fill="var(--ink)" font-family="sans-serif" font-size="16" text-anchor="middle"><text x="185" y="216">Base layer</text><text x="365" y="216">Work clothes</text><text x="545" y="216">Pressure suit</text></g>
+</svg>
+<figcaption>Proposed scale test, drawn schematically. The dashed line marks the skull. A helmet can make the silhouette taller while the person inside stays 1.72 m.</figcaption>
+</figure>
+
+<h2>The first playable asset</h2>
+<p>Build two deliberately different adult bodies on one skeleton, one close-fitting athletic base layer, one everyday work outfit and one bulky pressure suit. Give both figures a clean, flat-color game material and a solid silhouette view. Put them side by side at true scale. Export one posed GLB and one reference sheet from the same saved character before expanding the catalog.</p>
+
+<h2>Experiments</h2>
+<p class="hint">Run the first two together. The remaining experiments depend on that baseline. All thresholds below are proposed pilot decisions. No results have been collected.</p>
+<details><summary>1 · Can one rig wear all three outfits?</summary><div><dl>
+<dt>Build</dt><dd>Use a short, broad figure and a tall, narrow one. Give the shared skeleton adjustable bone lengths, a small set of authored body shapes and named attachment points. Start with rigid low-poly pieces. Skin the elbows, knees and garment panels where bending matters. Hide covered body regions per outfit and restore them when unequipped.</dd>
+<dt>Try to break it</dt><dd>Render both bodies in all three outfits, in A-pose, stride, crouch and overhead reach. Keep a game camera and a rotating inspection view. Check wrists, shoulders, hips and knees against the pose. Pay particular attention to the short figure in the suit and the broad figure in the base layer. Use opaque, practical clothing and neutral presentation throughout.</dd>
+<dt>Decision</dt><dd>Keep one rig if all 24 combinations pass a turntable inspection without exposed holes, visible skin poking through clothing or a detached limb at 128-pixel character height. Save the failing views. If masking fixes a hole only at rest, fit a garment shape or change its weights. If bulky gear still fails, give it a dedicated fitted mesh before adding more body sliders.</dd>
+</dl></div></details>
+
+<details><summary>2 · Does a Three.js character survive export at the right size?</summary><div><dl>
+<dt>Contract</dt><dd>Use metres, +Y up, +Z forward and a common floor. Record barefoot sole-to-skull stature in a standard standing pose. Record boot sole thickness and the equipped floor-to-top height separately. Preserve the source recipe alongside the portable asset.</dd>
+<dt>Round trip</dt><dd>Use the assembled Three.js object directly in a small game scene. Export its character root with <code>GLTFExporter</code> in binary mode, including a short reach animation. Load the GLB in a fresh Three.js scene and Blender. Check orientation, skinned and rigid parts, morph weights, material colors, embedded resources and animation. Use a portable unlit or standard material for the silhouette style.</dd>
+<dt>Decision</dt><dd>Require zero Khronos Validator errors and inspect warnings. Compare world-space sole, skull, wrist and helmet landmarks in the standing and reach poses against the source, allowing 1 cm. Show both figures beside a 2 m frame at fixed orthographic zoom. If the visual style alone fails, simplify the material. If rig or scale fails, fix export before testing image reconstruction.</dd>
+</dl><p class="hint">glTF defines units, skins and morph targets. Three.js documents binary export. Independent reimport tests the particular assets we build. <a href="https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html">glTF specification</a> · <a href="https://threejs.org/docs/pages/GLTFExporter.html">Three.js exporter</a> · <a href="https://github.com/KhronosGroup/glTF-Validator">Validator</a></p></div></details>
+
+<details><summary>3 · Can a reroll produce a visible choice and respect every lock?</summary><div><dl>
+<dt>The player’s turn</dt><dd>Pick a candidate. Pin its face and height. Select shoulders and ask for “broader, in small steps.” Preview four side by side in the current outfit, accept one or undo. A “surprise me” action draws from the full allowed range. Offer the same controls for build, head, hair, palette and individual clothing or equipment slots. Show which clothing must refit.</dd>
+<dt>Who chooses what</dt><dd>The interface or agent translates steering into an inspectable slot, range, direction and step size. Code draws the candidates. Start a character with system entropy. Derive independent integer PRNG streams from a versioned hash of the root seed, stable slot ID, roll count and candidate index. Sample occupied ranges in strata, shuffle them, then draw within each. Use stable asset IDs and deterministic constraint ordering. If all legal choices are exhausted, explain the conflicting locks.</dd>
+<dt>Save and replay</dt><dd>The versioned recipe owns resolved values, units, asset IDs and hashes, stream algorithm, catalog version, counters, constraints, locks and parent revision. Commit a candidate only after acceptance. Cache generated images by content hash with their inputs and provider metadata. A retried agent proposal targets a recipe revision and an operation ID so a retry cannot advance the roll twice.</dd>
+<dt>Decision</dt><dd>Replay 100 edits across eight seeds through UI and agent commands. Require identical resolved recipes, zero changed locked values, and an undo that restores the prior recipe. Then compare stratified versus ordinary independent draws under the same constraints and four-candidate budget. Across 20 boards with enough legal choices, aim for three visibly different legal candidates on at least 16 boards and a higher count than the baseline. If numeric values differ but thumbnails look alike, revise the shape controls or catalog.</dd>
+</dl>
+<h3>One path for the player and the agent</h3>
+<p>Prototype a local CLI with three operations. <code>inspect</code> returns the current recipe and legal edits. <code>propose</code> takes a slot, constraints and revision and returns four candidate IDs with previews. <code>accept</code> saves the one the player picks. The browser uses the same recipe operations. An MCP wrapper can call this interface once a second client needs it.</p>
+<p>If the catalog has no suitable shoulder shape, the agent can sketch a new one from the locked front and side renders. The player picks the sketch, then the agent fits a mesh to the shoulder sockets and submits it to the outfit and export tests. An accepted mesh gets a new catalog ID. This lets steering expand the set of possible designs.</p>
+<p class="hint">Seeded streams support repeatable independent draws. Visible diversity is a separate artistic question. <a href="https://pcg-random.org/useful-features.html">PCG stream design</a></p></div></details>
+
+<details><summary>4 · Which reference views actually help the next image?</summary><div>
+<h3>Build the sheet from the approved mesh</h3>
+<p>Render aligned front, side, back and three-quarter full bodies in a relaxed A-pose. Fix the orthographic frustum and pixels per metre across the cast. Mark the floor, skull, shoulders, hips and knees. Put a second character or a 2 m frame on the same baseline. Use a separate, clearly labeled magnification for head front, profile and three-quarter crops. Show the character’s left and right explicitly when a feature is asymmetric.</p>
+<p>Give the human a labeled PNG with the outfit triplet, neutral face, a second expression, palette swatches and two or three distinguishing features. Give the agent clean individual crops plus a manifest of view, character revision, outfit, camera and scale. Draw labels and rulers after rendering. Keep identity references available separately from removable clothing, pose and scene references.</p>
+<h3>Compare reference packs on the same requests</h3>
+<p>Use four identities with similar-looking distractors. For each, request three held-out scenes: a different jacket in a market, a seated profile at a workbench and an open-visor suit beside a known-height crewmate. Run text only, text plus a single portrait, and text plus the measured pack. Keep prompts, version, output size and one draw per cell fixed across arms. That costs 36 images. Blind filenames and save every output. If the full pack wins, remove one group of views at a time on failed or borderline cases to find the cheapest effective pack.</p>
+<dl><dt>Decision</dt><dd>For each output, independently score a four-way identity match, required clothing, pose and setting. Count a success only if all four pass. Advance the pack if at least 9/12 outputs succeed and it beats the single portrait by at least two cases. For the four lineup scenes also score correct height order and ratio within 5% at matched depth and standing posture. Log hidden landmarks as unscorable. Repeat borderline comparisons with fresh draws. If identity holds but scale fails, condition on a rendered pair in the target pose.</dd></dl>
+<p class="hint">Animation model sheets combine turns, poses and cast comparisons. Orthographic projection preserves apparent size at fixed zoom. Image editing accepts visual references, but recurring characters can drift. The pack and its pass marks are our hypotheses. <a href="https://www.waltdisney.org/sites/default/files/SW.worksheets.final.pdf">Walt Disney Family Museum, character worksheet</a> · <a href="https://threejs.org/docs/pages/OrthographicCamera.html">Orthographic camera</a> · <a href="https://developers.openai.com/api/docs/guides/image-generation/">OpenAI image guide</a></p>
+</div></details>
+
+<details><summary>5 · Can people recognize the body inside the suit?</summary><div><dl>
+<dt>Blinded lineup</dt><dd>Expand to eight adult identities. For each, show a base-layer target and four candidates wearing the same work clothes or pressure suit. Match distractors by build, share palette and props, shuffle positions, and rotate the candidates to a held-out angle. Use identical lighting. Run at 128-pixel figure height in silhouette and flat color. Normalize framing for this identity task to remove absolute height as an easy clue.</dd>
+<dt>Decision</dt><dd>Run 40 balanced trials per rendering mode, half per outfit. A random pick succeeds one time in four. Pilot target is at least 16/20 matches per outfit in each mode. Log which pairs were confused. If helmets erase identity, test adjustable shoulder shells, leg proportions and stance separately. A deliberately identical sealed suit may make its wearer unknowable. Record that limit and allow explicit player-chosen markings when the game needs recognition.</dd>
+<dt>Separate scale task</dt><dd>Restore fixed world scale. Show standing pairs in random left/right order at 2%, 5% and 10% height differences, with and without the 2 m frame. Ask which person is taller, then repeat with boots and helmets. At 10%, aim for at least 8/10 correct per condition. If the geared task fails, expose barefoot and equipped height in the editor. This small pilot guides design choices and should be repeated with new raters and characters before setting defaults.</dd>
+</dl><p class="hint">Valve used character silhouettes for rapid class recognition. Recognizing individuals within a class and outfit is a harder hypothesis. DreamBench++ found that common image-similarity scores can disagree with human judgments of subject preservation. <a href="https://cdn.akamai.steamstatic.com/apps/valve/2007/NPAR07_IllustrativeRenderingInTeamFortress2.pdf">Valve rendering paper</a> · <a href="https://arxiv.org/abs/2406.16855">DreamBench++</a></p></div></details>
+
+<details><summary>6 · Does image-to-3D save work on a usable asset?</summary><div><dl>
+<dt>Smallest comparison</dt><dd>Start with a rigid suit backpack that has an asymmetric side port. Keep the authored mesh and its attachment socket as the control. Give original TRELLIS one clean three-quarter crop, then its multi-image path three separate consistent views from the same mesh. Hold out the rear three-quarter view and use identical plain backgrounds. Try three draws per generated condition. If generative concept art is the intended input, repeat the winner with an approved image-generated concept and measure the extra drift.</dd>
+<dt>Measure the whole job</dt><dd>At the same camera and scale, compare neutral clay and silhouette renders to the held-out reference. Record side-port handedness, contour overlap, triangle count, material count, GPU time and hands-on minutes for cleanup, scaling and socket fit. Test equip and remove in an unmodified game scene. A later whole-character trial adds retopology, rigging, skinning and the pose and GLB checks above.</dd>
+<dt>Decision</dt><dd>Advance to a coat only if at least two of three draws in a condition preserve the side port, reach 0.85 silhouette intersection-over-union in the held-out view after socket alignment, and fit within the authored triangle budget. Median hands-on time including failed attempts must beat making the control. If only the front view looks good, retain the generated concept as art direction and build the part on the existing rig.</dd>
+</dl><p class="hint">Microsoft demonstrates mesh/GLB output and provides a multi-image example for original TRELLIS. Its authors describe that conditioning method as experimental. Pin the model and environment before comparing runs. <a href="https://microsoft.github.io/TRELLIS/">TRELLIS project</a> · <a href="https://github.com/microsoft/TRELLIS#-updates">Implementation notes</a> · <a href="https://github.com/microsoft/TRELLIS/blob/main/example_multi_image.py">Multi-image example</a></p></div></details>
+
+<h2>What the first session should leave behind</h2>
+<p>Two editable recipes, a six-look lineup on one scale, one self-contained GLB that reopens in a game scene, and a PNG sheet with its clean view crops. Keep a short record of the worst failure, its recipe and its camera angle. That failure determines whether the next session goes into garment fit, the exporter or player steering.</p>
+</main></body></html>
