@@ -8,7 +8,12 @@ import {
   retainPaintSources,
   repaintRegions,
 } from "./paint-sources.js";
-import { bendElbow, placeBranch, placeComponent } from "./graft.js";
+import {
+  bendElbow,
+  recutArmSleeves,
+  placeBranch,
+  placeComponent,
+} from "./graft.js";
 const ideas = {
   subtle: [
     [
@@ -249,6 +254,9 @@ export function applyOperations(
         }).form;
         break;
       }
+      case "recutArmSleeves":
+        form = recutArmSleeves(form, id, action.color);
+        break;
       case "bendElbow":
         form = bendElbow(form, id, action.degrees);
         break;

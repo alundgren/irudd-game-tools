@@ -14,7 +14,7 @@ import { reusePaintEditor } from "./reuse-paint-editor.js";
 import { wardrobeEditor } from "./wardrobe-editor.js";
 import { readReference, validReferences } from "./visual-references.js";
 import { acceptsMarkings, validMarkings } from "./markings.js";
-import { armChain, bendElbow, fitHand } from "./graft.js";
+import { armChain, bendElbow, recutArmSleeves, fitHand } from "./graft.js";
 import { palmColor } from "./turnaround.js";
 import {
   listAlternates,
@@ -1293,6 +1293,20 @@ function bindControls() {
       }
     };
   }
+  $("#recut-arm").onclick = () => {
+    try {
+      commit(
+        recutArmSleeves(
+          nudge(form, target, amounts),
+          target,
+          $("#sleeve-color").value,
+        ),
+        "Sleeves recut.",
+      );
+    } catch (error) {
+      status(error.message);
+    }
+  };
   $("#fit-hand").onclick = () => {
     try {
       const preview = nudge(form, target, amounts),
@@ -2249,7 +2263,10 @@ function update() {
     ? "Keep shape: " + [...protectedIds].join(", ")
     : "";
   $("#protected-list").hidden = !protectedIds.size;
-  $("#elbow-tools").hidden = locked || !armChain(preview.parts, target);
+  const arm = armChain(preview.parts, target);
+  $("#elbow-tools").hidden = locked || !arm;
+  $("#recut-arm").disabled =
+    !arm || arm.upper.shape !== "sweep" || arm.lower.shape !== "sweep";
   $("#fit-hand").hidden =
     locked || part?.shape !== "sweep" || part?.outfitRole !== "hand";
   $("#join-tools").hidden =

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { AnimationMixer, BoxGeometry, Group, Mesh, Vector3 } from "three";
-import { bendElbow } from "./graft.js";
+import { bendElbow, recutArmSleeves } from "./graft.js";
 import { skinCharacter } from "./skin.js";
 
 test("a raised forearm hinges at its elbow, carries the wrist and keeps both rigid segment lengths", () => {
@@ -22,6 +22,27 @@ test("a raised forearm hinges at its elbow, carries the wrist and keeps both rig
     { id: "cup", parent: "palm", motionRole: "rigid", position: [0, -0.04, 0] },
   ].map((p) => ({ ...p, shape: "box", size: [1, 1, 1], rotation: [0, 0, 0] }));
   const form = { parts };
+  const swept = {
+    parts: parts.map((p, i) =>
+      i < 2
+        ? {
+            ...p,
+            shape: "sweep",
+            knots: [
+              [0, -0.2, 0, 0.06, 0.06],
+              [0, 0, 0, 0.05, 0.05],
+            ],
+          }
+        : p,
+    ),
+  };
+  const recut = recutArmSleeves(swept, "palm", "#365849");
+  assert.deepEqual(
+    recut.parts.map((p) => p.position),
+    swept.parts.map((p) => p.position),
+  );
+  assert.deepEqual(recut.parts.slice(2), swept.parts.slice(2));
+  assert.ok(recut.parts[1].knots[1][3] < recut.parts[1].knots.at(-3)[3]);
   const nudged = bendElbow(form, "palm", 15);
   assert.deepEqual(
     nudged.parts.filter((p) => p.id !== "hinge"),

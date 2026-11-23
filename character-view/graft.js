@@ -108,6 +108,80 @@ export function armChain(parts, id) {
   return role(upper) === "upper arm" && hand ? { upper, lower, hand } : null;
 }
 
+export function recutArmSleeves(form, id, color) {
+  const chain = armChain(form.parts, id);
+  if (
+    !chain ||
+    [chain.upper, chain.lower].some((p) => p.shape !== "sweep") ||
+    !/^#[0-9a-f]{6}$/i.test(color)
+  )
+    throw new Error(
+      "Choose a swept upper arm and forearm with a hand, and a fabric colour.",
+    );
+  const g = graph(form.parts);
+  const upperProfile = [
+    [0, 0.75],
+    [0.16, 1.13],
+    [0.42, 0.99],
+    [0.66, 0.94],
+    [0.85, 0.77],
+    [1, 0.72],
+  ];
+  const lowerProfile = [
+    [0, 0.74],
+    [0.18, 0.93],
+    [0.36, 0.95],
+    [0.64, 0.72],
+    [0.86, 0.54],
+    [1, 0.49],
+  ];
+  const refit = (p, next, profile, radius) => {
+    const end = new Vector3()
+      .setFromMatrixPosition(g.world(next.id))
+      .applyMatrix4(g.world(p.id).clone().invert());
+    const length = end.length();
+    if (length < 0.015)
+      throw new Error(
+        "Separate the shoulder, elbow and wrist before cutting the sleeves.",
+      );
+    const knots = profile.map(([t, r]) => [
+      ...end.clone().multiplyScalar(t).toArray(),
+      radius * r,
+      radius * r * 0.98,
+    ]);
+    // Overlap the adjacent joint with rounded ends in the rest pose.
+    knots.unshift([
+      ...end.clone().multiplyScalar(-0.09).toArray(),
+      radius * 0.28,
+      radius * 0.28,
+    ]);
+    knots.push([
+      ...end.clone().multiplyScalar(1.055).toArray(),
+      radius * 0.3,
+      radius * 0.3,
+    ]);
+    const result = { ...p, knots: knots.reverse(), color, surface: "canvas" };
+    delete result.paint;
+    return result;
+  };
+  const radius = (p, next) => {
+    const end = new Vector3()
+      .setFromMatrixPosition(g.world(next.id))
+      .applyMatrix4(g.world(p.id).clone().invert());
+    return MathUtils.clamp(end.length() * 0.22, 0.006, 1);
+  };
+  const { upper, lower, hand } = chain;
+  const a = refit(upper, lower, upperProfile, radius(upper, lower));
+  const b = refit(lower, hand, lowerProfile, radius(lower, hand));
+  return retainPaintSources(
+    {
+      ...form,
+      parts: form.parts.map((p) => (p === upper ? a : p === lower ? b : p)),
+    },
+    paintSources(form),
+  );
+}
+
 export function bendElbow(form, id, degrees) {
   const chain = armChain(form.parts, id);
   if (!chain || !Number.isFinite(degrees) || Math.abs(degrees) > 150)

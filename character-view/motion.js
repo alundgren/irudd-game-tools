@@ -151,7 +151,8 @@ export function buildClips(root, regions) {
         [...regions.values()].some(
           (s) =>
             s.part.parent === hand.part.id &&
-            (s.role === "accessory" || (s.role === "rigid" && !s.part.visibleIn)),
+            (s.role === "accessory" ||
+              (s.role === "rigid" && !s.part.visibleIn)),
         );
       armMovement.set(arm, {
         reach: loaded ? 0.12 : [1, 0.57, 0.36][Math.min(free++, 2)],
