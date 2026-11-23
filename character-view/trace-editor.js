@@ -5,11 +5,15 @@ import {
   guideHeight,
   guidePosition,
   traceOutline,
+  traceHull,
 } from "./turnaround.js";
+import { buildTraceMap } from "./trace-map.js";
+import { fitMapWithAgent } from "./art-variation.js";
 import { traceBiped } from "./trace-biped.js";
 import { Matrix4, Vector3, Quaternion, Euler } from "three";
 
 const labels = {
+  tidebell: "Tidebell shell",
   ridgeback: "Plateback",
   trader: "Reed trader",
   surveyor: "Dock foreman",
@@ -142,6 +146,65 @@ export function bindTraceEditor({
       message.textContent = e.message;
     }
   };
+  const agentFit = document.getElementById("trace-agent-fit");
+  agentFit.hidden =
+    document.querySelector('meta[name="workshop-agent"]')?.content !== "local";
+  agentFit.onclick = async () => {
+    const chosen = art,
+      height = Number(document.getElementById("trace-height").value);
+    agentFit.disabled = true;
+    const show = (text) => {
+      message.textContent = text;
+    };
+    try {
+      show("Tracing separate parts in front and profile…");
+      const { form, missed } = await fitMapWithAgent(
+        chosen,
+        height,
+        "Identify and articulate the pictured character or item.",
+        {
+          revision: crypto.randomUUID(),
+          requestId: crypto.randomUUID(),
+          status: show,
+        },
+      );
+      if (!dialog.open || chosen !== art) return;
+      if (added[chosen]) form.artwork = { [chosen]: added[chosen] };
+      accept(form, form.parts.find((p) => !p.parent)?.id);
+      dialog.close();
+      status(
+        "Built " +
+          form.parts.length +
+          " AI-fitted parts." +
+          (missed?.length ? " Unresolved: " + missed.join(", ") + "." : ""),
+      );
+    } catch (error) {
+      show(error.message);
+    } finally {
+      agentFit.disabled = false;
+    }
+  };
+  const mapFile = document.getElementById("trace-map-file");
+  document.getElementById("trace-map-import").onclick = () => mapFile.click();
+  mapFile.onchange = async () => {
+    const file = mapFile.files[0];
+    mapFile.value = "";
+    if (!file) return;
+    try {
+      if (file.size > 500000) throw new Error("Use a part map under 500 KB.");
+      const form = buildTraceMap(JSON.parse(await file.text()), art);
+      if (added[art]) form.artwork = { [art]: added[art] };
+      accept(form, form.parts.find((p) => !p.parent)?.id);
+      dialog.close();
+      status(
+        "Built " +
+          form.parts.length +
+          " articulated regions from the part map.",
+      );
+    } catch (error) {
+      message.textContent = error.message;
+    }
+  };
   document.getElementById("trace-biped").onclick = () => {
     try {
       const h = Number(document.getElementById("trace-height").value);
@@ -176,7 +239,11 @@ export function bindTraceEditor({
       let id = name,
         n = 2;
       while (used.has(id)) id = name + " " + n++;
-      const part = traceOutline(id, art, height, outlines);
+      const make =
+        document.getElementById("trace-method").value === "volume"
+          ? traceHull
+          : traceOutline;
+      const part = make(id, art, height, outlines);
       const parent = fresh ? null : getTarget(),
         object = parent && figurePart(parent);
       if (object) {

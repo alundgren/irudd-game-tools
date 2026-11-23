@@ -3,6 +3,15 @@ import { readFile, mkdir, writeFile } from "node:fs/promises";
 
 await mkdir("dist", { recursive: true });
 const license = await readFile("node_modules/three/LICENSE", "utf8");
+const meshoptNotice = (
+  await readFile(
+    "node_modules/three/examples/jsm/libs/meshopt_simplifier.module.js",
+    "utf8",
+  )
+)
+  .split("\n")
+  .slice(0, 2)
+  .join("\n");
 async function page(entry, template, destination, styles) {
   const [{ outputFiles }, html, css] = await Promise.all([
     build({
@@ -26,6 +35,8 @@ async function page(entry, template, destination, styles) {
       () =>
         "<!-- Three.js license\n" +
         license +
+        "\n" +
+        meshoptNotice +
         "\n-->\n<script>" +
         js +
         "</script>",

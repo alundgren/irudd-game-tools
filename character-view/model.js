@@ -9,7 +9,12 @@ import { fittedScute } from "./scutes.js";
 import { sculptBuild } from "./body-sculpt.js";
 import { fitWardrobe, addEquipment } from "./wardrobe.js";
 import { deformFace, portraitSurface } from "./facial-sculpt.js";
-import { paintedMaterial, preparePaintRegions } from "./turnaround.js";
+import { volumeGeometry } from "./volume.js";
+import {
+  volumeMaterial,
+  paintedMaterial,
+  preparePaintRegions,
+} from "./turnaround.js";
 import { surfaceMaterial } from "./materials.js";
 import { sweepGeometry } from "./surface.js";
 import { createFace } from "./face.js";
@@ -523,6 +528,9 @@ export function createCharacter(form, silhouette, clay = false) {
         : null;
       let geometry;
       switch (part.shape) {
+        case "volume":
+          geometry = volumeGeometry(part.hull);
+          break;
         case "hand":
           geometry = handGeometry(part.grip);
           break;
@@ -567,12 +575,14 @@ export function createCharacter(form, silhouette, clay = false) {
       const coat = fit && !fit.preserve;
       object = new T.Mesh(
         geometry,
-        part.paint && !plainView && !coat
-          ? paintedMaterial(part)
-          : material(
-              coat ? fit.color : part.color,
-              coat ? (fit.bare ? "plain" : "canvas") : part.surface,
-            ),
+        part.hull && !plainView && !coat
+          ? volumeMaterial(part)
+          : part.paint && !plainView && !coat
+            ? paintedMaterial(part)
+            : material(
+                coat ? fit.color : part.color,
+                coat ? (fit.bare ? "plain" : "canvas") : part.surface,
+              ),
       );
       if (coat && fit.suit && !plainView) {
         const textile = expeditionMaterial(

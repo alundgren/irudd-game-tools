@@ -149,6 +149,8 @@
           <p class="micro" id="agent-help"></p>
           <div class="actions">
             <button id="generate" class="solid"></button
+            ><button id="paint-generate" hidden>
+              Generate painted variation</button
             ><button id="import">Load proposal</button
             ><input
               id="file"
@@ -162,7 +164,9 @@
             <div class="actions">
               <button id="compare" aria-pressed="false">Show current</button
               ><button id="accept" class="solid">Accept</button
-              ><button id="discard">Discard</button>
+              ><button id="discard">Discard</button
+              ><button id="save-turnaround" hidden>Save new artwork</button
+              ><button id="save-map" hidden>Save part map</button>
             </div>
           </div>
         </section>
@@ -201,6 +205,12 @@
         </section>
         <section data-panel="files" hidden>
           <h2>Form files</h2>
+          <label class="field"
+            >GLB detail<select id="export-detail">
+              <option value="full">Full detail</option>
+              <option value="game">Game · reduced mesh and shared atlas</option>
+            </select></label
+          >
           <div class="actions">
             <button id="save">Save form</button
             ><button id="open">Open form</button
@@ -412,6 +422,14 @@
         facing left, back and opposite profile. Click around the same body part
         in the two guides. An empty outline uses the full silhouette.
       </p>
+      <label class="field"
+        >Reconstruction<select id="trace-method">
+          <option value="sweep">Editable cross sections</option>
+          <option value="volume">
+            Preserve openings and separate contours
+          </option>
+        </select></label
+      >
       <div class="trace-guides">
         <figure>
           <canvas width="400" height="400" aria-label="Front outline"></canvas>
@@ -460,6 +478,11 @@
           Fit whole biped
         </button>
         <button class="solid" id="trace-add">Build volume</button>
+      </div>
+      <div class="actions">
+        <button id="trace-agent-fit" hidden>Fit parts with AI</button
+        ><button id="trace-map-import">Build from part map</button
+        ><input type="file" id="trace-map-file" accept=".json" hidden />
       </div>
       <p id="trace-feedback" role="status"></p>
     </dialog>

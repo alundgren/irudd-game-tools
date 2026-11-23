@@ -422,6 +422,63 @@
         </details>
       </article>
       <section class="method">
+        <h2>Two live painted rerolls</h2>
+        <p>
+          Both trials started in the editor with an existing model, a random
+          design direction and written instructions. The local Codex CLI
+          generated fresh artwork and supplied matching front and profile
+          outlines. These files reopen with their source art and editable
+          regions.
+        </p>
+        <h3>A new body plan</h3>
+        <figure>
+          <img
+            src="media/lantern-trial.webp"
+            loading="lazy"
+            alt="From left to right, generated artwork, first solid reconstruction and the articulated lantern grazer"
+          />
+          <figcaption>
+            Generated front view, first 3D fit and revised 3D fit.
+          </figcaption>
+        </figure>
+        <p>
+          A request for a four-legged grazer with a forked lantern and
+          saddlebags took 187 seconds to reach its first proposal. A failed part
+          map reduced that result to one volume. Refitting the same image
+          recovered 15 regions including separate legs, lantern leaves and bags.
+          Profile paint leaves an extra eye-like marking on the right cheek.
+          Slender tips still need sculpting.
+          <a href="../examples/lantern-grazer.form.json" download
+            >Open the grazer recipe in the workshop</a
+          >.
+        </p>
+        <h3>A new head on an existing person</h3>
+        <figure>
+          <img
+            src="media/feline-trial.webp"
+            loading="lazy"
+            alt="An original snow leopard head, the assembled harbour worker and its side view"
+          />
+          <figcaption>
+            Generated front view of the head, assembled worker and profile.
+          </figcaption>
+        </figure>
+        <p>
+          The six Beastren shared by Exciting-Ebb-4205 suggested a species
+          change. We selected the human foreman’s head and asked for an elderly
+          snow leopard. In 99 seconds the editor returned eight editable
+          regions, including a muzzle, jaw, ear pair and cheek ruffs. The other
+          13 original regions, wardrobe and appearance settings matched the
+          starting recipe.
+          <a
+            href="https://www.reddit.com/r/fashiondogma/comments/1bc13xy/dragons_dogma_2_character_creator_beastren/"
+            >Community target</a
+          >
+          ·
+          <a href="../examples/feline-worker.form.json" download
+            >Open the worker recipe in the workshop</a
+          >.
+        </p>
         <h2>What the experiments showed</h2>
         <table>
           <thead>
@@ -465,6 +522,18 @@
                 up to 20 cm of floor penetration in long skirts. After adding
                 hem joints and correcting the root from sampled sole heights,
                 all fourteen stayed within 2 cm of the floor in this test.
+              </td>
+            </tr>
+            <tr>
+              <td>Preserve openings and reduce game meshes</td>
+              <td>
+                A front ray passed through the Tidebell shell opening and struck
+                the rim in both exports. Game detail reduced this model from
+                147,296 triangles and six materials to 23,998 triangles and one
+                material, from 25.7 MB to 2.8 MB. Across five separate paired
+                exports, three-quarter rest-pose silhouette overlap was
+                99.6–99.9%. Both detail levels passed the Khronos validator.
+                <a href="media/game-detail.json">Comparison measurements</a>.
               </td>
             </tr>
             <tr>

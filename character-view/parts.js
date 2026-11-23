@@ -7,7 +7,11 @@ const nextId = (used, name) => {
   return name + " " + n;
 };
 export function appendPart(form, parent, shape) {
-  if (!shapes.includes(shape) || Object.hasOwn(anchors, shape))
+  if (
+    shape === "volume" ||
+    !shapes.includes(shape) ||
+    Object.hasOwn(anchors, shape)
+  )
     throw new Error("Choose a geometric shape.");
   const id = nextId(new Set(form.parts.map((p) => p.id)), shape);
   const part = {
@@ -61,6 +65,7 @@ export function copyBranch(form, id, mirror) {
     copy.id = ids.get(p.id);
     if (ids.has(p.parent)) copy.parent = ids.get(p.parent);
     if (mirror) {
+      if (copy.hull) copy.hull.mirrored = !copy.hull.mirrored;
       if (copy.grip) copy.grip.side *= -1;
       for (const f of copy.pulls ?? []) {
         f.at[0] *= -1;

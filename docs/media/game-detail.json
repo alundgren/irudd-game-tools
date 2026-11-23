@@ -1,0 +1,42 @@
+{
+  "tidebell": {
+    "full": "147,296 triangles \u00b7 6 materials",
+    "game": "23,998 triangles \u00b7 1 materials",
+    "fullBytes": 25685132,
+    "gameBytes": 2788712,
+    "silhouetteIoU": 0.9985849714206051,
+    "colorMeanAbsoluteError": 0.009512818418443203
+  },
+  "painted-porter": {
+    "full": "111,764 triangles \u00b7 27 materials",
+    "game": "23,988 triangles \u00b7 1 materials",
+    "fullBytes": 8011488,
+    "gameBytes": 4849956,
+    "silhouetteIoU": 0.9986214379168395,
+    "colorMeanAbsoluteError": 0.010871154256165028
+  },
+  "painted-courier": {
+    "full": "151,272 triangles \u00b7 14 materials",
+    "game": "24,008 triangles \u00b7 1 materials",
+    "fullBytes": 9232356,
+    "gameBytes": 3321652,
+    "silhouetteIoU": 0.9977515164191592,
+    "colorMeanAbsoluteError": 0.006184059660881758
+  },
+  "ranger": {
+    "full": "45,552 triangles \u00b7 17 materials",
+    "game": "24,049 triangles \u00b7 1 materials",
+    "fullBytes": 3156696,
+    "gameBytes": 1672384,
+    "silhouetteIoU": 0.997332184120339,
+    "colorMeanAbsoluteError": 0.0057455929927527905
+  },
+  "glider": {
+    "full": "49,456 triangles \u00b7 8 materials",
+    "game": "24,001 triangles \u00b7 1 materials",
+    "fullBytes": 1975308,
+    "gameBytes": 1709648,
+    "silhouetteIoU": 0.9960963455149502,
+    "colorMeanAbsoluteError": 0.004565353970974684
+  }
+}

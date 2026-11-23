@@ -1,6 +1,7 @@
 import { Box3, Vector3, Matrix4, Euler, Quaternion, MathUtils } from "three";
 
 import { paintSources, retainPaintSources } from "./paint-sources.js";
+import { volumeBounds } from "./volume.js";
 const anatomyBoxes = {
   head: [
     [-0.12, -0.05, -0.12],
@@ -97,7 +98,7 @@ function bounds(parts, world) {
       }
     } else {
       const [a, b] =
-        anatomyBoxes[p.shape] ??
+        (p.hull ? volumeBounds(p.hull) : anatomyBoxes[p.shape]) ??
         (p.shape === "hand"
           ? [
               [-0.62, -1, -0.6],
@@ -136,8 +137,9 @@ export function extractComponent(form, id, includeChildren = true) {
   box.max.sub(displacement);
   const artwork = {};
   for (const p of partList)
-    if (p.paint && form.artwork?.[p.paint.atlas])
-      artwork[p.paint.atlas] = form.artwork[p.paint.atlas];
+    if ((p.paint || p.hull) && form.artwork?.[(p.paint ?? p.hull).atlas])
+      artwork[(p.paint ?? p.hull).atlas] =
+        form.artwork[(p.paint ?? p.hull).atlas];
   const sources = retainPaintSources(
     { parts: partList },
     paintSources(form),

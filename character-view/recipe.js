@@ -39,6 +39,7 @@ export const shapes = [
   "sweep",
   "scute",
   "hand",
+  "volume",
 ];
 const choose = (items, draw) => items[Math.floor(draw() * items.length)];
 export const entropy = () =>
@@ -213,6 +214,53 @@ function validateAppearance(look) {
       "Invalid face sculpt.",
     );
 }
+function validHull(h) {
+  const intervals = (r) =>
+    Array.isArray(r) &&
+    r.length <= 36 &&
+    r.every(
+      (s, i) =>
+        Array.isArray(s) &&
+        s.length === 2 &&
+        s.every((v) => Number.isFinite(v) && Math.abs(v) <= 12) &&
+        s[1] > s[0] &&
+        (!i || s[0] >= r[i - 1][1]),
+    );
+  return (
+    simpleObject(h) &&
+    (h.mirrored === undefined || typeof h.mirrored === "boolean") &&
+    typeof h.atlas === "string" &&
+    /^[a-zA-Z0-9_-]{1,80}$/.test(h.atlas) &&
+    Number.isFinite(h.height) &&
+    h.height >= 0.15 &&
+    h.height <= 6 &&
+    vec(h.pivot, -12, 12) &&
+    Number.isInteger(h.resolution) &&
+    h.resolution >= 24 &&
+    h.resolution <= 80 &&
+    Array.isArray(h.frames) &&
+    h.frames.length === 4 &&
+    h.frames.every((f) => vec(f, 0, 1.01) && f[2] > 0.05) &&
+    Array.isArray(h.rows) &&
+    h.rows.length >= 3 &&
+    h.rows.length <= 96 &&
+    h.rows.every(
+      (r, i) =>
+        Array.isArray(r) &&
+        r.length === 3 &&
+        Number.isFinite(r[0]) &&
+        r[0] >= 0 &&
+        r[0] <= 1 &&
+        (!i || r[0] > h.rows[i - 1][0]) &&
+        intervals(r[1]) &&
+        intervals(r[2]) &&
+        Boolean(r[1].length) === Boolean(r[2].length),
+    ) &&
+    h.rows[0][1].length > 0 &&
+    h.rows.at(-1)[1].length > 0 &&
+    h.rows.filter((r) => r[1].length).length >= 3
+  );
+}
 function validBinding(p) {
   return (
     simpleObject(p) &&
@@ -297,6 +345,11 @@ export function validateForm(form) {
       Object.hasOwn(anchors, part.shape) || hex(part.color),
       "Choose a hex color for " + part.id + ".",
     );
+    if (part.shape === "volume" || part.hull !== undefined)
+      requireThat(
+        part.shape === "volume" && validHull(part.hull),
+        "Invalid silhouette volume.",
+      );
     if (part.shape === "sweep") {
       requireThat(
         checkKnots(part.knots),

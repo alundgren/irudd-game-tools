@@ -2,6 +2,25 @@ import * as T from "three";
 
 // Editable cross sections follow a centreline. Parallel-transported frames
 // keep fins slender and limbs round even as the spine bends around a corner.
+// Monotone cubic interpolation keeps section radii positive and gives adjacent
+// bands the same tangent. Linear radii create false rings on cheeks and sleeves.
+function radiusAt(knots, left, t, k) {
+  const a = knots[left][k],
+    b = knots[left + 1][k],
+    delta = b - a;
+  const slope = (u, v) => (u * v <= 0 ? 0 : (2 * u * v) / (u + v));
+  const da = left ? slope(a - knots[left - 1][k], delta) : delta;
+  const db =
+    left + 2 < knots.length ? slope(delta, knots[left + 2][k] - b) : delta;
+  const t2 = t * t,
+    t3 = t2 * t;
+  return (
+    (2 * t3 - 3 * t2 + 1) * a +
+    (t3 - 2 * t2 + t) * da +
+    (-2 * t3 + 3 * t2) * b +
+    (t3 - t2) * db
+  );
+}
 export function sweepGeometry(knots, horizontal = false, sides = 20) {
   const centers = knots.map(([x, y, z]) => new T.Vector3(x, y, z));
   const path = new T.CatmullRomCurve3(centers, false, "centripetal");
@@ -30,8 +49,8 @@ export function sweepGeometry(knots, horizontal = false, sides = 20) {
     const at = t * (knots.length - 1),
       left = Math.min(knots.length - 2, Math.floor(at)),
       mix = at - left;
-    const w = T.MathUtils.lerp(knots[left][3], knots[left + 1][3], mix);
-    const d = T.MathUtils.lerp(knots[left][4], knots[left + 1][4], mix);
+    const w = radiusAt(knots, left, mix, 3);
+    const d = radiusAt(knots, left, mix, 4);
     for (let k = 0; k <= sides; k++) {
       const phi = (k / sides) * Math.PI * 2;
       const pt = center

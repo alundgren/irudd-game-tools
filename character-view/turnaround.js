@@ -1,4 +1,5 @@
 import * as T from "three";
+import tidebell from "./tidebell.atlas.webp";
 import expedition from "./expedition.atlas.webp";
 import ridgeback from "./ridgeback.atlas.webp";
 import { sweepGeometry } from "./surface.js";
@@ -14,6 +15,7 @@ import trader from "./trader.atlas.webp";
 import surveyor from "./surveyor.atlas.webp";
 import courier from "./courier.atlas.webp";
 const sources = {
+  tidebell,
   trader,
   surveyor,
   courier,
@@ -141,9 +143,17 @@ export function registeredArtwork() {
 }
 export async function restoreArtwork(form) {
   await Promise.all(
-    Object.entries(form.artwork ?? {}).map(([id, url]) =>
-      registerTurnaround(id, url),
-    ),
+    Object.entries(form.artwork ?? {}).map(async ([id, url]) => {
+      if (!/^data:image\/webp;base64,/i.test(url))
+        throw new Error("Invalid portable artwork.");
+      const bytes = Uint8Array.from(
+        atob(url.slice(url.indexOf(",") + 1)),
+        (c) => c.charCodeAt(0),
+      );
+      if (id !== (await artworkId(bytes)))
+        throw new Error("The saved artwork does not match its content hash.");
+      await registerTurnaround(id, url);
+    }),
   );
 }
 export function paintGuide(ctx, id, index) {
@@ -160,6 +170,15 @@ export function paintGuide(ctx, id, index) {
       ctx.canvas.width,
       ctx.canvas.height,
     );
+}
+async function artworkId(bytes) {
+  const hash = await crypto.subtle.digest("SHA-256", bytes);
+  return (
+    "art-" +
+    Array.from(new Uint8Array(hash), (byte) =>
+      byte.toString(16).padStart(2, "0"),
+    ).join("")
+  );
 }
 export async function importArtwork(file) {
   if (file.size > 12_000_000)
@@ -181,12 +200,7 @@ export async function importArtwork(file) {
   );
   if (!blob || blob.size > 2_400_000)
     throw new Error("Resize this turnaround to fit the 2.4 MB image limit.");
-  const hash = await crypto.subtle.digest("SHA-256", await blob.arrayBuffer());
-  const id =
-    "art-" +
-    Array.from(new Uint8Array(hash), (x) =>
-      x.toString(16).padStart(2, "0"),
-    ).join("");
+  const id = await artworkId(await blob.arrayBuffer());
   const url = await new Promise((resolve, reject) => {
     const r = new FileReader();
     r.onload = () => resolve(r.result);
@@ -214,12 +228,108 @@ function polygonInterval(points, y) {
   }
   return hits.length >= 2 ? [Math.min(...hits), Math.max(...hits)] : null;
 }
+function outlineHeights(atlas, outlines) {
+  let low = 0.001,
+    high = 0.999;
+  for (const [view, points] of outlines.entries()) {
+    if (!points.length) continue;
+    const ys = points.map((p) => guideHeight(atlas, view, p[1]));
+    low = Math.max(low, Math.min(...ys));
+    high = Math.min(high, Math.max(...ys));
+  }
+  if (high <= low)
+    throw new Error("The front and profile outlines must overlap in height.");
+  return [low, high];
+}
+export function traceHull(id, atlas, height, outlines = [[], []]) {
+  const panels = atlases.get(atlas);
+  if (!panels) throw new Error("Choose a loaded turnaround.");
+  const rows = [],
+    [low, high] = outlineHeights(atlas, outlines);
+  for (let j = 0; j < 89; j++) {
+    const h = low + ((high - low) * (j + 0.01)) / 88.02,
+      spans = [];
+    for (let v = 0; v < 2; v++) {
+      const p = panels[v];
+      const span = outlines[v].length
+        ? polygonInterval(outlines[v], guidePosition(atlas, v, h))
+        : [0, 1];
+      if (!span) break;
+      const [a, b] = span.map((u) => (u * p.size - p.mid) / p.span);
+      const runs = silhouetteRuns(atlas, v, h, 0.005)
+        .map(([l, r]) => [Math.max(a, l), Math.min(b, r)])
+        .filter(([l, r]) => r - l > 0.005);
+      spans.push(v === 0 ? runs : runs.reverse().map(([l, r]) => [-r, -l]));
+    }
+    rows.push(
+      spans.length === 2 && spans.every((s) => s.length)
+        ? [h, ...spans]
+        : [h, [], []],
+    );
+  }
+  while (rows.length && !rows[0][1].length) rows.shift();
+  while (rows.length && !rows.at(-1)[1].length) rows.pop();
+  if (rows.filter((r) => r[1].length).length < 3)
+    throw new Error("Select a larger overlapping region.");
+  const middle = (intervals) =>
+    (Math.min(...intervals.map((x) => x[0])) +
+      Math.max(...intervals.map((x) => x[1]))) /
+    2;
+  const pivot = [
+    middle(rows.flatMap((r) => r[1])),
+    rows[0][0],
+    middle(rows.flatMap((r) => r[2])),
+  ];
+  const frames = panels.map((p) => [
+    p.mid / p.size,
+    p.feet / p.size,
+    p.span / p.size,
+  ]);
+  return {
+    id,
+    shape: "volume",
+    size: [1, 1, 1],
+    rotation: [0, 0, 0],
+    position: pivot.map((v) => v * height),
+    color: "#ffffff",
+    hull: { atlas, height, rows, pivot, frames, resolution: 64 },
+  };
+}
+const sheetTextures = new Map();
+export function volumeMaterial(part) {
+  const id = part.hull.atlas,
+    panels = atlases.get(id);
+  if (!panels) return new T.MeshStandardMaterial({ color: part.color });
+  if (!sheetTextures.has(id)) {
+    const n = panels[0].size,
+      c = document.createElement("canvas");
+    c.width = c.height = n * 2;
+    const ctx = c.getContext("2d");
+    panels.forEach((p, i) =>
+      ctx.putImageData(
+        new ImageData(p.pixels, n, n),
+        (i % 2) * n,
+        Math.floor(i / 2) * n,
+      ),
+    );
+    const tex = new T.CanvasTexture(c);
+    tex.colorSpace = T.SRGBColorSpace;
+    tex.anisotropy = 4;
+    sheetTextures.set(id, tex);
+  }
+  return new T.MeshStandardMaterial({
+    map: sheetTextures.get(id),
+    color: part.color,
+    roughness: 0.85,
+  });
+}
 export function traceOutline(id, atlas, height, outlines) {
   const panels = atlases.get(atlas);
   if (!panels) throw new Error("Choose an available turnaround.");
-  const tracks = [];
+  const tracks = [],
+    [low, high] = outlineHeights(atlas, outlines);
   for (let i = 0; i < 42; i++) {
-    const h = 0.002 + (i / 41) * 0.996,
+    const h = low + ((high - low) * (i + 0.01)) / 41.02,
       edges = [];
     for (let v = 0; v < 2; v++) {
       const p = panels[v],

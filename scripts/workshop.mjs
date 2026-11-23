@@ -1,82 +1,28 @@
 import { agentDesign } from "../character-view/variations.js";
 import { createServer } from "node:http";
-import { spawn } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { paintVariation, fitArtwork } from "./art-direction.mjs";
+import { codexJob } from "./codex-worker.mjs";
+import { readFile } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { validateForm, readProposal } from "../character-view/recipe.js";
 
 export async function codexVariation(brief, signal) {
-  const dir = await mkdtemp(join(tmpdir(), "irudd-form-"));
-  try {
-    const output = join(dir, "proposal.json");
-    const cmd = process.platform === "win32" ? "codex.exe" : "codex";
-    const attachments = [];
-    for (const [i, view] of (brief.views ?? []).entries()) {
-      const file = join(dir, "view-" + i + ".jpg");
-      await writeFile(file, Buffer.from(view.jpeg, "base64"));
-      attachments.push("-i", file);
-    }
-    const design = agentDesign(brief);
-    const child = spawn(
-      cmd,
-      [
-        "exec",
-        "--ephemeral",
-        "--skip-git-repo-check",
-        "--sandbox",
-        "read-only",
-        "--cd",
-        dir,
-        ...attachments,
-        "-o",
-        output,
-        "-",
-      ],
-      {
-        cwd: dir,
-        windowsHide: true,
-        stdio: ["pipe", "ignore", "pipe"],
-        signal,
-      },
-    );
-    let diagnostic = "";
-    child.stderr.setEncoding("utf8").on("data", (chunk) => {
-      diagnostic = (diagnostic + chunk).slice(-2400);
-    });
-    child.stdin.on("error", () => {});
-    const done = new Promise((resolve, reject) => {
-      child.once("error", reject);
-      child.once("close", (code) =>
-        code === 0
-          ? resolve()
-          : reject(
-              new Error(
-                "Codex exited with code " +
-                  code +
-                  ". " +
-                  diagnostic.slice(-320),
-              ),
-            ),
-      );
-    });
-    child.stdin.end(
-      "You are the geometry author for a game character editor. Use the JSON brief below as design input. Do not use tools, access the filesystem or execute code. Return a single JSON proposal following replyFormat. Preserve ids on retained parts.\n" +
-        JSON.stringify(design),
-    );
-    await done;
-    const response = (await readFile(output, "utf8"))
-      .trim()
-      .replace(/^\x60{3}(?:json)?\s*/i, "")
-      .replace(/\s*\x60{3}$/, "");
-    return JSON.parse(response);
-  } finally {
-    await rm(dir, { recursive: true, force: true });
-  }
+  const prompt =
+    "You are the geometry author for a game character editor. Use the JSON brief as design input. Do not use tools, access the filesystem or execute code. Return a single JSON proposal following replyFormat. Preserve ids on retained parts.\n" +
+    JSON.stringify(agentDesign(brief));
+  return (
+    await codexJob(
+      prompt,
+      (brief.views ?? []).map((v) => ({ data: v.jpeg })),
+      signal,
+    )
+  ).result;
 }
-
-export function workshopServer(page, generate = codexVariation) {
+export function workshopServer(
+  page,
+  generate = codexVariation,
+  art = { paint: paintVariation, fit: fitArtwork },
+) {
   let busy = false;
   return createServer(async (req, res) => {
     const url = "http://127.0.0.1:" + req.socket.localPort;
@@ -101,7 +47,10 @@ export function workshopServer(page, generate = codexVariation) {
         ),
       );
     }
-    if (req.method !== "POST" || req.url !== "/variation")
+    if (
+      req.method !== "POST" ||
+      !["/variation", "/turnaround", "/trace-map"].includes(req.url)
+    )
       return json(404, { error: "Unknown route." });
     if (
       req.headers.origin !== url ||
@@ -112,30 +61,48 @@ export function workshopServer(page, generate = codexVariation) {
       return json(409, { error: "Another variation is being generated." });
     busy = true;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 240_000);
+    const timeout = setTimeout(
+      () => controller.abort(),
+      req.url === "/turnaround" ? 420_000 : 240_000,
+    );
     res.on("close", () => {
       if (!res.writableEnded) controller.abort();
     });
     try {
-      let raw = "";
+      const chunks = [];
+      let length = 0;
       for await (const chunk of req) {
-        raw += chunk.toString();
-        if (Buffer.byteLength(raw) > 8_000_000)
+        length += chunk.length;
+        chunks.push(chunk);
+        if (length > 8_000_000)
           return json(413, { error: "Form is too large." });
       }
       let brief;
       try {
-        brief = JSON.parse(raw);
+        brief = JSON.parse(Buffer.concat(chunks).toString("utf8"));
         if (
-          brief.format !== "irudd.form-request.v1" ||
+          (req.url === "/trace-map"
+            ? brief.format !== "irudd.trace-request.v1"
+            : brief.format !== "irudd.form-request.v1") ||
           typeof brief.requestId !== "string" ||
           typeof brief.revision !== "string" ||
           typeof brief.instructions !== "string" ||
           brief.instructions.length > 2000
         )
           throw new Error("Malformed variation request.");
-        validateForm(brief.current);
-        validateForm(brief.preview);
+        if (req.url === "/variation") {
+          validateForm(brief.current);
+          validateForm(brief.preview);
+        } else if (
+          !Number.isFinite(brief.height) ||
+          brief.height < 0.15 ||
+          brief.height > 6 ||
+          !Array.isArray(brief.views) ||
+          brief.views.length !== 2
+        )
+          throw new Error("Artwork needs two views and a physical height.");
+        if (brief.repair && JSON.stringify(brief.repair).length > 60000)
+          throw new Error("The repair map is too large.");
         if (
           brief.views &&
           (!Array.isArray(brief.views) ||
@@ -143,7 +110,7 @@ export function workshopServer(page, generate = codexVariation) {
             brief.views.some(
               (v) =>
                 typeof v.jpeg !== "string" ||
-                v.jpeg.length > 170000 ||
+                v.jpeg.length > (req.url === "/trace-map" ? 850000 : 170000) ||
                 !v.jpeg.startsWith("/9j/"),
             ))
         )
@@ -151,6 +118,10 @@ export function workshopServer(page, generate = codexVariation) {
       } catch (err) {
         return json(400, { error: err.message });
       }
+      if (req.url === "/turnaround")
+        return json(200, await art.paint(brief, controller.signal));
+      if (req.url === "/trace-map")
+        return json(200, await art.fit(brief, controller.signal));
       const proposal = readProposal(
         await generate(brief, controller.signal),
         brief,

@@ -1,4 +1,6 @@
 import * as T from "three";
+import { optimizeForGame } from "./game-export.js";
+import { paintWithAgent } from "./art-variation.js";
 import { pullTool } from "./pull-tool.js";
 import { readSession, saveSession } from "./session.js";
 import { skinCharacter } from "./skin.js";
@@ -11,6 +13,8 @@ import { componentShelf, generateWorkshopForm } from "./components.js";
 import { extractComponent, placeComponent } from "./graft.js";
 import { generateForm } from "./generator.js";
 import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
+import { buildTraceMap } from "./trace-map.js";
+import tidebellMap from "../examples/tidebell.trace.json";
 import glider from "../examples/estuary-glider.form.json";
 import beetle from "../examples/accepted-beetle.form.json";
 import { studies as proceduralStudies } from "../examples/studies.js";
@@ -24,6 +28,12 @@ import { loadTurnarounds, restoreArtwork } from "./turnaround.js";
 const studies = [
   ...proceduralStudies,
   ...paintedStudies,
+  {
+    id: "tidebell",
+    title: "Tidebell · open carapace",
+    game: "Artwork fit",
+    make: () => buildTraceMap(tidebellMap, "tidebell"),
+  },
   {
     id: "glider",
     title: "Estuary glider",
@@ -593,7 +603,7 @@ function bindControls() {
     }
   };
   $("#glb").onclick = async () => {
-    let exporting, rig;
+    let exporting, rig, game;
     try {
       exporting = createCharacter(form, false);
       if ($("#with-motion").checked) rig = skinCharacter(form, exporting);
@@ -601,6 +611,8 @@ function bindControls() {
       if (rig) {
         for (const o of [...rig.actor.children]) exportScene.add(o);
       } else exportScene.add(exporting);
+      if ($("#export-detail").value === "game")
+        game = await optimizeForGame(exportScene);
       let bytes;
       try {
         bytes = await new GLTFExporter().parseAsync(exportScene, {
@@ -614,10 +626,19 @@ function bindControls() {
         new Blob([bytes], { type: "model/gltf-binary" }),
         "character.glb",
       );
-      status("Exported the accepted 3D form.");
+      status(
+        game
+          ? "Exported " +
+              Math.round(game.triangles).toLocaleString() +
+              " triangles in " +
+              (bytes.byteLength / 1e6).toFixed(2) +
+              " MB with one material."
+          : "Exported the accepted 3D form.",
+      );
     } catch (e) {
       status(e.message);
     } finally {
+      game?.dispose();
       rig?.dispose();
       if (exporting) disposeCharacter(exporting);
     }
@@ -698,6 +719,21 @@ function bindControls() {
     ? "Sends the current form, nudges and direction to your local Codex CLI."
     : "Give the exported JSON to your agent, then load its proposal here.";
   $("#generate").onclick = generate;
+  $("#paint-generate").hidden = !connected;
+  $("#paint-generate").onclick = () => generate("paint");
+  $("#save-turnaround").onclick = async () => {
+    if (proposal?.art)
+      download(await (await fetch(proposal.art.url)).blob(), "turnaround.webp");
+  };
+  $("#save-map").onclick = () => {
+    if (proposal?.art?.map)
+      download(
+        new Blob([JSON.stringify(proposal.art.map, null, 2)], {
+          type: "application/json",
+        }),
+        "regions.trace.json",
+      );
+  };
   $("#import").onclick = () => $("#file").click();
   $("#file").onchange = async () => {
     const file = $("#file").files[0];
@@ -720,8 +756,11 @@ function bindControls() {
   };
   $("#accept").onclick = () =>
     commit(
-      form.artwork
-        ? { ...proposal.form, artwork: form.artwork }
+      form.artwork && !proposal.painted
+        ? {
+            ...proposal.form,
+            artwork: { ...form.artwork, ...proposal.form.artwork },
+          }
         : proposal.form,
       "AI variation accepted.",
     );
@@ -749,37 +788,63 @@ function bindControls() {
       update();
     };
 }
-function referenceViews() {
-  const bounds = visibleBounds(figure),
-    center = bounds.getCenter(new T.Vector3()),
-    extent = bounds.getSize(new T.Vector3());
-  const radius = Math.max(extent.length() * 0.56, 0.15);
-  const aspect = canvas.width / canvas.height;
-  const half = radius / Math.min(1, aspect);
-  const cam = new T.OrthographicCamera(
-    -half * aspect,
-    half * aspect,
-    half,
-    -half,
-    0.01,
-    100,
-  );
+function referenceViews(selectedId = null) {
+  const selected = selectedId && findPart(figure, selectedId);
+  let isolated;
+  if (selected) {
+    selected.updateWorldMatrix(true, true);
+    isolated = selected.clone(true);
+    const children = [];
+    isolated.traverse((child) => {
+      if (child !== isolated && child.userData.partId) children.push(child);
+    });
+    for (const child of children) child.removeFromParent();
+    isolated.matrixAutoUpdate = false;
+    isolated.matrix.copy(selected.matrixWorld);
+    isolated.updateMatrixWorld(true);
+  }
+  const detailScene = new T.Scene();
+  detailScene.background = scene.background;
+  if (isolated) {
+    detailScene.add(isolated);
+    scene.traverse((o) => {
+      if (o.isLight) detailScene.add(o.clone());
+    });
+  }
   const shot = document.createElement("canvas");
   shot.width = shot.height = 448;
   const ctx = shot.getContext("2d"),
-    side = Math.min(canvas.width, canvas.height);
+    side = Math.min(canvas.width, canvas.height),
+    aspect = canvas.width / canvas.height;
   const views = [];
   try {
-    for (const [name, dir] of [
-      ["front-quarter", [0.45, 0.18, 1]],
-      ["rear-quarter", [-0.7, 0.16, -1]],
+    for (const [name, subject, environment, dir] of [
+      ["whole character", figure, scene, [0.45, 0.18, 1]],
+      isolated
+        ? ["selected part alone", isolated, detailScene, [0.62, 0.1, 1]]
+        : ["rear-quarter", figure, scene, [-0.7, 0.16, -1]],
     ]) {
+      const bounds = visibleBounds(subject),
+        center = bounds.getCenter(new T.Vector3());
+      const radius = Math.max(
+        bounds.getSize(new T.Vector3()).length() * 0.56,
+        0.035,
+      );
+      const half = radius / Math.min(1, aspect);
+      const cam = new T.OrthographicCamera(
+        -half * aspect,
+        half * aspect,
+        half,
+        -half,
+        0.01,
+        100,
+      );
       cam.position
         .copy(center)
         .addScaledVector(new T.Vector3(...dir).normalize(), radius * 3.5 + 2);
       cam.lookAt(center);
       cam.updateMatrixWorld();
-      renderer.render(scene, cam);
+      renderer.render(environment, cam);
       ctx.drawImage(
         canvas,
         (canvas.width - side) / 2,
@@ -801,7 +866,7 @@ function referenceViews() {
   }
   return views;
 }
-async function generate() {
+async function generate(kind) {
   if (busy || proposal) return;
   const direction = $("#steering").value.trim();
 
@@ -834,10 +899,31 @@ async function generate() {
       );
       return;
     }
-    const views = referenceViews();
+    const views = referenceViews(kind === "paint" ? target : null);
     busy = true;
     update();
     status("Generating a variation…");
+    if (kind === "paint") {
+      const selected = target ? findPart(figure, target) : figure;
+      const height = Math.max(
+        0.15,
+        Math.min(
+          6,
+          visibleBounds(selected ?? figure).getSize(new T.Vector3()).y,
+        ),
+      );
+      const preview = nudge(form, target, amounts);
+      const candidate = await paintWithAgent(request, preview, {
+        views,
+        height,
+        target,
+        status,
+      });
+      proposal = readProposal(candidate, request, revision);
+      showCurrent = false;
+      status("Review the painted 3D proposal.");
+      return;
+    }
     const res = await fetch("/variation", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -888,6 +974,8 @@ function update() {
   $("#name").textContent = target ?? "Whole form";
   $("#look").textContent = preview.parts.length + " parts";
   $("#candidate").hidden = !proposal;
+  $("#save-turnaround").hidden = !proposal?.art;
+  $("#save-map").hidden = !proposal?.art?.map;
   $("#summary").textContent = proposal?.summary || "";
   $("#compare").textContent = showCurrent ? "Show proposal" : "Show current";
   pressed($("#compare"), showCurrent);
@@ -934,6 +1022,7 @@ function update() {
     "target",
     "roll",
     "generate",
+    "paint-generate",
     "fresh",
     "import",
     "steering",

@@ -31,6 +31,27 @@ let lastBounds = new T.Box3(),
   restPositions = [],
   meshes = [],
   locked = false;
+const clayMaterial = new T.MeshStandardMaterial({
+    color: 0xb6bdb8,
+    roughness: 0.9,
+  }),
+  inkMaterial = new T.MeshBasicMaterial({ color: 0x203733 });
+function setSurface() {
+  for (const m of meshes) {
+    const mat =
+      $("surface").value === "clay"
+        ? clayMaterial
+        : $("surface").value === "ink"
+          ? inkMaterial
+          : null;
+    m.material = mat
+      ? Array.isArray(m.userData.sourceMaterial)
+        ? m.userData.sourceMaterial.map(() => mat)
+        : mat
+      : m.userData.sourceMaterial;
+  }
+}
+$("surface").onchange = setSurface;
 function pose() {
   model.updateMatrixWorld(true);
   const all = [],
@@ -92,12 +113,16 @@ async function load(file) {
       return;
     }
     mixer?.stopAllAction();
+    for (const m of meshes) m.material = m.userData.sourceMaterial;
     release(model);
     model = gltf.scene;
     scene.add(model);
     meshes = [];
     model.traverse((o) => {
-      if (o.isMesh) meshes.push(o);
+      if (o.isMesh) {
+        o.userData.sourceMaterial = o.material;
+        meshes.push(o);
+      }
     });
     if (!meshes.length) throw new Error("This file contains no mesh.");
     mixer = new T.AnimationMixer(model);
@@ -133,6 +158,23 @@ async function load(file) {
       " skeletons · " +
       clips.length +
       " clips";
+    const triangles = meshes.reduce(
+      (n, m) =>
+        n +
+        (m.geometry.index?.count ?? m.geometry.attributes.position.count) / 3,
+      0,
+    );
+    const surfaces = new Set(
+      meshes.flatMap((m) =>
+        Array.isArray(m.material) ? m.material : [m.material],
+      ),
+    );
+    $("stats").textContent =
+      triangles.toLocaleString() +
+      " triangles · " +
+      surfaces.size +
+      " materials";
+    setSurface();
     selectClip();
   } catch (e) {
     if (ticket === generation) $("status").textContent = e.message;
