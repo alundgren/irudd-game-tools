@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Character workshop · 3D benchmark gallery</title>
+    <style>
+      :root {
+        --ink: #18312b;
+        --paper: #f5f4eb;
+        --muted: #53665c;
+        --rule: #bcc8bb;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font:
+          16px/1.55 "Inter",
+          system-ui,
+          sans-serif;
+      }
+      header {
+        padding: 1rem max(5vw, 1rem);
+        background: #172e28;
+        color: #f5f4eb;
+        font-weight: 650;
+      }
+      nav,
+      main {
+        max-width: 1200px;
+        margin: auto;
+        padding: 0 1.4rem;
+      }
+      nav {
+        padding-top: 1.3rem;
+        display: flex;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+      }
+      a {
+        color: #286047;
+        text-underline-offset: 0.18em;
+      }
+      h1,
+      h2,
+      h3 {
+        line-height: 1.08;
+        letter-spacing: -0.045em;
+      }
+      h1 {
+        font:
+          500 clamp(2.7rem, 7vw, 5.3rem) / 1.04 Georgia,
+          serif;
+        margin: 2.8rem 0 1rem;
+      }
+      h2 {
+        font-size: clamp(1.6rem, 3vw, 2.5rem);
+        margin: 3.3rem 0 1rem;
+      }
+      h3 {
+        font-size: 1.65rem;
+        margin: 0.2rem 0 0.7rem;
+      }
+      .intro {
+        max-width: 75ch;
+        font-size: 1.12rem;
+      }
+      img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      figure {
+        margin: 0;
+      }
+      figcaption,
+      .game,
+      .refs {
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+      figcaption {
+        margin: 0.35rem 0 0.8rem;
+      }
+      .game {
+        margin: 0;
+        font-weight: 650;
+      }
+      .display {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        position: sticky;
+        top: 0;
+        background: var(--paper);
+        padding: 0.65rem 0;
+        border-block: 1px solid var(--rule);
+        z-index: 1;
+      }
+      button {
+        font: inherit;
+        cursor: pointer;
+        border: 1px solid var(--rule);
+        border-radius: 1rem;
+        padding: 0.22rem 0.85rem;
+        background: transparent;
+        color: var(--ink);
+      }
+      button[aria-pressed="true"] {
+        color: white;
+        background: #264a3b;
+      }
+      article {
+        display: grid;
+        grid-template-columns: minmax(14rem, 1fr) minmax(0, 2.6fr);
+        gap: 1.2rem;
+        padding: 1.8rem 0;
+        border-bottom: 1px solid var(--rule);
+      }
+      article details {
+        grid-column: 2;
+      }
+      details img {
+        max-width: 780px;
+        margin: 1rem 0;
+      }
+      summary {
+        cursor: pointer;
+      }
+      .method {
+        max-width: 82ch;
+      }
+      table {
+        border-collapse: collapse;
+      }
+      td,
+      th {
+        text-align: left;
+        vertical-align: top;
+        border-bottom: 1px solid var(--rule);
+        padding: 0.7rem 0.65rem;
+      }
+      footer {
+        margin: 3rem 0 2rem;
+        font-size: 0.9rem;
+      }
+      code {
+        overflow-wrap: anywhere;
+      }
+      @media (max-width: 750px) {
+        article {
+          display: block;
+        }
+        article figure {
+          margin-top: 1rem;
+        }
+        main,
+        nav {
+          padding-left: 1rem;
+          padding-right: 1rem;
+        }
+        h1 {
+          margin-top: 1.7rem;
+        }
+        td,
+        th {
+          padding: 0.5rem 0.3rem;
+        }
+        .display {
+          position: static;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>irudd / game tools</header>
+    <nav>
+      <a href="character-creator.html">Experiment plan</a
+      ><a href="creator-benchmarks.md">Reference credits</a
+      ><a href="../README.md">Run the workshop</a>
+    </nav>
+    <main>
+      <h1>Six tests of character freedom</h1>
+      <p class="intro">
+        Can one editor make a convincing human face, a four-armed merchant and a
+        clothed character with a distinct silhouette? These six original models
+        come from the workshop. The linked community creations supply each
+        design target.
+      </p>
+      <h2>Standing height</h2>
+      <figure>
+        <img
+          src="media/standing-scale.webp"
+          alt="Six unscaled characters on the same floor with the dock foreman visibly shorter than the plateback porter"
+        />
+        <figcaption>
+          Cartographer, foreman, trader, porter, conductor and scout. All six
+          use the same orthographic camera, crop and floor plane. Height
+          includes hair, shoes and armor.
+        </figcaption>
+      </figure>
+      <h2>Orbit comparisons</h2>
+      <div class="display" aria-label="Surface rendering">
+        <button data-mode="color" aria-pressed="true">Color</button
+        ><button data-mode="clay" aria-pressed="false">Clay</button
+        ><button data-mode="silhouette" aria-pressed="false">Silhouette</button>
+      </div>
+      <article data-study="painted-ranger">
+        <div>
+          <p class="game">Dragon’s Dogma 2</p>
+          <h3>Coast cartographer</h3>
+          <p>
+            A tall angular face, pale swept hair and worn field clothes. Compare
+            the nose and brow in profile. The small scar and leather detail
+            depend strongly on the surface artwork.
+          </p>
+          <p class="refs">
+            <a
+              href="https://www.reddit.com/r/DragonsDogma/comments/1b9wfdt/my_geralt_sliders_in_comments/"
+              >Terrowin23’s Geralt</a
+            >
+            ·
+            <a
+              href="https://www.gamesradar.com/the-dragons-dogma-2-character-creator-is-already-the-ultimate-rpg-crossover-with-incredibly-convincing-takes-on-the-witcher-elden-ring-and-baldurs-gate-3/"
+              >GamesRadar’s roundup</a
+            >
+          </p>
+        </div>
+        <figure>
+          <img
+            src="media/painted-ranger-color.webp"
+            alt="Four editor views of the coast cartographer"
+            loading="lazy"
+          />
+          <figcaption>Three-quarter, front, side and rear</figcaption>
+        </figure>
+        <details>
+          <summary>Inspect the head</summary>
+          <img
+            loading="lazy"
+            src="media/painted-ranger-head.webp"
+            alt="Coast cartographer in front, three-quarter and profile close-up"
+          />
+        </details>
+      </article>
+      <article data-study="painted-surveyor">
+        <div>
+          <p class="game">Dragon’s Dogma 2</p>
+          <h3>Dock foreman</h3>
+          <p>
+            A short broad adult with a projecting belly, full cheeks and
+            glasses. Compare the two human profiles at one scale. The soft chin
+            is visible in clay, while the fine frames rely on paint.
+          </p>
+          <p class="refs">
+            <a
+              href="https://www.reddit.com/r/fashiondogma/comments/1bbsfpn/so_anyway_i_started_casting/"
+              >badtrouble’s Danny DeVito</a
+            >
+            ·
+            <a
+              href="https://www.gamesradar.com/the-dragons-dogma-2-character-creator-is-already-the-ultimate-rpg-crossover-with-incredibly-convincing-takes-on-the-witcher-elden-ring-and-baldurs-gate-3/"
+              >GamesRadar’s roundup</a
+            >
+          </p>
+        </div>
+        <figure>
+          <img
+            src="media/painted-surveyor-color.webp"
+            alt="Four editor views of the dock foreman"
+            loading="lazy"
+          />
+          <figcaption>Three-quarter, front, side and rear</figcaption>
+        </figure>
+        <details>
+          <summary>Inspect the head</summary>
+          <img
+            loading="lazy"
+            src="media/painted-surveyor-head.webp"
+            alt="Dock foreman in front, three-quarter and profile close-up"
+          />
+        </details>
+      </article>
+      <article data-study="painted-trader">
+        <div>
+          <p class="game">Spore</p>
+          <h3>Reed trader</h3>
+          <p>
+            Four independent arms with separate hands, a long muzzle and a
+            travelling coat. Maxis singled out the extra hands. Count all four
+            in three-quarter view, then orbit to see where the lower pair meet
+            the trunk.
+          </p>
+          <p class="refs">
+            <a
+              href="https://www.spore.com/static/war/images/community/500297662577.png"
+              >Karl-EL’s Sanu-Kish Merchant</a
+            >
+            ·
+            <a href="https://www.spore.com/what/ga_captains"
+              >Maxis competition winners</a
+            >
+          </p>
+        </div>
+        <figure>
+          <img
+            src="media/painted-trader-color.webp"
+            alt="Four editor views of the reed trader"
+            loading="lazy"
+          />
+          <figcaption>Three-quarter, front, side and rear</figcaption>
+        </figure>
+      </article>
+      <article data-study="painted-porter">
+        <div>
+          <p class="game">Spore</p>
+          <h3>Plateback porter</h3>
+          <p>
+            Maxis called attention to the repeated tooth-like armor. The porter
+            carries fifteen individually selectable dorsal plates. Compare the
+            rear outline in clay with the shoulder and forearm from the side.
+          </p>
+          <p class="refs">
+            <a
+              href="https://www.spore.com/static/war/images/community/500307753610.png"
+              >Cecil_090’s Commander Gort</a
+            >
+            ·
+            <a href="https://www.spore.com/what/ga_captains"
+              >Maxis competition winners</a
+            >
+          </p>
+        </div>
+        <figure>
+          <img
+            src="media/painted-porter-color.webp"
+            alt="Four editor views of the plateback porter"
+            loading="lazy"
+          />
+          <figcaption>Three-quarter, front, side and rear</figcaption>
+        </figure>
+      </article>
+      <article data-study="painted-elder">
+        <div>
+          <p class="game">The Sims 4</p>
+          <h3>Opera conductor</h3>
+          <p>
+            A mature adult with lilac skin, swept hair and a long formal gown.
+            The skirt has real pleats and its own rig. Base layer reveals the
+            legs and body inside it. The shoulder silhouette still looks
+            narrower than the brief.
+          </p>
+          <p class="refs">
+            <a
+              href="https://cdn.mos.cms.futurecdn.net/c38d266847f1f93501612b14d85bab2f.png"
+              >simcrazy5’s Lady Ursula</a
+            >
+            ·
+            <a href="https://www.pcgamer.com/the-most-fabulous-fan-made-sims/"
+              >PC Gamer’s selection</a
+            >
+          </p>
+        </div>
+        <figure>
+          <img
+            src="media/painted-elder-color.webp"
+            alt="Four editor views of the opera conductor"
+            loading="lazy"
+          />
+          <figcaption>Three-quarter, front, side and rear</figcaption>
+        </figure>
+        <details>
+          <summary>Inspect the head</summary>
+          <img
+            loading="lazy"
+            src="media/painted-elder-head.webp"
+            alt="Opera conductor in front, three-quarter and profile close-up"
+          />
+        </details>
+      </article>
+      <article data-study="painted-courier">
+        <div>
+          <p class="game">The Sims 4</p>
+          <h3>Relay scout</h3>
+          <p>
+            A lean runner in a dark close-cut top, pale trousers and red shoes.
+            Compare the short bob and leg profile against the cartographer at
+            equal height. A near-touching hand and trouser edge exposed a defect
+            in automatic biped fitting.
+          </p>
+          <p class="refs">
+            <a
+              href="https://cdn.mos.cms.futurecdn.net/912c6594e92d298e0ff7544ea5027eba.png"
+              >Vesbesit’s Faith Connors</a
+            >
+            ·
+            <a href="https://www.pcgamer.com/the-most-fabulous-fan-made-sims/"
+              >PC Gamer’s selection</a
+            >
+          </p>
+        </div>
+        <figure>
+          <img
+            src="media/painted-courier-color.webp"
+            alt="Four editor views of the relay scout"
+            loading="lazy"
+          />
+          <figcaption>Three-quarter, front, side and rear</figcaption>
+        </figure>
+        <details>
+          <summary>Inspect the head</summary>
+          <img
+            loading="lazy"
+            src="media/painted-courier-head.webp"
+            alt="Relay scout in front, three-quarter and profile close-up"
+          />
+        </details>
+      </article>
+      <section class="method">
+        <h2>What the experiments showed</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Experiment</th>
+              <th>Observation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Recognize form without paint</td>
+              <td>
+                A blinded Fable 5.2 High review correctly matched six shuffled
+                clay studies to six descriptions in a single forced-choice
+                trial. The cartographer and scout earned medium confidence. The
+                observer relied on clothing and hair for those two. Four arms
+                and a flared gown were much easier to recognize. This trial
+                measures broad character types. Facial likeness needs close
+                distractors and human raters.
+              </td>
+            </tr>
+            <tr>
+              <td>Reach a new structure</td>
+              <td>
+                Two accepted live Codex proposals produced a six-legged beetle
+                and a low four-legged estuary glider. The glider’s crest became
+                visible after fixing how children attach to small primitives. In
+                a separate trial starting with the foreman, one accepted
+                response grafted a painted clawed arm and three shell plates
+                while preserving the protected face. Its oversized arm obscured
+                part of the silhouette.
+              </td>
+            </tr>
+            <tr>
+              <td>Take the result into a game</td>
+              <td>
+                Fourteen exported GLBs passed the Khronos validator with zero
+                errors and warnings and loaded in a separate Three.js player.
+                Each contains an articulated skin and four clips. Eight poses
+                per clip were inspected using the skinned vertices. This exposed
+                up to 20 cm of floor penetration in long skirts. After adding
+                hem joints and correcting the root from sampled sole heights,
+                all fourteen stayed within 2 cm of the floor in this test.
+              </td>
+            </tr>
+            <tr>
+              <td>Check variety at equal height</td>
+              <td>
+                Foreground masks are bottom-aligned and rescaled to 192 pixels
+                tall. For each pair the score is one minus intersection over
+                union. Identical contours give zero. Compare front and side
+                separately. Front and rear orthographic silhouettes are almost
+                identical under reflection for these mostly symmetric bodies.
+                <a href="media/measurements.json">Measured pairwise scores</a>.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <h2>Try to break the result</h2>
+        <p>
+          Start with a fresh form. Protect the face, pull one shoulder outward
+          and ask for an asymmetrical bulky suit. Check side and rear views,
+          then play Walk and Crouch. Compare the same character in base layer
+          and work clothes. A recognizable result from a different camera and
+          outfit is a tougher test than selecting an authored study.
+        </p>
+        <p>
+          The game comparisons cover the selected features. The current
+          measurements leave open likeness under close facial distractors,
+          automatic fitting of arbitrary garments, and locomotion on uneven
+          terrain. The 2D consistency experiment remains in the
+          <a href="character-creator.html">research plan</a>.
+        </p>
+      </section>
+      <footer>
+        Editor captures use original procedural geometry and original generated
+        artwork distributed with this MIT project. Community reference images
+        remain at their credited sources.
+      </footer>
+    </main>
+    <script>
+      document.querySelectorAll("[data-mode]").forEach(
+        (b) =>
+          (b.onclick = () => {
+            const mode = b.dataset.mode;
+            document
+              .querySelectorAll("[data-mode]")
+              .forEach((el) =>
+                el.setAttribute("aria-pressed", String(el === b)),
+              );
+            document.querySelectorAll("[data-study]").forEach((a) => {
+              a.querySelector("figure img").src =
+                "media/" + a.dataset.study + "-" + mode + ".webp";
+              a.querySelector("figcaption").textContent =
+                mode === "silhouette"
+                  ? "Front and side"
+                  : "Three-quarter, front, side and rear";
+            });
+          }),
+      );
+    </script>
+  </body>
+</html>

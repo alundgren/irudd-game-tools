@@ -1,3 +1,4 @@
+import { agentDesign } from "../character-view/variations.js";
 import { createServer } from "node:http";
 import { spawn } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
@@ -17,7 +18,7 @@ export async function codexVariation(brief, signal) {
       await writeFile(file, Buffer.from(view.jpeg, "base64"));
       attachments.push("-i", file);
     }
-    const { views, ...design } = brief;
+    const design = agentDesign(brief);
     const child = spawn(
       cmd,
       [
@@ -119,7 +120,7 @@ export function workshopServer(page, generate = codexVariation) {
       let raw = "";
       for await (const chunk of req) {
         raw += chunk.toString();
-        if (Buffer.byteLength(raw) > 450000)
+        if (Buffer.byteLength(raw) > 8_000_000)
           return json(413, { error: "Form is too large." });
       }
       let brief;

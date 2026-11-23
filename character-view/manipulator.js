@@ -23,6 +23,7 @@ export function manipulator(
     editing = false,
     knot = null,
     handle = null;
+  let dragOrigin = null;
   let start = null,
     lastDrag = 0;
   function detach() {
@@ -62,7 +63,16 @@ export function manipulator(
   tool.addEventListener("dragging-changed", (e) => {
     orbit.enabled = !e.value;
     editing = e.value;
-    if (e.value || !handle) return;
+    if (!handle) return;
+    if (e.value) {
+      dragOrigin = {
+        position: handle.position.clone(),
+        scale: handle.scale.clone(),
+        rotation: handle.quaternion.clone(),
+      };
+      return;
+    }
+    if (!dragOrigin) return;
     lastDrag = performance.now();
     if (knot !== null) {
       const knots = part.knots.map((row, i) =>
@@ -70,13 +80,28 @@ export function manipulator(
       );
       finish({ ...part, knots });
     } else {
+      const base = new T.Quaternion().setFromEuler(
+        new T.Euler(...part.rotation.map(T.MathUtils.degToRad)),
+      );
+      const delta = dragOrigin.rotation
+        .clone()
+        .invert()
+        .multiply(target.quaternion);
+      const euler = new T.Euler().setFromQuaternion(base.multiply(delta));
       finish({
         ...part,
-        position: target.position.toArray(),
-        size: target.scale.toArray(),
-        rotation: [target.rotation.x, target.rotation.y, target.rotation.z].map(
-          (n) => (n * 180) / Math.PI,
+        position: part.position.map(
+          (v, i) =>
+            v +
+            target.position.getComponent(i) -
+            dragOrigin.position.getComponent(i),
         ),
+        size: part.size.map(
+          (v, i) =>
+            (v * target.scale.getComponent(i)) /
+            dragOrigin.scale.getComponent(i),
+        ),
+        rotation: [euler.x, euler.y, euler.z].map(T.MathUtils.radToDeg),
       });
     }
   });

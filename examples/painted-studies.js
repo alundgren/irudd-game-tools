@@ -1,3 +1,8 @@
+import {
+  paintSources,
+  retainPaintSources,
+} from "../character-view/paint-sources.js";
+import { traceBiped } from "../character-view/trace-biped.js";
 import { startingForm } from "../character-view/recipe.js";
 import { bindParts } from "../character-view/rig.js";
 import { repeatOnSpine } from "../character-view/scutes.js";
@@ -30,6 +35,166 @@ function tracedForm(atlas, height) {
     }
   }
   return { add, pair, finish: () => bindParts(form, links) };
+}
+// Four-arm anatomy for a long-snouted biped. The upper arms project
+// behind the lower pair in profile. The swept tail exits through the coat split.
+function trader() {
+  const { add, pair, finish } = tracedForm("trader", 1.81);
+  add("coat and thorax", [
+    [0.43, -0.105, 0.105, -0.042, 0.14],
+    [0.52, -0.1, 0.1, -0.024, 0.139],
+    [0.62, -0.094, 0.094, -0.022, 0.13],
+    [0.7, -0.11, 0.11, -0.031, 0.114],
+    [0.759, -0.073, 0.073, -0.039, 0.106],
+    [0.798, -0.038, 0.038, -0.01, 0.08],
+  ]);
+  add(
+    "long billed head",
+    [
+      [0.753, -0.041, 0.041, -0.018, 0.1],
+      [0.81, -0.06, 0.06, -0.034, 0.13],
+      [0.85, -0.097, 0.097, -0.102, 0.21],
+      [0.885, -0.125, 0.125, -0.094, 0.21],
+      [0.927, -0.12, 0.12, -0.091, 0.155],
+      [0.958, -0.106, 0.106, -0.1, 0.09],
+      [0.998, -0.09, 0.09, -0.095, 0.075],
+    ],
+    "coat and thorax",
+    { samples: 44, profile: 0.68 },
+  );
+  add(
+    "split riding coat",
+    [
+      [0.16, -0.175, 0.175, -0.077, 0.153],
+      [0.22, -0.19, 0.19, -0.1, 0.16],
+      [0.32, -0.165, 0.165, -0.083, 0.154],
+      [0.44, -0.13, 0.13, -0.049, 0.15],
+      [0.53, -0.1, 0.1, -0.025, 0.14],
+    ],
+    "coat and thorax",
+    { pivot: "top" },
+  );
+  add(
+    "trailing tail",
+    [
+      [0.179, -0.035, 0.035, -0.14, -0.035],
+      [0.205, -0.034, 0.034, -0.21, -0.064],
+      [0.233, -0.041, 0.041, -0.213, -0.107],
+      [0.269, -0.04, 0.04, -0.174, -0.073],
+      [0.33, -0.048, 0.048, -0.099, -0.04],
+      [0.409, -0.052, 0.052, -0.063, 0.018],
+    ],
+    "coat and thorax",
+    { pivot: "top" },
+  );
+  pair(
+    "long leg",
+    [
+      [0.033, 0.045, 0.098, -0.003, 0.084],
+      [0.14, 0.02, 0.104, -0.01, 0.086],
+      [0.26, 0.012, 0.104, -0.004, 0.098],
+      [0.38, 0.016, 0.095, 0.001, 0.101],
+      [0.47, 0.015, 0.085, 0.005, 0.1],
+    ],
+    "coat and thorax",
+    { pivot: "top" },
+  );
+  pair(
+    "splayed toes",
+    [
+      [0.003, 0.032, 0.18, -0.012, 0.19],
+      [0.025, 0.032, 0.147, 0.003, 0.17],
+      [0.066, 0.046, 0.095, 0.004, 0.087],
+    ],
+    "@long leg",
+    { pivot: "top" },
+  );
+  pair(
+    "outer upper arm",
+    [
+      [0.593, 0.219, 0.287, -0.023, 0.066],
+      [0.63, 0.161, 0.237, -0.037, 0.072],
+      [0.684, 0.106, 0.176, -0.03, 0.072],
+      [0.722, 0.067, 0.129, -0.025, 0.092],
+    ],
+    "coat and thorax",
+    { pivot: "top" },
+  );
+  pair(
+    "outer forearm",
+    [
+      [0.53, 0.299, 0.364, -0.079, 0.004],
+      [0.556, 0.282, 0.344, -0.058, 0.023],
+      [0.616, 0.201, 0.278, -0.04, 0.06],
+    ],
+    "@outer upper arm",
+    { pivot: "top" },
+  );
+  pair(
+    "outer hand",
+    [
+      [0.454, 0.31, 0.414, -0.117, -0.026],
+      [0.498, 0.293, 0.416, -0.117, -0.014],
+      [0.547, 0.292, 0.353, -0.077, 0.001],
+    ],
+    "@outer forearm",
+    { pivot: "top" },
+  );
+  pair(
+    "inner upper arm",
+    [
+      [0.512, 0.121, 0.177, 0.092, 0.158],
+      [0.555, 0.102, 0.168, 0.069, 0.137],
+      [0.605, 0.068, 0.131, 0.052, 0.127],
+      [0.639, 0.06, 0.111, 0.041, 0.117],
+    ],
+    "coat and thorax",
+    { pivot: "top" },
+  );
+  pair(
+    "inner forearm",
+    [
+      [0.457, 0.156, 0.209, 0.143, 0.217],
+      [0.491, 0.14, 0.192, 0.115, 0.184],
+      [0.542, 0.116, 0.167, 0.087, 0.151],
+    ],
+    "@inner upper arm",
+    { pivot: "top" },
+  );
+  pair(
+    "inner hand",
+    [
+      [0.38, 0.157, 0.241, 0.164, 0.26],
+      [0.426, 0.15, 0.233, 0.153, 0.242],
+      [0.473, 0.151, 0.204, 0.139, 0.209],
+    ],
+    "@inner forearm",
+    { pivot: "top" },
+  );
+  const form = finish();
+  form.appearance.skin = "#91a36a";
+  form.appearance.palette = "Ochre";
+  for (const p of form.parts) {
+    p.outfitRole =
+      p.id === "coat and thorax"
+        ? "torso"
+        : p.id.includes("head")
+          ? "head"
+          : p.id.includes("tail")
+            ? "tail"
+            : p.id.includes("coat")
+              ? "skirt"
+              : p.id.includes("leg")
+                ? "thigh"
+                : p.id.includes("toes")
+                  ? "foot"
+                  : p.id.includes("forearm")
+                    ? "forearm"
+                    : p.id.includes("upper arm")
+                      ? "upper arm"
+                      : "hand";
+  }
+  return form;
 }
 function porter() {
   const { add, pair, finish } = tracedForm("ridgeback", 1.92);
@@ -134,6 +299,7 @@ function porter() {
               : p.id.includes("forearm")
                 ? "forearm"
                 : "hand";
+  form.appearance.skin = "#766550";
   const plates = repeatOnSpine(form, "dorsal mantle", {
     count: 5,
     columns: 3,
@@ -256,6 +422,7 @@ function human(atlas, height, gown) {
     { pivot: "top", profile: 0.85 },
   );
   const form = finish();
+  const originalPaint = paintSources(form);
   const body = form.parts.find((p) => p.id === torso),
     headHeight = gown ? 0.292 : 0.307;
   const head = traceRegion(
@@ -318,6 +485,25 @@ function human(atlas, height, gown) {
                     ? "foot"
                     : "thigh";
   }
+  for (const p of form.parts) {
+    if (p.outfitRole === "skirt")
+      p.drape = { folds: 15, depth: 0.095, twist: 0.34 };
+    if (p.outfitRole === "hand") {
+      const sign = p.id.startsWith("left") ? 1 : -1;
+      p.shape = "hand";
+      p.size = [0.078, 0.163, 0.041];
+      p.rotation = [4, sign * 49, sign * 11];
+      p.color = form.appearance.skin;
+      p.grip = {
+        fingers: 4,
+        curl: gown ? 0.16 : 0.23,
+        spread: gown ? 0.25 : 0.17,
+        side: sign,
+      };
+      delete p.knots;
+      delete p.paint;
+    }
+  }
   if (gown) {
     form.build = { mass: 1.2, waist: 1.27, hips: 1.22, belly: 1.12 };
     const base = form.parts.find((p) => p.id === torso);
@@ -333,7 +519,7 @@ function human(atlas, height, gown) {
       size: [1, 1, 1],
       rotation: [0, 0, 0],
       color: "#44534e",
-      outfitRole: "torso",
+      outfitRole: "pelvis",
       visibleIn: ["Base layer", "Pressure suit"],
       knots: [
         [0, 0, 0, 0.146, 0.1],
@@ -377,9 +563,68 @@ function human(atlas, height, gown) {
       });
     }
   }
-  return form;
+  return retainPaintSources(form, originalPaint);
+}
+function scanHuman(atlas, height, skin, palette) {
+  const form = traceBiped(atlas, height);
+  const originalPaint = paintSources(form);
+  const wide = atlas === "surveyor",
+    headHeight = height * (wide ? 0.182 : 0.177);
+  const portrait = traceRegion(
+    "head and neck",
+    wide ? "foremanPortrait" : "relayPortrait",
+    headHeight,
+    [
+      [0.005, -0.62, 0.62, -0.55, 0.56],
+      [0.2, -0.62, 0.62, -0.55, 0.56],
+      [0.48, -0.62, 0.62, -0.55, 0.56],
+      [0.78, -0.62, 0.62, -0.55, 0.56],
+      [0.998, -0.62, 0.62, -0.55, 0.56],
+    ],
+    null,
+    { samples: 48, profile: 0.65, smooth: 3 },
+  );
+  portrait.paint.portrait = {
+    center: wide ? 0 : 0.035,
+    width: wide ? 0.29 : 0.248,
+    eyes: wide ? 0.651 : 0.646,
+    nose: wide ? 0.534 : 0.52,
+    mouth: wide ? 0.443 : 0.405,
+    chin: wide ? 0.298 : 0.274,
+  };
+  const root = form.parts.find((p) => p.id === "body");
+  portrait.parent = root.id;
+  portrait.anatomy = "face";
+  portrait.outfitRole = "head";
+  portrait.position = [
+    -root.position[0],
+    height - headHeight - root.position[1],
+    -root.position[2] + (wide ? -0.018 : -0.032) * height,
+  ];
+  form.parts[form.parts.findIndex((p) => p.id === portrait.id)] = portrait;
+  form.appearance.skin = skin;
+  form.appearance.palette = palette;
+  return retainPaintSources(form, originalPaint);
 }
 export const paintedStudies = [
+  {
+    id: "painted-trader",
+    title: "Reed trader · painted volume",
+    game: "Spore",
+    make: trader,
+  },
+  {
+    id: "painted-surveyor",
+    title: "Dock foreman · painted volume",
+    game: "Dragon’s Dogma 2",
+    make: () => scanHuman("surveyor", 1.52, "#bd8b71", "Ochre"),
+  },
+  {
+    id: "painted-courier",
+    title: "Relay scout · painted volume",
+    game: "The Sims 4",
+    make: () => scanHuman("courier", 1.77, "#b6977d", "Polar"),
+  },
   {
     id: "painted-porter",
     title: "Plateback · painted volume",

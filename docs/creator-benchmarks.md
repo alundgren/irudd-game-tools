@@ -11,6 +11,8 @@ Use the same generator for every target. The community creations below set the d
 | Lady Ursula by simcrazy5, The Sims 4 | Selected in [PC Gamer’s favorite fan-made Sims](https://www.pcgamer.com/the-most-fabulous-fan-made-sims/). [Published screenshot](https://cdn.mos.cms.futurecdn.net/c38d266847f1f93501612b14d85bab2f.png). | Estuary elder | Broad adult, lilac skin, swept silver hair and a long dark garment with visible drape and a flared hem. Inspect the difference between the garment’s volume and the body inside it. |
 | Faith Connors by Vesbesit, The Sims 4 | Another [PC Gamer selection](https://www.pcgamer.com/the-most-fabulous-fan-made-sims/). [Published screenshot](https://cdn.mos.cms.futurecdn.net/912c6594e92d298e0ff7544ea5027eba.png). | Relay runner | A compact dark bob, lean athletic frame, fitted dark top, pale trousers and warm-colored shoes. Test the balance of body shape, fabric and recognizable color blocks at gameplay distance. |
 
+[Inspect the original 3D results in color, clay and silhouette](workshop-results.html).
+
 ## How to judge a build
 
 1. Orbit each original study in color and silhouette. Keep a world-scale lineup for comparisons of stature. Use matched screen height separately when comparing facial structure and outfit shape.

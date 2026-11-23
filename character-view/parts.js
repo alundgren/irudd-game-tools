@@ -1,3 +1,4 @@
+import { paintSources, retainPaintSources } from "./paint-sources.js";
 import { shapes, anchors } from "./recipe.js";
 const nextId = (used, name) => {
   if (!used.has(name)) return name;
@@ -18,6 +19,7 @@ export function appendPart(form, parent, shape) {
     rotation: [0, 0, 0],
   };
   if (parent) part.parent = parent;
+  if (shape !== "sweep") part.frameSize = [...part.size];
   if (shape === "sweep") {
     part.size = [1, 1, 1];
     part.knots = [
@@ -42,7 +44,7 @@ export function removePart(form, id) {
   const parts = form.parts.filter((p) => !removing.has(p.id));
   if (!parts.length)
     throw new Error("Add another part before removing the whole form.");
-  return { ...form, parts };
+  return retainPaintSources({ ...form, parts }, paintSources(form));
 }
 export function copyBranch(form, id, mirror) {
   const parts = branch(form, id),
@@ -59,6 +61,12 @@ export function copyBranch(form, id, mirror) {
     copy.id = ids.get(p.id);
     if (ids.has(p.parent)) copy.parent = ids.get(p.parent);
     if (mirror) {
+      if (copy.grip) copy.grip.side *= -1;
+      for (const f of copy.pulls ?? []) {
+        f.at[0] *= -1;
+        f.offset[0] *= -1;
+        if (f.mirrorX !== undefined) f.mirrorX *= -1;
+      }
       copy.position[0] *= -1;
       copy.rotation[1] *= -1;
       copy.rotation[2] *= -1;

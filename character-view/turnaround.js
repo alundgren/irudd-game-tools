@@ -1,4 +1,5 @@
 import * as T from "three";
+import expedition from "./expedition.atlas.webp";
 import ridgeback from "./ridgeback.atlas.webp";
 import { sweepGeometry } from "./surface.js";
 
@@ -7,7 +8,18 @@ import conductor from "./conductor.atlas.webp";
 import coastPortrait from "./coast-portrait.atlas.webp";
 import conductorPortrait from "./conductor-portrait.atlas.webp";
 import { portraitSurface } from "./facial-sculpt.js";
+import foremanPortrait from "./foreman-portrait.atlas.webp";
+import relayPortrait from "./relay-portrait.atlas.webp";
+import trader from "./trader.atlas.webp";
+import surveyor from "./surveyor.atlas.webp";
+import courier from "./courier.atlas.webp";
 const sources = {
+  trader,
+  surveyor,
+  courier,
+  foremanPortrait,
+  relayPortrait,
+  expedition,
   ridgeback,
   cartographer,
   conductor,
@@ -241,6 +253,24 @@ function projected(panel, horizontal, height) {
   );
   return py * panel.size + px;
 }
+// Occupied horizontal intervals in standing-height units, independent of image padding.
+export function silhouetteRuns(atlas, view, height, bridge = 0.011) {
+  const p = atlases.get(atlas)?.[view];
+  if (!p) throw new Error("Choose a loaded turnaround.");
+  const y = Math.max(
+    0,
+    Math.min(p.size - 1, Math.round(p.feet - height * p.span)),
+  );
+  const runs = [];
+  for (let x = 0; x < p.size; x++) {
+    if (!p.mask[y * p.size + x]) continue;
+    const u = (x - p.mid) / p.span,
+      last = runs.at(-1);
+    if (last && u - last[1] <= bridge) last[1] = u;
+    else runs.push([u, u]);
+  }
+  return runs.filter(([a, b]) => b - a >= 0.003);
+}
 function section(panel, low, high, y, reverse = false) {
   const sign = reverse ? -1 : 1,
     step = 1 / panel.span;
@@ -440,21 +470,24 @@ function regionalViews(panels, bindings) {
   }
   return result;
 }
-export function preparePaintRegions(parts) {
+export function preparePaintRegions(sources) {
   const groups = new Map();
-  for (const { paint } of parts) {
+  for (const paint of sources) {
     if (!paint?.region || !atlases.has(paint.atlas)) continue;
     if (!groups.has(paint.atlas)) groups.set(paint.atlas, new Map());
     groups.get(paint.atlas).set(paint.region, paint);
   }
   for (const [id, group] of groups) {
     const previous = viewsByAtlas.get(id);
-    if (previous && [...group.keys()].every((key) => previous.views.has(key)))
-      continue;
-    const bindings = new Map(previous?.bindings ?? []);
-    for (const [key, value] of group) bindings.set(key, value);
-    const views = regionalViews(atlases.get(id), [...bindings.values()]);
-    viewsByAtlas.set(id, { bindings, views });
+    const ordered = [...group.entries()]
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+      .map(([, p]) => p);
+    const signature = JSON.stringify(
+      ordered.map((p) => [p.region, p.height, p.offset, p.rest]),
+    );
+    if (previous?.signature === signature) continue;
+    const views = regionalViews(atlases.get(id), ordered);
+    viewsByAtlas.set(id, { signature, views });
     for (const [key, texture] of baked)
       if (JSON.parse(key).atlas === id) {
         texture.dispose();

@@ -1,0 +1,104 @@
+{
+  "studies": {
+    "painted-ranger": {
+      "height": "1.87 m overall"
+    },
+    "painted-surveyor": {
+      "height": "1.52 m overall"
+    },
+    "painted-trader": {
+      "height": "1.80 m overall"
+    },
+    "painted-porter": {
+      "height": "1.93 m overall"
+    },
+    "painted-elder": {
+      "height": "1.71 m overall"
+    },
+    "painted-courier": {
+      "height": "1.76 m overall"
+    }
+  },
+  "views": [
+    "front",
+    "side",
+    "back"
+  ],
+  "silhouetteDistance": {
+    "painted-ranger / painted-surveyor": [
+      0.509,
+      0.543,
+      0.51
+    ],
+    "painted-ranger / painted-trader": [
+      0.519,
+      0.525,
+      0.518
+    ],
+    "painted-ranger / painted-porter": [
+      0.727,
+      0.779,
+      0.727
+    ],
+    "painted-ranger / painted-elder": [
+      0.604,
+      0.624,
+      0.605
+    ],
+    "painted-ranger / painted-courier": [
+      0.221,
+      0.303,
+      0.221
+    ],
+    "painted-surveyor / painted-trader": [
+      0.436,
+      0.422,
+      0.434
+    ],
+    "painted-surveyor / painted-porter": [
+      0.491,
+      0.557,
+      0.491
+    ],
+    "painted-surveyor / painted-elder": [
+      0.342,
+      0.431,
+      0.342
+    ],
+    "painted-surveyor / painted-courier": [
+      0.581,
+      0.586,
+      0.582
+    ],
+    "painted-trader / painted-porter": [
+      0.649,
+      0.655,
+      0.648
+    ],
+    "painted-trader / painted-elder": [
+      0.466,
+      0.441,
+      0.464
+    ],
+    "painted-trader / painted-courier": [
+      0.533,
+      0.544,
+      0.531
+    ],
+    "painted-porter / painted-elder": [
+      0.505,
+      0.573,
+      0.505
+    ],
+    "painted-porter / painted-courier": [
+      0.779,
+      0.814,
+      0.779
+    ],
+    "painted-elder / painted-courier": [
+      0.645,
+      0.678,
+      0.645
+    ]
+  }
+}

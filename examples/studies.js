@@ -509,7 +509,40 @@ function merchant() {
           : p.color === leather
             ? "leather"
             : "plain";
-  return form;
+  const links = {};
+  for (const p of form.parts) {
+    const [sign, level] = p.id.match(/-?\d+/g) ?? [];
+    const limb = " " + sign + " " + level;
+    if (p.id === "arched spine") {
+      p.outfitRole = "torso";
+      continue;
+    }
+    let parent = "arched spine";
+    if (p.id.startsWith("finger")) parent = "palm" + limb;
+    else if (p.id.startsWith("palm")) {
+      parent = "bent arm" + limb;
+      p.outfitRole = "hand";
+    } else if (p.id.startsWith("bent arm")) p.outfitRole = "upper arm";
+    else if (p.id.startsWith("long shin")) p.outfitRole = "thigh";
+    else if (p.id.startsWith("splayed foot")) {
+      p.outfitRole = "foot";
+      parent = "long shin " + sign;
+    } else if (
+      p.id.startsWith("watchful eye") ||
+      p.id.startsWith("folded ear") ||
+      p.id === "traveller hood"
+    )
+      parent = "long muzzle";
+    else if (p.id.startsWith("vertical pupil")) parent = "watchful eye " + sign;
+    else if (p.id === "woven hatband") parent = "traveller hood";
+    else if (p.id.startsWith("belt case")) parent = "wrapped belt";
+    else if (p.id === "long muzzle") p.outfitRole = "head";
+    else if (p.id === "travel robe") p.outfitRole = "skirt";
+    if (/robe|belt|hood|hatband/.test(p.id)) p.visibleIn = ["Work clothes"];
+    links[p.id] = parent;
+  }
+  form.appearance.skin = green;
+  return bindParts(form, links, { metric: true });
 }
 function carapace() {
   const { form, sweep, oval } = study({}, [1, 1, 1], true);
@@ -614,7 +647,30 @@ function carapace() {
     );
   for (const p of form.parts)
     p.surface = p.color === stone || p.color === rim ? "scales" : "leather";
-  return form;
+  const links = {};
+  for (const p of form.parts) {
+    const sign = p.id.match(/-?\d+/)?.[0];
+    if (p.id === "hunched trunk") {
+      p.outfitRole = "torso";
+      continue;
+    }
+    let parent = "hunched trunk";
+    if (p.id === "low projecting skull") p.outfitRole = "head";
+    else if (/^(brow shield|amber eye)/.test(p.id))
+      parent = "low projecting skull";
+    else if (p.id.startsWith("load bearing leg")) p.outfitRole = "thigh";
+    else if (/^(load foot|shin scute)/.test(p.id)) {
+      parent = "load bearing leg " + sign;
+      if (p.id.startsWith("load foot")) p.outfitRole = "foot";
+    } else if (p.id.startsWith("power arm")) p.outfitRole = "upper arm";
+    else if (/^(hand|shoulder scute|gauntlet ridge)/.test(p.id)) {
+      parent = "power arm " + sign;
+      if (p.id.startsWith("hand")) p.outfitRole = "hand";
+    } else if (p.id.startsWith("hook digit")) parent = "hand " + sign;
+    links[p.id] = parent;
+  }
+  form.appearance.skin = skin;
+  return bindParts(form, links, { metric: true });
 }
 export const studies = [
   {

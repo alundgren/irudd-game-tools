@@ -1,7 +1,7 @@
 import { startingForm, validateForm } from "./recipe.js";
 import { bindParts } from "./rig.js";
 
-function randomStream(seed) {
+export function randomStream(seed) {
   let state = seed >>> 0;
   return () => {
     state = (state + 0x6d2b79f5) >>> 0;

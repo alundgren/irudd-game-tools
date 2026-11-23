@@ -675,3 +675,21 @@ textarea {
     padding: 6px;
   }
 }
+.stage-title h1 {
+  font:
+    600 clamp(1rem, 2vw, 1.48rem) / 1.16 "Instrument Sans",
+    system-ui,
+    sans-serif;
+  letter-spacing: -0.035em;
+  max-width: 16ch;
+  overflow-wrap: anywhere;
+}
+.stage-title {
+  pointer-events: none;
+}
+#viewport.pulling {
+  cursor: crosshair;
+}
+#pull-settings {
+  padding: 0.55rem 0.15rem;
+}

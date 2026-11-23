@@ -6,12 +6,19 @@ import {
   guidePosition,
   traceOutline,
 } from "./turnaround.js";
+import { traceBiped } from "./trace-biped.js";
 import { Matrix4, Vector3, Quaternion, Euler } from "three";
 
 const labels = {
   ridgeback: "Plateback",
+  trader: "Reed trader",
+  surveyor: "Dock foreman",
+  courier: "Relay scout",
+  expedition: "Expedition suit",
   cartographer: "Coast cartographer",
   conductor: "Opera conductor",
+  foremanPortrait: "Foreman head",
+  relayPortrait: "Scout head",
   coastPortrait: "Cartographer head",
   conductorPortrait: "Conductor head",
 };
@@ -135,6 +142,22 @@ export function bindTraceEditor({
       message.textContent = e.message;
     }
   };
+  document.getElementById("trace-biped").onclick = () => {
+    try {
+      const h = Number(document.getElementById("trace-height").value);
+      if (!Number.isFinite(h) || h < 0.15 || h > 6)
+        throw new Error("Enter a standing height between 0.15 and 6 metres.");
+      const form = traceBiped(art, h);
+      if (added[art]) form.artwork = { [art]: added[art] };
+      accept(form, "body");
+      dialog.close();
+      status(
+        "Built an articulated biped. Select a region to refine its contours.",
+      );
+    } catch (error) {
+      message.textContent = error.message;
+    }
+  };
   document.getElementById("trace-add").onclick = () => {
     try {
       if (outlines.some((p) => p.length > 0 && p.length < 3))
@@ -158,7 +181,11 @@ export function bindTraceEditor({
         object = parent && figurePart(parent);
       if (object) {
         object.updateWorldMatrix(true, false);
-        const inverse = object.matrixWorld.clone().invert();
+        const mount =
+          object.children.find((child) => child.userData.attachmentFrame) ??
+          object;
+        mount.updateWorldMatrix(true, false);
+        const inverse = mount.matrixWorld.clone().invert();
         const matrix = inverse.multiply(
           new Matrix4().makeTranslation(...part.position),
         );

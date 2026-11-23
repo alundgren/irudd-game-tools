@@ -26,7 +26,7 @@
         </div>
         <div class="stage-title">
           <span class="overline" id="revision">Current form</span>
-          <h1 id="name">Form study</h1>
+          <h1 id="name">Whole form</h1>
           <p id="look"></p>
         </div>
         <div class="measure" aria-hidden="true">
@@ -78,7 +78,37 @@
           <div id="features"></div>
           <div class="actions">
             <button id="direct" aria-pressed="false">Edit on model</button
-            ><button id="focus" type="button">Focus selection</button>
+            ><button id="focus" type="button">Focus selection</button
+            ><button id="protect" aria-pressed="false">
+              Keep shape in AI edits
+            </button>
+          </div>
+          <div class="actions">
+            <button id="pull-tool" aria-pressed="false">Pull surface</button>
+          </div>
+          <div id="pull-settings" hidden>
+            <label class="field"
+              >Drag direction<select id="pull-direction">
+                <option>Screen plane</option>
+                <option>Normal</option>
+              </select></label
+            >
+            <label class="field"
+              >Reach in centimetres<input
+                type="number"
+                id="pull-size"
+                value="7"
+                min="1"
+                max="150"
+            /></label>
+            <label
+              ><input type="checkbox" id="pull-mirror" /> Mirror across this
+              part</label
+            >
+            <p class="micro">
+              Drag a spot on the model. In Normal mode, drag up to raise it or
+              down to indent it. Each drag is one undo step.
+            </p>
           </div>
           <div id="knot-tools" hidden>
             <label class="field">Spine point<select id="knot"></select></label>
@@ -104,6 +134,18 @@
             maxlength="2000"
             placeholder="Keep the face. Give it a long, low body and two extra pairs of legs."
           ></textarea>
+          <label class="field"
+            >Variation range<select id="variation-range">
+              <option value="subtle">Refine details</option>
+              <option value="exploratory" selected>Explore a direction</option>
+              <option value="radical">Rework anatomy</option>
+            </select></label
+          >
+          <div class="actions">
+            <button id="draw-cue">Draw direction</button>
+          </div>
+          <p class="micro" id="drawn-cues"></p>
+          <p class="micro" id="protected-list"></p>
           <p class="micro" id="agent-help"></p>
           <div class="actions">
             <button id="generate" class="solid"></button
@@ -137,8 +179,10 @@
           <h2>Generate a starting form</h2>
           <label class="field"
             >Anatomy<select id="body-plan">
-              <option value="human">Human</option>
+              <option value="any">Any anatomy</option>
+              <option value="human">Humanoid</option>
               <option value="creature">Creature</option>
+              <option value="hybrid">Hybrid</option>
             </select></label
           >
           <div class="actions">
@@ -162,7 +206,37 @@
             ><button id="open">Open form</button
             ><button id="glb">Export GLB</button>
           </div>
-          <input id="openfile" type="file" accept=".json" hidden />
+          <label class="check"
+            ><input id="with-motion" type="checkbox" checked />Include skeleton
+            and motion clips</label
+          ><input id="openfile" type="file" accept=".json" hidden />
+        </section>
+        <section data-panel="files" hidden>
+          <h2>Graft a part</h2>
+          <label class="field"
+            >Source<select id="donor-component"></select
+          ></label>
+          <div class="actions">
+            <button id="donor-open">Use a saved form</button
+            ><input id="donor-file" type="file" accept=".json" hidden />
+          </div>
+          <label class="field" id="donor-region-field" hidden
+            >Source branch<select id="donor-region"></select
+          ></label>
+          <label class="field"
+            >Destination part<select id="graft-target"></select></label
+          ><label class="field"
+            >Attachment<select id="graft-mode">
+              <option value="replace">Replace part, keep children</option>
+              <option value="replaceBranch">Replace whole branch</option>
+              <option value="attach">Attach above selection</option>
+            </select></label
+          >
+          <label class="check"
+            ><input id="graft-fit" type="checkbox" checked />Match destination
+            height</label
+          >
+          <div class="actions"><button id="graft">Graft component</button></div>
         </section>
         <section data-panel="files" hidden>
           <h2>Reference studies</h2>
@@ -181,6 +255,7 @@
                 <option>cylinder</option>
                 <option>sweep</option>
                 <option>scute</option>
+                <option>hand</option>
               </select></label
             >
             <div class="actions">
@@ -188,6 +263,28 @@
               ><button id="duplicate">Duplicate</button
               ><button id="mirror">Mirror</button
               ><button id="remove">Remove</button>
+            </div>
+            <div id="grip-tools" hidden>
+              <label class="field"
+                >Fingers (plus thumb)<input
+                  id="finger-count"
+                  type="number"
+                  min="1"
+                  max="7"
+                  value="4" /></label
+              ><label class="field"
+                >Finger curl<input
+                  id="finger-curl"
+                  type="range"
+                  min="0"
+                  max="100" /></label
+              ><label class="field"
+                >Finger spread<input
+                  id="finger-spread"
+                  type="range"
+                  min="0"
+                  max="100"
+              /></label>
             </div>
             <div id="repeat-tools" hidden>
               <label class="field"
@@ -232,6 +329,8 @@
               <label class="field"
                 >Clothing region<select id="outfit-role"></select></label
               ><label class="field"
+                >Movement<select id="motion-role"></select></label
+              ><label class="field"
                 >Surface<select id="surface">
                   <option>plain</option>
                   <option>canvas</option>
@@ -245,6 +344,32 @@
               /></label>
             </div>
           </details>
+        </section>
+        <section class="display" data-panel="sculpt">
+          <h2>Movement</h2>
+          <label class="field"
+            >Pose or clip<select id="motion">
+              <option>Bind</option>
+              <option>Idle</option>
+              <option>Walk</option>
+              <option>Crouch</option>
+              <option>Reach</option>
+            </select></label
+          >
+          <div id="playback" hidden>
+            <label class="field"
+              >Time<input
+                id="motion-time"
+                type="range"
+                min="0"
+                max="1000"
+                value="0"
+            /></label>
+            <div class="actions"><button id="motion-play">Pause</button></div>
+            <label class="check"
+              ><input id="show-bones" type="checkbox" />Show joints</label
+            >
+          </div>
         </section>
         <section class="display" data-panel="sculpt">
           <h2>Display</h2>
@@ -328,6 +453,12 @@
         >
       </div>
       <div class="actions">
+        <button
+          id="trace-biped"
+          title="Fit separate head, torso, arms and legs to a standing A-pose. Starts a new form."
+        >
+          Fit whole biped
+        </button>
         <button class="solid" id="trace-add">Build volume</button>
       </div>
       <p id="trace-feedback" role="status"></p>

@@ -1,4 +1,23 @@
+import {
+  applyOperations,
+  drawVariation,
+  checkPreserved,
+} from "./variations.js";
 import { buildAxes } from "./body-sculpt.js";
+export const motionRoles = [
+  "rigid",
+  "torso",
+  "head",
+  "upper arm",
+  "forearm",
+  "hand",
+  "thigh",
+  "shin",
+  "foot",
+  "tail",
+  "wing",
+  "skirt",
+];
 import { outfitRoles } from "./wardrobe.js";
 import { facialAxes, isFace } from "./facial-sculpt.js";
 import { bindHumanoid } from "./rig.js";
@@ -19,6 +38,7 @@ export const shapes = [
   "cylinder",
   "sweep",
   "scute",
+  "hand",
 ];
 const choose = (items, draw) => items[Math.floor(draw() * items.length)];
 export const entropy = () =>
@@ -142,21 +162,7 @@ function checkKnots(knots) {
     )
   );
 }
-export function validateForm(form) {
-  requireThat(
-    form && outfits.includes(form.outfit),
-    "Choose a supported wardrobe.",
-  );
-  requireThat(
-    form.build === undefined ||
-      (simpleObject(form.build) &&
-        Object.entries(form.build).every(
-          ([k, v]) =>
-            buildAxes.includes(k) && Number.isFinite(v) && v >= 0.4 && v <= 2.4,
-        )),
-    "Invalid body build.",
-  );
-  const look = form.appearance;
+function validateAppearance(look) {
   requireThat(
     look &&
       ["Tide", "Ochre", "Clay", "Polar"].includes(look.palette) &&
@@ -193,6 +199,59 @@ export function validateForm(form) {
       look[flag] === undefined || typeof look[flag] === "boolean",
       "Invalid clothing detail.",
     );
+  for (const [key, value] of Object.entries(look.tones ?? {}))
+    requireThat(
+      ["cloth", "trim", "panel", "pants", "boots"].includes(key) && hex(value),
+      "Invalid clothing colour.",
+    );
+  for (const [key, value] of Object.entries(look.sculpt ?? {}))
+    requireThat(
+      facialAxes.includes(key) &&
+        Number.isFinite(value) &&
+        value >= 0.35 &&
+        value <= 2,
+      "Invalid face sculpt.",
+    );
+}
+function validBinding(p) {
+  return (
+    simpleObject(p) &&
+    typeof p.atlas === "string" &&
+    /^[a-zA-Z0-9_-]{1,80}$/.test(p.atlas) &&
+    Number.isFinite(p.height) &&
+    p.height >= 0.15 &&
+    p.height <= 6 &&
+    vec(p.offset, -12, 12) &&
+    checkKnots(p.rest) &&
+    p.rest.every((r, i) => i === 0 || r[1] > p.rest[i - 1][1]) &&
+    (p.region === undefined ||
+      (typeof p.region === "string" && p.region.length <= 64)) &&
+    (p.profile === undefined ||
+      (Number.isFinite(p.profile) && p.profile >= 0 && p.profile <= 8))
+  );
+}
+export function validateForm(form) {
+  if (form.occluders !== undefined)
+    requireThat(
+      Array.isArray(form.occluders) &&
+        form.occluders.length <= 256 &&
+        form.occluders.every(validBinding),
+      "Invalid original paint regions.",
+    );
+  requireThat(
+    form && outfits.includes(form.outfit),
+    "Choose a supported wardrobe.",
+  );
+  requireThat(
+    form.build === undefined ||
+      (simpleObject(form.build) &&
+        Object.entries(form.build).every(
+          ([k, v]) =>
+            buildAxes.includes(k) && Number.isFinite(v) && v >= 0.4 && v <= 2.4,
+        )),
+    "Invalid body build.",
+  );
+  validateAppearance(form.appearance);
   if (form.artwork !== undefined) {
     requireThat(
       simpleObject(form.artwork) && Object.keys(form.artwork).length <= 8,
@@ -211,19 +270,6 @@ export function validateForm(form) {
     }
     requireThat(bytes <= 7_000_000, "The embedded artwork exceeds 7 MB.");
   }
-  for (const [key, value] of Object.entries(look.tones ?? {}))
-    requireThat(
-      ["cloth", "trim", "panel", "pants", "boots"].includes(key) && hex(value),
-      "Invalid clothing colour.",
-    );
-  for (const [key, value] of Object.entries(look.sculpt ?? {}))
-    requireThat(
-      facialAxes.includes(key) &&
-        Number.isFinite(value) &&
-        value >= 0.35 &&
-        value <= 2,
-      "Invalid face sculpt.",
-    );
   requireThat(
     Array.isArray(form.parts) &&
       form.parts.length >= 1 &&
@@ -276,6 +322,72 @@ export function validateForm(form) {
         "Invalid facial landmarks.",
       );
     }
+    if (part.pulls !== undefined)
+      requireThat(
+        Array.isArray(part.pulls) &&
+          part.pulls.length <= 64 &&
+          part.pulls.every(
+            (s) =>
+              simpleObject(s) &&
+              vec(s.at, -24, 24) &&
+              vec(s.reach, 0.001, 20) &&
+              vec(s.offset, -4, 4) &&
+              (s.mirrorX === undefined ||
+                (Number.isFinite(s.mirrorX) && Math.abs(s.mirrorX) <= 24)),
+          ),
+        "A region accepts up to 64 bounded surface pulls.",
+      );
+    if (part.motionRole !== undefined)
+      requireThat(
+        motionRoles.includes(part.motionRole),
+        "Unknown movement role.",
+      );
+    if (part.frameSize !== undefined)
+      requireThat(
+        vec(part.frameSize, 0.005, 12),
+        "Invalid metric attachment frame.",
+      );
+    if (part.look !== undefined) {
+      requireThat(
+        Object.hasOwn(anchors, part.shape),
+        "Appearance overrides apply to anatomical regions.",
+      );
+      validateAppearance(part.look);
+    }
+    if (part.grip !== undefined) {
+      const g = part.grip;
+      requireThat(
+        part.shape === "hand" &&
+          simpleObject(g) &&
+          Number.isInteger(g.fingers) &&
+          g.fingers >= 1 &&
+          g.fingers <= 7 &&
+          Number.isFinite(g.spread) &&
+          g.spread >= 0 &&
+          g.spread <= 1 &&
+          Number.isFinite(g.curl) &&
+          g.curl >= 0 &&
+          g.curl <= 1 &&
+          [1, -1].includes(g.side),
+        "Invalid hand articulation.",
+      );
+    }
+    if (part.drape !== undefined) {
+      const d = part.drape;
+      requireThat(
+        part.shape === "sweep" &&
+          simpleObject(d) &&
+          Number.isInteger(d.folds) &&
+          d.folds >= 2 &&
+          d.folds <= 32 &&
+          Number.isFinite(d.depth) &&
+          d.depth >= 0 &&
+          d.depth <= 0.3 &&
+          Number.isFinite(d.twist) &&
+          Math.abs(d.twist) <= 2,
+        "Invalid draped surface.",
+      );
+    }
     if (part.mount !== undefined)
       requireThat(
         part.shape === "scute" &&
@@ -311,20 +423,7 @@ export function validateForm(form) {
     if (part.paint !== undefined) {
       const p = part.paint;
       requireThat(
-        part.shape === "sweep" &&
-          simpleObject(p) &&
-          typeof p.atlas === "string" &&
-          /^[a-zA-Z0-9_-]{1,80}$/.test(p.atlas) &&
-          Number.isFinite(p.height) &&
-          p.height >= 0.15 &&
-          p.height <= 6 &&
-          vec(p.offset, -12, 12) &&
-          checkKnots(p.rest) &&
-          p.rest.every((r, i) => i === 0 || r[1] > p.rest[i - 1][1]) &&
-          (p.region === undefined ||
-            (typeof p.region === "string" && p.region.length <= 64)) &&
-          (p.profile === undefined ||
-            (Number.isFinite(p.profile) && p.profile >= 0 && p.profile <= 8)),
+        part.shape === "sweep" && validBinding(p),
         "Invalid turnaround binding for " + part.id + ".",
       );
     }
@@ -362,14 +461,27 @@ function withoutArtwork(form) {
   const { artwork, ...recipe } = form;
   return recipe;
 }
-export function makeBrief(form, revision, target, amounts, instructions) {
+export function makeBrief(
+  form,
+  revision,
+  target,
+  amounts,
+  instructions,
+  draw = drawVariation(),
+  preserve = [],
+  library = {},
+) {
   const preview = nudge(form, target, amounts);
   validateForm(preview);
   return {
+    attachmentFrames: "metres",
     format: "irudd.form-request.v1",
     requestId: crypto.randomUUID(),
     revision,
     instructions: instructions.trim(),
+    variation: draw,
+    preserve: [...preserve],
+    library,
     nudge: {
       target,
       amounts: { ...amounts },
@@ -383,10 +495,11 @@ export function makeBrief(form, revision, target, amounts, instructions) {
       requestId: "copy requestId",
       revision: "copy revision",
       summary: "one short description",
-      form: "complete replacement in the same structure as preview",
+      operations:
+        "ordered edits against preview. Omit unchanged fields and parts. setPart: {op,id,set}, addPart: {op,part}, removePart: {op,id}, setForm: {op,set}. placeComponent: {op,asset,id:target,mode:replace|replaceBranch|attach,fit:true|false,socket:above|below|front|back|left|right}. Use the library for high-detail painted features; replace preserves children. Use null to remove an optional field in setPart.",
     },
     modeling:
-      "Design a genuinely different 3D variation following the instructions and using the nudge as direction. Global build has optional mass, shoulders, waist, belly and hips multipliers (.4 to 2.4). Units are metres; +Y up, +Z forward and +X character left. The floor is y=0. Preserve appearance and wardrobe unless steered otherwise. You can add, remove, duplicate or replace any parts. Built-in shapes: torso, head, left arm, right arm, left leg, right leg. Their position is an anatomical pivot; size is a local XYZ scale. Custom shapes: box, ellipsoid, cylinder, cone (tip +Y), scute (a shield-shaped convex armor plate, tip -Y, outer ridge +Z). Their position is their center; size is full local XYZ dimensions in metres. The organic sweep shape uses knots, each [x,y,z,radiusWidth,radiusDepth] in local metres, two to 48 distinct centreline points, smoothly joined. For sweeps size is local scale. Use this for organic limbs, spines, horns, hair or garment shapes. Appearance.face (0 to 3) selects original face paint and head parts can hold independent sculpt multipliers (.35 to 2) for jaw, nose, brow, cheek, eyes (spacing), eye size, mouth (width), lips (fullness), chin and smile. For a human face made of a sweep, anatomy may be face. Preserve original paint bindings for retained surface artwork. All rotations are Euler XYZ degrees. Custom shapes require color as #rrggbb. Optional parent is a part ID. A child uses local position/size/rotation and follows parent edits; avoid cycles. Optional surface: canvas, leather, metal, scales, plain. Set outfitRole to torso, upper arm, forearm, hand, thigh, shin, foot, head, skirt, accessory or tail when a custom region should accept clothing. Use optional visibleIn (wardrobe names) for outfit-specific additions. appearance.tones accepts cloth, trim, panel, pants, boots as hex colours. Use unique readable IDs. Use at most 128 parts, each size .005 to 12 and position -12 to 12. Return only proposal JSON. Keep adult humanoid clothing practical and nonsexualized.",
+      "Follow the written instructions first. The variation seed and cues were drawn by the editor from a real random source. Use the cues to resolve freedom left by the user. Preserve listed part geometry. Return compact operations against the nudged preview and omit unchanged geometry. Global build has optional mass, shoulders, waist, belly and hips multipliers (.4 to 2.4). Units are metres; +Y up, +Z forward and +X character left. The floor is y=0. Preserve appearance and wardrobe unless steered otherwise. You can add, remove, duplicate or replace any parts. Built-in shapes: torso, head, left arm, right arm, left leg, right leg. Their position is an anatomical pivot; size is a local XYZ scale. Custom shapes: box, ellipsoid, cylinder, cone (tip +Y), scute (a shield-shaped convex armor plate, tip -Y, outer ridge +Z). A hand shape has a wrist pivot and extends down local Y. Its optional grip has fingers (1-7, plus thumb), curl and spread (0-1), and side (1 or -1). Other primitive positions are their centers; size is full local XYZ dimensions in metres. The organic sweep shape uses knots, each [x,y,z,radiusWidth,radiusDepth] in local metres, two to 48 distinct centreline points, smoothly joined. For sweeps size is local scale. Use this for organic limbs, spines, horns, hair or garment shapes. Appearance.face (0 to 3) selects original face paint and head parts can hold independent sculpt multipliers (.35 to 2) for jaw, nose, brow, cheek, eyes (spacing), eye size, mouth (width), lips (fullness), chin and smile. For a human face made of a sweep, anatomy may be face. Preserve original paint bindings for retained surface artwork. All rotations are Euler XYZ degrees. Custom shapes require color as #rrggbb. Optional parent is a part ID. A child uses local position/size/rotation and follows parent edits. Newly added or replaced primitives receive a metre-based attachment frame automatically: author a child using metre offsets from its parent centre, independent of primitive dimensions. Previously retained primitives without frameSize use scaled local coordinates. Avoid cycles. Optional surface: canvas, leather, metal, scales, plain. Set outfitRole to torso, upper arm, forearm, hand, thigh, shin, foot, head, skirt, accessory or tail when a custom region should accept clothing. A region also accepts up to 64 local surface pulls: {at:[x,y,z],reach:[rx,ry,rz],offset:[dx,dy,dz],mirrorX?:number}. A smooth radial displacement permits local asymmetry, bulges, dimples and folds in the 3D surface. Keep existing pulls when modifying other fields. Optional motionRole (rigid, torso, head, upper arm, forearm, hand, thigh, shin, foot, wing, tail, skirt) controls skinning and animation independently of clothing. Use optional visibleIn (wardrobe names) for outfit-specific additions. appearance.tones accepts cloth, trim, panel, pants, boots as hex colours. Use unique readable IDs. Use at most 128 parts, each size .005 to 12 and position -12 to 12. Return only proposal JSON. Keep adult humanoid clothing practical and nonsexualized.",
   };
 }
 export function readProposal(raw, request, revision) {
@@ -404,6 +517,15 @@ export function readProposal(raw, request, revision) {
       raw.summary.length <= 500,
     "The proposal needs a short description.",
   );
-  validateForm(raw.form);
-  return raw;
+  const form =
+    raw.form ??
+    applyOperations(
+      request.preview,
+      raw.operations,
+      request.library,
+      request.attachmentFrames === "metres",
+    );
+  validateForm(form);
+  checkPreserved(request.preview, form, request.preserve);
+  return raw.form ? raw : { ...raw, form };
 }

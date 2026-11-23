@@ -4,6 +4,7 @@ import { sweepGeometry } from "./surface.js";
 
 export const outfitRoles = [
   "torso",
+  "pelvis",
   "upper arm",
   "forearm",
   "hand",
@@ -102,7 +103,7 @@ export function addEquipment(mesh, fit, material) {
   }
   function rounded(x, y, z, sx, sy, sz, color, type) {
     const dim = [w * sx, h * sy, d * sz],
-      radius = Math.min(...dim) * 0.19;
+      radius = Math.min(...dim) * 0.43;
     return piece(
       new RoundedBoxGeometry(...dim, 2, radius),
       color,
@@ -134,20 +135,11 @@ export function addEquipment(mesh, fit, material) {
       rounded(s * 0.34, 0.52, -0.58, 0.16, 0.62, 0.22, fit.trim, "metal");
       rounded(s * 0.24, 0.73, 0.38, 0.12, 0.32, 0.09, rubber, "leather");
     }
-    rounded(0, 0.63, 0.46, 0.43, 0.23, 0.11, fit.panel, "metal");
-    rounded(-0.024, 0.66, 0.525, 0.21, 0.047, 0.021, "#2e5554", "metal");
-    loop(0.08, 0.07, 0.49, 0.5, rubber);
+    loop(0.81, 0.035, 0.35, 0.42, rubber);
   } else if (fit.role === "head") {
     loop(0.14, 0.05, 0.46, 0.47, rubber);
     for (const s of [-1, 1])
       rounded(s * 0.46, 0.51, -0.015, 0.13, 0.31, 0.38, fit.panel, "metal");
-    rounded(0, 0.56, -0.415, 0.72, 0.45, 0.19, fit.cloth);
-  } else if (fit.role === "upper arm") {
-    rounded(0, 0.69, 0.03, 0.98, 0.43, 0.98, fit.panel, "metal");
-  } else if (fit.role === "forearm" || fit.role === "shin") {
-    rounded(0, 0.5, 0.37, 0.79, 0.55, 0.32, fit.panel, "metal");
-    rounded(0, 0.55, 0.547, 0.55, 0.06, 0.03, fit.trim);
-  } else if (fit.role === "thigh") {
-    rounded(0, 0.48, 0.37, 0.68, 0.37, 0.26, fit.cloth);
+    rounded(0, 0.54, -0.4, 0.67, 0.41, 0.14, fit.panel, "metal");
   }
 }

@@ -1,33 +1,48 @@
 import { build } from "esbuild";
 import { readFile, mkdir, writeFile } from "node:fs/promises";
 
-const { outputFiles } = await build({
-  entryPoints: ["character-view/app.js"],
-  bundle: true,
-  format: "iife",
-  loader: { ".webp": "dataurl" },
-  target: "es2022",
-  minify: true,
-  legalComments: "inline",
-  write: false,
-});
-const [template, css, license] = await Promise.all([
-  readFile("character-view/index.html", "utf8"),
-  readFile("character-view/style.css", "utf8"),
-  readFile("node_modules/three/LICENSE", "utf8"),
-]);
-const script = outputFiles[0].text.replaceAll(/<\/script/gi, "<\\/script");
-const html = template
-  .replace("<!-- STYLE -->", () => "<style>" + css + "</style>")
-  .replace(
-    "<!-- APP -->",
-    () =>
-      "<!-- Three.js license\n" +
-      license +
-      "\n-->\n<script>" +
-      script +
-      "</script>",
-  );
 await mkdir("dist", { recursive: true });
-await writeFile("dist/character-view.html", html);
-console.log("Built dist/character-view.html");
+const license = await readFile("node_modules/three/LICENSE", "utf8");
+async function page(entry, template, destination, styles) {
+  const [{ outputFiles }, html, css] = await Promise.all([
+    build({
+      entryPoints: [entry],
+      bundle: true,
+      format: "iife",
+      loader: { ".webp": "dataurl" },
+      target: "es2022",
+      minify: true,
+      legalComments: "inline",
+      write: false,
+    }),
+    readFile(template, "utf8"),
+    styles ? readFile(styles, "utf8") : Promise.resolve(""),
+  ]);
+  const js = outputFiles[0].text.replaceAll(/<\/script/gi, "<\\/script");
+  const content = html
+    .replace("<!-- STYLE -->", () => "<style>" + css + "</style>")
+    .replace(
+      "<!-- APP -->",
+      () =>
+        "<!-- Three.js license\n" +
+        license +
+        "\n-->\n<script>" +
+        js +
+        "</script>",
+    );
+  await writeFile(destination, content);
+  console.log("Built " + destination);
+}
+await Promise.all([
+  page(
+    "character-view/app.js",
+    "character-view/index.html",
+    "dist/character-view.html",
+    "character-view/style.css",
+  ),
+  page(
+    "examples/play-model.js",
+    "examples/play-model.html",
+    "dist/play-model.html",
+  ),
+]);

@@ -87,6 +87,47 @@ const contour = [
 ];
 const bump = (x, y, cx, cy, rx, ry) =>
   Math.exp(-(((x - cx) / rx) ** 2) - ((y - cy) / ry) ** 2);
+const tinted = new Map();
+function skinTexture(cell, skin) {
+  if (skin.toLowerCase() === faces[cell].skin) return paint[cell];
+  const key = cell + skin;
+  if (tinted.has(key)) return tinted.get(key);
+  const source = paint[cell].image,
+    canvas = document.createElement("canvas");
+  canvas.width = source.width;
+  canvas.height = source.height;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  ctx.drawImage(source, 0, 0);
+  const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const ref = new T.Color(faces[cell].skin),
+    target = new T.Color(skin),
+    ratio = [target.r / ref.r, target.g / ref.g, target.b / ref.b];
+  const lut = ratio.map((f) =>
+    Array.from({ length: 256 }, (_, v) => {
+      const srgb = v / 255,
+        linear =
+          srgb <= 0.04045 ? srgb / 12.92 : ((srgb + 0.055) / 1.055) ** 2.4;
+      const val = Math.min(1, linear * f);
+      return Math.round(
+        255 *
+          (val <= 0.0031308 ? 12.92 * val : 1.055 * val ** (1 / 2.4) - 0.055),
+      );
+    }),
+  );
+  for (let i = 0; i < pixels.data.length; i += 4)
+    for (let k = 0; k < 3; k++) pixels.data[i + k] = lut[k][pixels.data[i + k]];
+  ctx.putImageData(pixels, 0, 0);
+  const texture = new T.CanvasTexture(canvas);
+  texture.colorSpace = T.SRGBColorSpace;
+  texture.anisotropy = 4;
+  if (tinted.size >= 48) {
+    const first = tinted.keys().next().value;
+    tinted.get(first).dispose();
+    tinted.delete(first);
+  }
+  tinted.set(key, texture);
+  return texture;
+}
 export function createFace(appearance, silhouette, material) {
   const cell = appearance.face ?? 0;
   const traits = { ...faces[cell] };
@@ -155,14 +196,10 @@ export function createFace(appearance, silhouette, material) {
   const surface =
     silhouette || !paint[cell]
       ? material(appearance.skin)
-      : new T.MeshStandardMaterial({ map: paint[cell], roughness: 0.9 });
-  if (paint[cell] && !silhouette) {
-    const base = new T.Color(faces[cell].skin);
-    surface.color.set(appearance.skin);
-    surface.color.r /= base.r;
-    surface.color.g /= base.g;
-    surface.color.b /= base.b;
-  }
+      : new T.MeshStandardMaterial({
+          map: skinTexture(cell, appearance.skin),
+          roughness: 0.9,
+        });
   const face = new T.Mesh(geo, surface);
   face.castShadow = true;
   face.userData.faceSurface = true;

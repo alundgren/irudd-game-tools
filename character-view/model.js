@@ -1,5 +1,10 @@
 import * as T from "three";
+import { paintSources } from "./paint-sources.js";
+import { pullSurface } from "./surface-pull.js";
 
+import { handGeometry } from "./hands.js";
+import { pleat } from "./drapery.js";
+import { expeditionMaterial } from "./expedition.js";
 import { fittedScute } from "./scutes.js";
 import { sculptBuild } from "./body-sculpt.js";
 import { fitWardrobe, addEquipment } from "./wardrobe.js";
@@ -453,7 +458,7 @@ export function createCharacter(form, silhouette, clay = false) {
   const plainView = silhouette || clay;
   const group = new T.Group(),
     materials = new Map();
-  if (!plainView) preparePaintRegions(form.parts);
+  if (!plainView) preparePaintRegions(paintSources(form));
   function material(color, type = "plain") {
     const key = plainView ? "uniform" : color + type;
     if (!materials.has(key))
@@ -474,17 +479,35 @@ export function createCharacter(form, silhouette, clay = false) {
         plainView,
       )
     : {};
-  const objects = new Map();
+  const objects = new Map(),
+    localLooks = new Map();
   for (const part of form.parts) {
     let object;
     if (Object.hasOwn(library, part.shape)) {
-      object = library[part.shape].clone();
+      let partLibrary = library;
+      if (part.look) {
+        const key = JSON.stringify(part.look);
+        if (!localLooks.has(key))
+          localLooks.set(
+            key,
+            baseParts(
+              { ...part.look, outfit: form.outfit },
+              material,
+              plainView,
+            ),
+          );
+        partLibrary = localLooks.get(key);
+      }
+      object = partLibrary[part.shape].clone();
       if (part.shape === "head" && part.sculpt) {
         const original = object.children.find((o) => o.userData.faceSurface);
         const next = createFace(
           {
-            ...form.appearance,
-            sculpt: { ...form.appearance.sculpt, ...part.sculpt },
+            ...(part.look ?? form.appearance),
+            sculpt: {
+              ...(part.look ?? form.appearance).sculpt,
+              ...part.sculpt,
+            },
           },
           plainView,
           material,
@@ -500,14 +523,17 @@ export function createCharacter(form, silhouette, clay = false) {
         : null;
       let geometry;
       switch (part.shape) {
+        case "hand":
+          geometry = handGeometry(part.grip);
+          break;
         case "scute":
           geometry = fittedScute(part, carrier);
           break;
         case "box":
-          geometry = new T.BoxGeometry(1, 1, 1);
+          geometry = new T.BoxGeometry(1, 1, 1, 7, 7, 7);
           break;
         case "ellipsoid":
-          geometry = new T.SphereGeometry(0.5, 16, 12);
+          geometry = new T.SphereGeometry(0.5, 32, 24);
           break;
         case "sweep":
           geometry = sweepGeometry(
@@ -519,6 +545,7 @@ export function createCharacter(form, silhouette, clay = false) {
                 ? 64
                 : 28,
           );
+          if (part.drape) pleat(geometry, part.knots, part.drape);
           if (part.anatomy === "face") {
             portraitSurface(geometry, part.paint);
             deformFace(
@@ -529,10 +556,10 @@ export function createCharacter(form, silhouette, clay = false) {
           }
           break;
         case "cone":
-          geometry = new T.ConeGeometry(0.5, 1, 12);
+          geometry = new T.ConeGeometry(0.5, 1, 28, 10);
           break;
         case "cylinder":
-          geometry = new T.CylinderGeometry(0.5, 0.5, 1, 12);
+          geometry = new T.CylinderGeometry(0.5, 0.5, 1, 28, 10);
           break;
       }
       if (fit && !part.knots && !fit.preserve)
@@ -547,6 +574,13 @@ export function createCharacter(form, silhouette, clay = false) {
               coat ? (fit.bare ? "plain" : "canvas") : part.surface,
             ),
       );
+      if (coat && fit.suit && !plainView) {
+        const textile = expeditionMaterial(
+          fit.role,
+          form.appearance.suitTint ?? "#ffffff",
+        );
+        if (textile) object.material = textile;
+      }
       if (carrier?.paint && !plainView) {
         object.material = paintedMaterial({ ...carrier, color: part.color });
         object.material.emissiveIntensity = 0.24;
@@ -557,6 +591,7 @@ export function createCharacter(form, silhouette, clay = false) {
       }
       object.castShadow = true;
     }
+    if (part.pulls?.length) pullSurface(object).apply(part.pulls);
     object.name = part.id;
     object.position.fromArray(part.position);
     object.scale.fromArray(part.size);
@@ -567,8 +602,20 @@ export function createCharacter(form, silhouette, clay = false) {
     objects.set(part.id, object);
     object.userData.partId = part.id;
   }
+  const mounts = new Map();
+  for (const part of form.parts) {
+    const node = objects.get(part.id);
+    if (part.frameSize) {
+      const mount = new T.Group();
+      mount.scale.set(...part.frameSize.map((x) => 1 / x));
+      mount.name = part.id + " attachment frame";
+      mount.userData.attachmentFrame = true;
+      node.add(mount);
+      mounts.set(part.id, mount);
+    } else mounts.set(part.id, node);
+  }
   for (const part of form.parts)
-    (objects.get(part.parent) ?? group).add(objects.get(part.id));
+    (mounts.get(part.parent) ?? group).add(objects.get(part.id));
   sculptBuild(group, form.build);
   return group;
 }

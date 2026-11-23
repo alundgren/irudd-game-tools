@@ -1,9 +1,18 @@
 import * as T from "three";
+import { pullTool } from "./pull-tool.js";
+import { readSession, saveSession } from "./session.js";
+import { skinCharacter } from "./skin.js";
+import { motionPreview } from "./motion-preview.js";
+import { drawVariation, agentDesign } from "./variations.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { manipulator, findPart } from "./manipulator.js";
 import { appendPart, copyBranch, removePart } from "./parts.js";
+import { componentShelf, generateWorkshopForm } from "./components.js";
+import { extractComponent, placeComponent } from "./graft.js";
 import { generateForm } from "./generator.js";
 import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
+import glider from "../examples/estuary-glider.form.json";
+import beetle from "../examples/accepted-beetle.form.json";
 import { studies as proceduralStudies } from "../examples/studies.js";
 import { paintedStudies } from "../examples/painted-studies.js";
 import { repeatOnSpine } from "./scutes.js";
@@ -12,12 +21,28 @@ import { faceHandles } from "./face-handles.js";
 import { isFace } from "./facial-sculpt.js";
 import { bindTraceEditor } from "./trace-editor.js";
 import { loadTurnarounds, restoreArtwork } from "./turnaround.js";
-const studies = [...proceduralStudies, ...paintedStudies];
+const studies = [
+  ...proceduralStudies,
+  ...paintedStudies,
+  {
+    id: "glider",
+    title: "Estuary glider",
+    game: "AI trial",
+    make: () => structuredClone(glider.form),
+  },
+  {
+    id: "beetle",
+    title: "Beetle hybrid",
+    game: "AI trial",
+    make: () => structuredClone(beetle.form),
+  },
+];
 import { loadSurfaces } from "./materials.js";
 import { loadFacePaint } from "./face.js";
 import { createCharacter, disposeCharacter } from "./model.js";
 import {
   startingForm,
+  motionRoles,
   nudge,
   neutral,
   outfits,
@@ -30,33 +55,57 @@ import {
 } from "./recipe.js";
 
 const $ = (selector) => document.querySelector(selector);
-const storageKey = "irudd-character-workshop-v1";
 let form = generateForm(),
   revision = crypto.randomUUID(),
   amounts = neutral(),
   target = null,
   instructions = "",
   request = null;
+let restored = false,
+  customDonor = null,
+  assetsReady = false;
+let variation = drawVariation(),
+  protectedIds = new Set();
 const history = [];
-try {
-  const saved = JSON.parse(localStorage.getItem(storageKey));
-  if (saved && typeof saved.revision === "string") {
-    form = validateForm(saved.form);
-    revision = saved.revision;
-    const savedRequest = saved.request;
-    if (
-      savedRequest?.revision === revision &&
-      savedRequest.format === "irudd.form-request.v1"
-    ) {
-      validateForm(savedRequest.preview);
-      request = savedRequest;
-      amounts = { ...(request.nudge.amounts ?? request.nudge.percent) };
-      target = request.nudge.target;
-      instructions = request.instructions;
+function restoreSessionState(saved) {
+  try {
+    if (saved && typeof saved.revision === "string") {
+      form = validateForm(saved.form);
+      restored = true;
+      revision = saved.revision;
+      protectedIds = new Set(
+        (Array.isArray(saved.protectedIds) ? saved.protectedIds : []).filter(
+          (id) => form.parts.some((p) => p.id === id),
+        ),
+      );
+      if (saved.variation?.seed !== undefined)
+        variation = drawVariation(
+          saved.variation.strength,
+          saved.variation.seed,
+        );
+      if (saved.target && form.parts.some((p) => p.id === saved.target))
+        target = saved.target;
+      if (saved.amounts)
+        for (const key of Object.keys(neutral()))
+          if (Number.isFinite(saved.amounts[key]))
+            amounts[key] = Math.max(-40, Math.min(40, saved.amounts[key]));
+      instructions =
+        typeof saved.instructions === "string" ? saved.instructions : "";
+      const savedRequest = saved.request;
+      if (
+        savedRequest?.revision === revision &&
+        savedRequest.format === "irudd.form-request.v1"
+      ) {
+        validateForm(savedRequest.preview);
+        request = savedRequest;
+        amounts = { ...(request.nudge.amounts ?? request.nudge.percent) };
+        target = request.nudge.target;
+        instructions = request.instructions;
+      }
     }
+  } catch {
+    status("The previous session could not be restored.");
   }
-} catch {
-  /* Storage may be unavailable when running a downloaded file. */
 }
 let clay = false,
   worldScale = false,
@@ -82,11 +131,13 @@ const views = {
   Back: [0, 0, -4.8],
 };
 const axes = Object.values(modes).flat();
-let operation = "shape";
+let operation = "shape",
+  pulling = false;
 let renderer,
   controls,
   gizmo,
   placeHandles,
+  playback,
   direct = false,
   knot = null;
 
@@ -104,12 +155,20 @@ function status(text) {
   $("#status").textContent = text;
 }
 function persist() {
-  try {
-    localStorage.setItem(
-      storageKey,
-      JSON.stringify({ form, revision, request }),
-    );
-  } catch {}
+  saveSession({
+    form,
+    revision,
+    request,
+    variation,
+    protectedIds: [...protectedIds],
+    target,
+    amounts: { ...amounts },
+    instructions,
+  }).catch(() =>
+    status(
+      "Browser storage is unavailable. Use Save form to keep this revision.",
+    ),
+  );
 }
 function clearDraft() {
   knot = null;
@@ -124,6 +183,9 @@ function commit(next, message, keepKnot = false) {
   history.push(form);
   if (history.length > 64) history.shift();
   form = next;
+  protectedIds = new Set(
+    [...protectedIds].filter((id) => form.parts.some((p) => p.id === id)),
+  );
   revision = crypto.randomUUID();
   clearDraft();
   if (keepKnot) knot = selectedKnot;
@@ -243,6 +305,80 @@ function bindControls() {
     },
     status,
   });
+  function redraw() {
+    variation = drawVariation($("#variation-range").value);
+    request = null;
+    persist();
+    update();
+  }
+  $("#variation-range").value = variation.strength;
+  $("#variation-range").onchange = redraw;
+  $("#draw-cue").onclick = redraw;
+  $("#pull-tool").onclick = () => {
+    pulling = !pulling;
+    if (pulling) {
+      direct = false;
+      playback.bind();
+    }
+    update();
+  };
+  $("#protect").onclick = () => {
+    if (target) {
+      if (protectedIds.has(target)) protectedIds.delete(target);
+      else protectedIds.add(target);
+      request = null;
+      persist();
+      update();
+    }
+  };
+  $("#donor-open").onclick = () => $("#donor-file").click();
+  $("#donor-file").onchange = async () => {
+    try {
+      const file = $("#donor-file").files[0];
+      $("#donor-file").value = "";
+      if (!file) return;
+      if (file.size > 8000000) throw new Error("Form exceeds 8 MB.");
+      const source = JSON.parse(await file.text());
+      if (source.format !== "irudd.form.v1")
+        throw new Error("Choose a saved form.");
+      customDonor = validateForm(source.form);
+      await restoreArtwork(customDonor);
+      if (!$("#donor-component").querySelector('[value="custom"]'))
+        $("#donor-component").add(new Option("Opened form", "custom"));
+      $("#donor-component").value = "custom";
+      $("#donor-region").replaceChildren(
+        ...customDonor.parts.map((p) => new Option(p.id, p.id)),
+      );
+      $("#donor-region-field").hidden = false;
+      status("Choose a branch from " + file.name + ".");
+    } catch (e) {
+      status(e.message);
+    }
+  };
+  $("#donor-component").onchange = () => {
+    $("#donor-region-field").hidden = $("#donor-component").value !== "custom";
+  };
+  $("#graft").onclick = () => {
+    try {
+      const key = $("#donor-component").value,
+        component =
+          key === "custom"
+            ? extractComponent(customDonor, $("#donor-region").value)
+            : componentShelf()[key];
+      const next = placeComponent(nudge(form, target, amounts), component, {
+        target: $("#graft-target").value,
+        mode: $("#graft-mode").value,
+        fit: $("#graft-fit").checked,
+      });
+      validateForm(next.form);
+      target = next.id;
+      commit(next.form, "Component grafted.");
+      switchTab("sculpt");
+      chooseAngle("3/4", true);
+    } catch (e) {
+      status(e.message);
+    }
+  };
   const input = $("#steering");
   input.value = instructions;
   input.oninput = () => {
@@ -252,6 +388,8 @@ function bindControls() {
   };
   $("#target").onchange = () => selectTarget($("#target").value || null);
   $("#direct").onclick = () => {
+    pulling = false;
+    playback?.bind();
     direct = !direct;
     if (direct && operation === "face") {
       focusFace();
@@ -320,6 +458,17 @@ function bindControls() {
       else delete q.outfitRole;
       return q;
     });
+  $("#motion-role").replaceChildren(
+    new Option("Infer from anatomy", ""),
+    ...motionRoles.map((r) => new Option(r, r)),
+  );
+  $("#motion-role").onchange = () =>
+    editPart((p) => {
+      const next = { ...p };
+      if ($("#motion-role").value) next.motionRole = $("#motion-role").value;
+      else delete next.motionRole;
+      return next;
+    });
   $("#surface").onchange = () =>
     editPart((p) => ({ ...p, surface: $("#surface").value }));
   $("#part-color").onchange = () =>
@@ -358,6 +507,24 @@ function bindControls() {
       status(e.message);
     }
   };
+  for (const [id, key] of [
+    ["finger-count", "fingers"],
+    ["finger-curl", "curl"],
+    ["finger-spread", "spread"],
+  ]) {
+    $("#" + id).onchange = () =>
+      editPart((p) => ({
+        ...p,
+        grip: {
+          fingers: 4,
+          spread: 0.2,
+          curl: 0.15,
+          side: 1,
+          ...p.grip,
+          [key]: Number($("#" + id).value) / (key === "fingers" ? 1 : 100),
+        },
+      }));
+  }
   $("#remove").onclick = () => {
     try {
       commit(
@@ -426,12 +593,23 @@ function bindControls() {
     }
   };
   $("#glb").onclick = async () => {
-    let exporting;
+    let exporting, rig;
     try {
       exporting = createCharacter(form, false);
-      const bytes = await new GLTFExporter().parseAsync(exporting, {
-        binary: true,
-      });
+      if ($("#with-motion").checked) rig = skinCharacter(form, exporting);
+      const exportScene = new T.Scene();
+      if (rig) {
+        for (const o of [...rig.actor.children]) exportScene.add(o);
+      } else exportScene.add(exporting);
+      let bytes;
+      try {
+        bytes = await new GLTFExporter().parseAsync(exportScene, {
+          binary: true,
+          animations: rig?.clips ?? [],
+        });
+      } finally {
+        if (rig) for (const o of [...exportScene.children]) rig.actor.add(o);
+      }
       download(
         new Blob([bytes], { type: "model/gltf-binary" }),
         "character.glb",
@@ -440,6 +618,7 @@ function bindControls() {
     } catch (e) {
       status(e.message);
     } finally {
+      rig?.dispose();
       if (exporting) disposeCharacter(exporting);
     }
   };
@@ -489,7 +668,7 @@ function bindControls() {
   $("#fresh").onclick = () => {
     target = null;
     commit(
-      generateForm($("#body-plan").value),
+      generateWorkshopForm($("#body-plan").value),
       "Generated a new starting form.",
     );
     chooseAngle("3/4", true);
@@ -525,7 +704,7 @@ function bindControls() {
     $("#file").value = "";
     if (!file) return;
     try {
-      if (file.size > 500000) throw new Error("Proposal exceeds 500 KB.");
+      if (file.size > 8_000_000) throw new Error("Proposal exceeds 8 MB.");
       const raw = JSON.parse(await file.text());
       proposal = readProposal(raw, request, revision);
       showCurrent = false;
@@ -547,6 +726,7 @@ function bindControls() {
       "AI variation accepted.",
     );
   $("#discard").onclick = () => {
+    variation = drawVariation(variation.strength);
     proposal = null;
     request = null;
     showCurrent = false;
@@ -624,16 +804,21 @@ function referenceViews() {
 async function generate() {
   if (busy || proposal) return;
   const direction = $("#steering").value.trim();
-  if (!direction && !axes.some((axis) => Boolean(amounts[axis]))) {
-    status("Describe a change or move a nudge first.");
-    $("#steering").focus();
-    return;
-  }
+
   try {
-    request = makeBrief(form, revision, target, amounts, direction);
+    request = makeBrief(
+      form,
+      revision,
+      target,
+      amounts,
+      direction,
+      variation,
+      [...protectedIds],
+      componentShelf(),
+    );
     persist();
     if (!connected) {
-      const packaged = { ...request, views: referenceViews() };
+      const packaged = { ...agentDesign(request), views: referenceViews() };
       const url = URL.createObjectURL(
         new Blob([JSON.stringify(packaged, null, 2)], {
           type: "application/json",
@@ -685,6 +870,7 @@ function update() {
     }
     figure = createCharacter(preview, silhouette, clay);
     scene.add(figure);
+    playback?.update(preview, figure);
     displayedForm = preview;
     displayedInk = shader;
     const height = visibleBounds(figure).getSize(new T.Vector3()).y;
@@ -699,6 +885,7 @@ function update() {
     : changed
       ? "Nudge preview"
       : "Current form";
+  $("#name").textContent = target ?? "Whole form";
   $("#look").textContent = preview.parts.length + " parts";
   $("#candidate").hidden = !proposal;
   $("#summary").textContent = proposal?.summary || "";
@@ -714,6 +901,14 @@ function update() {
       ...options.map(([id, label]) => new Option(label, id)),
     );
   list.value = target || "";
+  const dest = $("#graft-target");
+  if (
+    dest.length !== form.parts.length ||
+    form.parts.some((p, i) => dest.options[i]?.value !== p.id)
+  ) {
+    dest.replaceChildren(...form.parts.map((p) => new Option(p.id, p.id)));
+    dest.value = target ?? form.parts.find(isFace)?.id ?? form.parts[0].id;
+  }
   const part = form.parts.find((p) => p.id === target);
   for (const el of $("#operations").children) {
     pressed(el, operation === el.dataset.op);
@@ -746,17 +941,41 @@ function update() {
     "open",
     "clear",
     "trace-open",
+    "draw-cue",
+    "variation-range",
+    "graft",
+    "donor-open",
   ])
     $("#" + id).disabled = locked;
+  $("#graft").disabled = locked || !assetsReady;
+  $("#fresh").disabled = locked || !assetsReady;
   $("#undo").disabled = !history.length || locked;
   $("#apply").disabled = !changed || locked;
+  $("#pull-tool").disabled = locked;
+  pressed($("#pull-tool"), pulling);
+  $("#pull-settings").hidden = !pulling;
+  canvas.classList.toggle("pulling", pulling && !locked);
   $("#direct").disabled = locked;
   pressed($("#direct"), direct);
   $("#focus").disabled = !target;
+  $("#protect").disabled = locked || !target;
+  pressed($("#protect"), protectedIds.has(target));
+  $("#drawn-cues").textContent = variation.cues.join(" · ");
+  $("#protected-list").textContent = protectedIds.size
+    ? "Keep shape: " + [...protectedIds].join(", ")
+    : "";
+  $("#protected-list").hidden = !protectedIds.size;
+  $("#grip-tools").hidden = part?.shape !== "hand" || locked;
+  if (!$("#grip-tools").hidden) {
+    $("#finger-count").value = part.grip?.fingers ?? 4;
+    $("#finger-curl").value = (part.grip?.curl ?? 0.15) * 100;
+    $("#finger-spread").value = (part.grip?.spread ?? 0.2) * 100;
+  }
   $("#repeat-tools").hidden = part?.shape !== "sweep" || locked;
   $("#paintpart").hidden = !part || Object.hasOwn(anchors, part.shape);
   if (!$("#paintpart").hidden) {
     $("#outfit-role").value = part.outfitRole ?? "";
+    $("#motion-role").value = part.motionRole ?? "";
     $("#surface").value = part.surface ?? "plain";
     $("#part-color").value = part.color;
   }
@@ -779,7 +998,7 @@ function update() {
     preview,
     target,
     operation,
-    direct && operation !== "face" && !locked,
+    direct && !pulling && operation !== "face" && !locked,
     knot,
   );
   const hasBody = preview.parts.some(
@@ -802,7 +1021,8 @@ function render() {
       operation === "face" && direct ? findPart(figure, target) : null,
       part?.anatomy === "face",
       camera,
-      direct && operation === "face" && !proposal && !busy,
+      direct && !pulling && operation === "face" && !proposal && !busy,
+      part?.paint,
     );
   }
 
@@ -905,6 +1125,38 @@ function setup() {
       update();
     },
   });
+  playback = motionPreview(scene, render);
+  pullTool(canvas, camera, controls, {
+    active: () => pulling && !busy && !proposal && !playback.active,
+    figure: () => figure,
+    render,
+    settings: () => ({
+      radius: Math.max(
+        0.01,
+        Math.min(1.5, Number($("#pull-size").value) / 100 || 0.07),
+      ),
+      mirror: $("#pull-mirror").checked,
+      direction: $("#pull-direction").value,
+    }),
+    finish: (id, field) => {
+      const base = nudge(form, target, amounts),
+        p = base.parts.find((x) => x.id === id);
+      if ((p.pulls?.length ?? 0) >= 64) {
+        status("This part already has 64 surface pulls.");
+        return;
+      }
+      target = id;
+      commit(
+        {
+          ...base,
+          parts: base.parts.map((x) =>
+            x === p ? { ...p, pulls: [...(p.pulls ?? []), field] } : x,
+          ),
+        },
+        "Sculpted " + id + ".",
+      );
+    },
+  });
   bindControls();
   chooseAngle("3/4");
   resize();
@@ -912,25 +1164,49 @@ function setup() {
   chooseAngle("3/4", true);
   new ResizeObserver(resize).observe(stage);
 }
-try {
-  setup();
-  Promise.all([
-    loadFacePaint(),
-    loadSurfaces(),
-    loadTurnarounds(),
-    restoreArtwork(form),
-  ])
-    .then(() => {
-      displayedForm = null;
-      update();
-    })
-    .catch(() => status("Some surface paint is unavailable."));
-} catch (error) {
-  console.error(error);
-  $("#failure").hidden = false;
-  $("#failure").textContent =
-    "The 3D view could not start. Open this file in a browser with WebGL 2 hardware acceleration enabled.";
-  document
-    .querySelectorAll("button,input")
-    .forEach((el) => (el.disabled = true));
+async function startWorkshop() {
+  try {
+    restoreSessionState(await readSession());
+    setup();
+    Promise.all([
+      loadFacePaint(),
+      loadSurfaces(),
+      loadTurnarounds(),
+      restoreArtwork(form),
+    ])
+      .then(() => {
+        assetsReady = true;
+        $("#donor-component").replaceChildren(
+          ...Object.values(componentShelf()).map(
+            (x) => new Option(x.title, x.key),
+          ),
+        );
+        const initial =
+          !restored &&
+          !history.length &&
+          !request &&
+          !Object.values(amounts).some(Boolean);
+        if (initial) {
+          form = generateWorkshopForm("any", form.origin.seed);
+          validateForm(form);
+          persist();
+        }
+        displayedForm = null;
+        update();
+        if (initial) chooseAngle("3/4", true);
+      })
+      .catch((e) => {
+        console.error(e);
+        status("Some surface paint is unavailable. " + e.message);
+      });
+  } catch (error) {
+    console.error(error);
+    $("#failure").hidden = false;
+    $("#failure").textContent =
+      "The 3D view could not start. Open this file in a browser with WebGL 2 hardware acceleration enabled.";
+    document
+      .querySelectorAll("button,input")
+      .forEach((el) => (el.disabled = true));
+  }
 }
+startWorkshop();

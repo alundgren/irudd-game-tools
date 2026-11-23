@@ -84,7 +84,7 @@ export function faceHandles(stage, { start, move, finish, cancel }) {
     };
     return el;
   });
-  return function position(object, painted, camera, enabled) {
+  return function position(object, painted, camera, enabled, binding) {
     overlay.hidden = !enabled || !object;
     if (overlay.hidden) return;
     let mesh = painted ? object : null;
@@ -110,11 +110,32 @@ export function faceHandles(stage, { start, move, finish, cancel }) {
     screenWidth = Math.max(40, Math.abs(c.x - a.x) * stage.clientWidth * 0.5);
     for (let i = 0; i < handles.length; i++) {
       const h = handles[i],
-        at = project(
-          centre.x + span.x * 0.5 * h.x,
-          chin + span.y * (1 - origin) * h.y,
-          centre.z + span.z * 0.54 * Math.sqrt(1 - h.x * h.x),
-        );
+        face = binding?.portrait;
+      const curve = face
+        ? [
+            [0, face.chin],
+            [0.245, face.mouth],
+            [0.43, face.nose],
+            [0.56, face.eyes],
+            [1, 1],
+          ]
+        : null;
+      let y = chin + span.y * (1 - origin) * h.y,
+        x = centre.x + span.x * 0.5 * h.x;
+      if (curve) {
+        const end = curve.findIndex((k) => k[0] >= h.y),
+          a = curve[Math.max(0, end - 1)],
+          b = curve[end];
+        const t = (h.y - a[0]) / (b[0] - a[0] || 1);
+        y = (a[1] + (b[1] - a[1]) * t) * binding.height - binding.offset[1];
+        x =
+          (face.center + h.x * face.width) * binding.height - binding.offset[0];
+      }
+      const at = project(
+        x,
+        y,
+        centre.z + span.z * 0.54 * Math.sqrt(1 - h.x * h.x),
+      );
       const el = buttons[i];
       el.style.left = (at.x + 1) * 50 + "%";
       el.style.top = (1 - at.y) * 50 + "%";
