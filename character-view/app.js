@@ -1,6 +1,8 @@
 import * as T from "three";
 import { optimizeForGame } from "./game-export.js";
 import { paintWithAgent } from "./art-variation.js";
+import { drawTool } from "./draw-tool.js";
+import { drawBranch, branchTypes } from "./branch-stroke.js";
 import { pullTool } from "./pull-tool.js";
 import { readSession, saveSession } from "./session.js";
 import { skinCharacter } from "./skin.js";
@@ -142,7 +144,8 @@ const views = {
 };
 const axes = Object.values(modes).flat();
 let operation = "shape",
-  pulling = false;
+  pulling = false,
+  drawing = false;
 let renderer,
   controls,
   gizmo,
@@ -324,7 +327,18 @@ function bindControls() {
   $("#variation-range").value = variation.strength;
   $("#variation-range").onchange = redraw;
   $("#draw-cue").onclick = redraw;
+  $("#branch-type").replaceChildren(
+    ...branchTypes.map((k) => new Option(k, k)),
+  );
+  $("#branch-tool").onclick = () => {
+    drawing = !drawing;
+    pulling = false;
+    direct = false;
+    playback.bind();
+    update();
+  };
   $("#pull-tool").onclick = () => {
+    drawing = false;
     pulling = !pulling;
     if (pulling) {
       direct = false;
@@ -398,6 +412,7 @@ function bindControls() {
   };
   $("#target").onchange = () => selectTarget($("#target").value || null);
   $("#direct").onclick = () => {
+    drawing = false;
     pulling = false;
     playback?.bind();
     direct = !direct;
@@ -858,6 +873,7 @@ function referenceViews(selectedId = null) {
       );
       views.push({
         name,
+        height: bounds.getSize(new T.Vector3()).y,
         jpeg: shot.toDataURL("image/jpeg", 0.76).split(",")[1],
       });
     }
@@ -904,19 +920,17 @@ async function generate(kind) {
     update();
     status("Generating a variation…");
     if (kind === "paint") {
-      const selected = target ? findPart(figure, target) : figure;
-      const height = Math.max(
+      const height = T.MathUtils.clamp(
+        (target ? views[1] : views[0]).height,
         0.15,
-        Math.min(
-          6,
-          visibleBounds(selected ?? figure).getSize(new T.Vector3()).y,
-        ),
+        6,
       );
       const preview = nudge(form, target, amounts);
       const candidate = await paintWithAgent(request, preview, {
         views,
         height,
         target,
+        wearable: Boolean(target) && $("#paint-action").value === "wear",
         status,
       });
       proposal = readProposal(candidate, request, revision);
@@ -998,11 +1012,15 @@ function update() {
     dest.value = target ?? form.parts.find(isFace)?.id ?? form.parts[0].id;
   }
   const part = form.parts.find((p) => p.id === target);
+  if (operation === "cloth" && part?.shape !== "sweep") operation = "shape";
+  $("#paint-action-field").hidden = !connected || !part;
+  $("#paint-action").disabled = locked;
   for (const el of $("#operations").children) {
     pressed(el, operation === el.dataset.op);
     el.disabled =
       locked ||
       (el.dataset.op === "build" && Boolean(target)) ||
+      (el.dataset.op === "cloth" && part?.shape !== "sweep") ||
       (el.dataset.op === "face" &&
         (part ? !isFace(part) : !form.parts.some(isFace))) ||
       (el.dataset.op === "turn" && !target);
@@ -1015,7 +1033,13 @@ function update() {
     $("#value-" + controlId).textContent =
       (value > 0 ? "+" : "") +
       value +
-      (modes.turn.includes(key) ? "°" : modes.move.includes(key) ? " cm" : "%");
+      (modes.turn.includes(key)
+        ? "°"
+        : modes.move.includes(key)
+          ? " cm"
+          : key === "fold count"
+            ? " folds"
+            : "%");
     $("#" + controlId).disabled = locked;
   }
   for (const id of [
@@ -1041,9 +1065,12 @@ function update() {
   $("#undo").disabled = !history.length || locked;
   $("#apply").disabled = !changed || locked;
   $("#pull-tool").disabled = locked;
+  pressed($("#branch-tool"), drawing);
+  $("#branch-settings").hidden = !drawing;
+  $("#branch-tool").disabled = locked;
   pressed($("#pull-tool"), pulling);
   $("#pull-settings").hidden = !pulling;
-  canvas.classList.toggle("pulling", pulling && !locked);
+  canvas.classList.toggle("pulling", (pulling || drawing) && !locked);
   $("#direct").disabled = locked;
   pressed($("#direct"), direct);
   $("#focus").disabled = !target;
@@ -1087,7 +1114,11 @@ function update() {
     preview,
     target,
     operation,
-    direct && !pulling && operation !== "face" && !locked,
+    direct &&
+      !pulling &&
+      operation !== "face" &&
+      operation !== "cloth" &&
+      !locked,
     knot,
   );
   const hasBody = preview.parts.some(
@@ -1215,6 +1246,34 @@ function setup() {
     },
   });
   playback = motionPreview(scene, render);
+  drawTool(canvas, camera, controls, scene, {
+    active: () =>
+      drawing && !busy && !proposal && !playback.active && Boolean(figure),
+    figure: () => figure,
+    render,
+    settings: () => ({
+      kind: $("#branch-type").value,
+      radius:
+        Math.max(0.5, Math.min(60, Number($("#branch-radius").value) || 6)) /
+        100,
+      mirror: $("#branch-mirror").checked,
+      color: $("#branch-color").value,
+    }),
+    finish: (parent, points, options) => {
+      try {
+        const next = drawBranch(
+          nudge(form, target, amounts),
+          parent,
+          points,
+          options,
+        );
+        target = next.id;
+        commit(next.form, "Drew " + next.id + ".");
+      } catch (error) {
+        status(error.message);
+      }
+    },
+  });
   pullTool(canvas, camera, controls, {
     active: () => pulling && !busy && !proposal && !playback.active,
     figure: () => figure,

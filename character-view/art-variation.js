@@ -1,4 +1,9 @@
-import { paintGuide, importArtwork, traceHull } from "./turnaround.js";
+import {
+  paintGuide,
+  importArtwork,
+  traceHull,
+  traceOutline,
+} from "./turnaround.js";
 import { traceBiped } from "./trace-biped.js";
 import { buildTraceMap } from "./trace-map.js";
 import { startingForm, validateForm } from "./recipe.js";
@@ -120,9 +125,9 @@ export async function fitMapWithAgent(
 export async function paintWithAgent(
   request,
   base,
-  { views, height, target, status },
+  { views, height, target, wearable = false, status },
 ) {
-  if (target && request.preserve.includes(target))
+  if (target && !wearable && request.preserve.includes(target))
     throw new Error(
       "This part is protected. Choose an unlocked part or remove its shape lock.",
     );
@@ -136,6 +141,7 @@ export async function paintWithAgent(
     views,
     height,
     paintTarget: target,
+    wearable,
   };
   status("Generating an original four-view turnaround…");
   const art = await post("/turnaround", payload);
@@ -154,7 +160,10 @@ export async function paintWithAgent(
     ({ form, map, missed } = await fitMapWithAgent(
       atlas,
       art.height,
-      request.instructions,
+      wearable
+        ? "Trace only the isolated wearable. Use its main shell as the root with attachments as children. " +
+            request.instructions
+        : request.instructions,
       {
         revision: request.revision,
         requestId: request.requestId,
@@ -188,6 +197,24 @@ export async function paintWithAgent(
   }
   form.artwork = { [atlas]: url };
   if (target) {
+    if (wearable && art.coverage !== "open") {
+      let id = "garment shell";
+      while (form.parts.some((p) => p.id === id)) id += " outer";
+      const shell = traceOutline(id, atlas, art.height, [[], []]);
+      delete shell.paint.region;
+      form.parts = [
+        shell,
+        ...form.parts.map((p) =>
+          p.parent
+            ? p
+            : {
+                ...p,
+                parent: id,
+                position: p.position.map((v, i) => v - shell.position[i]),
+              },
+        ),
+      ];
+    }
     const roots = form.parts.filter((p) => !p.parent);
     if (roots.length > 1) {
       const root = roots[0];
@@ -203,7 +230,7 @@ export async function paintWithAgent(
     }
     form = placeComponent(base, extractComponent(form, roots[0].id, true), {
       target,
-      mode: "replace",
+      mode: wearable ? "wear" : "replace",
       fit: true,
     }).form;
   } else {

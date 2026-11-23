@@ -172,6 +172,13 @@ function trader() {
     { pivot: "top" },
   );
   const form = finish();
+  form.parts.find((p) => p.id === "split riding coat").drape = {
+    folds: 6,
+    depth: 0.04,
+    twist: 0.1,
+    slit: 0.18,
+    slitHeight: 0.7,
+  };
   form.appearance.skin = "#91a36a";
   form.appearance.palette = "Ochre";
   for (const p of form.parts) {

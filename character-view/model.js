@@ -3,7 +3,8 @@ import { paintSources } from "./paint-sources.js";
 import { pullSurface } from "./surface-pull.js";
 
 import { handGeometry } from "./hands.js";
-import { pleat } from "./drapery.js";
+import { fitGarment } from "./garment-fit.js";
+import { pleat, splitHem } from "./drapery.js";
 import { expeditionMaterial } from "./expedition.js";
 import { fittedScute } from "./scutes.js";
 import { sculptBuild } from "./body-sculpt.js";
@@ -548,12 +549,14 @@ export function createCharacter(form, silhouette, clay = false) {
             fit?.knots ?? part.knots,
             Boolean(part.paint),
             part.anatomy === "face"
-              ? 80
+              ? 176
               : part.outfitRole === "skirt"
                 ? 64
                 : 28,
           );
-          if (part.drape) pleat(geometry, part.knots, part.drape);
+          if (part.drape?.depth) pleat(geometry, part.knots, part.drape);
+          if (part.drape?.slit)
+            geometry = splitHem(geometry, part.knots, part.drape);
           if (part.anatomy === "face") {
             portraitSurface(geometry, part.paint);
             deformFace(
@@ -626,6 +629,9 @@ export function createCharacter(form, silhouette, clay = false) {
   }
   for (const part of form.parts)
     (mounts.get(part.parent) ?? group).add(objects.get(part.id));
+  for (const p of form.parts)
+    if (p.wearFit && p.parent && objects.get(p.id).visible)
+      fitGarment(objects.get(p.parent), objects.get(p.id));
   sculptBuild(group, form.build);
   return group;
 }

@@ -4,11 +4,16 @@ export async function paintVariation(brief, signal) {
   const one = brief.paintTarget;
   const prompt = [
     "Act as art director for an open source character workshop. Invoke the image generation tool exactly once. Only use that tool. Treat the attached editor views and the design brief as reference, and make an original nonsexualized game asset.",
-    one
-      ? "The first attachment shows the whole character. The second is a close-up of the selected geometry in isolation. Generate just one replacement for the selected part in isolation, with no body attached. Centre that single component in every panel. Preserve its function and orientation."
-      : "Generate one complete original character. Show every foot, hand, horn and garment. Leave space between limbs in the front and side views where anatomically possible.",
+    brief.wearable
+      ? "The first attachment shows the whole wearer. The second is the exact body area to dress. Generate just a wearable shell covering that area, on an invisible mannequin. The four views show the garment alone with its original colors, straps and attachments. No head, skin, hands, legs or mannequin. Keep the same front direction as the wearer."
+      : one
+        ? "The first attachment shows the whole character. The second is a close-up of the selected geometry in isolation. Generate just one replacement for the selected part in isolation, with no body attached. Centre that single component in every panel. Preserve its function and orientation."
+        : "Generate one complete original character. Show every foot, hand, horn and garment. Leave space between limbs in the front and side views where anatomically possible.",
     "Deliver one square 2x2 orthographic turnaround. Top left exact front (+Z), top right exact profile with nose pointing LEFT, bottom left exact rear, bottom right opposite profile pointing RIGHT. Equal square cells. Same pose, floor and character scale in all views. The outermost points should have 5% margin. Even diffuse game lighting. Uniform saturated #ff00ff background fills every gap. No floor, shadow, gradients, dividing lines, typography or alternate figures.",
     "Follow the steering first and use the random cues for unresolved details. Keep adult humanoids in practical work or base layers. Return JSON with only image (PNG filename), summary (short description), and height (standing height or isolated part height in metres, .15 to 6).",
+    brief.wearable
+      ? "Also return coverage as open for open-front, perforated or strappy garments with exposed skin, or closed for a full covered front and back. The editor uses this to construct the backing."
+      : "",
     JSON.stringify({
       direction: brief.instructions,
       target: one ?? "whole character",
@@ -31,6 +36,9 @@ export async function paintVariation(brief, signal) {
       6,
       Math.max(0.15, Number(result.height) || brief.height || 1.75),
     ),
+    ...(brief.wearable
+      ? { coverage: result.coverage === "open" ? "open" : "closed" }
+      : {}),
     png: bytes.toString("base64"),
   };
 }

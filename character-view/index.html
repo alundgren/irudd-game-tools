@@ -73,7 +73,8 @@
             ><button data-op="move">Move</button
             ><button data-op="turn">Turn</button
             ><button data-op="face">Face</button
-            ><button data-op="build">Build</button>
+            ><button data-op="build">Build</button
+            ><button data-op="cloth">Cloth</button>
           </div>
           <div id="features"></div>
           <div class="actions">
@@ -84,7 +85,35 @@
             </button>
           </div>
           <div class="actions">
-            <button id="pull-tool" aria-pressed="false">Pull surface</button>
+            <button id="pull-tool" aria-pressed="false">Pull surface</button
+            ><button id="branch-tool" aria-pressed="false">
+              Draw appendage
+            </button>
+          </div>
+          <div id="branch-settings" hidden>
+            <p class="micro">
+              Drag from the character’s surface to draw a new appendage. Orbit
+              between strokes to work in a different plane.
+            </p>
+            <label class="field"
+              >Appendage<select id="branch-type"></select
+            ></label>
+            <label class="field"
+              >Base radius (cm)<input
+                id="branch-radius"
+                type="number"
+                value="6"
+                min=".5"
+                max="60"
+                step=".5"
+            /></label>
+            <label class="field"
+              >Color<input id="branch-color" type="color" value="#987453"
+            /></label>
+            <label class="check"
+              ><input id="branch-mirror" type="checkbox" />Mirror across the
+              character</label
+            >
           </div>
           <div id="pull-settings" hidden>
             <label class="field"
@@ -147,6 +176,12 @@
           <p class="micro" id="drawn-cues"></p>
           <p class="micro" id="protected-list"></p>
           <p class="micro" id="agent-help"></p>
+          <label class="field" id="paint-action-field" hidden
+            >Painted edit<select id="paint-action">
+              <option value="replace">Redesign this part</option>
+              <option value="wear">Fit a garment to this part</option>
+            </select></label
+          >
           <div class="actions">
             <button id="generate" class="solid"></button
             ><button id="paint-generate" hidden>
@@ -220,6 +255,11 @@
             ><input id="with-motion" type="checkbox" checked />Include skeleton
             and motion clips</label
           ><input id="openfile" type="file" accept=".json" hidden />
+          <p class="micro">
+            <a href="play-model.html" target="_blank" rel="noopener"
+              >Open the separate GLB player</a
+            >
+          </p>
         </section>
         <section data-panel="files" hidden>
           <h2>Graft a part</h2>
@@ -238,6 +278,9 @@
           ><label class="field"
             >Attachment<select id="graft-mode">
               <option value="replace">Replace part, keep children</option>
+              <option value="wear">
+                Wear on this part in the current outfit
+              </option>
               <option value="replaceBranch">Replace whole branch</option>
               <option value="attach">Attach above selection</option>
             </select></label
@@ -250,6 +293,14 @@
         </section>
         <section data-panel="files" hidden>
           <h2>Reference studies</h2>
+          <p class="micro">
+            <a
+              href="../docs/workshop-results.html"
+              target="_blank"
+              rel="noopener"
+              >Compare renders and community references</a
+            >
+          </p>
           <label class="field"
             >Load an editable study<select id="studies"></select></label
           ><button id="study">Load study</button>

@@ -479,6 +479,62 @@
             >Open the worker recipe in the workshop</a
           >.
         </p>
+        <h3>Changing a single garment</h3>
+        <figure>
+          <img
+            src="media/vest-wardrobes.webp"
+            loading="lazy"
+            alt="The same runner in a practical base layer, a new orange rescue vest and a bulky pressure suit"
+          />
+          <figcaption>One accepted recipe in its three wardrobes.</figcaption>
+        </figure>
+        <p>
+          With the runner’s torso protected, a live painted edit generated a
+          sleeveless rescue vest in 134 seconds. Fitting by its lowest panel
+          alone stretched the collar over the wearer’s face. Using the whole
+          garment’s dimensions, a backing for closed garments and a clearance
+          check at each body cross section corrected the fit. The vest is
+          attached only to work clothes. The underlying body and the other
+          wardrobe choices remain editable.
+          <a href="../examples/rescue-vest.form.json" download
+            >Open the rescue vest recipe in the workshop</a
+          >.
+        </p>
+        <h3>Can faces be recognized from shape alone?</h3>
+        <p>
+          We started all six faces from the same head, hairstyle and paint.
+          Relative nudges changed jaw width, nose projection, eyes, mouth and
+          chin. A blinded Fable 5.2 High reviewer matched all six clay
+          three-quarter views in a pressure suit to their front and side
+          references in work clothes. Reported confidence ranged from 0.60 to
+          0.75. Across this single one-to-one trial, nose projection, mouth
+          width and jaw taper carried most of the distinction.
+        </p>
+        <details>
+          <summary>Try the same six-way match</summary>
+          <img
+            src="media/face-references.webp"
+            loading="lazy"
+            alt="Six numbered clay heads viewed from front and profile"
+          /><img
+            src="media/face-probes.webp"
+            loading="lazy"
+            alt="Six lettered clay heads viewed at three-quarter angle in a pressure suit"
+          />
+          <details>
+            <summary>Answer key</summary>
+            <p>A–6, B–2, C–1, D–4, E–3, F–5.</p>
+          </details>
+        </details>
+        <p>
+          The reviewer also identified horizontal ridges across cheeks and
+          indistinct eyelids. A subsequent mesh revision smooths profile depth
+          away from the midline and models eyelids, nostril rims and lip edges.
+          The recognition score above applies to the original trial.
+          <a href="media/face-refined-probes.webp"
+            >Inspect the revised clay heads</a
+          >.
+        </p>
         <h2>What the experiments showed</h2>
         <table>
           <thead>
@@ -527,12 +583,13 @@
             <tr>
               <td>Preserve openings and reduce game meshes</td>
               <td>
-                A front ray passed through the Tidebell shell opening and struck
-                the rim in both exports. Game detail reduced this model from
-                147,296 triangles and six materials to 23,998 triangles and one
-                material, from 25.7 MB to 2.8 MB. Across five separate paired
-                exports, three-quarter rest-pose silhouette overlap was
-                99.6–99.9%. Both detail levels passed the Khronos validator.
+                At revision <code>d6d89ef</code>, a front ray passed through the
+                Tidebell shell opening and struck the rim in both exports. Game
+                detail reduced this model from 147,296 triangles and six
+                materials to 23,998 triangles and one material, from 25.7 MB to
+                2.8 MB. Across five separate paired exports, three-quarter
+                rest-pose silhouette overlap was 99.6–99.9%. Both detail levels
+                passed the Khronos validator.
                 <a href="media/game-detail.json">Comparison measurements</a>.
               </td>
             </tr>

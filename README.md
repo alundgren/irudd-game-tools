@@ -15,8 +15,8 @@ For offline use, run `npm run build` and open `dist/character-view.html` in a We
 ## Make a character
 
 1. Choose **Forms → New form** or inspect a reference study. Choose a body plan, then regenerate from a new random seed. Graft components between forms, including your own saved JSON donors.
-2. Use **Sculpt** for relative nudges. A change applies to the current shape, then the slider returns to neutral. Select a head for facial controls, use **Edit on model** for direct manipulation, or **Pull surface** to drag any point with a soft radius. Mirror is optional.
-3. Use **AI direction** for structural changes. Type what matters, keep selected shapes and draw a different direction for another attempt. The agent can add limbs, change the spine, graft painted components or reshape existing regions.
+2. Use **Sculpt** for relative nudges. A change applies to the current shape, then the slider returns to neutral. Select a head for facial controls, use **Edit on model** for direct manipulation, or **Pull surface** to drag any point with a soft radius. Mirror is optional. **Draw appendage** grows a tapered horn, fin, tail or walking limb from the surface in the direction you drag. On a sweep, **Cloth** nudges the hem opening, slit height and folds.
+3. Use **AI direction** for structural changes. Type what matters, keep selected shapes and draw a different direction for another attempt. The agent can add limbs, change the spine, graft painted components or reshape existing regions. For a protected body, select a region and choose **Fit a garment to this part** to generate a wearable for its current outfit.
 4. Switch between a practical base layer, work clothes and a pressure suit. Test the silhouette, check stature with **World scale**, and preview Idle, Walk, Crouch and Reach.
 5. Save editable JSON or export a GLB with materials, skin and embedded animations. Choose **Game** for a shared texture atlas and a mesh target of 24,000 triangles. Browser storage retains a working copy. Saving a form explicitly gives you a portable revision with its imported artwork.
 
@@ -24,7 +24,7 @@ For offline use, run `npm run build` and open `dist/character-view.html` in a We
 
 ## How the comparisons work
 
-Six praised community creations from Dragon’s Dogma 2, Spore and The Sims 4 supplied design goals. Each has a procedural and a painted study. The two live AI anatomy trials are also editable in the workshop. Two held-out painted trials can be opened with **Forms → Open form**: a [four-legged lantern grazer](examples/lantern-grazer.form.json) and a [feline harbour worker](examples/feline-worker.form.json). The [benchmark gallery](docs/workshop-results.html) distinguishes authored studies, live proposals, shape recognition and game playback.
+Six praised community creations from Dragon’s Dogma 2, Spore and The Sims 4 supplied design goals. Each has a procedural and a painted study. The two live AI anatomy trials are also editable in the workshop. Two held-out painted trials can be opened with **Forms → Open form**: a [four-legged lantern grazer](examples/lantern-grazer.form.json) and a [feline harbour worker](examples/feline-worker.form.json). A third saved form contains an independently fitted [rescue vest](examples/rescue-vest.form.json). The [benchmark gallery](docs/workshop-results.html) distinguishes authored studies, live proposals, shape recognition and game playback.
 
 Run `npm test` for local checks. To regenerate the benchmark screenshots, build the pages and run `python scripts/capture-studies.py` with Chrome, Playwright, Pillow and NumPy installed. The capture script drives the editor’s public controls.
 

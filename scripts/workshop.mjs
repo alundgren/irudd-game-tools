@@ -47,6 +47,34 @@ export function workshopServer(
         ),
       );
     }
+    if (req.method === "GET") {
+      const file =
+        req.url === "/play-model.html"
+          ? "dist/play-model.html"
+          : /^\/(?:docs\/(?:workshop-results\.html|character-creator\.html|creator-benchmarks\.md|media\/[a-z0-9-]+\.(?:webp|json))|examples\/[a-z0-9-]+\.form\.json|README\.md|LICENSE)$/.test(
+                req.url,
+              )
+            ? req.url.slice(1)
+            : null;
+      if (file) {
+        try {
+          const bytes = await readFile(new URL("../" + file, import.meta.url));
+          const types = {
+            html: "text/html; charset=utf-8",
+            webp: "image/webp",
+            json: "application/json",
+          };
+          res.writeHead(200, {
+            "Content-Type":
+              types[file.split(".").at(-1)] ?? "text/plain; charset=utf-8",
+            "X-Content-Type-Options": "nosniff",
+          });
+          return res.end(bytes);
+        } catch {
+          return json(404, { error: "File unavailable." });
+        }
+      }
+    }
     if (
       req.method !== "POST" ||
       !["/variation", "/turnaround", "/trace-map"].includes(req.url)

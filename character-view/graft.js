@@ -129,6 +129,7 @@ export function extractComponent(form, id, includeChildren = true) {
       Object.assign(q, pose, { position: [0, 0, 0] });
       delete q.parent;
       delete q.mount;
+      delete q.wearFit;
     }
     return q;
   });
@@ -161,7 +162,9 @@ export function placeComponent(
     selected = g.byId.get(target);
   if (!selected)
     throw new Error("Select the region that will receive the part.");
-  if (!["replace", "replaceBranch", "attach"].includes(mode))
+  const wearable = mode === "wear";
+  const attach = mode === "attach" || wearable;
+  if (!["replace", "replaceBranch", "attach", "wear"].includes(mode))
     throw new Error("Unknown attachment mode.");
   if (
     !component?.root ||
@@ -181,7 +184,7 @@ export function placeComponent(
   const used = new Set(retained.map((p) => p.id)),
     rename = new Map();
   for (const p of [root, ...component.parts.filter((p) => p.id !== root.id)]) {
-    const base = (p === root && mode !== "attach" ? target : p.id).slice(0, 56);
+    const base = (p === root && !attach ? target : p.id).slice(0, 56);
     let name = base,
       i = 2;
     while (used.has(name)) name = base + " " + i++;
@@ -195,8 +198,19 @@ export function placeComponent(
   const ratio = fit
     ? MathUtils.clamp(targetExtent.y / Math.max(0.005, extent.y), 0.075, 10)
     : 1;
+  const scale = new Vector3(ratio, ratio, ratio);
+  if (wearable && fit) {
+    for (const axis of ["x", "y", "z"]) {
+      const allowance = axis === "y" ? 1.015 : 1.12;
+      scale[axis] = MathUtils.clamp(
+        (allowance * targetExtent[axis]) / Math.max(0.005, extent[axis]),
+        0.075,
+        10,
+      );
+    }
+  }
   const to = dest.getCenter(new Vector3()),
-    from = src.getCenter(new Vector3()).multiplyScalar(ratio);
+    from = src.getCenter(new Vector3()).multiply(scale);
   if (mode === "attach") {
     const direction = {
       above: [0, 1, 0],
@@ -216,10 +230,10 @@ export function placeComponent(
     );
   }
   const shift = to.sub(from),
-    world = new Matrix4().makeScale(ratio, ratio, ratio);
+    world = new Matrix4().makeScale(scale.x, scale.y, scale.z);
   world.setPosition(shift);
   world.multiply(local(root));
-  const parent = mode === "attach" ? target : selected.parent;
+  const parent = attach ? target : selected.parent;
   const pose = fields(g.mount(parent).invert().multiply(world));
   const childWorld = world.clone();
   if (root.frameSize) childWorld.scale(v(root.frameSize.map((x) => 1 / x)));
@@ -231,6 +245,12 @@ export function placeComponent(
   const incoming = component.parts.map((p) => {
     const copy = structuredClone(p);
     copy.id = rename.get(p.id);
+    if (wearable) {
+      delete copy.outfitRole;
+      copy.motionRole = "rigid";
+      copy.visibleIn = [form.outfit];
+      if (p.id === root.id) copy.wearFit = true;
+    }
     if (p.id === root.id) {
       Object.assign(copy, pose);
       if (parent) copy.parent = parent;
@@ -251,4 +271,16 @@ export function placeComponent(
       [...paintSources(form), ...(component.occluders ?? [])],
     ),
   };
+}
+
+/** Attach a metric, world-oriented shape at its drawn world pivot. */
+export function attachAt(form, part, parent, pivot) {
+  if (!form.parts.some((p) => p.id === parent))
+    throw new Error("Choose a visible attachment region.");
+  const relative = graph(form.parts)
+    .mount(parent)
+    .invert()
+    .multiply(new Matrix4().makeTranslation(...pivot));
+  const pose = fields(relative);
+  return { ...form, parts: [...form.parts, { ...part, ...pose, parent }] };
 }

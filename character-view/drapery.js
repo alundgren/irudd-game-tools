@@ -1,4 +1,9 @@
-import { MathUtils } from "three";
+import {
+  BufferGeometry,
+  Float32BufferAttribute,
+  MathUtils,
+  Vector3,
+} from "three";
 
 export function pleat(
   geometry,
@@ -29,4 +34,81 @@ export function pleat(
   geometry.computeVertexNormals();
   geometry.computeBoundingBox();
   return geometry;
+}
+
+/** Resample the surface into panels with a tapered opening at the front and back.
+ * Inner faces and the hem edge give the cloth thickness in a silhouette or GLB. */
+export function splitHem(source, knots, { slit, slitHeight = 0.6 }) {
+  if (!slit) return source;
+  const original = source.attributes.position;
+  const bands = (knots.length - 1) * 5,
+    sides = original.count / (bands + 1) - 1;
+  const positions = [],
+    uv = [],
+    indices = [],
+    centers = [];
+  const sample = new Vector3(),
+    other = new Vector3();
+  for (let row = 0; row <= bands; row++) {
+    const center = new Vector3();
+    for (let i = 0; i < sides; i++)
+      center.add(sample.fromBufferAttribute(original, row * (sides + 1) + i));
+    centers.push(center.divideScalar(sides));
+  }
+  // Keep a UV seam at zero so each quad interpolates within the painted sheet.
+  for (const [start, end] of [
+    [0, 0.25],
+    [0.25, 0.75],
+    [0.75, 1],
+  ]) {
+    const steps = Math.max(4, Math.round((end - start) * sides)),
+      stride = steps + 1;
+    const base = positions.length / 3,
+      layer = (bands + 1) * stride;
+    for (let surface = 0; surface < 2; surface++)
+      for (let row = 0; row <= bands; row++) {
+        const t = row / bands,
+          gap = slit * 0.5 * (1 - MathUtils.smoothstep(t, 0, slitHeight));
+        const left = start + (start > 0 ? gap : 0),
+          right = end - (end < 1 ? gap : 0);
+        for (let col = 0; col <= steps; col++) {
+          const u = MathUtils.lerp(left, right, col / steps),
+            f = u * sides,
+            ix = Math.min(sides - 1, Math.floor(f)),
+            point = row * (sides + 1) + ix;
+          sample
+            .fromBufferAttribute(original, point)
+            .lerp(other.fromBufferAttribute(original, point + 1), f - ix);
+          if (surface) sample.lerp(centers[row], 0.035);
+          positions.push(...sample.toArray());
+          uv.push(u, t);
+        }
+      }
+    function quad(a, b, c, d) {
+      indices.push(a, b, c, b, d, c);
+    }
+    for (let row = 0; row < bands; row++)
+      for (let col = 0; col < steps; col++) {
+        const a = base + row * stride + col,
+          b = a + 1,
+          c = a + stride,
+          d = c + 1;
+        quad(a, b, c, d);
+        quad(a + layer, c + layer, b + layer, d + layer);
+        if (row === 0) quad(a, a + layer, b, b + layer);
+        if (row === bands - 1) quad(c, d, c + layer, d + layer);
+        if (row / bands < slitHeight) {
+          if (col === 0 && start > 0) quad(a, c, a + layer, c + layer);
+          if (col === steps - 1 && end < 1) quad(b, b + layer, d, d + layer);
+        }
+      }
+  }
+  const result = new BufferGeometry();
+  result.setAttribute("position", new Float32BufferAttribute(positions, 3));
+  result.setAttribute("uv", new Float32BufferAttribute(uv, 2));
+  result.setIndex(indices);
+  result.computeVertexNormals();
+  result.computeBoundingBox();
+  source.dispose();
+  return result;
 }

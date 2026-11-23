@@ -1,3 +1,4 @@
+import { profileCorrection, landmarkRelief } from "./portrait-relief.js";
 import { MathUtils, Vector3 } from "three";
 
 export const facialAxes = [
@@ -109,6 +110,7 @@ export function portraitSurface(geometry, paint) {
   const pos = geometry.attributes.position;
   const v = new Vector3(),
     h = paint.height;
+  const correction = profileCorrection(paint, geometry);
   for (let i = 0; i < pos.count; i++) {
     v.fromBufferAttribute(pos, i);
     const y = (v.y + paint.offset[1]) / h;
@@ -130,13 +132,16 @@ export function portraitSurface(geometry, paint) {
     const delta =
       -0.084 * noseBand * tip -
       0.035 * bridge * nasal -
-      0.054 * sockets +
+      0.04 * sockets +
       0.024 * brow +
       0.021 * cheek -
       0.01 * philtrum +
       0.01 * mouth -
       0.017 * underLip;
-    pos.setZ(i, v.z + h * front * central * delta);
+    const adjusted =
+      correction(i, ax, y, phi, face) +
+      front * central * (delta + landmarkRelief(ax, y, face));
+    pos.setZ(i, v.z + h * adjusted);
   }
   pos.needsUpdate = true;
   geometry.computeVertexNormals();
