@@ -1,8 +1,9 @@
 import { cubeCage, editCage } from "./control-cage.js";
+import { validWorldMarks } from "./spatial-guide.js";
 import { reshapeSpine } from "./spine-edit.js";
 import { drawDecks, encodeDecks, decodeDecks } from "./choice-decks.js";
 import { paintSources, retainPaintSources } from "./paint-sources.js";
-import { placeComponent } from "./graft.js";
+import { placeBranch, placeComponent } from "./graft.js";
 const ideas = {
   subtle: [
     [
@@ -196,7 +197,13 @@ function updateRecord(record, values, permitted) {
   }
   return result;
 }
-export function applyOperations(preview, ops, library = {}, metric = false) {
+export function applyOperations(
+  preview,
+  ops,
+  library = {},
+  metric = false,
+  marks = [],
+) {
   if (!Array.isArray(ops) || ops.length > 256)
     throw new Error("Use an array of up to 256 edit operations.");
   let form = { ...preview, parts: [...preview.parts] };
@@ -213,6 +220,29 @@ export function applyOperations(preview, ops, library = {}, metric = false) {
       }
       case "reshapeSpine":
         form = reshapeSpine(form, id, action.knots);
+        break;
+      case "placeAtMark": {
+        if (!validWorldMarks(marks))
+          throw new Error("Invalid surface marks in this request.");
+        const mark = marks.find((m) => m.name === action.mark);
+        if (!mark)
+          throw new Error("Unknown marked socket: " + action.mark + ".");
+        const depth = action.depth ?? 0.008;
+        if (!Number.isFinite(depth) || depth < 0 || depth > 0.1)
+          throw new Error("Seat the branch 0 to 0.1 metres inside the mark.");
+        const toWorld = mark.world.map((v, i) => v - depth * mark.normal[i]);
+        form = placeBranch(form, id, {
+          parent: mark.region,
+          fromWorld: action.fromWorld,
+          toWorld,
+          copy: action.copy,
+          scale: action.scale,
+          turn: action.turn,
+        }).form;
+        break;
+      }
+      case "placeBranch":
+        form = placeBranch(form, id, action).form;
         break;
       case "placeComponent": {
         if (!Object.hasOwn(library, action.asset))

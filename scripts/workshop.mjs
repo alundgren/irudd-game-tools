@@ -1,3 +1,4 @@
+import { validWorldMarks } from "../character-view/spatial-guide.js";
 import {
   referenceInstructions,
   validReferences,
@@ -146,6 +147,13 @@ export function workshopServer(
         )
           throw new Error("Malformed variation request.");
         if (req.url === "/variation") {
+          if (
+            brief.surfaceMarks !== undefined &&
+            !validWorldMarks(brief.surfaceMarks)
+          )
+            throw new Error(
+              "Surface marks need named positions and unit normals.",
+            );
           validateForm(brief.current);
           validateForm(brief.preview);
         } else if (

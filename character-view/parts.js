@@ -2,10 +2,13 @@ import { cubeCage } from "./control-cage.js";
 import { paintSources, retainPaintSources } from "./paint-sources.js";
 import { shapes, anchors } from "./recipe.js";
 const nextId = (used, name) => {
-  if (!used.has(name)) return name;
-  let n = 2;
-  while (used.has(name + " " + n)) n++;
-  return name + " " + n;
+  const base = name.slice(0, 64);
+  if (!used.has(base)) return base;
+  for (let n = 2; ; n++) {
+    const suffix = " " + n,
+      candidate = base.slice(0, 64 - suffix.length) + suffix;
+    if (!used.has(candidate)) return candidate;
+  }
 };
 export function appendPart(form, parent, shape) {
   if (
@@ -57,7 +60,8 @@ export function copyBranch(form, id, mirror) {
     used = new Set(form.parts.map((p) => p.id));
   const ids = new Map(
     parts.map((p) => {
-      const next = nextId(used, p.id + (mirror ? " mirrored" : " copy"));
+      const suffix = mirror ? " mirrored" : " copy";
+      const next = nextId(used, p.id.slice(0, 64 - suffix.length) + suffix);
       used.add(next);
       return [p.id, next];
     }),
@@ -91,6 +95,7 @@ export function copyBranch(form, id, mirror) {
   });
   return {
     id: ids.get(id),
+    renamed: ids,
     form: { ...form, parts: [...form.parts, ...additions] },
   };
 }

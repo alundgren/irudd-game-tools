@@ -783,6 +783,10 @@ textarea {
   }
 }
 
+.surface-marks {position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.surface-marks span {position:absolute;transform:translate(-3px,-50%);background:#244b40;color:white;border-radius:3px;padding:1px 4px 1px 10px;font:11px/1.4 system-ui}
+.surface-marks span::before {content:"";position:absolute;width:5px;height:5px;border-radius:50%;background:#ffb647;left:1px;top:calc(50% - 2.5px)}
+#ai-mark-list>div {display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin:.3rem 0;overflow-wrap:anywhere}
 .face-handles {
   position: absolute;
   inset: 0;

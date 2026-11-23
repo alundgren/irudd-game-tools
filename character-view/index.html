@@ -122,6 +122,15 @@
               character</label
             >
           </div>
+          <button id="place-branch" aria-pressed="false">Place a branch on a surface</button>
+          <div id="place-settings" hidden>
+            <label class="field">Placement<select id="place-mode"><option value="copy">Copy branch</option><option value="move">Move branch</option></select></label>
+            <label class="field">Branch size (%)<input id="place-scale" type="number" min="10" max="400" value="100"></label>
+            <label class="field">Turn around<select id="place-axis"><option value="surface">Surface normal</option><option value="view">View axis</option></select></label>
+            <label class="field">Turn (°)<input id="place-twist" type="number" min="-360" max="360" value="0"></label>
+            <label class="field">Seat inside surface (mm)<input id="place-depth" type="number" min="0" max="100" step="1" value="8"></label>
+            <p id="place-hint" class="micro" role="status"></p>
+          </div>
           <div id="pull-settings" hidden>
             <label class="field"
               >Drag direction<select id="pull-direction">
@@ -320,6 +329,12 @@
             maxlength="2000"
             placeholder="Keep the face. Give it a long, low body and two extra pairs of legs."
           ></textarea>
+          <details id="ai-marks">
+            <summary>Mark a location on the model</summary>
+            <label class="field">Point name<input id="ai-mark-name" maxlength="48" placeholder="Left lower rib"></label>
+            <button id="ai-mark-add" aria-pressed="false">Pick surface point</button>
+            <div id="ai-mark-list"></div>
+          </details>
           <details id="reference-tools">
             <summary>Visual references</summary>
             <label class="field"

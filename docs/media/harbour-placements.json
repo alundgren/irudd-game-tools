@@ -1,0 +1,1535 @@
+{
+  "source": "https://www.spore.com/what/ga_captains",
+  "goal": "Reproduce the extra pair of articulated hands praised in the Sanu-Kish Merchant. Start from the two-armed feline harbour worker.",
+  "originalForm": "examples/feline-worker.form.json",
+  "sourcePreparation": [
+    "Fit fingers to right hand",
+    "Remove the incorrectly segmented left upper arm branch",
+    "Mirror the corrected right upper arm with its forearm and hand"
+  ],
+  "manualCopyTrial": {
+    "source": "repaired two-arm worker",
+    "view": "Front",
+    "placementSizePercent": 94,
+    "seatMm": 12,
+    "turnAxis": "View axis",
+    "pointsNormalizedToViewport": [
+      {
+        "part": "right upper arm",
+        "from": [
+          0.389,
+          0.32
+        ],
+        "to": [
+          0.401,
+          0.458
+        ],
+        "turnDeg": -78
+      },
+      {
+        "part": "right upper arm mirrored",
+        "from": [
+          0.611,
+          0.32
+        ],
+        "to": [
+          0.599,
+          0.458
+        ],
+        "turnDeg": 78
+      }
+    ]
+  },
+  "textOnlySpatialInstruction": {
+    "instruction": "Turn this two-handed harbour worker into a four-handed spice merchant. Keep the face, body, legs and existing arms. Copy each entire articulated arm, including all five fingers and the painted sleeve, to a socket on its own side of the lower ribs. Use placeBranch on the existing branches. Give each new hand a different reach from the old ones so four hands are easy to count from the front. Hang a small amber spice jar from one new hand by a curved carrying loop attached at the palm. Keep the other three hands clear. Keep the entire object attached and preserve all saved colors.",
+    "serverStatus": 200,
+    "proposal": {
+      "format": "irudd.form-proposal.v1",
+      "requestId": "f06c5086-8d4f-41ad-a8af-9010ec7b1fb7",
+      "revision": "af642153-b44f-41df-998d-7b4da2efcbbc",
+      "summary": "Four-handed spice merchant with complete painted arm copies at the lower ribs, distinct outward reaches, and one palm-carried amber spice jar.",
+      "operations": [
+        {
+          "op": "placeBranch",
+          "id": "right upper arm",
+          "parent": "body",
+          "anchor": [
+            -0.24,
+            1.02,
+            0.02
+          ],
+          "point": [
+            -0.173,
+            1.246,
+            -0.078
+          ],
+          "copy": true,
+          "scale": 1,
+          "turn": [
+            0,
+            0,
+            -65
+          ]
+        },
+        {
+          "op": "placeBranch",
+          "id": "right upper arm mirrored",
+          "parent": "body",
+          "anchor": [
+            0.24,
+            1.02,
+            0.02
+          ],
+          "point": [
+            0.161,
+            1.246,
+            -0.078
+          ],
+          "copy": true,
+          "scale": 1,
+          "turn": [
+            0,
+            0,
+            50
+          ]
+        },
+        {
+          "op": "addPart",
+          "part": {
+            "id": "spice jar carrying loop",
+            "shape": "sweep",
+            "parent": "right hand mirrored copy",
+            "position": [
+              0,
+              -0.06,
+              0.01
+            ],
+            "size": [
+              1,
+              1,
+              1
+            ],
+            "rotation": [
+              47.1,
+              -8,
+              -69.5
+            ],
+            "color": "#785032",
+            "surface": "leather",
+            "outfitRole": "accessory",
+            "knots": [
+              [
+                -0.045,
+                -0.12,
+                0,
+                0.006,
+                0.006
+              ],
+              [
+                -0.052,
+                -0.078,
+                0,
+                0.006,
+                0.006
+              ],
+              [
+                -0.033,
+                -0.025,
+                0,
+                0.006,
+                0.006
+              ],
+              [
+                0,
+                0,
+                0,
+                0.007,
+                0.007
+              ],
+              [
+                0.033,
+                -0.025,
+                0,
+                0.006,
+                0.006
+              ],
+              [
+                0.052,
+                -0.078,
+                0,
+                0.006,
+                0.006
+              ],
+              [
+                0.045,
+                -0.12,
+                0,
+                0.006,
+                0.006
+              ]
+            ]
+          }
+        },
+        {
+          "op": "addPart",
+          "part": {
+            "id": "amber spice jar",
+            "shape": "sweep",
+            "parent": "spice jar carrying loop",
+            "position": [
+              0,
+              -0.175,
+              0
+            ],
+            "size": [
+              1,
+              1,
+              1
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "color": "#b96b17",
+            "surface": "plain",
+            "outfitRole": "accessory",
+            "knots": [
+              [
+                0,
+                -0.065,
+                0,
+                0.032,
+                0.032
+              ],
+              [
+                0,
+                -0.055,
+                0,
+                0.043,
+                0.043
+              ],
+              [
+                0,
+                0.015,
+                0,
+                0.052,
+                0.052
+              ],
+              [
+                0,
+                0.05,
+                0,
+                0.045,
+                0.045
+              ],
+              [
+                0,
+                0.064,
+                0,
+                0.027,
+                0.027
+              ],
+              [
+                0,
+                0.077,
+                0,
+                0.027,
+                0.027
+              ]
+            ]
+          }
+        },
+        {
+          "op": "addPart",
+          "part": {
+            "id": "spice jar stopper",
+            "shape": "cylinder",
+            "parent": "amber spice jar",
+            "position": [
+              0,
+              0.077,
+              0
+            ],
+            "size": [
+              0.061,
+              0.022,
+              0.061
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ],
+            "color": "#785032",
+            "surface": "plain",
+            "outfitRole": "accessory"
+          }
+        }
+      ]
+    },
+    "draw": {
+      "strength": "radical",
+      "seed": 1675387443,
+      "cues": [
+        "Branch the spine or tail",
+        "Tapered suspended volumes"
+      ],
+      "magnitude": 32,
+      "pins": [
+        null,
+        null
+      ]
+    },
+    "viewCount": 2
+  },
+  "artistMarkedCorrection": {
+    "instruction": "Move the two extra arms down from beside the neck. Seat the root of the copied right upper arm at the mark Harbour right rib; seat the opposite copied arm at Harbour left rib. The original upper shoulders stay in place. Use the two marked sockets with placeAtMark, move the existing branches, and carry their hands and jar along. Keep their wide sideways reach. Keep the jar securely joined to the carrying hand. Preserve the face, scale, clothes and all four articulated hands.",
+    "serverStatus": 200,
+    "proposal": {
+      "format": "irudd.form-proposal.v1",
+      "requestId": "abc5e3bb-403d-40ac-a022-4f66315801a7",
+      "revision": "b5bbf413-987a-49c8-8d7a-6acc3284220d",
+      "summary": "Seat both extra arm branches at the rib marks, preserving their wide reach, articulated hands and attached jar.",
+      "operations": [
+        {
+          "op": "placeAtMark",
+          "id": "right upper arm copy",
+          "mark": "Harbour right rib",
+          "copy": false,
+          "scale": 1,
+          "turn": [
+            0,
+            0,
+            0
+          ],
+          "depth": 0.008
+        },
+        {
+          "op": "placeAtMark",
+          "id": "right upper arm mirrored copy",
+          "mark": "Harbour left rib",
+          "copy": false,
+          "scale": 1,
+          "turn": [
+            0,
+            0,
+            0
+          ],
+          "depth": 0.008
+        }
+      ]
+    },
+    "marks": [
+      {
+        "name": "Harbour right rib",
+        "region": "body",
+        "world": [
+          -0.23413390168753095,
+          0.8505441763639553,
+          0.13507631566201142
+        ],
+        "normal": [
+          -0.8247584296874054,
+          0.14727779488777223,
+          0.5459695813802823
+        ]
+      },
+      {
+        "name": "Harbour left rib",
+        "region": "body",
+        "world": [
+          0.21680246801374642,
+          0.8505441763639553,
+          0.14484069662958501
+        ],
+        "normal": [
+          0.8240509466850247,
+          0.15286644435996224,
+          0.5455015008744313
+        ]
+      }
+    ],
+    "draw": {
+      "strength": "exploratory",
+      "seed": 1439538409,
+      "cues": [
+        "Move the center of mass",
+        "Offset asymmetry"
+      ],
+      "magnitude": 58,
+      "pins": [
+        null,
+        null
+      ]
+    },
+    "viewCount": 2
+  },
+  "bothAcceptedOperationsReplayExactly": true,
+  "markToNearestUpperArmTriangleMm": {
+    "harbour-spice": {
+      "right upper arm copy": 443.804,
+      "right upper arm mirrored copy": 422.579
+    },
+    "harbour-marked": {
+      "right upper arm copy": 5.482,
+      "right upper arm mirrored copy": 4.264
+    },
+    "harbour-trader": {
+      "right upper arm copy": 8.071,
+      "right upper arm mirrored copy": 7.583
+    }
+  },
+  "finishingEdits": [
+    {
+      "op": "setPart",
+      "id": "right upper arm copy",
+      "set": {
+        "surfaceJoin": {
+          "end": "last",
+          "depth": 0.008
+        }
+      }
+    },
+    {
+      "op": "setPart",
+      "id": "right upper arm mirrored copy",
+      "set": {
+        "surfaceJoin": {
+          "end": "last",
+          "depth": 0.008
+        }
+      }
+    },
+    {
+      "op": "setPart",
+      "id": "amber spice jar",
+      "set": {
+        "position": [
+          0.0010989588138682338,
+          -0.16141343542570807,
+          -0.010059199315752719
+        ],
+        "rotation": [
+          -1.5902773407317588e-15,
+          4.413906298050161e-32,
+          -3.1805546814635176e-15
+        ],
+        "size": [
+          1,
+          0.9999999999999999,
+          1
+        ]
+      }
+    }
+  ],
+  "preFitMinimumContactTriangles": {
+    "right upper arm vs body": 35,
+    "right forearm vs right upper arm": 79,
+    "right hand vs right forearm": 63,
+    "right upper arm mirrored vs body": 35,
+    "right forearm mirrored vs right upper arm mirrored": 75,
+    "right hand mirrored vs right forearm mirrored": 70,
+    "right upper arm copy vs body": 0,
+    "right forearm copy vs right upper arm copy": 114,
+    "right hand copy vs right forearm copy": 57,
+    "right upper arm mirrored copy vs body": 42,
+    "right forearm mirrored copy vs right upper arm mirrored copy": 74,
+    "right hand mirrored copy vs right forearm mirrored copy": 61,
+    "spice jar carrying loop vs right hand mirrored copy": 39,
+    "amber spice jar vs spice jar carrying loop": 0,
+    "spice jar stopper vs amber spice jar": 13
+  },
+  "finalContact": {
+    "pairs": [
+      [
+        "right upper arm",
+        "body"
+      ],
+      [
+        "right forearm",
+        "right upper arm"
+      ],
+      [
+        "right hand",
+        "right forearm"
+      ],
+      [
+        "right upper arm mirrored",
+        "body"
+      ],
+      [
+        "right forearm mirrored",
+        "right upper arm mirrored"
+      ],
+      [
+        "right hand mirrored",
+        "right forearm mirrored"
+      ],
+      [
+        "right upper arm copy",
+        "body"
+      ],
+      [
+        "right forearm copy",
+        "right upper arm copy"
+      ],
+      [
+        "right hand copy",
+        "right forearm copy"
+      ],
+      [
+        "right upper arm mirrored copy",
+        "body"
+      ],
+      [
+        "right forearm mirrored copy",
+        "right upper arm mirrored copy"
+      ],
+      [
+        "right hand mirrored copy",
+        "right forearm mirrored copy"
+      ],
+      [
+        "spice jar carrying loop",
+        "right hand mirrored copy"
+      ],
+      [
+        "amber spice jar",
+        "spice jar carrying loop"
+      ],
+      [
+        "spice jar stopper",
+        "amber spice jar"
+      ]
+    ],
+    "faceSelection": "region attribute",
+    "measure": "intersecting child triangles per sampled pose",
+    "clips": {
+      "Rest": [
+        [
+          87
+        ],
+        [
+          79
+        ],
+        [
+          63
+        ],
+        [
+          68
+        ],
+        [
+          75
+        ],
+        [
+          71
+        ],
+        [
+          54
+        ],
+        [
+          118
+        ],
+        [
+          57
+        ],
+        [
+          60
+        ],
+        [
+          78
+        ],
+        [
+          62
+        ],
+        [
+          39
+        ],
+        [
+          5
+        ],
+        [
+          13
+        ]
+      ],
+      "Idle": [
+        [
+          87,
+          85,
+          85,
+          85,
+          85,
+          85,
+          87,
+          90,
+          88,
+          88,
+          88,
+          90
+        ],
+        [
+          79,
+          79,
+          79,
+          79,
+          79,
+          79,
+          79,
+          79,
+          79,
+          79,
+          79,
+          79
+        ],
+        [
+          63,
+          63,
+          63,
+          63,
+          63,
+          63,
+          63,
+          63,
+          63,
+          63,
+          63,
+          63
+        ],
+        [
+          68,
+          68,
+          69,
+          69,
+          69,
+          68,
+          68,
+          68,
+          68,
+          70,
+          68,
+          68
+        ],
+        [
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75
+        ],
+        [
+          71,
+          71,
+          71,
+          71,
+          71,
+          71,
+          71,
+          71,
+          71,
+          71,
+          71,
+          71
+        ],
+        [
+          54,
+          54,
+          54,
+          54,
+          54,
+          54,
+          54,
+          54,
+          54,
+          54,
+          54,
+          54
+        ],
+        [
+          118,
+          118,
+          118,
+          118,
+          118,
+          118,
+          118,
+          118,
+          118,
+          118,
+          118,
+          118
+        ],
+        [
+          57,
+          57,
+          57,
+          57,
+          57,
+          57,
+          57,
+          57,
+          57,
+          57,
+          57,
+          57
+        ],
+        [
+          60,
+          60,
+          60,
+          60,
+          60,
+          60,
+          60,
+          60,
+          60,
+          60,
+          60,
+          60
+        ],
+        [
+          78,
+          78,
+          78,
+          78,
+          78,
+          78,
+          78,
+          78,
+          78,
+          78,
+          78,
+          78
+        ],
+        [
+          62,
+          62,
+          62,
+          62,
+          62,
+          62,
+          62,
+          62,
+          62,
+          62,
+          62,
+          62
+        ],
+        [
+          39,
+          39,
+          39,
+          39,
+          39,
+          39,
+          39,
+          39,
+          39,
+          39,
+          39,
+          39
+        ],
+        [
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5
+        ],
+        [
+          13,
+          13,
+          13,
+          13,
+          13,
+          13,
+          13,
+          13,
+          13,
+          13,
+          13,
+          13
+        ]
+      ],
+      "Walk": [
+        [
+          83,
+          61,
+          43,
+          41,
+          43,
+          61,
+          83,
+          71,
+          70,
+          65,
+          70,
+          71
+        ],
+        [
+          79,
+          79,
+          79,
+          79,
+          79,
+          79,
+          79,
+          79,
+          79,
+          79,
+          79,
+          79
+        ],
+        [
+          63,
+          63,
+          63,
+          63,
+          63,
+          63,
+          63,
+          63,
+          63,
+          63,
+          63,
+          63
+        ],
+        [
+          72,
+          77,
+          73,
+          70,
+          73,
+          77,
+          72,
+          62,
+          51,
+          46,
+          51,
+          62
+        ],
+        [
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75
+        ],
+        [
+          71,
+          71,
+          71,
+          71,
+          71,
+          71,
+          71,
+          71,
+          71,
+          71,
+          71,
+          71
+        ],
+        [
+          54,
+          54,
+          54,
+          54,
+          54,
+          54,
+          54,
+          54,
+          54,
+          54,
+          54,
+          54
+        ],
+        [
+          118,
+          118,
+          118,
+          118,
+          118,
+          118,
+          118,
+          118,
+          118,
+          118,
+          118,
+          118
+        ],
+        [
+          57,
+          57,
+          57,
+          57,
+          57,
+          57,
+          57,
+          57,
+          57,
+          57,
+          57,
+          57
+        ],
+        [
+          60,
+          60,
+          60,
+          60,
+          60,
+          60,
+          60,
+          62,
+          64,
+          64,
+          64,
+          62
+        ],
+        [
+          78,
+          78,
+          78,
+          78,
+          78,
+          78,
+          78,
+          79,
+          79,
+          79,
+          79,
+          79
+        ],
+        [
+          62,
+          62,
+          62,
+          62,
+          62,
+          62,
+          62,
+          62,
+          62,
+          62,
+          62,
+          62
+        ],
+        [
+          39,
+          39,
+          39,
+          39,
+          39,
+          39,
+          39,
+          39,
+          39,
+          39,
+          39,
+          39
+        ],
+        [
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5
+        ],
+        [
+          13,
+          13,
+          13,
+          13,
+          13,
+          13,
+          13,
+          13,
+          13,
+          13,
+          13,
+          13
+        ]
+      ],
+      "Crouch": [
+        [
+          87,
+          82,
+          65,
+          60,
+          39,
+          40,
+          40,
+          40,
+          39,
+          60,
+          65,
+          82
+        ],
+        [
+          79,
+          79,
+          79,
+          79,
+          79,
+          79,
+          79,
+          79,
+          79,
+          79,
+          79,
+          79
+        ],
+        [
+          63,
+          63,
+          63,
+          63,
+          63,
+          63,
+          63,
+          63,
+          63,
+          63,
+          63,
+          63
+        ],
+        [
+          68,
+          67,
+          68,
+          63,
+          46,
+          40,
+          40,
+          40,
+          46,
+          63,
+          68,
+          67
+        ],
+        [
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75
+        ],
+        [
+          71,
+          71,
+          71,
+          71,
+          71,
+          71,
+          71,
+          71,
+          71,
+          71,
+          71,
+          71
+        ],
+        [
+          54,
+          54,
+          54,
+          54,
+          54,
+          54,
+          54,
+          54,
+          54,
+          54,
+          54,
+          54
+        ],
+        [
+          118,
+          118,
+          118,
+          118,
+          118,
+          118,
+          118,
+          118,
+          118,
+          118,
+          118,
+          118
+        ],
+        [
+          57,
+          57,
+          57,
+          57,
+          57,
+          57,
+          57,
+          57,
+          57,
+          57,
+          57,
+          57
+        ],
+        [
+          60,
+          60,
+          62,
+          62,
+          64,
+          64,
+          64,
+          64,
+          64,
+          62,
+          62,
+          60
+        ],
+        [
+          78,
+          78,
+          78,
+          79,
+          79,
+          79,
+          79,
+          79,
+          79,
+          79,
+          78,
+          78
+        ],
+        [
+          62,
+          62,
+          62,
+          62,
+          62,
+          62,
+          62,
+          62,
+          62,
+          62,
+          62,
+          62
+        ],
+        [
+          39,
+          39,
+          39,
+          39,
+          39,
+          39,
+          39,
+          39,
+          39,
+          39,
+          39,
+          39
+        ],
+        [
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5
+        ],
+        [
+          13,
+          13,
+          13,
+          13,
+          13,
+          13,
+          13,
+          13,
+          13,
+          13,
+          13,
+          13
+        ]
+      ],
+      "Reach": [
+        [
+          87,
+          86,
+          41,
+          37,
+          37,
+          35,
+          36,
+          35,
+          37,
+          37,
+          41,
+          86
+        ],
+        [
+          79,
+          79,
+          79,
+          79,
+          79,
+          79,
+          79,
+          79,
+          79,
+          79,
+          79,
+          79
+        ],
+        [
+          63,
+          63,
+          63,
+          65,
+          66,
+          66,
+          66,
+          66,
+          66,
+          65,
+          63,
+          63
+        ],
+        [
+          68,
+          68,
+          47,
+          41,
+          41,
+          39,
+          35,
+          39,
+          41,
+          41,
+          47,
+          68
+        ],
+        [
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75
+        ],
+        [
+          71,
+          71,
+          70,
+          71,
+          71,
+          72,
+          72,
+          72,
+          71,
+          71,
+          70,
+          71
+        ],
+        [
+          54,
+          54,
+          54,
+          53,
+          50,
+          48,
+          48,
+          48,
+          50,
+          53,
+          54,
+          54
+        ],
+        [
+          118,
+          118,
+          118,
+          118,
+          118,
+          118,
+          118,
+          118,
+          118,
+          118,
+          118,
+          118
+        ],
+        [
+          57,
+          57,
+          57,
+          59,
+          58,
+          59,
+          59,
+          59,
+          58,
+          59,
+          57,
+          57
+        ],
+        [
+          60,
+          62,
+          62,
+          63,
+          63,
+          59,
+          59,
+          59,
+          63,
+          63,
+          62,
+          62
+        ],
+        [
+          78,
+          78,
+          79,
+          79,
+          79,
+          79,
+          78,
+          79,
+          79,
+          79,
+          79,
+          78
+        ],
+        [
+          62,
+          62,
+          62,
+          61,
+          67,
+          67,
+          67,
+          67,
+          67,
+          61,
+          62,
+          62
+        ],
+        [
+          39,
+          41,
+          41,
+          41,
+          46,
+          46,
+          49,
+          46,
+          46,
+          41,
+          41,
+          41
+        ],
+        [
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5,
+          5
+        ],
+        [
+          13,
+          13,
+          13,
+          13,
+          13,
+          13,
+          13,
+          13,
+          13,
+          13,
+          13,
+          13
+        ]
+      ]
+    }
+  },
+  "visibility": {
+    "figureHeightPx": 192,
+    "mesh": "Character surface",
+    "otherMeshCount": 0,
+    "azimuthDegrees": {
+      "0": {
+        "right hand": {
+          "projected": 93,
+          "visible": 75,
+          "fraction": 0.806
+        },
+        "right hand mirrored": {
+          "projected": 92,
+          "visible": 74,
+          "fraction": 0.804
+        },
+        "right hand copy": {
+          "projected": 88,
+          "visible": 73,
+          "fraction": 0.83
+        },
+        "right hand mirrored copy": {
+          "projected": 93,
+          "visible": 68,
+          "fraction": 0.731
+        }
+      },
+      "35": {
+        "right hand": {
+          "projected": 59,
+          "visible": 44,
+          "fraction": 0.746
+        },
+        "right hand mirrored": {
+          "projected": 118,
+          "visible": 95,
+          "fraction": 0.805
+        },
+        "right hand copy": {
+          "projected": 75,
+          "visible": 44,
+          "fraction": 0.587
+        },
+        "right hand mirrored copy": {
+          "projected": 90,
+          "visible": 69,
+          "fraction": 0.767
+        }
+      },
+      "90": {
+        "right hand": {
+          "projected": 108,
+          "visible": 0,
+          "fraction": 0.0
+        },
+        "right hand mirrored": {
+          "projected": 108,
+          "visible": 87,
+          "fraction": 0.806
+        },
+        "right hand copy": {
+          "projected": 42,
+          "visible": 0,
+          "fraction": 0.0
+        },
+        "right hand mirrored copy": {
+          "projected": 58,
+          "visible": 49,
+          "fraction": 0.845
+        }
+      },
+      "145": {
+        "right hand": {
+          "projected": 120,
+          "visible": 97,
+          "fraction": 0.808
+        },
+        "right hand mirrored": {
+          "projected": 59,
+          "visible": 45,
+          "fraction": 0.763
+        },
+        "right hand copy": {
+          "projected": 78,
+          "visible": 39,
+          "fraction": 0.5
+        },
+        "right hand mirrored copy": {
+          "projected": 70,
+          "visible": 56,
+          "fraction": 0.8
+        }
+      },
+      "180": {
+        "right hand": {
+          "projected": 92,
+          "visible": 74,
+          "fraction": 0.804
+        },
+        "right hand mirrored": {
+          "projected": 92,
+          "visible": 75,
+          "fraction": 0.815
+        },
+        "right hand copy": {
+          "projected": 89,
+          "visible": 74,
+          "fraction": 0.831
+        },
+        "right hand mirrored copy": {
+          "projected": 93,
+          "visible": 73,
+          "fraction": 0.785
+        }
+      }
+    }
+  },
+  "physicalHeightM": 1.515,
+  "finalGlb": {
+    "sha256": "a9e10ec1cb4ad1ed068e5b83bc0773dce998f8de6e05341c61d3173c69973573",
+    "triangles": 23990,
+    "materials": 1,
+    "movementClips": 4,
+    "articulatedDigits": 20,
+    "jointsAcrossDigits": 60,
+    "khronosErrors": 0,
+    "khronosWarnings": 0
+  },
+  "scope": "One stochastic two-stage correction, with one human-directed variant. Named positions and physical contact compare specific placements on one model. Orthographic visibility does not measure recognition or quality."
+}

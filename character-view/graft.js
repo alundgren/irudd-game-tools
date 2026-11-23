@@ -1,3 +1,4 @@
+import { copyBranch } from "./parts.js";
 import { skirtOutline } from "./skirt-pattern.js";
 import { sweepGeometry } from "./surface.js";
 import { headSpace } from "./portrait-frame.js";
@@ -384,6 +385,108 @@ export function placeComponent(
       [...paintSources(form), ...(component.occluders ?? [])],
     ),
   };
+}
+
+/** Match two points in world metres, carrying the entire local hierarchy. */
+export function placeBranch(
+  form,
+  id,
+  {
+    parent,
+    fromWorld,
+    toWorld,
+    anchor = fromWorld,
+    point = toWorld,
+    copy = false,
+    scale = 1,
+    turn = [0, 0, 0],
+  },
+) {
+  const g = graph(form.parts),
+    source = g.byId.get(id);
+  const vector = (p, limit) =>
+    Array.isArray(p) &&
+    p.length === 3 &&
+    p.every((n) => Number.isFinite(n) && Math.abs(n) <= limit);
+  if (
+    !source ||
+    !g.byId.has(parent) ||
+    (anchor !== undefined && !vector(anchor, Infinity)) ||
+    !vector(point, Infinity) ||
+    !vector(turn, 360) ||
+    typeof copy !== "boolean" ||
+    !Number.isFinite(scale) ||
+    scale < 0.1 ||
+    scale > 4
+  )
+    throw new Error(
+      "Choose a branch, a destination and two finite points on the model.",
+    );
+  const branch = g.descendants(id);
+  if (!copy && branch.has(parent))
+    throw new Error(
+      "Move this branch onto a different part outside its own branch.",
+    );
+  if (copy && form.parts.length + branch.size > 128)
+    throw new Error("This copy would exceed the 128-part limit.");
+  const before = g.world(id),
+    parentInverse = g.mount(parent).invert();
+  const localPin = anchor
+    ? v(anchor).applyMatrix4(before.clone().invert())
+    : new Vector3();
+  const rotation = new Quaternion().setFromEuler(
+    new Euler(...turn.map(MathUtils.degToRad)),
+  );
+  const transform = new Matrix4().compose(
+    new Vector3(),
+    rotation,
+    new Vector3(scale, scale, scale),
+  );
+  const relative = parentInverse.clone().multiply(transform).multiply(before);
+  const pose = fields(relative);
+  // A rotated non-uniform parent can introduce shear. Match the marked point
+  // with the actual TRS that will be saved, including on those hierarchies.
+  pose.position = [0, 0, 0];
+  const targetLocal = v(point).applyMatrix4(parentInverse);
+  pose.position = targetLocal.sub(localPin.applyMatrix4(local(pose))).toArray();
+  const placed = copy ? copyBranch(form, id, false) : { form, id };
+  const parts = placed.form.parts.map((p) =>
+    p.id === placed.id
+      ? {
+          ...p,
+          ...pose,
+          parent,
+          ...(p.mount ? { mount: structuredClone(pose) } : {}),
+        }
+      : p,
+  );
+  const result = { ...placed.form, parts };
+  if (copy) {
+    function copiedLayers(layers) {
+      const next = { ...layers };
+      for (const [oldId, newId] of placed.renamed)
+        if (Object.hasOwn(layers, oldId))
+          next[newId] = structuredClone(layers[oldId]);
+      return next;
+    }
+    if (form.layerStyles) result.layerStyles = copiedLayers(form.layerStyles);
+    if (form.outfitSets)
+      result.outfitSets = form.outfitSets.map((s) => ({
+        ...s,
+        layers: copiedLayers(s.layers),
+      }));
+    if (form.poses)
+      result.poses = form.poses.map((p) => ({
+        ...p,
+        joints: [
+          ...p.joints,
+          ...p.joints
+            .filter((j) => placed.renamed.has(j.part))
+            .map((j) => ({ ...j, part: placed.renamed.get(j.part) })),
+        ],
+      }));
+  }
+  return { id: placed.id, form: result };
 }
 
 /** Attach a metric, world-oriented shape at its drawn world pivot. */

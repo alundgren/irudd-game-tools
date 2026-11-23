@@ -1,3 +1,5 @@
+import { surfaceMarkEditor, validSurfaceMarks } from "./surface-marks.js";
+import { branchPlacement } from "./branch-placement.js";
 import { fitEyeSettings } from "./ocular.js";
 import { spatialGuide } from "./spatial-guide.js";
 import { poseEditor } from "./pose-editor.js";
@@ -105,7 +107,10 @@ let form = generateForm(),
   target = null,
   instructions = "",
   request = null;
-let references = [];
+let references = [],
+  surfaceMarks = [],
+  markOwner = null,
+  markTool;
 let restored = false,
   customDonor = null,
   assetsReady = false;
@@ -164,6 +169,10 @@ function restoreSessionState(saved) {
         }
         $("#refine-note").value = review.notes ?? "";
       }
+      if (validSurfaceMarks(saved.surfaceMarks)) {
+        surfaceMarks = saved.surfaceMarks;
+        markOwner = proposal ?? form;
+      }
     }
   } catch {
     status("The previous session could not be restored.");
@@ -205,6 +214,7 @@ let renderer,
   controls,
   gizmo,
   placeHandles,
+  placement,
   placeSpine,
   spinePreview,
   playback,
@@ -245,6 +255,7 @@ function persist() {
     amounts: { ...amounts },
     instructions,
     references,
+    surfaceMarks: markOwner === (proposal ?? form) ? surfaceMarks : [],
   }).catch(() =>
     status(
       "Browser storage is unavailable. Use Save form to keep this revision.",
@@ -257,6 +268,7 @@ function clearReview() {
   $("#refine-note").value = "";
 }
 function clearDraft() {
+  placement?.cancel();
   clearReview();
   knot = null;
   amounts = neutral();
@@ -315,6 +327,7 @@ function selectTarget(id) {
     status("Apply or reset the current nudge before selecting another part.");
     return;
   }
+  placement?.cancel();
   target = id;
   knot = null;
   cageFace = 0;
@@ -361,10 +374,23 @@ function download(blob, name) {
   setTimeout(() => URL.revokeObjectURL(url), 3000);
 }
 function switchTab(name) {
+  markTool?.cancel();
+  if (
+    name !== "sculpt" &&
+    (placement?.active || direct || drawing || pulling)
+  ) {
+    placement?.cancel();
+    direct = false;
+    drawing = false;
+    pulling = false;
+    update();
+  }
   for (const el of document.querySelectorAll("[data-tab]"))
     pressed(el, el.dataset.tab === name);
   for (const panel of document.querySelectorAll("[data-panel]"))
     panel.hidden = panel.dataset.panel !== name;
+  markTool?.sync();
+  markTool?.draw();
 }
 function focusFace() {
   if (!isFace(form.parts.find((p) => p.id === target)))
@@ -712,7 +738,19 @@ function bindControls() {
   $("#branch-type").replaceChildren(
     ...branchTypes.map((k) => new Option(k, k)),
   );
+  $("#place-branch").onclick = () => {
+    if (placement.active) placement.cancel();
+    else {
+      drawing = false;
+      pulling = false;
+      direct = false;
+      playback.bind();
+      placement.start(target);
+    }
+    update();
+  };
   $("#branch-tool").onclick = () => {
+    placement?.cancel();
     drawing = !drawing;
     pulling = false;
     direct = false;
@@ -720,6 +758,7 @@ function bindControls() {
     update();
   };
   $("#pull-tool").onclick = () => {
+    placement?.cancel();
     drawing = false;
     pulling = !pulling;
     if (pulling) {
@@ -794,6 +833,7 @@ function bindControls() {
   };
   $("#target").onchange = () => selectTarget($("#target").value || null);
   $("#direct").onclick = () => {
+    placement?.cancel();
     drawing = false;
     pulling = false;
     playback?.bind();
@@ -1570,6 +1610,7 @@ async function refineProposal() {
       round: (parent.refinementRound ?? 0) + 1,
     };
     brief.spatialGuide = spatialGuide(figure);
+    if (surfaceMarks.length) brief.surfaceMarks = markTool.resolved();
     const images = referenceViews();
     refineRequest = brief;
     persist();
@@ -1621,6 +1662,8 @@ async function generate(kind) {
     );
     if (references.length) request.references = references;
     request.spatialGuide = spatialGuide(figure);
+    if (kind !== "paint" && surfaceMarks.length)
+      request.surfaceMarks = markTool.resolved();
     persist();
     if (!connected) {
       exportBrief(request, referenceViews(), "form-request.json");
@@ -1682,6 +1725,12 @@ async function generate(kind) {
   }
 }
 function update() {
+  if (markOwner !== (proposal ?? form)) {
+    markOwner = proposal ?? form;
+    surfaceMarks = [];
+    markTool?.cancel();
+  }
+  markTool?.sync();
   const preview =
     spinePreview ??
     (proposal
@@ -1849,6 +1898,10 @@ function update() {
   $("#undo").disabled = !history.length || locked;
   $("#apply").disabled = !changed || locked;
   $("#pull-tool").disabled = locked;
+  if (locked || playback?.active) placement?.cancel();
+  pressed($("#place-branch"), !!placement?.active);
+  $("#place-settings").hidden = !placement?.active;
+  $("#place-branch").disabled = locked;
   pressed($("#branch-tool"), drawing);
   $("#branch-settings").hidden = !drawing;
   const markTargets = part
@@ -1938,7 +1991,10 @@ function update() {
   $("#branch-tool").disabled = locked;
   pressed($("#pull-tool"), pulling);
   $("#pull-settings").hidden = !pulling;
-  canvas.classList.toggle("pulling", (pulling || drawing) && !locked);
+  canvas.classList.toggle(
+    "pulling",
+    (pulling || drawing || placement?.active) && !locked,
+  );
   $("#direct").disabled = locked;
   pressed($("#direct"), direct);
   $("#focus").disabled = !target;
@@ -2118,6 +2174,7 @@ function update() {
 function render() {
   if (!renderer) return;
   renderer.render(scene, camera);
+  markTool?.draw();
   if (placeSpine) {
     const part = displayedForm?.parts.find((p) => p.id === target);
     placeSpine(
@@ -2299,6 +2356,45 @@ function setup() {
       playback.showPose(name);
     },
   );
+  markTool = surfaceMarkEditor(stage, canvas, camera, {
+    figure: () => figure,
+    read: () => surfaceMarks,
+    write: (next) => {
+      surfaceMarks = next;
+      request = proposal ? request : null;
+      refineRequest = null;
+      persist();
+      update();
+    },
+    available: () =>
+      !busy &&
+      !showCurrent &&
+      !playback?.active &&
+      !document.querySelector('[data-panel="ai"]').hidden,
+    note: status,
+  });
+  placement = branchPlacement(canvas, camera, scene, {
+    figure: () => figure,
+    current: () =>
+      busy || proposal || playback.active ? null : nudge(form, target, amounts),
+    settings: () => ({
+      copy: $("#place-mode").value === "copy",
+      scale: $("#place-scale").valueAsNumber / 100,
+      axis: $("#place-axis").value,
+      twist: $("#place-twist").valueAsNumber,
+      depth: $("#place-depth").valueAsNumber / 1000,
+    }),
+    accept: (result, parent, copy) => {
+      validateForm(result.form);
+      target = result.id;
+      commit(
+        result.form,
+        (copy ? "Copied " : "Moved ") + result.id + " onto " + parent + ".",
+      );
+    },
+    note: status,
+    render,
+  });
   drawTool(canvas, camera, controls, scene, {
     active: () =>
       drawing && !busy && !proposal && !playback.active && Boolean(figure),

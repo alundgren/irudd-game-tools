@@ -1,5 +1,28 @@
 import { Box3, Vector3 } from "three";
 
+export function validWorldMarks(marks) {
+  const vector = (p) =>
+    Array.isArray(p) && p.length === 3 && p.every(Number.isFinite);
+  return (
+    Array.isArray(marks) &&
+    marks.length <= 12 &&
+    new Set(marks.map((m) => m?.name)).size === marks.length &&
+    marks.every(
+      (m) =>
+        m &&
+        typeof m.name === "string" &&
+        m.name.trim().length > 0 &&
+        m.name.length <= 48 &&
+        typeof m.region === "string" &&
+        m.region.length > 0 &&
+        m.region.length <= 64 &&
+        vector(m.world) &&
+        vector(m.normal) &&
+        Math.abs(Math.hypot(...m.normal) - 1) < 0.001,
+    )
+  );
+}
+
 // Report the rendered rest geometry in game metres. A child's geometry belongs
 // to its own row, even when it sits inside its parent's scene graph.
 export function spatialGuide(root) {
