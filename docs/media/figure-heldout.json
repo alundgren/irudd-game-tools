@@ -747,7 +747,7 @@
   ]
  },
  "playback": {
-  "note": "The committed examples were rebuilt from the same proposals on commit 3c9c4a2. Readings are from that rebuild.",
+  "note": "The committed examples were rebuilt from the same proposals on commit 06a1b69. Readings are from that rebuild.",
   "tucked-aviator": "1.758 m, 24,004 triangles, 1 material, 1 skeleton, Idle/Walk/Crouch/Reach, lowest vertex 0.000 m in every clip",
   "hooded-docker": "1.620 m, 24,001 triangles, 1 material, 1 skeleton, Idle/Walk/Crouch/Reach, lowest vertex 0.000 m in every clip"
  },

@@ -744,13 +744,15 @@
  ],
  "recognition": "Without the chest badge the result reads as a stocky man in white sportswear, not as the person in the photograph. Build, clothing and stance carry over. Face and hair do not.",
  "afterTheRun": {
-  "commit": "8aaec68, 10a04ef, ec9ae90, 3c9c4a2, 6f1a140",
+  "commit": "8aaec68, 10a04ef, ec9ae90, 3c9c4a2, 6f1a140, c0e6b89, 06a1b69",
   "changes": [
    "The trouser seat loses depth toward the crotch seam while still covering the body, so shorts close in a crease.",
    "The shoulder joint moves in by the arm radius, so heavier arms fill the shoulder line.",
    "A groom accepts nape (0 to 1) to carry a cropped cut down the back of the head and bring it in to the skull.",
    "Every shoe has a lower upper, a tongue and four laces, and the sole edge rises to meet the upper.",
-   "bottom.pockets accepts cargo for a pouch and flap on the outside of each thigh."
+   "bottom.pockets accepts cargo for a pouch and flap on the outside of each thigh.",
+   "Random people take their skin tone from the painted face artwork instead of the head's white part colour.",
+   "Sleeves keep at least 5.5 mm of clearance over the arm at the reference height, after the reduced game mesh showed the shoulder through a close tee in Walk and Crouch."
   ],
   "replay": {
    "summary": "Replay after the held-out run: same request with the nape setting and a milder jaw.",
@@ -960,7 +962,7 @@
   "regressionCaught": "The first version of the seat change let skin show between the trouser legs of the earlier aviator. A lean runner then showed skin from behind where the seat steps in to the gusset. A test now casts rays at the swept surfaces of 24 random figures in trousers and shorts. It fails on both earlier versions."
  },
  "playback": {
-  "note": "The athlete was built from a clean copy of commit 6f1a140 and the other three from 3c9c4a2. The later commit only changes grooms that set nape.",
+  "note": "All four exports were built from a clean copy of commit 06a1b69 and replayed in dist/play-model.html. Rest, Reach, Crouch and Walk frames were inspected by eye.",
   "field-athlete": "1.851 m, 23,959 triangles, 1 material, 1 skeleton, Idle/Walk/Crouch/Reach and Pose · Hands on hips, lowest vertex 0.000 m in every clip",
   "tucked-aviator": "1.758 m, 24,004 triangles, 1 material, 1 skeleton, Idle/Walk/Crouch/Reach, lowest vertex 0.000 m in every clip",
   "hooded-docker": "1.620 m, 24,001 triangles, 1 material, 1 skeleton, Idle/Walk/Crouch/Reach, lowest vertex 0.000 m in every clip",
