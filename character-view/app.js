@@ -1,4 +1,5 @@
 import { fitEyeSettings } from "./ocular.js";
+import { poseEditor } from "./pose-editor.js";
 import { scaleRoom } from "./scale-room.js";
 import { visibleBounds } from "./dimensions.js";
 import { editCage } from "./control-cage.js";
@@ -1480,6 +1481,7 @@ function update() {
   }
   const changed = axes.some((key) => Boolean(amounts[key])),
     locked = busy || Boolean(proposal);
+  $("#pose-open").disabled = locked;
   $("#revision").textContent = proposal
     ? showCurrent
       ? "Current form"
@@ -1800,6 +1802,7 @@ function update() {
     target,
     operation,
     direct &&
+      !playback?.active &&
       !pulling &&
       operation !== "face" &&
       operation !== "cloth" &&
@@ -1849,7 +1852,12 @@ function render() {
       operation === "face" && direct ? findPart(figure, target) : null,
       part?.anatomy === "face",
       camera,
-      direct && !pulling && operation === "face" && !proposal && !busy,
+      direct &&
+        !playback?.active &&
+        !pulling &&
+        operation === "face" &&
+        !proposal &&
+        !busy,
       part?.paint,
     );
   }
@@ -1986,7 +1994,23 @@ function setup() {
       update();
     },
   });
-  playback = motionPreview(scene, render);
+  playback = motionPreview(scene, render, update);
+  poseEditor(
+    () =>
+      busy || proposal
+        ? null
+        : {
+            form: displayedForm,
+            figure,
+            target,
+            capture: () => playback.capture(),
+            error: status,
+          },
+    (next, name) => {
+      commit(next, "Saved joint pose “" + name + "”.");
+      playback.showPose(name);
+    },
+  );
   drawTool(canvas, camera, controls, scene, {
     active: () =>
       drawing && !busy && !proposal && !playback.active && Boolean(figure),

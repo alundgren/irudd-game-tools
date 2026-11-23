@@ -1,10 +1,11 @@
+import { captureJoints, inactiveJoints, poseClipName } from "./poses.js";
 import { setGaze } from "./ocular.js";
 import { creatureMoves, standardMoves } from "./creature-motion.js";
 import { AnimationMixer, SkeletonHelper } from "three";
 import { poseExpression } from "./expressions.js";
 import { skinCharacter, movementRoles } from "./skin.js";
 
-export function motionPreview(scene, render) {
+export function motionPreview(scene, render, changed) {
   const select = document.getElementById("motion"),
     time = document.getElementById("motion-time"),
     toggle = document.getElementById("motion-play");
@@ -103,6 +104,8 @@ export function motionPreview(scene, render) {
   function configure() {
     release();
     details.hidden = select.value === "Bind";
+    const missing = document.getElementById("pose-missing");
+    missing.hidden = true;
     if (!model) return;
     if (select.value === "Bind") {
       scene.add(model);
@@ -112,6 +115,18 @@ export function motionPreview(scene, render) {
     }
     scene.remove(model);
     rig = skinCharacter(recipe, model);
+    const stored = recipe.poses?.find(
+      (p) => poseClipName(p.name) === select.value,
+    );
+    const absent = stored ? inactiveJoints(rig.bindings, stored.joints) : [];
+    if (absent.length) {
+      missing.hidden = false;
+      missing.textContent =
+        absent.length +
+        " of " +
+        stored.joints.length +
+        " saved joint edits are inactive in this outfit or anatomy.";
+    }
     scene.add(rig.actor);
     mixer = new AnimationMixer(rig.actor);
     clip = rig.clips.find((c) => c.name === select.value);
@@ -124,8 +139,11 @@ export function motionPreview(scene, render) {
     render();
   }
   select.onchange = () => {
-    playing = true;
+    playing = !recipe?.poses?.some(
+      (p) => poseClipName(p.name) === select.value,
+    );
     configure();
+    changed();
   };
   bones.onchange = () => {
     overlay();
@@ -148,7 +166,12 @@ export function motionPreview(scene, render) {
       recipe = form;
       const last = select.value;
       const roles = [...movementRoles(form.parts).values()],
-        names = ["Bind", ...standardMoves(roles), ...creatureMoves(roles)];
+        names = [
+          "Bind",
+          ...standardMoves(roles),
+          ...creatureMoves(roles),
+          ...(form.poses ?? []).map((p) => poseClipName(p.name)),
+        ];
       select.replaceChildren(
         ...names.map(
           (name) => new Option(name === "Bind" ? "Rest" : name, name),
@@ -165,6 +188,26 @@ export function motionPreview(scene, render) {
       document.getElementById("face-pose-tools").hidden = !hasFace;
       if (!hasFace) expression.value = "Rest";
       configure();
+    },
+    capture() {
+      const resume = Boolean(rig && playing);
+      if (rig) play(false);
+      const saved = recipe?.poses?.find(
+        (p) => poseClipName(p.name) === select.value,
+      );
+      return {
+        name: saved?.name ?? "",
+        joints: rig ? captureJoints(rig.bindings, saved?.joints) : [],
+        resume: () => {
+          if (resume) play(true);
+        },
+      };
+    },
+    showPose(name) {
+      select.value = poseClipName(name);
+      playing = false;
+      configure();
+      changed();
     },
     get active() {
       return select.value !== "Bind";

@@ -801,6 +801,8 @@
               <option>Reach</option>
             </select></label
           >
+          <button id="pose-open">Pose joints…</button>
+          <p id="pose-missing" class="micro" hidden></p>
           <div id="playback" hidden>
             <label class="field"
               >Time<input
@@ -835,6 +837,67 @@
       </aside>
     </main>
 
+    <dialog id="pose-room" aria-labelledby="pose-title">
+      <div class="scale-heading">
+        <h2 id="pose-title">Pose joints</h2>
+        <button id="pose-cancel">Close</button>
+      </div>
+      <div id="pose-view">
+        <canvas
+          id="pose-canvas"
+          aria-label="Character with selectable joints and rotation handles"
+        ></canvas>
+      </div>
+      <div class="scale-controls">
+        <label class="field">Joint<select id="pose-joint"></select></label
+        ><label class="field"
+          >Tool<select id="pose-mode">
+            <option value="rotate">Rotate</option>
+            <option value="translate">Move</option>
+          </select></label
+        ><button id="pose-front">Front view</button
+        ><label class="check"
+          ><input type="checkbox" checked id="pose-dots" />Show joints</label
+        >
+      </div>
+      <p class="pose-help">
+        Choose a joint in the view or the list. Drag a handle to pose it. Drag
+        the background to orbit.
+      </p>
+      <div class="scale-controls">
+        <label class="field"
+          >Local axis<select id="pose-axis">
+            <option>X</option>
+            <option>Y</option>
+            <option>Z</option>
+          </select></label
+        ><label class="field"
+          ><span id="pose-unit">Step in degrees</span
+          ><input
+            id="pose-step"
+            type="number"
+            min="0.1"
+            max="180"
+            step="any"
+            value="15"
+        /></label>
+        <div class="actions">
+          <button id="pose-minus" aria-label="Negative joint nudge">−</button
+          ><button id="pose-plus" aria-label="Positive joint nudge">+</button>
+        </div>
+        <button id="pose-reset">Relax joint</button
+        ><button id="pose-undo">Undo pose edit</button>
+      </div>
+      <div class="scale-controls">
+        <label class="field"
+          >Pose name<input
+            id="pose-name"
+            maxlength="60"
+            placeholder="Pose name" /></label
+        ><button id="pose-save">Save pose</button>
+      </div>
+      <p id="pose-note" role="status"></p>
+    </dialog>
     <dialog id="scale-room" aria-labelledby="scale-title">
       <div class="scale-heading">
         <h2 id="scale-title">Compare sizes</h2>

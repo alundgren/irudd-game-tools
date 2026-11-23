@@ -174,6 +174,7 @@ const allowedPartKeys = new Set([
   "frameSize",
 ]);
 const allowedFormKeys = new Set([
+  "poses",
   "outfit",
   "appearance",
   "build",

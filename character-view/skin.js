@@ -1,3 +1,4 @@
+import { authoredClips, bindPoseJoints } from "./poses.js";
 import { bindMantleArms } from "./mantle-rig.js";
 import { whiteVertexColors } from "./markings.js";
 import { bindFingers, weightFingers } from "./finger-rig.js";
@@ -270,6 +271,7 @@ export function skinCharacter(form, model) {
         s.part.id.replace(/[^a-zA-Z0-9_-]/g, "_") +
         (i ? "_" + i : "");
       bone.userData.region = s.part.id;
+      bone.userData.station = i;
       index.set(bone, bones.length);
       bones.push(bone);
       return bone;
@@ -386,6 +388,7 @@ export function skinCharacter(form, model) {
     mesh.frustumCulled = false;
     actor.add(mesh);
   }
+  const bindings = bindPoseJoints(skeleton);
   const clips = buildClips(root, regions);
   const idle = clips.find((c) => c.name === "Idle");
   if (idle)
@@ -415,8 +418,10 @@ export function skinCharacter(form, model) {
       supported ? clips : clips.filter((c) => ["Fly", "Swim"].includes(c.name)),
     );
   }
+  clips.push(...authoredClips(bindings, form.poses));
   return {
     actor,
+    bindings,
     clips,
     skeleton,
     regions,

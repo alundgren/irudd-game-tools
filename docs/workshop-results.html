@@ -521,6 +521,50 @@
           >
         </p>
       </section>
+      <section class="method" id="four-hand-pose">
+        <h2>Can three hands move while the fourth stays put?</h2>
+        <figure>
+          <img
+            src="media/merchant-gesture.webp"
+            alt="Four-armed merchant at rest and making an asymmetric gesture in front, three-quarter and profile views."
+          />
+          <figcaption>
+            The same reduced GLB at rest and in its saved greeting pose. The
+            highest hand moves outward, the opposite upper hand reaches forward
+            and a lower hand crosses the body. The remaining hand stays at rest.
+          </figcaption>
+        </figure>
+        <p>
+          The Spore target is Karl-EL’s four-handed Sanu-Kish Merchant, a Maxis
+          community winner. The workshop study has four hands attached in two
+          pairs. Starting from its rest shape, the artist turned four joints
+          with relative nudges, saved the stance, reopened the recipe and
+          exported the model. The saved form’s geometry and materials were
+          identical to the starter. The reopened pose rendered pixel-for-pixel
+          identically in the editor.
+        </p>
+        <p>
+          In the 20,684-triangle GLB, the centers of the three edited palms
+          moved 56.3, 23.8 and 37.8 cm. The fourth palm and the trunk each moved
+          less than 0.001 mm. Measurements use vertices weighted at least 95% to
+          each named region. All five clips are playable in an independent
+          Three.js scene. The arms still overlap from the side and the shoulder
+          attachments have visible seams.
+        </p>
+        <p>
+          <a
+            href="../examples/merchant-gesture.glb"
+            data-player="merchant-gesture"
+            data-view="front"
+            data-clip="Pose · Greet and offer"
+            >Play the four-handed pose</a
+          >
+          · <a href="../examples/merchant-gesture.form.json">Editable form</a> ·
+          <a href="https://www.spore.com/what/ga_captains"
+            >Maxis community winners</a
+          >
+        </p>
+      </section>
       <section class="method" id="garment-motion">
         <h2>Can the wearer reach through a cape?</h2>
         <figure>
@@ -1333,7 +1377,12 @@
               (a.href =
                 "../play-model.html#model=" +
                 a.dataset.player +
-                (a.dataset.view === "portrait" ? "&view=portrait" : "")),
+                (a.dataset.view
+                  ? "&view=" + encodeURIComponent(a.dataset.view)
+                  : "") +
+                (a.dataset.clip
+                  ? "&clip=" + encodeURIComponent(a.dataset.clip)
+                  : "")),
           );
         document
           .querySelectorAll(".live-demo")

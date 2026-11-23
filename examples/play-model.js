@@ -146,7 +146,7 @@ function selectClip() {
   mixer.update(0);
   $("time").value = 0;
 }
-async function load(file, view) {
+async function load(file, view, initialClip) {
   if (!file) return;
   const ticket = ++generation;
   $("status").textContent = "Loading " + file.name + "…";
@@ -202,7 +202,10 @@ async function load(file, view) {
       faceBounds.isEmpty();
     if (faceBounds.isEmpty() && $("camera-angle").value === "portrait")
       $("camera-angle").value = "threequarter";
-    if (view === "portrait" && !faceBounds.isEmpty())
+    if (
+      Object.hasOwn(directions, view) &&
+      (view !== "portrait" || !faceBounds.isEmpty())
+    )
       $("camera-angle").value = view;
     const size = lastBounds.getSize(new T.Vector3());
     if (!$("camera-angle").value) $("camera-angle").value = "threequarter";
@@ -211,6 +214,8 @@ async function load(file, view) {
       new Option("Rest pose", ""),
       ...clips.map((c) => new Option(c.name, c.name)),
     );
+    if (clips.some((c) => c.name === initialClip))
+      $("clip").value = initialClip;
     $("clip").disabled = !clips.length;
     $("check").disabled = !clips.length;
     $("report").textContent = "";
@@ -248,7 +253,8 @@ async function load(file, view) {
 }
 $("file").onchange = (e) => load(e.target.files[0]);
 async function openExample() {
-  const key = new URLSearchParams(location.hash.slice(1)).get("model");
+  const params = new URLSearchParams(location.hash.slice(1));
+  const key = params.get("model");
   if (
     !key ||
     !/^https?:$/.test(location.protocol) ||
@@ -261,8 +267,11 @@ async function openExample() {
     if (!response.ok) throw new Error("This example is unavailable.");
     const blob = await response.blob();
     if (ticket === generation) {
-      const view = new URLSearchParams(location.hash.slice(1)).get("view");
-      await load(new File([blob], key + ".glb"), view);
+      await load(
+        new File([blob], key + ".glb"),
+        params.get("view"),
+        params.get("clip"),
+      );
     }
   } catch (e) {
     if (ticket === generation) $("status").textContent = e.message;
