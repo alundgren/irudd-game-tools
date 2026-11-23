@@ -10,6 +10,37 @@ export function paintSources(form) {
   }
   return [...regions.values()];
 }
+export function repaintRegions(form, ids, atlas) {
+  if (!Array.isArray(ids) || !ids.length || ids.length > 128 || !atlas)
+    throw new Error("Choose a turnaround and at least one painted region.");
+  const selected = new Set(ids);
+  const parts = form.parts.filter((p) => selected.has(p.id));
+  const oldAtlas = (parts[0]?.paint ?? parts[0]?.hull)?.atlas;
+  if (
+    parts.length !== selected.size ||
+    !oldAtlas ||
+    parts.some((p) => (p.paint ?? p.hull)?.atlas !== oldAtlas)
+  )
+    throw new Error("Choose regions painted from the same source sheet.");
+  const prior = paintSources(form);
+  return retainPaintSources(
+    {
+      ...form,
+      parts: form.parts.map((p) => {
+        if (!selected.has(p.id)) return p;
+        const key = p.paint ? "paint" : "hull";
+        return { ...p, [key]: { ...p[key], atlas } };
+      }),
+    },
+    [
+      ...prior,
+      ...prior
+        .filter((binding) => binding.atlas === oldAtlas)
+        .map((binding) => ({ ...binding, atlas })),
+    ],
+  );
+}
+
 export function retainPaintSources(form, sources) {
   const active = new Set(
     form.parts.filter((p) => p.paint?.region).map((p) => p.paint.atlas),

@@ -4,6 +4,44 @@ import { BoxGeometry, Group, Mesh, Vector3 } from "three";
 import { cageGeometry, cubeCage } from "./control-cage.js";
 import { sweepGeometry } from "./surface.js";
 import { fitSurfaceJoins, validSurfaceJoin } from "./surface-join.js";
+test("both ends of an arched fastening can be seated while the middle spans the gap", () => {
+  const parent = new Mesh(new BoxGeometry(1, 1, 1));
+  const child = new Mesh(
+    sweepGeometry(
+      [
+        [-0.3, 0.57, 0, 0.01, 0.01],
+        [0, 0.9, 0, 0.01, 0.01],
+        [0.3, 0.57, 0, 0.01, 0.01],
+      ],
+      false,
+    ),
+  );
+  parent.userData.partId = "coat";
+  child.userData.partId = "loop";
+  parent.add(child);
+  const part = {
+    id: "loop",
+    parent: "coat",
+    shape: "sweep",
+    surfaceJoin: { end: "both", depth: 0.003 },
+  };
+  assert.ok(validSurfaceJoin(part));
+  fitSurfaceJoins(
+    { parts: [{ id: "coat" }, part] },
+    new Map([
+      ["coat", parent],
+      ["loop", child],
+    ]),
+  );
+  const { uv, position } = child.geometry.attributes;
+  let middle = 0;
+  for (let i = 0; i < uv.count; i++) {
+    if (uv.getY(i) === 0 || uv.getY(i) === 1)
+      assert.ok(Math.abs(position.getY(i) - 0.497) < 1e-5);
+    else middle = Math.max(middle, position.getY(i));
+  }
+  assert.ok(middle > 0.85);
+});
 test("a selected cage face seats on the parent's real triangles in world metres", () => {
   const root = new Group(),
     carrier = new Mesh(new BoxGeometry(1, 1, 1)),

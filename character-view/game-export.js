@@ -347,6 +347,8 @@ export async function optimizeForGame(
     eyeTriangles = 0,
     fittedFaceTriangles = 0,
     foldedClothTriangles = 0,
+    carrierTriangles = 0,
+    trimTriangles = 0,
     fibreTriangles = 0;
   const portraitFace = (mesh) =>
     mesh.userData.fittedEyes ||
@@ -357,6 +359,10 @@ export async function optimizeForGame(
     for (const b of groups) {
       initial += b.count / 3;
       if (b.material.userData.fibreLOD) fibreTriangles += b.count / 3;
+      else if (b.material.userData.attachmentDetail === "carrier")
+        carrierTriangles += b.count / 3;
+      else if (b.material.userData.attachmentDetail === "trim")
+        trimTriangles += b.count / 3;
       else if (m.userData.eyePiece) eyeTriangles += b.count / 3;
       else if (portraitFace(m)) fittedFaceTriangles += b.count / 3;
       else if (b.material.userData.foldedCloth)
@@ -375,20 +381,26 @@ export async function optimizeForGame(
   // Thin moving eye layers need closely matching surfaces after simplification.
   // Reserve part of the existing triangle budget so their depths stay ordered.
   const available = triangles - fibreTriangles;
-  const eyes = Math.min(eyeTriangles, available * 0.22),
-    faces = Math.min(fittedFaceTriangles * 0.55, available * 0.34),
+  // Fitted trim needs its carrier to retain the curvature it was sewn against.
+  const carriers = Math.min(carrierTriangles, available * 0.065);
+  const trim = Math.min(trimTriangles, available * 0.085);
+  const shared = available - carriers - trim;
+  const eyes = Math.min(eyeTriangles, shared * 0.22),
+    faces = Math.min(fittedFaceTriangles * 0.55, shared * 0.34),
     cloth = Math.min(
       foldedClothTriangles * 0.6,
-      (available - eyes - faces) * 0.32,
+      (shared - eyes - faces) * 0.32,
     );
   const page = atlas([...tiles.values()], size),
     ratio = Math.min(
       0.55,
-      (available - eyes - faces - cloth) /
+      (shared - eyes - faces - cloth) /
         Math.max(
           1,
           initial -
             fibreTriangles -
+            carrierTriangles -
+            trimTriangles -
             eyeTriangles -
             fittedFaceTriangles -
             foldedClothTriangles,
@@ -402,6 +414,10 @@ export async function optimizeForGame(
     // Both sides of a close-fitting folded panel need enough samples to stay ordered.
     for (const batch of groups)
       if (batch.material.userData.fibreLOD) batch.ratio = 1;
+      else if (batch.material.userData.attachmentDetail === "carrier")
+        batch.ratio = carriers / carrierTriangles;
+      else if (batch.material.userData.attachmentDetail === "trim")
+        batch.ratio = trim / trimTriangles;
       else if (batch.material.userData.foldedCloth && foldedClothTriangles)
         batch.ratio = cloth / foldedClothTriangles;
     if (page.material.vertexColors) whiteVertexColors(mesh.geometry);

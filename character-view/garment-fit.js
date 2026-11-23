@@ -14,6 +14,7 @@ export function fitGarment(
   innerLayers = [],
   limbs = [],
   pairedPanel = false,
+  waistClearance,
 ) {
   host.updateWorldMatrix(true, true);
   const hostInverse = host.matrixWorld.clone().invert(),
@@ -24,6 +25,7 @@ export function fitGarment(
     hostInverse,
     garment.matrixWorld,
   );
+  const radialWorld = new Vector3();
   const waistY = new Vector3().applyMatrix4(garmentToHost).y;
   const waistDepth = relief
     ? Math.max(
@@ -223,7 +225,18 @@ export function fitGarment(
                 );
             }
             // Ease away from the sewn waist into the room needed over the hips.
-            const sewn = target + 0.007;
+            let clearance = 0.007;
+            if (waistClearance !== undefined) {
+              const m = host.matrixWorld.elements;
+              radialWorld.set(
+                m[0] * dx + m[8] * dz,
+                m[1] * dx + m[9] * dz,
+                m[2] * dx + m[10] * dz,
+              );
+              clearance =
+                (waistClearance * r) / Math.max(1e-9, radialWorld.length());
+            }
+            const sewn = target + clearance;
             const scale = Math.max(sewn / r, MathUtils.lerp(1, sewn / r, snug));
             point.x = waistCenter.x + dx * scale;
             point.z = waistCenter.z + dz * scale;

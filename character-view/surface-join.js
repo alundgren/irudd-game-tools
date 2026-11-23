@@ -20,7 +20,7 @@ export function validSurfaceJoin(part) {
       )) ||
       (part.shape === "sweep" &&
         join.faces === undefined &&
-        ["first", "last", "along"].includes(join.end)))
+        ["first", "last", "both", "along"].includes(join.end)))
   );
 }
 function ownMeshes(root) {
@@ -118,9 +118,14 @@ function rootIndices(geometry, join) {
   } else {
     const uv = geometry.attributes.uv;
     if (!uv) return ids;
-    for (let i = 0; i < uv.count; i++)
-      if (Math.abs(uv.getY(i) - (join.end === "first" ? 0 : 1)) < 1e-6)
+    for (let i = 0; i < uv.count; i++) {
+      const t = uv.getY(i);
+      if (
+        (join.end !== "last" && Math.abs(t) < 1e-6) ||
+        (join.end !== "first" && Math.abs(1 - t) < 1e-6)
+      )
         ids.add(i);
+    }
   }
   return ids;
 }

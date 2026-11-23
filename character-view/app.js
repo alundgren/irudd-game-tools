@@ -10,6 +10,7 @@ import { spineHandles } from "./spine-handles.js";
 import { acceptsDepth } from "./portrait-depth.js";
 import { reshapeSpine } from "./spine-edit.js";
 import { fibreEditor } from "./fibre-editor.js";
+import { reusePaintEditor } from "./reuse-paint-editor.js";
 import { wardrobeEditor } from "./wardrobe-editor.js";
 import { readReference, validReferences } from "./visual-references.js";
 import { acceptsMarkings, validMarkings } from "./markings.js";
@@ -177,7 +178,7 @@ function restoreSessionState(saved) {
     status("The previous session could not be restored.");
   }
 }
-let generationController, updateWardrobe, updateFibres;
+let generationController, updateWardrobe, updateFibres, updateReusePaint;
 let reviewHistory = [],
   refineRequest = null,
   restoredReviewAtLink = false;
@@ -587,6 +588,11 @@ function bindControls() {
   const traceOutline = profileEditor((profileFit, artwork) =>
     editPart((p) => ({ ...p, profileFit }), artwork),
   );
+  updateReusePaint = reusePaintEditor(
+    () => nudge(form, target, amounts),
+    commit,
+    status,
+  );
   updateFibres = fibreEditor(
     () => nudge(form, target, amounts),
     commit,
@@ -828,6 +834,25 @@ function bindControls() {
   $("#donor-component").onchange = () => {
     $("#donor-region-field").hidden = $("#donor-component").value !== "custom";
   };
+  $("#graft-mode").onchange = () => {
+    $("#graft-fit-field").hidden = $("#graft-mode").value === "pattern";
+  };
+  // Measure the geometry that will actually leave and enter the scene, including
+  // attached necks, hair and hardware on a whole-branch replacement.
+  function graftBounds(source, id, relative) {
+    const model = createCharacter(source, false, true);
+    try {
+      const part = findPart(model, id);
+      const box = visibleBounds(part);
+      if (box.isEmpty())
+        throw new Error("The selected branch has no visible geometry.");
+      if (relative)
+        box.translate(part.getWorldPosition(new T.Vector3()).negate());
+      return [box.min.toArray(), box.max.toArray()];
+    } finally {
+      disposeCharacter(model);
+    }
+  }
   $("#graft").onclick = () => {
     try {
       const key = $("#donor-component").value,
@@ -835,14 +860,30 @@ function bindControls() {
           key === "custom"
             ? extractComponent(customDonor, $("#donor-region").value)
             : componentShelf()[key];
-      const next = placeComponent(nudge(form, target, amounts), component, {
-        target: $("#graft-target").value,
-        mode: $("#graft-mode").value,
-        fit: $("#graft-fit").checked,
+      const current = nudge(form, target, amounts);
+      const destination = $("#graft-target").value,
+        mode = $("#graft-mode").value;
+      const fit = $("#graft-fit").checked;
+      const measured = key === "custom" && mode === "replaceBranch" && fit;
+      const next = placeComponent(current, component, {
+        target: destination,
+        mode,
+        fit,
+        ...(measured
+          ? {
+              sourceBounds: graftBounds(customDonor, component.root, true),
+              destinationBounds: graftBounds(current, destination, false),
+            }
+          : {}),
       });
       validateForm(next.form);
       target = next.id;
-      commit(next.form, "Component grafted.");
+      commit(
+        next.form,
+        $("#graft-mode").value === "pattern"
+          ? "Pattern fitted to this body."
+          : "Component grafted.",
+      );
       switchTab("sculpt");
       chooseAngle("3/4", true);
     } catch (e) {
@@ -2207,6 +2248,7 @@ function update() {
         : [
             ["first", "First end"],
             ["last", "Last end"],
+            ["both", "Both ends across an opening"],
             ["along", "Full strip along surface"],
           ];
     patch.replaceChildren(...choices.map(([v, label]) => new Option(label, v)));
@@ -2305,6 +2347,7 @@ function update() {
   const hasBody = preview.parts.some(
     (p) => Object.hasOwn(anchors, p.shape) || p.outfitRole || p.visibleIn,
   );
+  updateReusePaint?.(form, locked);
   updateWardrobe?.(form, target, locked);
   updateFibres?.(form, target, locked);
   for (const el of $("#outfits").children) {

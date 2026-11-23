@@ -803,7 +803,14 @@ export function createCharacter(
           limbs.push(node);
       });
     }
-    fitGarment(host, mesh, inner, limbs, p.shape === "mantle");
+    fitGarment(
+      host,
+      mesh,
+      inner,
+      limbs,
+      p.shape === "mantle",
+      p.cut?.waistClearance,
+    );
     inner.push(mesh);
     innerLayers.set(p.parent, inner);
   }
@@ -906,6 +913,27 @@ export function createCharacter(
         .map((part) => ({ part, object: objects.get(part.id) })),
     );
     hardwareFitted.add(p.parent);
+  }
+  if (fibreBudget && !plainView) {
+    const cages = new Set(
+      form.parts.filter((p) => p.shape === "cage").map((p) => p.id),
+    );
+    const carriers = new Set(
+      form.parts
+        .filter((p) => p.surfaceJoin?.end === "along" && cages.has(p.parent))
+        .map((p) => p.parent),
+    );
+    for (const p of form.parts) {
+      const role = carriers.has(p.id)
+        ? "carrier"
+        : carriers.has(p.parent)
+          ? "trim"
+          : null;
+      const node = objects.get(p.id);
+      if (!role || !node?.isMesh || p.fibres) continue;
+      node.material = node.material.clone();
+      node.material.userData.attachmentDetail = role;
+    }
   }
   growGuideFibres(form, objects, plainView, material, fibreBudget);
   if (!plainView)

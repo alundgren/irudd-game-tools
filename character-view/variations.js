@@ -2,7 +2,11 @@ import { cubeCage, editCage } from "./control-cage.js";
 import { validWorldMarks } from "./spatial-guide.js";
 import { reshapeSpine } from "./spine-edit.js";
 import { drawDecks, encodeDecks, decodeDecks } from "./choice-decks.js";
-import { paintSources, retainPaintSources } from "./paint-sources.js";
+import {
+  paintSources,
+  retainPaintSources,
+  repaintRegions,
+} from "./paint-sources.js";
 import { placeBranch, placeComponent } from "./graft.js";
 const ideas = {
   subtle: [
@@ -242,6 +246,15 @@ export function applyOperations(
           scale: action.scale,
           turn: action.turn,
         }).form;
+        break;
+      }
+      case "reuseTurnaround": {
+        const source = form.parts[index];
+        form = repaintRegions(
+          form,
+          action.regions,
+          (source?.paint ?? source?.hull)?.atlas,
+        );
         break;
       }
       case "placeBranch":

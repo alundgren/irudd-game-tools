@@ -77,7 +77,8 @@ export function skirtRadius(curve, t) {
   );
 }
 export function skirtGeometry(c) {
-  const cols = 80,
+  const pleats = c.pleats ?? 0;
+  const cols = Math.max(80, pleats * 8),
     rows = Math.max(68, 6 * c.folds, 8 * c.tiers),
     ring = cols + 1,
     layer = ring * (rows + 1),
@@ -118,16 +119,25 @@ export function skirtGeometry(c) {
           c.tiers && t > 0.64
             ? 0.1 * MathUtils.smoothstep(t, 0.64, 0.72) * lip
             : 0;
+        const pleat = pleats
+          ? (c.pleatDepth ?? 0.14) *
+            MathUtils.smoothstep(t, 0, 0.42) *
+            (0.5 +
+              0.5 * Math.cos(pleats * theta + 0.48 * Math.sin(Math.PI * t))) **
+              2
+          : 0;
         const vertical = 0.022 * Math.cos(theta * 9 + 0.63 * t) * t * t;
         const rear = (1 - ca) * 0.5,
           tail = c.train * rear ** 3 * t ** 2;
         const thick = side * Math.min(0.004, c.width * 0.009);
-        const rx = c.width * 0.5 * (radius + vertical + drape + tier) - thick;
-        const rz = c.depth * 0.5 * (radius + vertical + drape + tier) - thick;
+        const rx =
+          c.width * 0.5 * (radius + vertical + drape + tier + pleat) - thick;
+        const rz =
+          c.depth * 0.5 * (radius + vertical + drape + tier + pleat) - thick;
         positions.push(sa * rx, -c.drop * t + side * 0.0004, ca * rz - tail);
         relief.push(
-          sa * c.width * 0.5 * (drape + tier),
-          ca * c.depth * 0.5 * (drape + tier),
+          sa * c.width * 0.5 * (drape + tier + pleat),
+          ca * c.depth * 0.5 * (drape + tier + pleat),
         );
         uv.push(u, 1 - t);
         const band =

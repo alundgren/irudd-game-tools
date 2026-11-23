@@ -79,6 +79,9 @@ export function wardrobeEditor({
       ...part.cut,
       ...(part.cut.kind === "Skirt"
         ? {
+            pleats: Number($("skirt-pleats").value),
+            pleatDepth: Number($("skirt-pleat-depth").value) / 100,
+            waistClearance: Number($("skirt-clearance").value) / 1000,
             bias: Number($("skirt-bias").value) / 100,
             gather: Number($("skirt-gather").value) / 100,
             train: Number($("skirt-train").value) / 100,
@@ -95,7 +98,16 @@ export function wardrobeEditor({
     commit(
       {
         ...form,
-        parts: form.parts.map((p) => (p === part ? { ...part, cut } : p)),
+        parts: form.parts.map((p) =>
+          p === part
+            ? {
+                ...part,
+                cut,
+                color: $("cut-fabric").value,
+                surface: $("cut-surface").value,
+              }
+            : p,
+        ),
       },
       "Adjusted the cut of " + part.id + ".",
     );
@@ -122,12 +134,21 @@ export function wardrobeEditor({
     $("layer-order").value = s?.order ?? 0;
     $("cut-fit").hidden = !p?.cut;
     if (p?.cut) {
+      $("cut-fabric").value = p.color;
+      $("cut-surface").value = p.surface ?? "plain";
       $("cut-drop").value = +(p.cut.drop * 100).toFixed(1);
       const skirt = p.cut.kind === "Skirt";
       $("skirt-pattern").hidden = !skirt;
       $("cut-opening").parentElement.hidden = skirt;
       $("cut-arms").parentElement.hidden = skirt;
       if (skirt) {
+        $("skirt-pleats").value = p.cut.pleats ?? 0;
+        $("skirt-pleat-depth").value = Math.round(
+          100 * (p.cut.pleatDepth ?? 0.14),
+        );
+        $("skirt-clearance").value = Math.round(
+          (p.cut.waistClearance ?? 0.007) * 1000,
+        );
         $("skirt-bias").value = Math.round(100 * p.cut.bias);
         $("skirt-gather").value = Math.round(100 * p.cut.gather);
         $("skirt-tiers").value = p.cut.tiers;

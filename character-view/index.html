@@ -525,6 +525,8 @@
                 <button id="layer-apply">Apply layer settings</button>
                 <details id="cut-fit" hidden>
                   <summary>Adjust the cut</summary>
+                  <label class="field">Material<select id="cut-surface"><option value="canvas">Woven canvas</option><option value="satin">Satin</option><option value="leather">Leather</option><option value="plain">Matte</option><option value="metal">Metal</option><option value="scales">Scales</option><option value="jacket">Jacket cloth</option></select></label>
+                  <label class="field">Fabric colour<input id="cut-fabric" type="color"></label>
                   <label class="field"
                     >Drop (cm)<input
                       id="cut-drop"
@@ -559,8 +561,11 @@
                   >
                   <div id="skirt-pattern" hidden>
                     <button id="skirt-trace">Trace waist to hem</button>
+                    <label class="field">Waist clearance (mm)<input id="skirt-clearance" type="number" min="0" max="60" step="1"></label>
                     <label class="field">Diagonal gathers (−100 to 100)<input id="skirt-bias" type="number" min="-100" max="100"></label>
                     <label class="field">Gather depth (%)<input id="skirt-gather" type="number" min="0" max="30"></label>
+                    <label class="field">Vertical pleats<input id="skirt-pleats" type="number" min="0" max="24"></label>
+                    <label class="field">Pleat depth (%)<input id="skirt-pleat-depth" type="number" min="0" max="35"></label>
                     <label class="field">Hem tiers<input id="skirt-tiers" type="number" min="0" max="6"></label>
                     <label class="field">Back train (cm)<input id="skirt-train" type="number" min="0" max="200"></label>
                   </div>
@@ -611,6 +616,15 @@
           </div>
         </section>
         <section data-panel="files" hidden>
+          <details id="reuse-turnaround" hidden>
+            <summary>Reuse a turnaround on other regions</summary>
+            <p class="micro">Choose regions that line up in the same four views. Each keeps its shape and texture coordinates.</p>
+            <label class="field">Use the paint from<select id="reuse-source"></select></label>
+            <label class="field">Regions to repaint<select id="reuse-regions" multiple size="7"></select></label>
+            <button id="reuse-apply">Apply to selected regions</button>
+          </details>
+        </section>
+        <section data-panel="files" hidden>
           <h2>Form files</h2>
           <label class="field"
             >GLB detail<select id="export-detail">
@@ -655,11 +669,12 @@
               <option value="wear">
                 Wear on this part in the current outfit
               </option>
+              <option value="pattern">Recut garment pattern for this body</option>
               <option value="replaceBranch">Replace whole branch</option>
               <option value="attach">Attach above selection</option>
             </select></label
           >
-          <label class="check"
+          <label class="check" id="graft-fit-field"
             ><input id="graft-fit" type="checkbox" checked />Match destination
             height</label
           >

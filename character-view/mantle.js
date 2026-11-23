@@ -21,7 +21,17 @@ export function validCut(c) {
     c.flare >= 0.65 &&
     c.flare <= 2.2 &&
     (c.kind === "Skirt"
-      ? validSkirtOutline(c.outline) &&
+      ? (c.waistClearance === undefined ||
+          (Number.isFinite(c.waistClearance) &&
+            c.waistClearance >= 0 &&
+            c.waistClearance <= 0.06)) &&
+        (c.pleats === undefined ||
+          (Number.isInteger(c.pleats) && c.pleats >= 0 && c.pleats <= 24)) &&
+        (c.pleatDepth === undefined ||
+          (Number.isFinite(c.pleatDepth) &&
+            c.pleatDepth >= 0 &&
+            c.pleatDepth <= 0.35)) &&
+        validSkirtOutline(c.outline) &&
         Number.isFinite(c.bias) &&
         Math.abs(c.bias) <= 1 &&
         Number.isFinite(c.gather) &&

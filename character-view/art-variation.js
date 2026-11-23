@@ -1,4 +1,4 @@
-import { paintSources, retainPaintSources } from "./paint-sources.js";
+import { repaintRegions } from "./paint-sources.js";
 import { acceptsDepth, depthFromPixels } from "./portrait-depth.js";
 import { readReference } from "./visual-references.js";
 import { keepSourceHairstyle } from "./graft.js";
@@ -326,26 +326,16 @@ export async function paintWithAgent(
             branch.add(p.id);
       }
     }
-    let changed = 0;
-    const prior = paintSources(base);
-    const next = retainPaintSources(
-      {
-        ...base,
-        artwork: { ...base.artwork, [atlas]: url },
-        parts: base.parts.map((p) => {
-          const key = p.paint ? "paint" : "hull",
-            original = p[key];
-          if (!branch.has(p.id) || original?.atlas !== binding.atlas) return p;
-          changed++;
-          return { ...p, [key]: { ...original, atlas } };
-        }),
-      },
-      [
-        ...prior,
-        ...prior
-          .filter((b) => b.atlas === binding.atlas)
-          .map((b) => ({ ...b, atlas })),
-      ],
+    const selected = base.parts
+      .filter(
+        (p) => branch.has(p.id) && (p.paint ?? p.hull)?.atlas === binding.atlas,
+      )
+      .map((p) => p.id);
+    const changed = selected.length;
+    const next = repaintRegions(
+      { ...base, artwork: { ...base.artwork, [atlas]: url } },
+      selected,
+      atlas,
     );
     validateForm(next);
     return {

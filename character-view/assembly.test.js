@@ -16,7 +16,7 @@ import {
   checkPreserved,
 } from "./variations.js";
 import { bindParts } from "./rig.js";
-import { extractComponent, placeComponent } from "./graft.js";
+import { cutGarment, extractComponent, placeComponent } from "./graft.js";
 import { skinCharacter } from "./skin.js";
 import { studies } from "../examples/studies.js";
 
@@ -50,6 +50,68 @@ test("generated recipes replay across 192 seeds and produce distinct limb plans"
         drawVariation("radical", i).cues.join("/"),
       ),
     ).size > 10,
+  );
+});
+test("a transferred skirt keeps the cut and adjusts the measurements to its new wearer", () => {
+  function wearer(width, depth, height) {
+    const form = startingForm(() => 0.5);
+    form.parts = [box("body", [0, height / 2, 0], [width, height, depth])];
+    return form;
+  }
+  const donor = cutGarment(wearer(0.4, 0.22, 1.8), "body", "Skirt").form;
+  donor.layerStyles = { skirt: { dye: "#5c303c" } };
+  const original = donor.parts.at(-1);
+  original.cut.width *= 1.15;
+  original.cut.drop *= 0.8;
+  original.cut.tiers = 5;
+  const next = wearer(0.6, 0.33, 1.35);
+  const source = extractComponent(donor, "skirt");
+  const result = placeComponent(next, source, {
+    target: "body",
+    mode: "pattern",
+  }).form;
+  validateForm(result);
+  const recut = result.parts.at(-1);
+  assert.deepEqual(result.parts[0], next.parts[0]);
+  assert.deepEqual(recut.cut.outline, original.cut.outline);
+  assert.equal(recut.cut.tiers, 5);
+  assert.equal(result.layerStyles.skirt.dye, "#5c303c");
+  for (const [axis, ratio] of [
+    ["width", 1.5],
+    ["depth", 1.5],
+    ["drop", 0.75],
+  ])
+    assert.ok(Math.abs(recut.cut[axis] / original.cut[axis] - ratio) < 1e-9);
+  recut.cut.outline[0][1] = 7;
+  assert.equal(original.cut.outline[0][1], 1);
+});
+test("reusing a turnaround changes only selected bindings and carries their occlusion masks", () => {
+  const paint = (region, atlas) => ({ region, atlas });
+  const form = {
+    parts: [
+      { id: "vest", paint: paint("chest", "teal") },
+      { id: "sleeve", paint: paint("arm", "brown"), position: [0.2, 1, 0] },
+      { id: "hand", paint: paint("hand", "brown") },
+    ],
+  };
+  const change = { op: "reuseTurnaround", id: "vest", regions: ["sleeve"] };
+  const result = applyOperations(form, [change]);
+  assert.deepEqual(result.parts[1], {
+    ...form.parts[1],
+    paint: paint("arm", "teal"),
+  });
+  assert.deepEqual(result.parts[2], form.parts[2]);
+  assert.ok(
+    result.occluders.some((p) => p.region === "hand" && p.atlas === "teal"),
+  );
+  assert.deepEqual(form.parts[1].paint, paint("arm", "brown"));
+  assert.throws(
+    () => applyOperations(form, [{ ...change, regions: ["vest", "sleeve"] }]),
+    /same source/,
+  );
+  assert.throws(
+    () => applyOperations(form, [{ ...change, id: "missing" }]),
+    /turnaround/,
   );
 });
 test("metric attachments and subsequent grafts preserve a child's world pivot", () => {

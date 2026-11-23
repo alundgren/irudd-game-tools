@@ -38,6 +38,45 @@ test("left and right waist traces preserve the same flared outline in wearer spa
     ]),
   );
 });
+test("the requested vertical pleats are present in the geometry and leave the top seam smooth", () => {
+  const cut = {
+    width: 0.4,
+    depth: 0.4,
+    drop: 0.8,
+    outline: [
+      [0, 1],
+      [0.5, 1],
+      [1, 1],
+    ],
+    flare: 1,
+    folds: 0,
+    bias: 0,
+    gather: 0,
+    tiers: 0,
+    train: 0,
+    pleats: 14,
+    pleatDepth: 0.31,
+  };
+  const geometry = skirtGeometry(cut);
+  const { position, uv } = geometry.attributes;
+  const hem = [],
+    waist = [];
+  for (let i = 0; i < position.count / 2; i++) {
+    if (uv.getX(i) === 1) continue;
+    const r = Math.hypot(position.getX(i), position.getZ(i));
+    if (uv.getY(i) === 0) hem.push(r);
+    if (uv.getY(i) === 1) waist.push(r);
+  }
+  const peaks = hem.filter(
+    (v, i) =>
+      v > hem[(i + hem.length - 1) % hem.length] &&
+      v > hem[(i + 1) % hem.length],
+  );
+  assert.equal(peaks.length, 14);
+  assert.ok(Math.max(...hem) - Math.min(...hem) > 0.05);
+  assert.ok(Math.max(...waist) - Math.min(...waist) < 1e-6);
+  geometry.dispose();
+});
 test("a fitted waistband follows the actual torso section while diagonal fabric folds retain relief", () => {
   const body = new Mesh(new BoxGeometry(0.2, 0.65, 0.14));
   const params = {

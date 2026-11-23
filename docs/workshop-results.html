@@ -90,6 +90,9 @@
         margin: 0;
         font-weight: 650;
       }
+      .examples { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); column-gap: 1.6rem; }
+      .examples h3 { margin: 1rem 0 .35rem; font-size: 1.25rem; }
+      .examples p { margin: .35rem 0 .85rem; }
       .display {
         display: flex;
         align-items: center;
@@ -185,13 +188,34 @@
       ><a href="../README.md">Run the workshop</a>
     </nav>
     <main>
-      <h1>Six tests of character freedom</h1>
+      <h1>How far can one character editor go?</h1>
       <p class="intro">
         Can one editor make a convincing human face, a four-armed merchant and a
         clothed character with a distinct silhouette? These six original models
         come from the workshop. The linked community creations supply each
         design target.
       </p>
+      <section id="start-here" aria-label="Three character generator comparisons">
+        <figure>
+          <img src="media/three-generator-studies.webp" alt="Three workshop exports. A balding man wears square glasses, a four-handed merchant carries a jar, and a runner wears a fitted concert skirt.">
+          <figcaption>All three are game meshes opened in the independent player. Each panel is framed to show the feature under test.</figcaption>
+        </figure>
+        <div class="examples">
+          <section><h3>Shape a likeness</h3><p>Inspect the dockworker’s face in profile, move the eyes and check the hairline. The generated portrait fits better from the side than it does against the pawn’s low camera angle.</p><p><a href="../examples/portrait-dockworker.glb" data-player="portrait-dockworker" data-view="portrait-oblique">Inspect portrait</a> · <a href="#paired-portrait">Measurements</a> · <a href="https://www.reddit.com/r/fashiondogma/comments/1bj09z1/frank_reynolds_v2/">badtrouble’s pawn</a></p></section>
+          <section><h3>Change the anatomy</h3><p>An artist marked two ribs and asked the agent to move the extra shoulders there. Play Reach to see the four hands and the jar on the merchant’s palm.</p><p><a href="../examples/harbour-trader.glb" data-player="harbour-trader" data-clip="Reach">Inspect creature</a> · <a href="#marked-branches">Measurements</a> · <a href="https://www.spore.com/what/ga_captains">Karl-EL’s merchant</a></p></section>
+          <section><h3>Dress the same wearer</h3><p>Switch the runner between track clothes, a base layer, a pressure suit and a traced concert skirt. The four looks share one GLB and the walking animation keeps its place.</p><p><a href="../examples/relay-wardrobe.glb" data-player="relay-wardrobe" data-clip="Walk">Inspect wardrobe</a> · <a href="#traced-wardrobe">Measurements</a> · <a href="https://www.pcgamer.com/the-most-fabulous-fan-made-sims/">The two Sims</a></p></section>
+        </div>
+      </section>
+      <section class="method" id="festival-conductor">
+        <h2>Can one character use all three techniques?</h2>
+        <figure><a href="media/festival-conductor.webp"><img src="media/festival-conductor.webp" alt="Four exported stages of the same character. A feline four-handed merchant becomes a bespectacled conductor in a teal waistcoat and pleated skirt."></a><figcaption>Left to right, the original merchant, the first branch swap, the live agent’s shoulder cape and the finished export. The gap under the second head revealed an error in fitting whole branches.</figcaption></figure>
+        <p>In one editor session, we took the four-handed body derived from the Spore challenge, replaced its full head branch with the fitted dockworker and cut the Sims concert skirt for its torso. The first fit sized the head against a single part and discarded the old neck. Measuring both visible branches restored the connection. Recutting the skirt preserves the traced waist-to-hem proportions while grading its width, depth and length for the new wearer.</p>
+        <p>We asked the live geometry agent to dress the merchant to lead a lantern festival orchestra. It kept all 43 existing parts and added six, including an open shoulder cape, a rounded collar and a brass toggle. A separate image generation request repainted the torso as a teal waistcoat. We applied those same four views to eight sleeve regions, then changed satin to woven cloth and cut 14 vertical pleats. <a href="media/conductor-waistcoat-study.webp">Original generated waistcoat sheet</a></p>
+        <p>Two faults only became clear in the game mesh. At 7 mm clearance the waistband crossed the coat. At 14 mm it cleared the torso, all six leg and foot regions, four hands and the jar throughout the final check. Triangle reduction also flattened the cape underneath the embroidery. The first reduced cape used 35 triangles. Retaining 412 brought both embroidered strips into contact, and the largest measured vertex-to-cape gap on either strip fell from 128 to 5 mm. The two ends of the fastening loop seat into the cloth and its middle bridges the opening.</p>
+        <figure><a href="media/festival-conductor-motion.webp"><img src="media/festival-conductor-motion.webp" alt="Game playback from the front and back, followed by Reach and Crouch."></a><figcaption>The finished actor measures 1.515 m. The head, collar, embroidery, loop, toggle and carried jar retained their tested contacts at rest and at 12 samples in each of four clips. Two far hands can still overlap in profile. Deep crouches give the lower skirt a stiff circular silhouette.</figcaption></figure>
+        <p>The 9.11 MB portrait export has 24,522 triangles, one material and one 292-joint skeleton. Both the reduced and 358,352-triangle full-detail exports passed Khronos validation with zero errors and warnings. Reopening the saved form in phone-sized Chrome reproduced the desktop GLB byte for byte. The comparison demonstrates a connected edit across face, anatomy and wardrobe. The reference games still set the standard for likeness, arbitrary creature movement and fabric behaviour.</p>
+        <p><a href="../examples/festival-conductor.glb" data-player="festival-conductor" data-clip="Reach">Play the export</a> · <span class="live-demo" hidden><a href="../#form=festival-conductor">Edit the conductor</a> · </span><a href="../examples/festival-conductor.form.json">Save the editable form</a> · <a href="media/festival-conductor.json">Recorded AI operations, cut and per-pose measurements</a></p>
+      </section>
       <h2>Standing height</h2>
       <figure>
         <img

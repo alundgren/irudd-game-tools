@@ -171,7 +171,7 @@ export function bodyFrame(form) {
     }
   return box;
 }
-export function cutGarment(form, id, kind, color = "#405d59") {
+function garmentBlock(form, id, kind) {
   const g = graph(form.parts),
     host = g.byId.get(id);
   if (!host || !garmentCuts.includes(kind))
@@ -195,9 +195,6 @@ export function cutGarment(form, id, kind, color = "#405d59") {
     opening: kind === "Cape" ? 65 : kind === "Tabard" ? 15 : 4,
     folds: kind === "Tabard" ? 5 : 12,
   };
-  let key = kind.toLowerCase(),
-    n = 2;
-  while (g.byId.has(key)) key = kind.toLowerCase() + " " + n++;
   pivot.y = box.max.y - 0.016 * size.y;
   if (kind === "Skirt") {
     pivot.y = box.min.y + size.y * 0.42;
@@ -215,11 +212,29 @@ export function cutGarment(form, id, kind, color = "#405d59") {
     });
     delete cut.opening;
   }
+  return { cut, pivot };
+}
+export function cutGarment(form, id, kind, color = "#405d59", pattern) {
+  const { cut, pivot } = garmentBlock(form, id, kind);
+  if (pattern) {
+    const dimensions = {};
+    for (const axis of ["width", "depth", "drop"])
+      dimensions[axis] = MathUtils.clamp(
+        cut[axis] * pattern.ease[axis],
+        0.025,
+        8,
+      );
+    Object.assign(cut, structuredClone(pattern.cut), dimensions);
+  }
+  const used = new Set(form.parts.map((p) => p.id));
+  let key = kind.toLowerCase(),
+    n = 2;
+  while (used.has(key)) key = kind.toLowerCase() + " " + n++;
   const part = {
     id: key,
     shape: "mantle",
     color,
-    surface: kind === "Skirt" ? "satin" : "canvas",
+    surface: pattern?.surface ?? (kind === "Skirt" ? "satin" : "canvas"),
     wearFit: true,
     cut,
     motionRole: "skirt",
@@ -265,8 +280,28 @@ export function extractComponent(form, id, includeChildren = true) {
     { parts: partList },
     paintSources(form),
   ).occluders;
+  let pattern;
+  if (root.shape === "mantle" && root.parent) {
+    const block = garmentBlock(form, root.parent, root.cut.kind);
+    const size = fields(g.world(id)).size;
+    const ease = {};
+    for (const [axis, scale] of [
+      ["width", size[0]],
+      ["depth", size[2]],
+      ["drop", size[1]],
+    ])
+      ease[axis] = (root.cut[axis] * Math.abs(scale)) / block.cut[axis];
+    pattern = {
+      cut: structuredClone(root.cut),
+      ease,
+      surface: root.surface,
+      color: root.color,
+      dye: form.layerStyles?.[id]?.dye,
+    };
+  }
   return {
     root: id,
+    ...(pattern ? { pattern } : {}),
     parts: partList,
     ...(sources ? { occluders: sources } : {}),
     bounds: [box.min.toArray(), box.max.toArray()],
@@ -276,12 +311,30 @@ export function extractComponent(form, id, includeChildren = true) {
 export function placeComponent(
   form,
   component,
-  { target, mode = "replace", fit = true, socket = "above" } = {},
+  {
+    target,
+    mode = "replace",
+    fit = true,
+    socket = "above",
+    sourceBounds = component?.bounds,
+    destinationBounds,
+  } = {},
 ) {
   const g = graph(form.parts),
     selected = g.byId.get(target);
   if (!selected)
     throw new Error("Select the region that will receive the part.");
+  if (mode === "pattern") {
+    const p = component?.pattern;
+    if (!p) throw new Error("Choose a cut garment from a saved form.");
+    const made = cutGarment(form, target, p.cut.kind, p.color, p);
+    if (p.dye)
+      made.form = {
+        ...made.form,
+        layerStyles: { ...made.form.layerStyles, [made.id]: { dye: p.dye } },
+      };
+    return made;
+  }
   const wearable = mode === "wear";
   const attach = mode === "attach" || wearable;
   if (!["replace", "replaceBranch", "attach", "wear"].includes(mode))
@@ -311,8 +364,10 @@ export function placeComponent(
     used.add(name);
     rename.set(p.id, name);
   }
-  const src = new Box3(v(component.bounds[0]), v(component.bounds[1])),
-    dest = bounds([selected], g.world);
+  const src = new Box3(v(sourceBounds[0]), v(sourceBounds[1])),
+    dest = destinationBounds
+      ? new Box3(v(destinationBounds[0]), v(destinationBounds[1]))
+      : bounds([selected], g.world);
   const extent = src.getSize(new Vector3()),
     targetExtent = dest.getSize(new Vector3());
   const ratio = fit
