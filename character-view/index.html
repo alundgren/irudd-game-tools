@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#172c2b" />
+    <title>Character workshop · irudd-game-tools</title>
+    <!-- STYLE -->
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <i aria-hidden="true" class="mark"></i
+        ><span>irudd<span class="brand-light"> / game tools</span></span>
+      </div>
+      <span class="mode">Character workshop</span>
+    </header>
+    <main>
+      <section class="viewer" aria-label="3D character viewport">
+        <div id="stage">
+          <canvas
+            id="viewport"
+            tabindex="0"
+            aria-label="3D model. Drag to orbit, scroll to zoom, or use the view buttons."
+          ></canvas>
+        </div>
+        <div class="stage-title">
+          <span class="overline">Model view</span>
+          <h1 id="name">Mara</h1>
+          <p id="look">Pressure suit</p>
+        </div>
+        <div class="measure" aria-hidden="true">
+          <span id="tick2">2 m</span><span id="tick1">1 m</span
+          ><span id="tick0">0 m</span>
+        </div>
+        <p id="failure" role="alert" hidden></p>
+        <div class="camera">
+          <div id="angles" aria-label="Camera angle" role="group">
+            <button data-angle="3/4" aria-pressed="true">¾</button
+            ><button data-angle="Front">Front</button
+            ><button data-angle="Side">Side</button
+            ><button data-angle="Back">Back</button>
+          </div>
+          <button id="reset" title="Reset camera angle and zoom">
+            Reset view
+          </button>
+        </div>
+        <div class="stage-foot">
+          <span>Drag to orbit · Scroll or pinch to zoom</span
+          ><span id="compare-key"></span>
+        </div>
+      </section>
+      <aside aria-label="Character controls">
+        <section>
+          <h2>Character</h2>
+          <div
+            id="characters"
+            class="switch"
+            aria-label="Active character"
+            role="group"
+          ></div>
+          <label class="check"
+            ><input type="checkbox" id="compare" /> Compare at true scale</label
+          >
+        </section>
+        <section>
+          <h2>Wardrobe</h2>
+          <div
+            class="stack"
+            id="outfits"
+            aria-label="Outfit"
+            role="group"
+          ></div>
+        </section>
+        <section>
+          <div class="section-title">
+            <h2>Features</h2>
+            <button id="undo" class="quiet" disabled>Undo</button>
+          </div>
+          <p class="micro">Reroll one feature at a time.</p>
+          <div id="features"></div>
+        </section>
+        <section class="display">
+          <h2>Display</h2>
+          <div
+            class="switch"
+            id="display"
+            aria-label="Material mode"
+            role="group"
+          >
+            <button data-mode="Color" aria-pressed="true">Studio color</button
+            ><button data-mode="Silhouette" aria-pressed="false">
+              Silhouette
+            </button>
+          </div>
+        </section>
+      </aside>
+    </main>
+    <p id="status" role="status" class="sr-only"></p>
+    <!-- APP -->
+  </body>
+</html>

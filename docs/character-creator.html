@@ -58,11 +58,11 @@ code {font-family:var(--font-mono,Consolas,monospace);font-size:.92em;overflow-w
 <figcaption>Proposed scale test, drawn schematically. The dashed line marks the skull. A helmet can make the silhouette taller while the person inside stays 1.72 m.</figcaption>
 </figure>
 
-<h2>The first playable asset</h2>
-<p>Build two deliberately different adult bodies on one skeleton, one close-fitting athletic base layer, one everyday work outfit and one bulky pressure suit. Give both figures a clean, flat-color game material and a solid silhouette view. Put them side by side at true scale. Export one posed GLB and one reference sheet from the same saved character before expanding the catalog.</p>
+<h2>Start in the 3D view</h2>
+<p>The first workshop lets you orbit two procedural adult figures, compare them on a metre grid, and try a base layer, work clothes and a pressure suit. Switch to silhouette, reroll a feature, or undo an edit. Check which differences read from the front, side and back. Next, test garment fit in motion on a shared skeleton and round-trip a posed GLB.</p>
 
 <h2>Experiments</h2>
-<p class="hint">Run the first two together. The remaining experiments depend on that baseline. All thresholds below are proposed pilot decisions. No results have been collected.</p>
+<p class="hint">Start with the interactive 3D view and use it to select bodies and outfits for the rig and export tests. Run the 2D reference-pack study after the 3D characters are approved. All pass marks below are proposed pilot criteria.</p>
 <details><summary>1 · Can one rig wear all three outfits?</summary><div><dl>
 <dt>Build</dt><dd>Use a short, broad figure and a tall, narrow one. Give the shared skeleton adjustable bone lengths, a small set of authored body shapes and named attachment points. Start with rigid low-poly pieces. Skin the elbows, knees and garment panels where bending matters. Hide covered body regions per outfit and restore them when unequipped.</dd>
 <dt>Try to break it</dt><dd>Render both bodies in all three outfits, in A-pose, stride, crouch and overhead reach. Keep a game camera and a rotating inspection view. Check wrists, shoulders, hips and knees against the pose. Pay particular attention to the short figure in the suit and the broad figure in the base layer. Use opaque, practical clothing and neutral presentation throughout.</dd>
@@ -86,7 +86,7 @@ code {font-family:var(--font-mono,Consolas,monospace);font-size:.92em;overflow-w
 <p>If the catalog has no suitable shoulder shape, the agent can sketch a new one from the locked front and side renders. The player picks the sketch, then the agent fits a mesh to the shoulder sockets and submits it to the outfit and export tests. An accepted mesh gets a new catalog ID. This lets steering expand the set of possible designs.</p>
 <p class="hint">Seeded streams support repeatable independent draws. Visible diversity is a separate artistic question. <a href="https://pcg-random.org/useful-features.html">PCG stream design</a></p></div></details>
 
-<details><summary>4 · Which reference views actually help the next image?</summary><div>
+<details><summary>4 · Later 2D study · Which reference views help the next image?</summary><div>
 <h3>Build the sheet from the approved mesh</h3>
 <p>Render aligned front, side, back and three-quarter full bodies in a relaxed A-pose. Fix the orthographic frustum and pixels per metre across the cast. Mark the floor, skull, shoulders, hips and knees. Put a second character or a 2 m frame on the same baseline. Use a separate, clearly labeled magnification for head front, profile and three-quarter crops. Show the character’s left and right explicitly when a feature is asymmetric.</p>
 <p>Give the human a labeled PNG with the outfit triplet, neutral face, a second expression, palette swatches and two or three distinguishing features. Give the agent clean individual crops plus a manifest of view, character revision, outfit, camera and scale. Draw labels and rulers after rendering. Keep identity references available separately from removable clothing, pose and scene references.</p>
@@ -108,6 +108,6 @@ code {font-family:var(--font-mono,Consolas,monospace);font-size:.92em;overflow-w
 <dt>Decision</dt><dd>Advance to a coat only if at least two of three draws in a condition preserve the side port, reach 0.85 silhouette intersection-over-union in the held-out view after socket alignment, and fit within the authored triangle budget. Median hands-on time including failed attempts must beat making the control. If only the front view looks good, retain the generated concept as art direction and build the part on the existing rig.</dd>
 </dl><p class="hint">Microsoft demonstrates mesh/GLB output and provides a multi-image example for original TRELLIS. Its authors describe that conditioning method as experimental. Pin the model and environment before comparing runs. <a href="https://microsoft.github.io/TRELLIS/">TRELLIS project</a> · <a href="https://github.com/microsoft/TRELLIS#-updates">Implementation notes</a> · <a href="https://github.com/microsoft/TRELLIS/blob/main/example_multi_image.py">Multi-image example</a></p></div></details>
 
-<h2>What the first session should leave behind</h2>
-<p>Two editable recipes, a six-look lineup on one scale, one self-contained GLB that reopens in a game scene, and a PNG sheet with its clean view crops. Keep a short record of the worst failure, its recipe and its camera angle. That failure determines whether the next session goes into garment fit, the exporter or player steering.</p>
+<h2>What to judge in the first session</h2>
+<p>Compare the two figures in the same outfit and turn them sideways. Which features still distinguish them? Try the pressure suit in silhouette and reroll the build. Record the outfit, angle and feature whenever a change disappears. Use those cases to choose the next geometry or fit improvement. The later 2D milestone will produce a measured PNG sheet and clean view crops from an approved 3D design.</p>
 </main></body></html>
