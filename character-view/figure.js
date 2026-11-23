@@ -337,8 +337,12 @@ export function buildFigure(raw = {}) {
       // ease there than along the arm.
       const cloth = (stations, more = 0, seam = true) =>
         stations.map(([t, w, d, dx, dz]) => {
-          const add =
-            (ease + more) * (seam ? lerp(0.45, 1, clamp(t / 0.3, 0, 1)) : 1);
+          // Reduced game meshes need a few millimetres between skin and
+          // cloth, or the shoulder shows through a close sleeve in motion.
+          const add = Math.max(
+            (ease + more) * (seam ? lerp(0.45, 1, clamp(t / 0.3, 0, 1)) : 1),
+            0.0055 * k,
+          );
           return [t, w + add, d + add, dx, dz];
         });
       const sleeves =
