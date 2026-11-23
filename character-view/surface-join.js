@@ -1,4 +1,13 @@
-import { Box3, MathUtils, Matrix4, Triangle, Vector3 } from "three";
+import {
+  BufferAttribute,
+  Box3,
+  MathUtils,
+  Matrix4,
+  Quaternion,
+  Ray,
+  Triangle,
+  Vector3,
+} from "three";
 
 export function validSurfaceJoin(part) {
   const join = part.surfaceJoin;
@@ -8,16 +17,21 @@ export function validSurfaceJoin(part) {
     Number.isFinite(join.depth) &&
     join.depth >= 0.001 &&
     join.depth <= 0.08 &&
-    ((part.shape === "cage" &&
-      join.end === undefined &&
-      Array.isArray(join.faces) &&
-      join.faces.length > 0 &&
-      join.faces.length <= 32 &&
-      new Set(join.faces).size === join.faces.length &&
-      join.faces.every(
-        (i) =>
-          Number.isInteger(i) && i >= 0 && i < (part.cage?.faces?.length ?? 0),
-      )) ||
+    ((part.shape === "scute" &&
+      join.end === "base" &&
+      join.faces === undefined) ||
+      (part.shape === "cage" &&
+        join.end === undefined &&
+        Array.isArray(join.faces) &&
+        join.faces.length > 0 &&
+        join.faces.length <= 32 &&
+        new Set(join.faces).size === join.faces.length &&
+        join.faces.every(
+          (i) =>
+            Number.isInteger(i) &&
+            i >= 0 &&
+            i < (part.cage?.faces?.length ?? 0),
+        )) ||
       (part.shape === "sweep" &&
         join.faces === undefined &&
         ["first", "last", "both", "along"].includes(join.end)))
@@ -76,7 +90,7 @@ export function surfaceIndex(root) {
   }
   const tree = node(faces),
     tmp = new Vector3();
-  return (point) => {
+  function nearest(point) {
     let best = Infinity,
       face;
     const closest = new Vector3();
@@ -105,7 +119,77 @@ export function surfaceIndex(root) {
     }
     visit(tree);
     return { point: closest, normal: face.tri.getNormal(new Vector3()), face };
+  }
+  nearest.exterior = (point, outward) => {
+    const reach =
+      tree.box.getSize(new Vector3()).length() +
+      tree.box.distanceToPoint(point) +
+      0.01;
+    const ray = new Ray(
+      point.clone().addScaledVector(outward, reach),
+      outward.clone().negate(),
+    );
+    let best = Infinity,
+      hit = null;
+    function visit(branch) {
+      if (!ray.intersectsBox(branch.box)) return;
+      if (!branch.list) {
+        for (const child of branch.children) visit(child);
+        return;
+      }
+      for (const face of branch.list) {
+        const tri = face.tri;
+        if (!ray.intersectTriangle(tri.a, tri.b, tri.c, false, tmp)) continue;
+        const distance = ray.origin.distanceToSquared(tmp);
+        if (distance >= best) continue;
+        best = distance;
+        const normal = tri.getNormal(new Vector3());
+        if (normal.dot(outward) < 0) normal.negate();
+        hit = { point: tmp.clone(), normal, face };
+      }
+    }
+    visit(tree);
+    return hit ?? nearest(point);
   };
+  return nearest;
+}
+function pinVertex(mesh, index) {
+  let pins = mesh.geometry.getAttribute("lodAnchor");
+  if (!pins) {
+    pins = new BufferAttribute(
+      new Uint8Array(mesh.geometry.attributes.position.count),
+      1,
+    );
+    mesh.geometry.setAttribute("lodAnchor", pins);
+  }
+  pins.setX(index, 1);
+}
+function seatPlate(mesh, carrier, join, nearest, retainMount) {
+  const pin = new Vector3(0, 0.27, -0.11);
+  const worldPin = mesh.localToWorld(pin.clone());
+  const outward = new Vector3(0, 0, 1).transformDirection(mesh.matrixWorld);
+  const hit = nearest.exterior(worldPin, outward);
+  const rotation = new Quaternion().setFromUnitVectors(outward, hit.normal);
+  const worldRotation = rotation.multiply(
+    mesh.getWorldQuaternion(new Quaternion()),
+  );
+  mesh.quaternion
+    .copy(mesh.parent.getWorldQuaternion(new Quaternion()).invert())
+    .multiply(worldRotation);
+  mesh.updateWorldMatrix(true, false);
+  const target = hit.point.clone().addScaledVector(hit.normal, -join.depth);
+  const delta = mesh.parent
+    .worldToLocal(target)
+    .sub(mesh.parent.worldToLocal(mesh.localToWorld(pin)));
+  mesh.position.add(delta);
+  mesh.updateWorldMatrix(true, true);
+  seatBranch(
+    mesh,
+    carrier,
+    { id: mesh.userData.partId, surfaceJoin: join },
+    nearest,
+    retainMount,
+  );
 }
 function rootIndices(geometry, join) {
   const ids = new Set();
@@ -118,6 +202,14 @@ function rootIndices(geometry, join) {
   } else {
     const uv = geometry.attributes.uv;
     if (!uv) return ids;
+    if (join.end === "base") {
+      for (let i = 0; i < uv.count; i++) {
+        const u = uv.getX(i),
+          v = uv.getY(i);
+        if (v >= 0.72 && v <= 0.84 && u >= 0.36 && u <= 0.64) ids.add(i);
+      }
+      return ids;
+    }
     for (let i = 0; i < uv.count; i++) {
       const t = uv.getY(i);
       if (
@@ -232,7 +324,7 @@ function seatStrip(mesh, carrier, join, nearest) {
   g.computeBoundingSphere();
   mesh.blendOwners = table;
 }
-function seatBranch(mesh, carrier, part, nearest) {
+function seatBranch(mesh, carrier, part, nearest, retainMount = false) {
   const geometry = mesh.geometry,
     pos = geometry?.attributes.position;
   if (!pos) return;
@@ -256,6 +348,11 @@ function seatBranch(mesh, carrier, part, nearest) {
         .clone()
         .addScaledVector(hit.normal, -part.surfaceJoin.depth)
         .sub(at);
+    if (retainMount) {
+      // Keep the seated patch and its carrier triangles during mesh reduction.
+      pinVertex(mesh, i);
+      for (const vertex of hit.face.indices) pinVertex(hit.face.mesh, vertex);
+    }
     gap = Math.max(gap, delta.length());
     anchors.push({ at, delta, binding: atCarrier(hit, carrier) });
   }
@@ -331,7 +428,12 @@ function seatBranch(mesh, carrier, part, nearest) {
   }
   deform(mesh, part.id);
 }
-export function fitSurfaceJoins(form, objects, afterFaceFits = false) {
+export function fitSurfaceJoins(
+  form,
+  objects,
+  afterFaceFits = false,
+  retainMount = false,
+) {
   const byId = new Map(form.parts.map((p) => [p.id, p]));
   const late = (part) => {
     for (let node = part; node; node = byId.get(node.parent))
@@ -361,7 +463,9 @@ export function fitSurfaceJoins(form, objects, afterFaceFits = false) {
     if (!indices.has(carrier)) indices.set(carrier, surfaceIndex(carrier));
     const nearest = indices.get(carrier);
     if (!nearest) continue;
-    if (part.surfaceJoin.end === "along")
+    if (part.surfaceJoin.end === "base")
+      seatPlate(mesh, carrier, part.surfaceJoin, nearest, retainMount);
+    else if (part.surfaceJoin.end === "along")
       seatStrip(mesh, carrier, part.surfaceJoin, nearest);
     else seatBranch(mesh, carrier, part, nearest);
   }

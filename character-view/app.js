@@ -14,7 +14,7 @@ import { reusePaintEditor } from "./reuse-paint-editor.js";
 import { wardrobeEditor } from "./wardrobe-editor.js";
 import { readReference, validReferences } from "./visual-references.js";
 import { acceptsMarkings, validMarkings } from "./markings.js";
-import { fitHand } from "./graft.js";
+import { armChain, bendElbow, fitHand } from "./graft.js";
 import { palmColor } from "./turnaround.js";
 import {
   listAlternates,
@@ -52,7 +52,7 @@ import glider from "../examples/estuary-glider.form.json";
 import beetle from "../examples/accepted-beetle.form.json";
 import { studies as proceduralStudies } from "../examples/studies.js";
 import { paintedStudies } from "../examples/painted-studies.js";
-import { repeatOnSpine } from "./scutes.js";
+import { equipPlateRows, repeatOnSpine } from "./scutes.js";
 import { outfitRoles } from "./wardrobe.js";
 import { faceHandles } from "./face-handles.js";
 import { frontEditor } from "./front-editor.js";
@@ -1278,6 +1278,21 @@ function bindControls() {
           to: Number($("#cage-to").value),
         }),
       }));
+  for (const [button, angle] of [
+    ["#bend-elbow", 15],
+    ["#open-elbow", -15],
+  ]) {
+    $(button).onclick = () => {
+      try {
+        commit(
+          bendElbow(nudge(form, target, amounts), target, angle),
+          "Elbow adjusted.",
+        );
+      } catch (error) {
+        status(error.message);
+      }
+    };
+  }
   $("#fit-hand").onclick = () => {
     try {
       const preview = nudge(form, target, amounts),
@@ -1318,7 +1333,10 @@ function bindControls() {
       const width = Number($("#repeat-width").value) / 100;
       if (width < 0.01 || width > 1)
         throw new Error("Use a width from 1 to 100 cm.");
-      const added = repeatOnSpine(nudge(form, target, amounts), target, {
+      const equipped = $("#repeat-outfit").checked;
+      const addPlates = equipped ? equipPlateRows : repeatOnSpine;
+      const added = addPlates(nudge(form, target, amounts), target, {
+        ...(equipped ? { color: $("#repeat-color").value } : {}),
         count: Number($("#repeat-count").value),
         columns: Number($("#repeat-cols").value),
         width,
@@ -2231,12 +2249,13 @@ function update() {
     ? "Keep shape: " + [...protectedIds].join(", ")
     : "";
   $("#protected-list").hidden = !protectedIds.size;
+  $("#elbow-tools").hidden = locked || !armChain(preview.parts, target);
   $("#fit-hand").hidden =
     locked || part?.shape !== "sweep" || part?.outfitRole !== "hand";
   $("#join-tools").hidden =
     locked ||
     !part?.parent ||
-    !["cage", "sweep"].includes(part.shape) ||
+    !["cage", "sweep", "scute"].includes(part.shape) ||
     Boolean(part.paint);
   if (!$("#join-tools").hidden) {
     const patch = $("#join-patch"),
@@ -2245,12 +2264,14 @@ function update() {
     const choices =
       part.shape === "cage"
         ? part.cage.faces.map((_, i) => [String(i), "Face " + (i + 1)])
-        : [
-            ["first", "First end"],
-            ["last", "Last end"],
-            ["both", "Both ends across an opening"],
-            ["along", "Full strip along surface"],
-          ];
+        : part.shape === "scute"
+          ? [["base", "Upper inside surface"]]
+          : [
+              ["first", "First end"],
+              ["last", "Last end"],
+              ["both", "Both ends across an opening"],
+              ["along", "Full strip along surface"],
+            ];
     patch.replaceChildren(...choices.map(([v, label]) => new Option(label, v)));
     patch.dataset.owner = part.id;
     patch.value =
@@ -2258,7 +2279,8 @@ function update() {
         ? last
         : part.shape === "cage"
           ? String(cageFace)
-          : (part.surfaceJoin?.end ?? "first");
+          : (part.surfaceJoin?.end ??
+            (part.shape === "scute" ? "base" : "first"));
     $("#join-depth").value = Math.round(
       1000 * (part.surfaceJoin?.depth ?? 0.008),
     );

@@ -21,6 +21,17 @@ function radiusAt(knots, left, t, k) {
     (t3 - t2) * db
   );
 }
+// Keep a sparse set of full cross-sections when a jointed limb is reduced.
+export function retainSweepSections(geometry, bands, sides) {
+  const pins = new Uint8Array(geometry.attributes.position.count);
+  for (const t of [0, 0.1, 0.24, 0.42, 0.61, 0.79, 0.93, 1]) {
+    const start = Math.round(t * bands) * (sides + 1);
+    for (let i = 0; i <= 12; i++)
+      pins[start + Math.round((i * sides) / 12)] = 1;
+  }
+  geometry.setAttribute("lodAnchor", new T.BufferAttribute(pins, 1));
+}
+
 export function sweepGeometry(knots, horizontal = false, sides = 20) {
   const centers = knots.map(([x, y, z]) => new T.Vector3(x, y, z));
   const path = new T.CatmullRomCurve3(centers, false, "centripetal");

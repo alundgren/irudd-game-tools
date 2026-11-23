@@ -1,3 +1,4 @@
+import { equipPlateRows } from "./scutes.js";
 import { cubeCage, editCage } from "./control-cage.js";
 import { validWorldMarks } from "./spatial-guide.js";
 import { reshapeSpine } from "./spine-edit.js";
@@ -7,7 +8,7 @@ import {
   retainPaintSources,
   repaintRegions,
 } from "./paint-sources.js";
-import { placeBranch, placeComponent } from "./graft.js";
+import { bendElbow, placeBranch, placeComponent } from "./graft.js";
 const ideas = {
   subtle: [
     [
@@ -248,6 +249,12 @@ export function applyOperations(
         }).form;
         break;
       }
+      case "bendElbow":
+        form = bendElbow(form, id, action.degrees);
+        break;
+      case "equipPlates":
+        form = equipPlateRows(form, id, action).form;
+        break;
       case "reuseTurnaround": {
         const source = form.parts[index];
         form = repaintRegions(

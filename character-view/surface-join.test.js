@@ -2,8 +2,50 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { BoxGeometry, Group, Mesh, Vector3 } from "three";
 import { cageGeometry, cubeCage } from "./control-cage.js";
+import { scuteGeometry } from "./scutes.js";
 import { sweepGeometry } from "./surface.js";
 import { fitSurfaceJoins, validSurfaceJoin } from "./surface-join.js";
+test("an equipped plate seats on an outer pack instead of disappearing inside it", () => {
+  const host = new Group(),
+    lining = new Mesh(new BoxGeometry(0.6, 0.6, 0.2));
+  host.userData.partId = "body";
+  host.add(lining);
+  const pack = new Mesh(new BoxGeometry(0.4, 0.4, 0.1));
+  pack.position.z = 0.2;
+  host.add(pack);
+  const plate = new Mesh(scuteGeometry());
+  plate.position.z = 0.1;
+  plate.scale.set(0.1, 0.15, 0.04);
+  plate.userData.partId = "plate";
+  host.add(plate);
+  const part = {
+    id: "plate",
+    parent: "body",
+    shape: "scute",
+    surfaceJoin: { end: "base", depth: 0.003 },
+  };
+  fitSurfaceJoins(
+    { parts: [{ id: "body" }, part] },
+    new Map([
+      ["body", host],
+      ["plate", plate],
+    ]),
+  );
+  const p = plate.geometry.attributes.position,
+    uv = plate.geometry.attributes.uv;
+  for (let i = 0; i < p.count; i++) {
+    if (
+      uv.getY(i) < 0.72 ||
+      uv.getY(i) > 0.84 ||
+      uv.getX(i) < 0.36 ||
+      uv.getX(i) > 0.64
+    )
+      continue;
+    const at = plate.localToWorld(new Vector3().fromBufferAttribute(p, i));
+    assert.ok(Math.abs(at.z - 0.247) < 1e-5);
+  }
+  assert.ok(plate.position.z > 0.23);
+});
 test("both ends of an arched fastening can be seated while the middle spans the gap", () => {
   const parent = new Mesh(new BoxGeometry(1, 1, 1));
   const child = new Mesh(

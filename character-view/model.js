@@ -35,7 +35,7 @@ import {
   preparePaintRegions,
 } from "./turnaround.js";
 import { surfaceMaterial } from "./materials.js";
-import { sweepGeometry } from "./surface.js";
+import { retainSweepSections, sweepGeometry } from "./surface.js";
 import { createFace } from "./face.js";
 import { anchors } from "./recipe.js";
 
@@ -598,6 +598,15 @@ export function createCharacter(
                 ? 64
                 : 28,
           );
+          if (fibreBudget && !part.blendSkin) {
+            const jointed = (p) =>
+              ["upper arm", "forearm"].includes(p?.motionRole ?? p?.outfitRole);
+            const cuff =
+              part.motionRole === "rigid" &&
+              jointed(form.parts.find((p) => p.id === part.parent));
+            if (jointed(part) || cuff)
+              retainSweepSections(geometry, (part.knots.length - 1) * 5, 28);
+          }
           if (part.drape?.depth) pleat(geometry, part.knots, part.drape);
           if (part.drape?.slit)
             geometry = splitHem(geometry, part.knots, part.drape);
@@ -828,7 +837,7 @@ export function createCharacter(
         fitHeadProfile(face, part.profileFit);
     }
   }
-  fitSurfaceJoins(form, objects);
+  fitSurfaceJoins(form, objects, false, Boolean(fibreBudget));
   for (const p of form.parts)
     if (p.eyesRig && !p.eyesRig.stage) {
       const root = objects.get(p.id);
@@ -897,7 +906,7 @@ export function createCharacter(
     if (face)
       attachEyes(face, p.eyesRig, plainView ? material("#adb4ad") : null);
   }
-  fitSurfaceJoins(form, objects, true);
+  fitSurfaceJoins(form, objects, true, Boolean(fibreBudget));
   const hardwareFitted = new Set();
   for (const p of form.parts) {
     if (!p.faceClearance || !p.parent || hardwareFitted.has(p.parent)) continue;

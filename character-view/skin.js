@@ -142,6 +142,18 @@ function centres(s, regions) {
   const rows = part.knots?.map((p) =>
     object.localToWorld(new T.Vector3(...p.slice(0, 3))),
   );
+  // Segmented arms already have authored shoulder, elbow and wrist pivots.
+  // Following those pivots also works when a forearm points up or across the body.
+  if (role === "upper arm" || role === "forearm") {
+    const distalRole = role === "upper arm" ? "forearm" : "hand";
+    const distal = [...regions.values()].find(
+      (child) => child.part.parent === part.id && child.role === distalRole,
+    );
+    if (distal) {
+      const tip = distal.object.getWorldPosition(new T.Vector3());
+      return [origin, origin.clone().lerp(tip, 0.5), tip];
+    }
+  }
   if ((role === "axial spine" || role === "tail") && rows?.length > 1) {
     const curve = new T.CatmullRomCurve3(rows);
     return curve.getSpacedPoints(T.MathUtils.clamp(rows.length, 4, 9) - 1);
@@ -391,6 +403,16 @@ export function skinCharacter(form, model) {
   if (geometries.length) {
     if (geometries.some((g) => g.attributes.color))
       for (const g of geometries) whiteVertexColors(g);
+    if (geometries.some((g) => g.attributes.lodAnchor))
+      for (const g of geometries)
+        if (!g.attributes.lodAnchor)
+          g.setAttribute(
+            "lodAnchor",
+            new T.Uint8BufferAttribute(
+              new Uint8Array(g.attributes.position.count),
+              1,
+            ),
+          );
     const combined = mergeGeometries(geometries);
     let start = 0;
     for (const [mi, mat] of materials.entries()) {

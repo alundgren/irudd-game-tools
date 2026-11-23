@@ -114,6 +114,57 @@ test("reusing a turnaround changes only selected bindings and carries their occl
     /turnaround/,
   );
 });
+test("an armour proposal creates independent fitted plates for the current outfit and replays exactly", () => {
+  const form = startingForm(() => 0.5);
+  form.outfit = "Pressure suit";
+  form.parts = [
+    {
+      id: "shell",
+      shape: "sweep",
+      color: "#445555",
+      size: [1, 1, 1],
+      position: [0, 0, 0],
+      rotation: [0, 0, 0],
+      knots: [
+        [0, 0, 0, 0.2, 0.13],
+        [0, 0.4, 0, 0.3, 0.16],
+        [0, 0.75, 0, 0.18, 0.12],
+      ],
+    },
+  ];
+  const ops = [
+    {
+      op: "equipPlates",
+      id: "shell",
+      name: "chest plate",
+      face: "Front",
+      count: 4,
+      columns: 3,
+      width: 0.13,
+      length: 0.19,
+      depth: 0.035,
+    },
+  ];
+  const next = applyOperations(form, ops);
+  validateForm(next);
+  assert.deepEqual(next, applyOperations(form, ops));
+  assert.equal(next.parts.length, 13);
+  assert.deepEqual(next.parts[0], form.parts[0]);
+  for (const p of next.parts.slice(1)) {
+    assert.equal(p.parent, "shell");
+    assert.equal(p.surfaceJoin.end, "base");
+    assert.deepEqual(p.visibleIn, ["Pressure suit"]);
+    assert.equal(p.motionRole, "rigid");
+  }
+  assert.throws(
+    () => applyOperations(form, [{ ...ops[0], start: 1.5 }]),
+    /dimensions/,
+  );
+  assert.throws(
+    () => applyOperations(form, [{ ...ops[0], columns: 30 }]),
+    /limit/,
+  );
+});
 test("metric attachments and subsequent grafts preserve a child's world pivot", () => {
   const form = startingForm(() => 0.5);
   form.parts = [

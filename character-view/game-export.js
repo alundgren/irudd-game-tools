@@ -79,7 +79,7 @@ function simplify(g, b, ratio, input) {
       attr,
       stride,
       weights,
-      null,
+      g.attributes.lodAnchor?.array ?? null,
       target,
       error,
       flags,
@@ -273,7 +273,9 @@ function atlas(entries, size) {
 }
 function remap(g, groups, ratio, tiles, size) {
   const input = simplifyInputs(g);
-  const attributes = Object.entries(g.attributes),
+  const attributes = Object.entries(g.attributes).filter(
+      ([name]) => name !== "lodAnchor",
+    ),
     out = new Map(attributes.map(([k]) => [k, []])),
     indices = [],
     sourceOrder = [];

@@ -206,6 +206,19 @@
           <section><h3>Dress the same wearer</h3><p>Switch the runner between track clothes, a base layer, a pressure suit and a traced concert skirt. The four looks share one GLB and the walking animation keeps its place.</p><p><a href="../examples/relay-wardrobe.glb" data-player="relay-wardrobe" data-clip="Walk">Inspect wardrobe</a> · <a href="#traced-wardrobe">Measurements</a> · <a href="https://www.pcgamer.com/the-most-fabulous-fan-made-sims/">The two Sims</a></p></section>
         </div>
       </section>
+      <section class="method" id="jointed-arms">
+        <h2>Where does the elbow actually bend?</h2>
+        <figure><a href="media/arm-revision.webp"><img src="media/arm-revision.webp" alt="The original four arms jut sideways from the waist. The revised sleeves have separate shoulders, bent elbows and tapered wrists. A two-arm version stands alongside."></a><figcaption>Three exported models at rest. The two-arm control uses the same torso, portrait, garment pattern and hands.</figcaption></figure>
+        <p>The first four-handed performer passed a shoulder-contact test yet still looked wrong. Its lower sleeves emerged from the waistband. In Reach, each upper arm flexed 24° halfway along its length, and each forearm had zero elbow rotation. On the same side of the body, eight of eighteen upper/lower limb-region pairs crossed during the sampled poses.</p>
+        <p>We moved the second shoulders onto the ribs, recut the sleeve from rounded shoulder to narrow wrist, aligned the palms with their forearms, and shortened the reach of the hand holding the vessel. A segmented arm now takes its hinge and wrist directly from the attached forearm and hand. Pick one of those regions in Sculpt and use <b>Bend elbow 15°</b> or <b>Straighten elbow 15°</b>. The editable geometry, preview motion and exported skeleton use the same attachment points.</p>
+        <figure><a href="media/arm-motion.webp"><img src="media/arm-motion.webp" alt="Original and revised Reach shown from the same camera, plus a side view of the repaired figure."></a><figcaption>Reach is sampled at the same 45% phase in the two action panels. The jar’s hand moves less than the leading hand. Overlap in a particular camera view can still hide a far limb.</figcaption></figure>
+        <p>At rest and twelve times in each of Idle, Walk, Crouch and Reach, all twelve shoulder, elbow and wrist joins on the stage costume touched their carriers. None of the eighteen same-side region pairs from different arms crossed. These checks cover the supplied motions. A new garment or a more extreme pose needs its own test.</p>
+        <p><a href="../examples/jointed-conductor.glb" data-player="jointed-conductor" data-clip="Reach">Play the two-arm figure</a> · <a href="../examples/festival-wardrobe.glb" data-player="festival-wardrobe" data-clip="Reach">Play the four-arm figure</a> · <span class="live-demo" hidden><a href="../#form=jointed-conductor">Edit two arms</a> · <a href="../#form=festival-wardrobe">Edit four arms</a> · </span><a href="media/arm-fitting.json">Operations, joint angles and collision counts</a></p>
+        <h3 id="plated-wardrobe">The same wearer in three outfits</h3>
+        <figure><a href="media/festival-armour.webp"><img src="media/festival-armour.webp" alt="The wearer in a practice layer, stage clothes and a pressure suit with ivory shoulder, chest and back plates."></a><figcaption>One editable form and one GLB with three wardrobe scenes. Each scene has its own four motion clips.</figcaption></figure>
+        <p>For the bulky suit we asked the geometry agent for repeated tooth-like plates, using Cecil_090’s Commander Gort as a construction reference. The editor drew three chest rows and warm ivory from artist-written choices. Six accepted operations produced 33 individually editable plates across chest, pack and four shoulders. A first attempt buried most of the rear plates inside the pack. Casting onto the outer surface and retaining the mounting vertices during mesh reduction kept all 33 in contact in the final suit test.</p>
+        <p><a href="../examples/festival-wardrobe.glb" data-player="festival-wardrobe" data-outfit="Layered pressure suit" data-view="back">Inspect the back of the suit</a> · <a href="../examples/festival-wardrobe.form.json">Save the editable wardrobe</a> · <a href="media/plate-coverage.webp">Visible plates at 192 pixels</a> · <a href="https://www.spore.com/what/ga_captains">Maxis challenge winners</a></p>
+      </section>
       <section class="method" id="festival-conductor">
         <h2>Can one character use all three techniques?</h2>
         <figure><a href="media/festival-conductor.webp"><img src="media/festival-conductor.webp" alt="Four exported stages of the same character. A feline four-handed merchant becomes a bespectacled conductor in a teal waistcoat and pleated skirt."></a><figcaption>Left to right, the original merchant, the first branch swap, the live agent’s shoulder cape and the finished export. The gap under the second head revealed an error in fitting whole branches.</figcaption></figure>
@@ -1559,6 +1572,7 @@
               (a.href =
                 "../play-model.html#model=" +
                 a.dataset.player +
+                (a.dataset.outfit ? "&outfit=" + encodeURIComponent(a.dataset.outfit) : "") +
                 (a.dataset.view
                   ? "&view=" + encodeURIComponent(a.dataset.view)
                   : "") +

@@ -112,6 +112,54 @@ export function buildClips(root, regions) {
     }
     return true;
   }
+  const elbows = new Map();
+  for (const lower of regions.values()) {
+    const upper = regions.get(lower.part.parent);
+    if (lower.role !== "forearm" || upper?.role !== "upper arm") continue;
+    const down = lower.points.at(-1).clone().sub(lower.points[0]).normalize();
+    const upperDirection = lower.points[0]
+      .clone()
+      .sub(upper.points[0])
+      .normalize();
+    const axis = new Vector3().crossVectors(upperDirection, down);
+    if (axis.lengthSq() < 0.025) axis.crossVectors(down, new Vector3(0, 0, 1));
+    if (axis.lengthSq() < 0.001) axis.set(-1, 0, 0);
+    axis.normalize();
+    if (new Vector3().crossVectors(axis, down).z < 0) axis.negate();
+    elbows.set(upper, { bone: lower.bones[0], axis });
+  }
+  const armMovement = new Map();
+  const arms = [...regions.values()].filter((s) => s.role === "upper arm");
+  // Give additional pairs independent work. A hand carrying a separate object
+  // stays close to its rest pose while a free arm performs the reach.
+  if (arms.length > 2) {
+    const ordered = [...arms].sort(
+      (a, b) => b.points[0].y - a.points[0].y || a.points[0].x - b.points[0].x,
+    );
+    let free = 0;
+    for (const [i, arm] of ordered.entries()) {
+      const forearm = [...regions.values()].find(
+        (s) => s.part.parent === arm.part.id && s.role === "forearm",
+      );
+      const hand =
+        forearm &&
+        [...regions.values()].find(
+          (s) => s.part.parent === forearm.part.id && s.role === "hand",
+        );
+      const loaded =
+        hand &&
+        [...regions.values()].some(
+          (s) =>
+            s.part.parent === hand.part.id &&
+            (s.role === "accessory" || (s.role === "rigid" && !s.part.visibleIn)),
+        );
+      armMovement.set(arm, {
+        reach: loaded ? 0.12 : [1, 0.57, 0.36][Math.min(free++, 2)],
+        swing: loaded ? 0.18 : 0.85,
+        phase: i < 2 ? 0 : Math.PI,
+      });
+    }
+  }
   const reachingHeads = new Set([...regions.values()].filter(startsHeadChain));
   const size = bounds.getSize(new Vector3()),
     limb = legs.length
@@ -207,16 +255,29 @@ export function buildClips(root, regions) {
               );
           }
         } else if (s.role === "upper arm") {
-          if (name === "Walk")
-            add(s.bones[0], side * 0.37 * sin, 0, side * 0.035);
-          else if (name === "Reach") {
+          const motion = armMovement.get(s);
+          if (name === "Walk") {
+            const stride = motion
+              ? motion.swing * Math.sin(t * tau + motion.phase)
+              : sin;
+            add(s.bones[0], side * 0.37 * stride, 0, side * 0.035);
+          } else if (name === "Reach") {
+            const lift = wave * (motion?.reach ?? 1);
             add(
               s.bones[0],
-              -1.06 * wave,
-              side * 0.08 * wave,
-              side * 0.24 * wave,
+              -1.06 * lift,
+              side * 0.08 * lift,
+              side * 0.24 * lift,
             );
-            add(s.bones[1], -0.42 * wave, 0, 0);
+            const elbow = elbows.get(s);
+            if (elbow) {
+              const q = new Quaternion().setFromAxisAngle(
+                elbow.axis,
+                0.67 * lift,
+              );
+              if (!tracks.has(elbow.bone)) tracks.set(elbow.bone, []);
+              tracks.get(elbow.bone).push(q.x, q.y, q.z, q.w);
+            } else add(s.bones[1], -0.42 * lift, 0, 0);
           } else if (name === "Idle")
             add(s.bones[0], 0.015 * sin, 0, side * 0.009 * sin);
           else if (name === "Crouch")

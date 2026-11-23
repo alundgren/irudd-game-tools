@@ -88,6 +88,76 @@ function graph(parts) {
   }
   return { byId, world, mount, descendants };
 }
+export function armChain(parts, id) {
+  const part = parts.find((p) => p.id === id);
+  const role = (p) => p?.motionRole ?? p?.outfitRole;
+  const child = (p, wanted) =>
+    parts.find((c) => c.parent === p?.id && role(c) === wanted);
+  const parent = (p) => parts.find((c) => c.id === p?.parent);
+  const lower =
+    role(part) === "forearm"
+      ? part
+      : role(part) === "hand"
+        ? parent(part)
+        : role(part) === "upper arm"
+          ? child(part, "forearm")
+          : null;
+  if (!lower || role(lower) !== "forearm") return null;
+  const upper = parent(lower),
+    hand = child(lower, "hand");
+  return role(upper) === "upper arm" && hand ? { upper, lower, hand } : null;
+}
+
+export function bendElbow(form, id, degrees) {
+  const chain = armChain(form.parts, id);
+  if (!chain || !Number.isFinite(degrees) || Math.abs(degrees) > 150)
+    throw new Error("Choose a segmented arm and a bend within 150 degrees.");
+  const { upper, lower, hand } = chain,
+    g = graph(form.parts);
+  const inverse = g.mount(lower.parent).invert();
+  const pivot = (p) =>
+    new Vector3().setFromMatrixPosition(g.world(p.id)).applyMatrix4(inverse);
+  const elbow = pivot(lower),
+    a = elbow.clone().sub(pivot(upper)),
+    b = pivot(hand).sub(elbow);
+  if (Math.min(a.length(), b.length()) < 0.001)
+    throw new Error("The three arm pivots must be distinct.");
+  a.normalize();
+  b.normalize();
+  const current = a.angleTo(b);
+  const axis = new Vector3().crossVectors(a, b);
+  if (axis.lengthSq() < 0.000001) {
+    axis.crossVectors(b, new Vector3(0, 0, 1).transformDirection(inverse));
+    if (axis.lengthSq() < 0.000001)
+      axis.crossVectors(
+        b,
+        Math.abs(b.x) < 0.8 ? new Vector3(1, 0, 0) : new Vector3(0, 1, 0),
+      );
+  }
+  const delta =
+    MathUtils.clamp(
+      current + MathUtils.degToRad(degrees),
+      0,
+      MathUtils.degToRad(155),
+    ) - current;
+  const turn = new Quaternion()
+    .setFromAxisAngle(axis.normalize(), delta)
+    .multiply(
+      new Quaternion().setFromEuler(
+        new Euler(...lower.rotation.map(MathUtils.degToRad)),
+      ),
+    );
+  const e = new Euler().setFromQuaternion(turn);
+  return {
+    ...form,
+    parts: form.parts.map((p) =>
+      p === lower
+        ? { ...p, rotation: [e.x, e.y, e.z].map(MathUtils.radToDeg) }
+        : p,
+    ),
+  };
+}
+
 function bounds(parts, world) {
   const box = new Box3().makeEmpty(),
     pnt = new Vector3();

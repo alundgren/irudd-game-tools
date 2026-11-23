@@ -109,6 +109,59 @@ const directions = {
   Right: [-1, 0, 0],
   Top: [0, 1, 0],
 };
+// Armour uses an independent surface. Its upper inside patch fastens to the
+// rendered carrier, including a changed suit or an asymmetric sculpt.
+export function equipPlateRows(form, id, settings = {}) {
+  const {
+    count = 4,
+    columns = 1,
+    face = "Front",
+    width = 0.12,
+    length = width * 1.3,
+    depth = width * 0.32,
+    start = 0.15,
+    end = 0.9,
+    taper = 0.2,
+    color = "#d4c6a7",
+    surface = "plain",
+    name = "armour scale",
+  } = settings;
+  if (
+    !Object.hasOwn(directions, face) ||
+    ![width, length, depth, start, end, taper].every(Number.isFinite) ||
+    width < 0.01 ||
+    width > 1 ||
+    length < 0.01 ||
+    length > 1.5 ||
+    depth < 0.003 ||
+    depth > 0.5 ||
+    start < 0 ||
+    end > 1 ||
+    start > end ||
+    Math.abs(taper) > 0.8 ||
+    typeof name !== "string" ||
+    !name.trim() ||
+    name.length > 44 ||
+    !/^#[a-f0-9]{6}$/i.test(color) ||
+    !["plain", "metal", "leather", "scales", "canvas"].includes(surface)
+  )
+    throw new Error("Choose valid plate dimensions, finish and path limits.");
+  return repeatOnSpine(form, id, {
+    count,
+    columns,
+    face,
+    width,
+    length,
+    depth,
+    start,
+    end,
+    taper,
+    color,
+    surface,
+    name,
+    equipped: true,
+  });
+}
 export function repeatOnSpine(
   form,
   carrierId,
@@ -127,6 +180,7 @@ export function repeatOnSpine(
     shape = "scute",
     name = "plate",
     lift = 0.0,
+    equipped = false,
   } = {},
 ) {
   const carrier = form.parts.find((p) => p.id === carrierId);
@@ -205,6 +259,16 @@ export function repeatOnSpine(
         id,
         shape,
         parent: carrier.id,
+        ...(equipped
+          ? {
+              visibleIn: [form.outfit],
+              motionRole: "rigid",
+              surfaceJoin: {
+                end: "base",
+                depth: MathUtils.clamp(depth * 0.14, 0.001, 0.008),
+              },
+            }
+          : {}),
         position: pos.toArray(),
         size: [width * factor, length * factor, depth * factor],
         rotation: [rot.x, rot.y, rot.z].map(MathUtils.radToDeg),
@@ -213,7 +277,7 @@ export function repeatOnSpine(
       });
     }
   }
-  if (carrier.paint && shape === "scute")
+  if (!equipped && carrier.paint && shape === "scute")
     for (const p of parts) {
       p.mount = {
         position: [...p.position],
