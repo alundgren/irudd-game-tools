@@ -16,20 +16,25 @@ export function alignGroundContacts(actor, mesh, root, clips) {
   if (!candidates.length) return;
   const mixer = new AnimationMixer(actor);
   for (const clip of clips) {
+    const airborne = ["Fly", "Swim"].includes(clip.name);
+    let lowest = Infinity;
     const action = mixer.clipAction(clip);
     action.clampWhenFinished = true;
     action.setLoop(LoopOnce, 1).play();
     const times = [],
       positions = [];
-    for (let k = 0; k <= 32; k++) {
-      const t = (k / 32) * clip.duration;
+    const samples = airborne ? 40 : 32;
+    for (let k = 0; k <= samples; k++) {
+      const t = (k / samples) * clip.duration;
       action.time = t;
       mixer.update(0);
       actor.updateMatrixWorld(true);
       mesh.skeleton.update();
       const matrices = mesh.skeleton.boneMatrices;
       let low = Infinity;
-      for (const i of candidates) {
+      const count = airborne ? pos.count : candidates.length;
+      for (let n = 0; n < count; n++) {
+        const i = airborne ? n : candidates[n];
         const x = pos.getX(i),
           y = pos.getY(i),
           z = pos.getZ(i);
@@ -47,12 +52,18 @@ export function alignGroundContacts(actor, mesh, root, clips) {
         }
         low = Math.min(low, result);
       }
+      lowest = Math.min(lowest, low);
       times.push(t);
       positions.push(
         root.position.x,
-        root.position.y + min.y - low,
+        airborne ? root.position.y : root.position.y + min.y - low,
         root.position.z,
       );
+    }
+    if (airborne) {
+      // Lift the entire loop enough for the lowest wingtip, preserving the authored bob.
+      const lift = Math.max(0, min.y + 0.035 * (max.y - min.y) - lowest);
+      for (let i = 1; i < positions.length; i += 3) positions[i] += lift;
     }
     action.stop();
     mixer.uncacheClip(clip);

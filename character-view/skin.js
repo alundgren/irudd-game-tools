@@ -6,10 +6,15 @@ import { prepareExpressions, worldMorphs } from "./expressions.js";
 import { alignGroundContacts } from "./ground-contact.js";
 import { buildClips } from "./motion.js";
 
-function inferRole(p) {
+export function inferRole(p) {
+  if (p.motionRole === "axial spine" && !p.knots?.length) return "rigid";
   if (p.motionRole) return p.motionRole;
   const id = p.id.toLowerCase();
-  if (/wing/.test(id) && !/(rib|spar|plate|fin)/.test(id)) return "wing";
+  if (
+    /wing/.test(id) &&
+    (!/(rib|spar|plate|fin)/.test(id) || /leading.spar/.test(id))
+  )
+    return "wing";
   if (p.outfitRole) return p.outfitRole;
   if (/skirt fold|velvet dress/.test(id)) return "skirt";
   if (
@@ -31,6 +36,22 @@ function inferRole(p) {
   if (/foot|feet/.test(id)) return "foot";
   return "rigid";
 }
+export function movementRoles(parts) {
+  const roles = new Map(parts.map((p) => [p.id, inferRole(p)]));
+  for (const base of parts) {
+    if (base.motionRole || !["upper arm", "rigid"].includes(roles.get(base.id)))
+      continue;
+    const wingParts = parts.filter(
+      (p) => p.parent === base.id && /wing/i.test(p.id),
+    );
+    if (wingParts.length < 2 || !wingParts.some((p) => /spar|rib/i.test(p.id)))
+      continue;
+    roles.set(base.id, "wing");
+    for (const child of wingParts)
+      if (!child.motionRole) roles.set(child.id, "rigid");
+  }
+  return roles;
+}
 const activeRoles = new Set([
   "upper arm",
   "forearm",
@@ -38,6 +59,8 @@ const activeRoles = new Set([
   "shin",
   "tail",
   "wing",
+  "fin",
+  "axial spine",
 ]);
 function centroidAt(meshes, axis, tolerance, value, fallback) {
   const result = new T.Vector3(),
@@ -57,6 +80,7 @@ function centroidAt(meshes, axis, tolerance, value, fallback) {
   return n ? result.multiplyScalar(1 / n) : fallback;
 }
 function collect(form, model) {
+  const roles = movementRoles(form.parts);
   const segments = new Map(),
     parts = new Map(form.parts.map((p) => [p.id, p]));
   model.updateWorldMatrix(true, true);
@@ -66,7 +90,7 @@ function collect(form, model) {
       const p = parts.get(object.userData.partId);
       owner = {
         part: p,
-        role: inferRole(p),
+        role: roles.get(p.id),
         object,
         meshes: [],
         bounds: new T.Box3().makeEmpty(),
@@ -85,7 +109,7 @@ function collect(form, model) {
   for (const c of model.children) visit(c, null);
   return segments;
 }
-function centres(s) {
+function centres(s, regions) {
   const { object, part, role, bounds, meshes } = s,
     origin = object.getWorldPosition(new T.Vector3());
   const extent = bounds.getSize(new T.Vector3()),
@@ -106,7 +130,41 @@ function centres(s) {
   const rows = part.knots?.map((p) =>
     object.localToWorld(new T.Vector3(...p.slice(0, 3))),
   );
-  if (role === "tail" || role === "wing") {
+  if ((role === "axial spine" || role === "tail") && rows?.length > 1) {
+    const curve = new T.CatmullRomCurve3(rows);
+    return curve.getSpacedPoints(T.MathUtils.clamp(rows.length, 4, 9) - 1);
+  }
+  if (role === "wing" || role === "fin") {
+    const parent = regions.get(part.parent),
+      body =
+        parent && !parent.bounds.isEmpty()
+          ? parent.bounds.getCenter(new T.Vector3())
+          : new T.Vector3();
+    if (rows?.length > 1) {
+      const ordered =
+        rows[0].distanceToSquared(body) <= rows.at(-1).distanceToSquared(body)
+          ? rows
+          : [...rows].reverse();
+      return new T.CatmullRomCurve3(ordered).getSpacedPoints(3);
+    }
+    const axis = extent.x >= extent.z ? "x" : "z",
+      sign = c[axis] >= body[axis] ? 1 : -1;
+    const start = sign > 0 ? bounds.min[axis] : bounds.max[axis],
+      end = sign > 0 ? bounds.max[axis] : bounds.min[axis];
+    return [0.055, 0.34, 0.65, 0.95].map((t) => {
+      const v = T.MathUtils.lerp(start, end, t),
+        fallback = c.clone();
+      fallback[axis] = v;
+      return centroidAt(
+        meshes,
+        axis,
+        Math.max(0.002, extent[axis] * 0.085),
+        v,
+        fallback,
+      );
+    });
+  }
+  if (role === "tail") {
     if (rows)
       return [rows[0], rows[Math.floor((rows.length - 1) * 0.5)], rows.at(-1)];
     return [origin, c, new T.Vector3(bounds.max.x, c.y, bounds.min.z)];
@@ -161,6 +219,11 @@ function weights(point, points) {
       where = j + f;
     }
   }
+  if (points.length > 3) {
+    const a = Math.min(points.length - 2, Math.floor(where)),
+      t = where - a;
+    return [a, a + 1, 1 - t, t];
+  }
   if (where < 0.76) return [0, 0, 1, 0];
   if (where < 1.24) {
     const t = T.MathUtils.smoothstep(where, 0.76, 1.24);
@@ -181,7 +244,7 @@ export function skinCharacter(form, model) {
   const bones = [root],
     index = new Map([[root, 0]]);
   for (const s of regions.values()) {
-    s.points = centres(s);
+    s.points = centres(s, regions);
     if (
       s.points.length > 1 &&
       (s.points[0].distanceTo(s.points[1]) < 0.003 ||
@@ -317,13 +380,17 @@ export function skinCharacter(form, model) {
   const skinned =
     actor.children.find((o) => o.isSkinnedMesh && !o.userData.faceSurface) ??
     actor.children.find((o) => o.isSkinnedMesh);
-  if (
-    skinned &&
-    [...regions.values()].some((r) =>
-      ["thigh", "foot", "skirt"].includes(r.role),
-    )
-  )
-    alignGroundContacts(actor, skinned, root, clips);
+  if (skinned) {
+    const supported = [...regions.values()].some((r) =>
+      ["thigh", "foot", "skirt", "axial spine"].includes(r.role),
+    );
+    alignGroundContacts(
+      actor,
+      skinned,
+      root,
+      supported ? clips : clips.filter((c) => ["Fly", "Swim"].includes(c.name)),
+    );
+  }
   return {
     actor,
     clips,

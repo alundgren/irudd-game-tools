@@ -1,6 +1,7 @@
+import { creatureMoves, standardMoves } from "./creature-motion.js";
 import { AnimationMixer, SkeletonHelper } from "three";
 import { poseExpression } from "./expressions.js";
-import { skinCharacter } from "./skin.js";
+import { skinCharacter, movementRoles } from "./skin.js";
 
 export function motionPreview(scene, render) {
   const select = document.getElementById("motion"),
@@ -127,6 +128,15 @@ export function motionPreview(scene, render) {
       release();
       model = figure;
       recipe = form;
+      const last = select.value;
+      const roles = [...movementRoles(form.parts).values()],
+        names = ["Bind", ...standardMoves(roles), ...creatureMoves(roles)];
+      select.replaceChildren(
+        ...names.map(
+          (name) => new Option(name === "Bind" ? "Rest" : name, name),
+        ),
+      );
+      select.value = names.includes(last) ? last : "Bind";
       let hasFace = false;
       figure.traverse((o) => {
         if (o.userData.faceSurface) hasFace = true;

@@ -163,6 +163,7 @@ const canvas = $("#viewport");
 const views = {
   "3/4": [2.1, 1.36, 4.25],
   Front: [0, 0, 4.8],
+  Portrait: [-2.06, 0, 4.33],
   Side: [4.8, 0, 0],
   Back: [0, 0, -4.8],
 };
@@ -874,13 +875,18 @@ function bindControls() {
         const value = Math.min(
           k === "length" ? 2 : 1,
           Math.max(
-            k === "sweep" ? -1 : 0,
-            p.groom[k] + sign * (k === "length" ? 0.18 : 0.15),
+            ["sweep", "part"].includes(k) ? -1 : 0,
+            (p.groom[k] ?? 0) + sign * (k === "length" ? 0.18 : 0.15),
           ),
         );
         return { ...p, groom: { ...p.groom, [k]: Number(value.toFixed(3)) } };
       });
   }
+  $("#hair-pattern").onchange = () =>
+    editPart((p) => ({
+      ...p,
+      groom: { ...p.groom, pattern: $("#hair-pattern").value },
+    }));
   $("#hair-color").onchange = () =>
     editPart((p) => ({
       ...p,
@@ -1137,6 +1143,9 @@ function bindControls() {
     : "Give the exported JSON to your agent, then load its proposal here.";
   $("#generate").onclick = generate;
   $("#paint-generate").hidden = !connected;
+  $("#paint-action").onchange = () => {
+    $("#repaint-branch-field").hidden = $("#paint-action").value !== "repaint";
+  };
   $("#paint-generate").onclick = () => generate("paint");
   $("#cancel-generation").onclick = () => generationController?.abort();
   $("#save-turnaround").onclick = async () => {
@@ -1330,6 +1339,10 @@ async function generate(kind) {
         height,
         target,
         signal: generationController.signal,
+        paintBranch: $("#repaint-branch").checked,
+        resurface: Boolean(target) && $("#paint-action").value === "repaint",
+        sourceRevision:
+          Boolean(target) && $("#paint-action").value === "revise",
         depth: Boolean(target) && $("#paint-action").value === "depth",
         scalp: Boolean(target) && $("#paint-action").value === "scalp",
         wearable: Boolean(target) && $("#paint-action").value === "wear",
@@ -1431,6 +1444,13 @@ function update() {
   if (["cloth", "spine"].includes(operation) && part?.shape !== "sweep")
     operation = "shape";
   $("#paint-action-field").hidden = !connected || !part;
+  $("#repaint-action").hidden = !(part?.paint || part?.hull);
+  $("#revise-action").hidden = !acceptsDepth(part);
+  if (
+    ["revise", "repaint"].includes($("#paint-action").value) &&
+    $("#" + $("#paint-action").value + "-action").hidden
+  )
+    $("#paint-action").value = "replace";
   $("#depth-action").hidden = !acceptsDepth(part);
   if ($("#depth-action").hidden && $("#paint-action").value === "depth")
     $("#paint-action").value = "replace";
@@ -1440,6 +1460,8 @@ function update() {
   $("#scalp-action").hidden = !part?.hairCap || !!part?.sourceHairOnly;
   if ($("#scalp-action").hidden && $("#paint-action").value === "scalp")
     $("#paint-action").value = "replace";
+  $("#repaint-branch-field").hidden =
+    $("#paint-action-field").hidden || $("#paint-action").value !== "repaint";
   $("#paint-action").disabled = locked;
   for (const el of $("#operations").children) {
     pressed(el, operation === el.dataset.op);
@@ -1535,7 +1557,14 @@ function update() {
   $("#hair-add").hidden = !!part?.groom;
   $("#hair-remove").hidden = !part?.groom;
   $("#hair-settings").hidden = !part?.groom;
-  if (part?.groom) $("#hair-color").value = part.groom.color;
+  if (part?.groom) {
+    $("#hair-color").value = part.groom.color;
+    $("#hair-pattern").value = part.groom.pattern ?? "Locks";
+    $("#hair-axis").querySelector('[value="part"]').disabled =
+      part.groom.pattern !== "Side part";
+    if ($("#hair-axis").selectedOptions[0]?.disabled)
+      $("#hair-axis").value = "sweep";
+  }
   $("#skin-tools").hidden = !form.parts.some(canBlend);
   $("#skin-part").disabled = locked || !canBlend(part);
   $("#skin-part").textContent = part?.blendSkin

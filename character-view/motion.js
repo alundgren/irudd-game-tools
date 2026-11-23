@@ -1,3 +1,4 @@
+import { creatureClips, standardMoves } from "./creature-motion.js";
 import {
   AnimationClip,
   QuaternionKeyframeTrack,
@@ -122,7 +123,7 @@ export function buildClips(root, regions) {
     2.2,
   );
   const clips = [];
-  for (const name of ["Idle", "Walk", "Crouch", "Reach"]) {
+  for (const name of standardMoves([...regions.values()].map((s) => s.role))) {
     const period = name === "Walk" ? duration : name === "Idle" ? 3.2 : 2.6;
     const tracks = new Map(),
       translations = new Map(),
@@ -254,5 +255,5 @@ export function buildClips(root, regions) {
     clip.optimize();
     clips.push(clip);
   }
-  return clips;
+  return [...clips, ...creatureClips(root, regions)];
 }

@@ -37,6 +37,11 @@
         <div class="camera">
           <div id="angles" aria-label="Camera angle" role="group">
             <button data-angle="3/4" aria-pressed="true">¾</button
+            ><button
+              data-angle="Portrait"
+              title="Eye-level three-quarter view from the opposite side"
+            >
+              Portrait</button
             ><button data-angle="Front">Front</button
             ><button data-angle="Side">Side</button
             ><button data-angle="Back">Back</button>
@@ -153,11 +158,21 @@
             </div>
             <div id="hair-settings" hidden>
               <label class="field"
+                >Hair construction<select id="hair-pattern">
+                  <option>Locks</option>
+                  <option>Side part</option>
+                  <option>Coils</option>
+                  <option>Braids</option>
+                  <option>Locs</option>
+                </select></label
+              >
+              <label class="field"
                 >Change<select id="hair-axis">
                   <option value="length">Length</option>
                   <option value="curl">Curl</option>
                   <option value="sweep">Side sweep</option>
                   <option value="gather">Gather into a tail</option>
+                  <option value="part">Part position</option>
                   <option value="volume">Volume at crown</option>
                 </select></label
               >
@@ -325,10 +340,20 @@
           </details>
           <p class="micro" id="protected-list"></p>
           <p class="micro" id="agent-help"></p>
+          <label id="repaint-branch-field" hidden
+            ><input id="repaint-branch" type="checkbox" checked /> Include
+            attached regions with the same artwork</label
+          >
           <label class="field" id="paint-action-field" hidden
             >Painted edit<select id="paint-action">
               <option value="replace">Redesign this part</option>
               <option value="wear">Fit a garment to this part</option>
+              <option value="repaint" id="repaint-action" hidden>
+                Repaint existing geometry
+              </option>
+              <option value="revise" id="revise-action" hidden>
+                Revise this portrait from its source art
+              </option>
               <option value="depth" id="depth-action" hidden>
                 Fit facial relief from the source views
               </option>

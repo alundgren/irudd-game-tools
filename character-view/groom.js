@@ -1,3 +1,4 @@
+import { shapedFibres, coilLift, fibrePatterns } from "./hair-fibres.js";
 import { BufferGeometry, Float32BufferAttribute, Vector3 } from "three";
 
 export const groomDefaults = Object.freeze({
@@ -22,6 +23,9 @@ export function validGroom(g) {
       ([key, [min, max]]) =>
         Number.isFinite(g[key]) && g[key] >= min && g[key] <= max,
     ) &&
+    (g.pattern === undefined || fibrePatterns.includes(g.pattern)) &&
+    (g.part === undefined ||
+      (Number.isFinite(g.part) && Math.abs(g.part) <= 1)) &&
     Number.isInteger(g.seed) &&
     /^#[0-9a-f]{6}$/i.test(g.color)
   );
@@ -151,19 +155,27 @@ export function groomGeometry(box, options, geometry, transform) {
     );
   }
   const cap = buffer(),
-    rows = 16,
-    cols = 64;
+    rows = options.pattern === "Coils" ? 48 : 20,
+    cols = options.pattern === "Coils" ? 128 : 64;
   for (let j = 0; j <= rows; j++)
     for (let i = 0; i <= cols; i++) {
       const a = (tau * i) / cols,
         phi = 0.004 + ((edge(a) - 0.004) * j) / rows;
-      cap.point(scalp(a, phi), i / cols, j / rows);
+      const inflate =
+        options.pattern === "Coils"
+          ? 1 + coilLift(phi, edge(a), options, a)
+          : 1;
+      cap.point(scalp(a, phi, inflate), i / cols, j / rows);
       if (i < cols && j < rows) {
         const v = j * (cols + 1) + i;
         cap.quad(v, v + cols + 1, v + cols + 2, v + 1);
       }
     }
   const locks = [buffer(), buffer(), buffer()];
+  if (options.pattern && options.pattern !== "Locks") {
+    shapedFibres({ options, h, scalp, edge, clear, random, buffers: locks });
+    return [cap, ...locks].map((b) => b.finish());
+  }
   const count = 48,
     steps = 28 + Math.ceil(curl * 20),
     sides = 7;

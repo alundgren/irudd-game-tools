@@ -1,0 +1,85 @@
+{
+  "glassgrass-eel": {
+    "status": "glassgrass-eel.glb \u00b7 0.291 m tall \u00b7 1 skeletons \u00b7 5 clips",
+    "clips": {
+      "Idle": {
+        "movement": 0.023,
+        "floor": 0.007
+      },
+      "Reach": {
+        "movement": 0.122,
+        "floor": 0.007
+      },
+      "Swim": {
+        "movement": 0.51,
+        "floor": 0.135
+      },
+      "Slither": {
+        "movement": 0.587,
+        "floor": 0.007
+      },
+      "Coil": {
+        "movement": 3.164,
+        "floor": 0.007
+      }
+    }
+  },
+  "reef-motion": {
+    "status": "reef-motion.glb \u00b7 1.347 m tall \u00b7 1 skeletons \u00b7 6 clips",
+    "clips": {
+      "Idle": {
+        "movement": 0.114,
+        "floor": 0.001
+      },
+      "Walk": {
+        "movement": 0.284,
+        "floor": 0.001
+      },
+      "Crouch": {
+        "movement": 0.157,
+        "floor": 0.001
+      },
+      "Reach": {
+        "movement": 0.674,
+        "floor": 0.001
+      },
+      "Fly": {
+        "movement": 0.66,
+        "floor": 0.146
+      },
+      "Swim": {
+        "movement": 0.384,
+        "floor": 0.13
+      }
+    }
+  },
+  "glider-motion": {
+    "status": "glider-motion.glb \u00b7 1.116 m tall \u00b7 1 skeletons \u00b7 6 clips",
+    "clips": {
+      "Idle": {
+        "movement": 0.081,
+        "floor": -0.0
+      },
+      "Walk": {
+        "movement": 0.205,
+        "floor": -0.0
+      },
+      "Crouch": {
+        "movement": 0.237,
+        "floor": -0.0
+      },
+      "Reach": {
+        "movement": 0.169,
+        "floor": -0.0
+      },
+      "Fly": {
+        "movement": 1.205,
+        "floor": 0.039
+      },
+      "Swim": {
+        "movement": 0.662,
+        "floor": 0.101
+      }
+    }
+  }
+}

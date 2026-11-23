@@ -7,7 +7,7 @@ import { createServer } from "node:http";
 import { paintVariation, fitArtwork, paintDepth } from "./art-direction.mjs";
 import { codexJob } from "./codex-worker.mjs";
 import { readFile } from "node:fs/promises";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { pathToFileURL } from "node:url";
 import { validateForm, readProposal } from "../character-view/recipe.js";
 
 export async function codexVariation(brief, signal, repair) {
@@ -49,12 +49,23 @@ export function workshopServer(
     if (req.headers.host !== new URL(url).host)
       return json(403, { error: "Use the local workshop address." });
     if (req.method === "GET" && req.url === "/") {
+      let html = page;
+      if (html === undefined) {
+        try {
+          html = await readFile(
+            new URL("../dist/character-view.html", import.meta.url),
+            "utf8",
+          );
+        } catch {
+          return json(503, { error: "Build the editor with npm run build." });
+        }
+      }
       res.writeHead(200, {
         "Content-Type": "text/html; charset=utf-8",
         "Cache-Control": "no-store",
       });
       return res.end(
-        page.replace(
+        html.replace(
           "</head>",
           '<meta name="workshop-agent" content="local"></head>',
         ),
@@ -150,6 +161,11 @@ export function workshopServer(
           (req.url === "/trace-map" || !validReferences(brief.references))
         )
           throw new Error("Choose up to two valid visual references.");
+        if (
+          brief.sourceView !== undefined &&
+          (req.url !== "/turnaround" || !validReferences([brief.sourceView]))
+        )
+          throw new Error("The source turnaround is invalid.");
         if (brief.repair && JSON.stringify(brief.repair).length > 60000)
           throw new Error("The repair map is too large.");
         if (
@@ -212,11 +228,7 @@ if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(process.argv[1]).href
 ) {
-  const page = await readFile(
-    fileURLToPath(new URL("../dist/character-view.html", import.meta.url)),
-    "utf8",
-  );
-  const server = workshopServer(page);
+  const server = workshopServer();
   server.on("error", (err) => {
     console.error(err.message);
     process.exitCode = 1;

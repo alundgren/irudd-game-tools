@@ -1,3 +1,4 @@
+import { paintSources, retainPaintSources } from "./paint-sources.js";
 import { acceptsDepth, depthFromPixels } from "./portrait-depth.js";
 import { readReference } from "./visual-references.js";
 import { keepSourceHairstyle } from "./graft.js";
@@ -254,6 +255,9 @@ export async function paintWithAgent(
     wearable = false,
     scalp = false,
     depth = false,
+    resurface = false,
+    sourceRevision = false,
+    paintBranch = true,
     status,
     signal,
   },
@@ -276,20 +280,30 @@ export async function paintWithAgent(
     ...(request.references?.length ? { references: request.references } : {}),
     wearable,
   };
-  if (scalp) {
+  if (scalp || resurface || sourceRevision) {
     const original = base.parts.find((p) => p.id === target),
-      url = base.artwork?.[original?.paint?.atlas];
-    if (!original?.hairCap || !url)
-      throw new Error("Select a fitted portrait with source hair.");
-    const source = await (await fetch(url)).blob();
-    const reference = await readReference(
-      new File([source], "original-face-turnaround.webp", {
-        type: "image/webp",
-      }),
-      "Face",
+      binding = original?.paint ?? original?.hull;
+    if (!binding?.atlas || (scalp && !original?.hairCap))
+      throw new Error("Choose a fitted region with source artwork.");
+    const c = document.createElement("canvas");
+    c.width = c.height = 960;
+    const ctx = c.getContext("2d");
+    for (let i = 0; i < 4; i++) {
+      const panel = document.createElement("canvas");
+      panel.width = panel.height = 480;
+      paintGuide(panel.getContext("2d"), binding.atlas, i);
+      ctx.drawImage(panel, (i % 2) * 480, Math.floor(i / 2) * 480);
+    }
+    const blob = await new Promise((resolve) =>
+      c.toBlob(resolve, "image/webp", 0.94),
     );
-    payload.references = [reference, ...(request.references ?? []).slice(0, 1)];
-    payload.scalp = true;
+    payload.sourceView = await readReference(
+      new File([blob], "accepted-turnaround.webp", { type: "image/webp" }),
+      original.anatomy === "face" ? "Face" : "Color and surface",
+    );
+    payload.scalp = scalp;
+    payload.resurface = resurface;
+    payload.sourceRevision = sourceRevision;
   }
   status("Generating an original four-view turnaround…");
   const art = await post("/turnaround", payload, signal);
@@ -299,6 +313,57 @@ export async function paintWithAgent(
   const { id: atlas, url } = await importArtwork(
     new File([bytes], "turnaround.png", { type: "image/png" }),
   );
+  if (resurface) {
+    const source = base.parts.find((p) => p.id === target),
+      binding = source.paint ?? source.hull;
+    const branch = new Set([target]);
+    if (paintBranch) {
+      let count = 0;
+      while (count !== branch.size) {
+        count = branch.size;
+        for (const p of base.parts)
+          if (branch.has(p.parent) && !request.preserve.includes(p.id))
+            branch.add(p.id);
+      }
+    }
+    let changed = 0;
+    const prior = paintSources(base);
+    const next = retainPaintSources(
+      {
+        ...base,
+        artwork: { ...base.artwork, [atlas]: url },
+        parts: base.parts.map((p) => {
+          const key = p.paint ? "paint" : "hull",
+            original = p[key];
+          if (!branch.has(p.id) || original?.atlas !== binding.atlas) return p;
+          changed++;
+          return { ...p, [key]: { ...original, atlas } };
+        }),
+      },
+      [
+        ...prior,
+        ...prior
+          .filter((b) => b.atlas === binding.atlas)
+          .map((b) => ({ ...b, atlas })),
+      ],
+    );
+    validateForm(next);
+    return {
+      format: "irudd.form-proposal.v1",
+      requestId: request.requestId,
+      revision: request.revision,
+      summary:
+        "Repainted " +
+        changed +
+        " region" +
+        (changed === 1 ? "" : "s") +
+        " on the existing geometry. " +
+        (art.summary ?? "").slice(0, 320),
+      form: next,
+      painted: true,
+      art: { atlas, url },
+    };
+  }
   status("Fitting editable 3D regions to the new front and profile…");
   let form,
     map,

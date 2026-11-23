@@ -40,6 +40,7 @@ const directions = {
   threequarter: [1.85, 0.56, 3],
   front: [0, 0, 1],
   side: [1, 0, 0],
+  overhead: [0, 1, 0.001],
   back: [0, 0, -1],
 };
 function frameModel() {
