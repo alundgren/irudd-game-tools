@@ -21,6 +21,7 @@ import { expeditionMaterial } from "./expedition.js";
 import { fittedScute } from "./scutes.js";
 import { sculptBuild } from "./body-sculpt.js";
 import { fitWardrobe, addEquipment } from "./wardrobe.js";
+import { applyFrontFit } from "./front-fit.js";
 import { fitHeadProfile } from "./profile-fit.js";
 import { deformFace, portraitSurface } from "./facial-sculpt.js";
 import { volumeGeometry } from "./volume.js";
@@ -784,14 +785,14 @@ export function createCharacter(form, silhouette, clay = false) {
   blendSkin(form, objects, material);
   sculptBuild(group, form);
   for (const part of form.parts) {
-    if (!part.profileFit) continue;
+    if (!part.profileFit && !part.frontFits?.length) continue;
     const owner = objects.get(part.id);
     const face = owner.userData.faceSurface
       ? owner
       : owner.children.find((c) => c.userData.faceSurface);
     if (face) {
       if (part.shape === "head") face.geometry = face.geometry.clone();
-      fitHeadProfile(face, part.profileFit);
+      if (part.profileFit) fitHeadProfile(face, part.profileFit);
     }
   }
   fitSurfaceJoins(form, objects);
@@ -803,6 +804,16 @@ export function createCharacter(form, silhouette, clay = false) {
         : root?.children.find((c) => c.userData.faceSurface);
       if (face)
         attachEyes(face, p.eyesRig, plainView ? material("#adb4ad") : null);
+    }
+  for (const p of form.parts)
+    if (p.frontFits?.length) {
+      const owner = objects.get(p.id),
+        face = owner.userData.faceSurface
+          ? owner
+          : owner.children.find((c) => c.userData.faceSurface);
+      if (face)
+        for (const pass of p.frontFits)
+          applyFrontFit(face, pass, !!p.profileFit, owner);
     }
   if (!plainView)
     for (const part of form.parts) {

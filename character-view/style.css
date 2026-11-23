@@ -670,6 +670,7 @@ textarea {
     gap: 8px;
   }
 }
+#front-room,
 #profile-room,
 #trace-dialog {
   width: min(780px, 94vw);
@@ -681,9 +682,36 @@ textarea {
   border-radius: 8px;
   padding: 20px;
 }
+#front-room::backdrop,
 #profile-room::backdrop,
 #trace-dialog::backdrop {
   background: #152a24a6;
+}
+.front-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 10px 0;
+}
+.front-pair figure {
+  min-width: 0;
+  margin: 0;
+}
+.front-pair figcaption {
+  font-size: 0.8rem;
+  margin-bottom: 4px;
+}
+.front-pair canvas {
+  display: block;
+  position: static;
+  width: 100%;
+  height: auto;
+  cursor: crosshair;
+  touch-action: manipulation;
+}
+#front-room p {
+  font-size: 0.86rem;
+  line-height: 1.5;
 }
 #profile-image {
   display: block;

@@ -873,6 +873,20 @@
           >
         </p>
       </section>
+      <section class="method" id="paired-faces">
+        <h2>What changes when the artist pairs features on two faces?</h2>
+        <figure><img src="media/paired-faces.webp" alt="Two rows of exported ranger and dockworker faces. Each shows color before and after, clay before and after, then the fitted clay face turned three-quarter." />
+        <figcaption>Top is the profile-fitted ranger, steered with a second photograph of Lincoln. Bottom is the dockworker, steered with badtrouble’s Dragon’s Dogma 2 screenshot. Each row shows the original and fitted front in color, the same two in clay, then the fitted head in three-quarter.</figcaption></figure>
+        <p>Select a head and open <strong>Match facial landmarks</strong>. Pair two points to register the images, then mark features such as pupils, nostrils, mouth corners and the scalp contour. The fit moves nearby geometry, its surface paint, fitted eye patches and attached pieces. The first prototype left the dockworker’s glasses and side hair behind. Carrying those meshes through the same deformation brought them back onto the head. The artist can stack passes and remove the latest one.</p>
+        <table><thead><tr><th>Input head and reference</th><th>Selected features, mean error</th><th>Five additional features</th></tr></thead><tbody>
+          <tr><td>Ranger and Gardner’s frontal Lincoln portrait</td><td>8.74 → 0.66 mm (14)</td><td>6.52 → 8.23 mm</td></tr>
+          <tr><td>Dockworker and the Frank Reynolds pawn</td><td>30.48 → 1.18 mm (28)</td><td>18.55 → 5.66 mm</td></tr>
+        </tbody></table>
+        <p>The two alignment points are excluded. The measurement follows each material location by its texture coordinates through two separately reduced GLBs and measures the distance in the frontal plane. The five additional locations on each reference were annotated separately from the steering points. The ranger’s earlier profile error across 17 heights changed from 1.32 to 1.38 mm.</p>
+        <p>The dockworker acquired a taller bald dome and narrower jaw. Its oval frames, pointed nose and face paint still differ visibly from the game screenshot. The ranger’s intermediate frontal points grew less accurate. A good score at the chosen points gives limited evidence about the features between them. Both exports keep four motion clips and pass Khronos validation with zero errors or warnings.</p>
+        <p><a href="../examples/landmark-surveyor.glb" data-player="landmark-surveyor" data-view="portrait">Inspect the dockworker</a> · <a href="../examples/landmark-ranger.glb" data-player="landmark-ranger" data-view="portrait-oblique">Inspect the ranger</a> · <a href="../examples/landmark-surveyor.form.json">Editable dockworker</a> · <a href="../examples/landmark-ranger.form.json">Editable ranger</a> · <a href="media/paired-faces.json">Source points and errors</a></p>
+        <p>References are <a href="https://www.reddit.com/r/fashiondogma/comments/1bbsfpn/so_anyway_i_started_casting/">badtrouble’s original showcase</a> and <a href="https://www.loc.gov/resource/ppmsca.19301/">Alexander Gardner’s 1863 portrait at the Library of Congress</a>. The deformation adapts the <a href="https://people.engr.tamu.edu/schaefer/research/mls.pdf">moving least squares method of Schaefer, McPhail and Warren</a>.</p>
+      </section>
       <section class="method" id="traced-profile">
         <h2>Can a ranger inherit the contour of a real face?</h2>
         <figure><img src="media/traced-profile.webp" alt="Lincoln in profile, the original and fitted 3D ranger in profile, and the same two heads at three-quarter. The fitted nose has a lower tip and the lips and chin project." />

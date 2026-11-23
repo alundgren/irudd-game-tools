@@ -54,6 +54,7 @@ import { paintedStudies } from "../examples/painted-studies.js";
 import { repeatOnSpine } from "./scutes.js";
 import { outfitRoles } from "./wardrobe.js";
 import { faceHandles } from "./face-handles.js";
+import { frontEditor } from "./front-editor.js";
 import { profileEditor } from "./profile-editor.js";
 import { isFace } from "./facial-sculpt.js";
 import { bindTraceEditor } from "./trace-editor.js";
@@ -885,6 +886,27 @@ function bindControls() {
     }));
   $("#hair-source").onclick = () =>
     editPart((p) => ({ ...p, hideSourceHair: !p.hideSourceHair }));
+  const selectedFace = (group, id) => {
+    const owner = findPart(group, id);
+    return owner?.userData.faceSurface
+      ? owner
+      : owner?.children.find((c) => c.userData.faceSurface);
+  };
+  $("#front-open").onclick = frontEditor({
+    getFace: () => selectedFace(figure, target),
+    getRenderer: () => renderer,
+    restoreView: render,
+    status,
+    save: (pass) =>
+      editPart((p) => ({ ...p, frontFits: [...(p.frontFits ?? []), pass] })),
+  });
+  $("#front-remove").onclick = () =>
+    editPart((p) => {
+      const { frontFits, ...rest } = p;
+      return frontFits.length > 1
+        ? { ...rest, frontFits: frontFits.slice(0, -1) }
+        : rest;
+    });
   $("#profile-open").onclick = profileEditor((profileFit) =>
     editPart((p) => ({ ...p, profileFit })),
   );
@@ -903,12 +925,26 @@ function bindControls() {
     });
   $("#eye-fit").onclick = () =>
     editPart((p) => {
-      const owner = findPart(figure, p.id),
-        face = owner?.userData.faceSurface
-          ? owner
-          : owner?.children.find((c) => c.userData.faceSurface);
-      if (!face) throw new Error("Select a registered face.");
-      return { ...p, eyesRig: fitEyeSettings(face) };
+      let original;
+      try {
+        if (p.frontFits?.length) {
+          const preview = nudge(form, target, amounts);
+          original = createCharacter(
+            {
+              ...preview,
+              parts: preview.parts.map((q) =>
+                q.id === p.id ? { ...q, frontFits: [] } : q,
+              ),
+            },
+            false,
+          );
+        }
+        const face = selectedFace(original ?? figure, p.id);
+        if (!face) throw new Error("Select a registered face.");
+        return { ...p, eyesRig: fitEyeSettings(face) };
+      } finally {
+        if (original) disposeCharacter(original);
+      }
     });
   $("#eye-remove").onclick = () =>
     editPart((p) => {
@@ -1843,6 +1879,9 @@ function update() {
       part?.shape === "head" ||
       (part?.anatomy === "face" && part.paint?.portrait)
     );
+  $("#front-tools").hidden = $("#eye-tools").hidden;
+  $("#front-open").disabled = (part?.frontFits?.length ?? 0) >= 6;
+  $("#front-remove").hidden = !part?.frontFits?.length;
   $("#profile-tools").hidden = $("#eye-tools").hidden;
   $("#profile-settings").hidden = !part?.profileFit;
   if (part?.profileFit)
