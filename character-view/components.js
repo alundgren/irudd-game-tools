@@ -1,3 +1,4 @@
+import { buildFigure, randomFigure } from "./figure.js";
 import { bodyRegion } from "./blended-skin.js";
 import { markingKinds } from "./markings.js";
 import { palmColor } from "./turnaround.js";
@@ -92,6 +93,25 @@ export function generateWorkshopForm(
     kind === "any" ? pick(["human", "human", "creature", "hybrid"]) : kind;
   const shelf = componentShelf();
   let form;
+  if (anatomy === "figure") {
+    form = buildFigure(randomFigure(draw));
+    if (draw() < 0.8)
+      form = placeComponent(
+        form,
+        shelf[
+          pick(["coast-face", "conductor-face", "foreman-face", "relay-face"])
+        ],
+        { target: "head" },
+      ).form;
+    // A painted head brings its own complexion. Carry it to the bare body.
+    const tone = form.parts.find((p) => p.id === "head")?.color;
+    if (/^#[0-9a-f]{6}$/i.test(tone ?? ""))
+      form.parts = form.parts.map((p) =>
+        p.bare || p.shape === "hand" ? { ...p, color: tone } : p,
+      );
+    form.origin = { ...form.origin, seed };
+    return form;
+  }
   if (anatomy === "human") {
     const body = pick([
       "painted-ranger",

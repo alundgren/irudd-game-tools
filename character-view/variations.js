@@ -1,3 +1,4 @@
+import { buildFigure } from "./figure.js";
 import { equipPlateRows } from "./scutes.js";
 import { cubeCage, editCage } from "./control-cage.js";
 import { validWorldMarks } from "./spatial-guide.js";
@@ -189,6 +190,7 @@ const allowedPartKeys = new Set([
   "motionRole",
   "look",
   "frameSize",
+  "bare",
 ]);
 const allowedFormKeys = new Set([
   "poses",
@@ -284,6 +286,20 @@ export function applyOperations(
           fit: action.fit ?? true,
           socket: action.socket ?? "above",
         }).form;
+        break;
+      }
+      case "buildFigure": {
+        // Replace the anatomy with a measured, jointed two-arm figure. Later
+        // operations in the same proposal can dress or reshape its parts.
+        const built = buildFigure(action.figure);
+        form = {
+          ...form,
+          parts: built.parts,
+          origin: built.origin,
+          appearance: { ...form.appearance, ...built.appearance },
+          outfit: built.outfit,
+        };
+        delete form.build;
         break;
       }
       case "setPart":

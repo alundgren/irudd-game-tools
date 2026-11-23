@@ -45,26 +45,43 @@ export function fitWardrobe(part, form) {
         : ["thigh", "upper arm", "torso"].includes(role)
           ? "#364b48"
           : "#535c58";
+  // A bare region is the body itself, so clothing sits on it with ease
+  // instead of being cut down from a clothed surface.
   const amount = preserve
     ? 1
-    : suit
-      ? ({
-          torso: 1.16,
-          "upper arm": 1.22,
-          forearm: 1.23,
-          hand: 1.18,
-          thigh: 1.16,
-          shin: 1.23,
-          foot: 1.14,
-        }[role] ?? 1.1)
-      : ({
-          torso: 0.9,
-          "upper arm": 0.85,
-          forearm: 0.85,
-          shin: 0.84,
-          thigh: 0.89,
-          foot: 0.88,
-        }[role] ?? 1);
+    : part.bare
+      ? suit
+        ? ({
+            torso: 1.2,
+            "upper arm": 1.42,
+            forearm: 1.5,
+            thigh: 1.3,
+            shin: 1.5,
+            foot: 1.32,
+          }[role] ?? 1.2)
+        : bare
+          ? 1
+          : ({ torso: 1.035, "upper arm": 1.06, thigh: 1.05, foot: 1.12 }[
+              role
+            ] ?? 1.03)
+      : suit
+        ? ({
+            torso: 1.16,
+            "upper arm": 1.22,
+            forearm: 1.23,
+            hand: 1.18,
+            thigh: 1.16,
+            shin: 1.23,
+            foot: 1.14,
+          }[role] ?? 1.1)
+        : ({
+            torso: 0.9,
+            "upper arm": 0.85,
+            forearm: 0.85,
+            shin: 0.84,
+            thigh: 0.89,
+            foot: 0.88,
+          }[role] ?? 1);
   const knots = part.knots?.map((row) => [
     ...row.slice(0, 3),
     row[3] * amount,
