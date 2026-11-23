@@ -1,4 +1,4 @@
-import { fitSurfaceJoins } from "./surface-join.js";
+import { fitSurfaceJoins, hasPlatedAxis } from "./surface-join.js";
 import { attachEyes } from "./ocular.js";
 import { cageGeometry } from "./control-cage.js";
 import { finishPlateSurface } from "./plate-growth.js";
@@ -605,8 +605,12 @@ export function createCharacter(
             const cuff =
               part.motionRole === "rigid" &&
               jointed(form.parts.find((p) => p.id === part.parent));
-            if (jointed(part) || cuff)
-              retainSweepSections(geometry, (part.knots.length - 1) * 5, 28);
+            const platedAxis = hasPlatedAxis(part);
+            if (jointed(part) || cuff || platedAxis) {
+              const bands = (part.knots.length - 1) * 5;
+              const sides = geometry.attributes.position.count / (bands + 1) - 1;
+              retainSweepSections(geometry, bands, sides, platedAxis);
+            }
           }
           if (part.drape?.depth) pleat(geometry, part.knots, part.drape);
           if (part.drape?.slit)

@@ -21,13 +21,19 @@ function radiusAt(knots, left, t, k) {
     (t3 - t2) * db
   );
 }
-// Keep a sparse set of full cross-sections when a jointed limb is reduced.
-export function retainSweepSections(geometry, bands, sides) {
+// Jointed limbs need a few firm cross-sections. Plated axial sweeps also
+// need six points along every ring so socket retention cannot erase the tip.
+export function retainSweepSections(geometry, bands, sides, platedAxis = false) {
   const pins = new Uint8Array(geometry.attributes.position.count);
-  for (const t of [0, 0.1, 0.24, 0.42, 0.61, 0.79, 0.93, 1]) {
-    const start = Math.round(t * bands) * (sides + 1);
-    for (let i = 0; i <= 12; i++)
-      pins[start + Math.round((i * sides) / 12)] = 1;
+  const limbSections = [0, 0.1, 0.24, 0.42, 0.61, 0.79, 0.93, 1];
+  const rings = platedAxis
+    ? Array.from({ length: bands + 1 }, (_, i) => i)
+    : limbSections.map((t) => Math.round(t * bands));
+  const around = platedAxis ? 6 : 12;
+  for (const ring of rings) {
+    const start = ring * (sides + 1);
+    for (let i = 0; i <= around; i++)
+      pins[start + Math.round((i * sides) / around)] = 1;
   }
   geometry.setAttribute("lodAnchor", new T.BufferAttribute(pins, 1));
 }

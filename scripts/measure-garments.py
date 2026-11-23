@@ -6,6 +6,7 @@ exported by the workshop. Results are lengths of triangle intersection curves,
 in metres, counting both sewn fabric surfaces.
 """
 import argparse
+import itertools
 import json
 import re
 import struct
@@ -208,17 +209,93 @@ def contact_report(filename, pairs, samples):
             "measure": "intersecting child triangles per sampled pose", "clips": clips}
 
 
+def arm_motion_report(filename, recipe, samples):
+    """Check other arms and the torso at fixed phases in the exported moving mesh."""
+    mesh = WorkshopMesh(filename)
+    parts = json.loads(Path(recipe).read_text(encoding="utf-8"))["form"]["parts"]
+    children = {}
+    for part in parts:
+        children.setdefault(part.get("parent"), []).append(part)
+
+    def role(part):
+        return part.get("motionRole", part.get("outfitRole"))
+
+    def child(part, wanted):
+        return next((p for p in children.get(part["id"], []) if role(p) == wanted), None)
+
+    chains, torso_pairs = [], []
+    for upper in parts:
+        if role(upper) != "upper arm" or upper["id"] not in mesh.region_names:
+            continue
+        lower = child(upper, "forearm")
+        hand = child(lower or upper, "hand")
+        if not hand or hand["id"] not in mesh.region_names:
+            continue
+        members = [p["id"] for p in (upper, lower, hand) if p]
+        for limb in (upper, lower):
+            if limb:
+                members.extend(p["id"] for p in children.get(limb["id"], [])
+                               if role(p) == "rigid" and p["id"] in mesh.region_names)
+        chains.append(members)
+        if upper.get("parent") in mesh.region_names:
+            torso_pairs.extend((p["id"], upper["parent"]) for p in (lower, hand) if p)
+
+    if len(chains) < 2:
+        raise ValueError("Choose a matching recipe and GLB with two or more named arm and hand chains.")
+    arm_pairs = [(a, b) for left, right in itertools.combinations(chains, 2)
+                 for a in left for b in right]
+    all_pairs = arm_pairs + torso_pairs
+    regions = {part: mesh.region_faces(part) for pair in all_pairs for part in pair}
+    if any(not len(tris) for tris in regions.values()):
+        raise ValueError("The recipe contains an arm region missing from the triangulated mesh.")
+
+    def frame_hits(vertices, pairs):
+        geometry = {name: vertices[faces] for name, faces in regions.items()}
+        bounds = {name: (tris.min(axis=(0, 1)), tris.max(axis=(0, 1))) for name, tris in geometry.items()}
+        hits = []
+        for a, b in pairs:
+            lo, hi = bounds[a]
+            other_lo, other_hi = bounds[b]
+            if np.any(lo > other_hi) or np.any(other_lo > hi):
+                continue
+            count, _ = crossings(geometry[a], geometry[b])
+            if count:
+                hits.append([a, b, count])
+        return hits
+
+    clips = {}
+    for clip in [None, *mesh.gltf.get("animations", [])]:
+        name = clip["name"] if clip else "Rest"
+        count = samples if clip and not name.startswith("Pose ") else 1
+        frames = []
+        for phase in np.arange(count) / count:
+            vertices = mesh.pose(clip, phase) if clip else mesh.rest
+            hits = frame_hits(vertices, all_pairs)
+            frames.append({"phase": phase, "crossings": hits})
+        clips[name] = frames
+    return {"chains": chains, "crossArmPairs": arm_pairs, "distalArmToCarrierPairs": torso_pairs,
+            "measure": "Each crossing is the region pair and number of intersecting triangles of its first region.",
+            "clips": clips}
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("model", type=Path)
     parser.add_argument("--garments", nargs="+", default=["cape", "tabard"])
-    parser.add_argument("--contact", action="append", nargs=2, metavar=("CHILD", "PARENT"), help="Check physical contact for this pair in rest and each clip. May be repeated.")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--arm-motion", type=Path, metavar="FORM", help="Check arm crossings in an exported form at fixed phases.")
+    mode.add_argument("--contact", action="append", nargs=2, metavar=("CHILD", "PARENT"), help="Check physical contact for this pair in rest and each clip. May be repeated.")
     parser.add_argument("--samples", type=int, default=8)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     if not 2 <= args.samples <= 128:
         parser.error("Choose 2–128 samples per clip.")
-    report = contact_report(args.model, args.contact, args.samples) if args.contact else measure(args.model, args.garments, args.samples)
+    if args.arm_motion:
+        report = arm_motion_report(args.model, args.arm_motion, args.samples)
+    elif args.contact:
+        report = contact_report(args.model, args.contact, args.samples)
+    else:
+        report = measure(args.model, args.garments, args.samples)
     result = json.dumps(report, indent=2)
     if args.output:
         args.output.write_text(result + "\n", encoding="utf-8")

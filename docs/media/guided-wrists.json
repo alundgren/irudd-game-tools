@@ -1479,7 +1479,7 @@
   "measurements": [
     {
       "fixture": "merchant-offer",
-      "clip": "Pose · Offer the spice jar",
+      "clip": "Pose Â· Offer the spice jar",
       "drivenWrist": "right hand mirrored copy",
       "restWristMetres": [
         0.7981783618974833,
@@ -1509,7 +1509,7 @@
     },
     {
       "fixture": "aviator-reach",
-      "clip": "Pose · Check instrument panel",
+      "clip": "Pose Â· Check instrument panel",
       "drivenWrist": "left hand",
       "restWristMetres": [
         0.2397798354444389,
@@ -1533,7 +1533,7 @@
     },
     {
       "fixture": "merchant-counter",
-      "clip": "Pose · Offer spice and take payment",
+      "clip": "Pose Â· Offer spice and take payment",
       "drivenWrist": "right hand copy",
       "restWristMetres": [
         -0.8191415117025409,
@@ -1596,13 +1596,15 @@
     ],
     "crossingPairs": {
       "Rest": {},
-      "Pose · Offer the spice jar": {},
-      "Pose · Offer spice and take payment": {}
+      "Pose Â· Offer the spice jar": {},
+      "Pose Â· Offer spice and take payment": {}
     }
   },
   "earlierAttempts": [
     "With the original painted tubes and an outward elbow hint, the second wrist arrived, but two pairs of other arm regions intersected.",
     "The retained experiment changes both sleeve construction and the elbow direction search. This comparison does not isolate their contributions."
   ],
-  "scope": "Saved poses and rest only. Other mesh regions, coplanar contact and intermediate animation frames are outside the intersection count."
+  "scope": "Saved poses and rest only. Other mesh regions, coplanar contact and intermediate animation frames are outside the intersection count.",
+  "exportAtCommit": "17f87c5",
+  "laterMotionStudy": "docs/media/arm-motion-crossings.json"
 }

@@ -27,6 +27,7 @@ export const plateGrowthDefaults = Object.freeze({
   wrap: 150,
   overlap: 0.4,
   crest: 0.65,
+  rise: 1,
   color: "#c2ab7c",
   mirrored: false,
 });
@@ -61,6 +62,7 @@ export function validPlateGrowth(settings) {
     within(settings.wrap, 20, 165) &&
     within(settings.overlap, 0, 0.8) &&
     within(settings.crest, 0, 1) &&
+    (settings.rise === undefined || within(settings.rise, 0.5, 3)) &&
     /^#[a-f\d]{6}$/i.test(settings.color) &&
     typeof settings.mirrored === "boolean"
   );
@@ -294,8 +296,13 @@ function makePlate(chart, settings, row, column) {
     spin,
   );
   const vertices = [];
+  const rise = settings.rise ?? 1;
   for (const [t, envelope, ridge, lift] of stations) {
     const distal = MathUtils.smoothstep(t, 0.52, 1);
+    // Move the free blade along the surface normal and leave its heel seated.
+    const free = MathUtils.smoothstep(t, 0.1, 0.95);
+    const tilt = Math.max(0, rise - 1) * height * free * (0.35 + 0.8 * t);
+    const flatten = 1 + Math.min(0, rise - 1) * free;
     for (const [x, z] of ring) {
       const swept = t - 0.16 * Math.abs(x) ** 1.3 * Math.sin(Math.PI * t);
       const pathT = root + sign * span * swept;
@@ -309,7 +316,8 @@ function makePlate(chart, settings, row, column) {
           angularCell;
       const angle = chart.arcMeridian(pathT, cross);
       const h =
-        height * (z * ridge + lift * (1 + curl * distal)) -
+        height * (z * ridge + lift * (1 + curl * distal)) * flatten +
+        tilt -
         Math.min(0.004, height * 0.13) * (1 - t);
       const v = chart
         .point(pathT, angle)

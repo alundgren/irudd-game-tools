@@ -8,6 +8,16 @@ import {
   Triangle,
   Vector3,
 } from "three";
+import { inferRole } from "./skin.js";
+
+// These fields share the same axial joints as the animated sweep beneath them.
+export function hasPlatedAxis(part) {
+  return (
+    part?.shape === "sweep" &&
+    !!part.plateGrowth &&
+    ["tail", "axial spine"].includes(inferRole(part))
+  );
+}
 
 export function validSurfaceJoin(part) {
   const join = part.surfaceJoin;
@@ -467,6 +477,11 @@ export function fitSurfaceJoins(
       seatPlate(mesh, carrier, part.surfaceJoin, nearest, retainMount);
     else if (part.surfaceJoin.end === "along")
       seatStrip(mesh, carrier, part.surfaceJoin, nearest);
-    else seatBranch(mesh, carrier, part, nearest);
+    else {
+      // Retain both sides of the joint through game mesh reduction.
+      const pinPlateSocket =
+        retainMount && part.plateSite && hasPlatedAxis(byId.get(part.parent));
+      seatBranch(mesh, carrier, part, nearest, pinPlateSocket);
+    }
   }
 }

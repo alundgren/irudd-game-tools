@@ -164,3 +164,29 @@ test("refitting a reshaped carrier applies the shape difference once and preserv
   const legacy=structuredClone(initial);delete match(legacy,carrier.id).plateGrowthRest;
   assert.deepEqual(sites(reshapeSpine(legacy,carrier.id,knots)),sites(growPlateField(base,carrier.id,patch).form));
 });
+test("radial rise articulates a pointed crest while its sockets and basal cross-sections stay fixed", () => {
+  const base = recipe();
+  const shape = { ...patch, rows: 6, columns: 1, wrap: 22, crest: 1, face: "Back" };
+  const low = growPlateField(base, "hump", shape).form;
+  const high = growPlateField(low, "hump", { rise: 3 }).form;
+  const flat = growPlateField(low, "hump", { rise: 0.5 }).form;
+  assert.ok(validPlateGrowth({ ...plateGrowthDefaults, rise: undefined }));
+  assert.equal(validPlateGrowth({ ...plateGrowthDefaults, rise: 3.01 }), false);
+  const tip = (p) => p.cage.vertices.at(-5);
+  const distance = (a, b) => Math.hypot(...a.map((n, i) => b[i] - n));
+  for (const plate of sites(low)) {
+    const extended = match(high, plate.id);
+    const folded = match(flat, plate.id);
+    assert.deepEqual(extended.position, plate.position);
+    assert.deepEqual(
+      extended.cage.vertices.slice(0, 16),
+      plate.cage.vertices.slice(0, 16),
+    );
+    assert.deepEqual(extended.surfaceJoin, plate.surfaceJoin);
+    assert.ok(distance(tip(plate), tip(extended)) > 0.018);
+    assert.ok(distance(tip(plate), tip(folded)) > 0.001);
+    checkCage(extended.cage);
+    checkCage(folded.cage);
+  }
+  assert.deepEqual(sites(growPlateField(high, "hump", { rise: 1 }).form), sites(low));
+});

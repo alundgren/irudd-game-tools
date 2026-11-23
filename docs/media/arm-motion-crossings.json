@@ -1,0 +1,226 @@
+{
+  "method": "32 equally spaced phases per default moving clip. Test intersection of actual skinned game triangles on different arms including attached rigid cuff and edging when present. Test distal forearm and hand against the shoulder carrier separately. Intentional shoulder attachment and continuous time between samples are outside the test. The published game exports at the named commit were the comparison inputs. Only merchant-counter was re-exported in place; export the two other editable forms to run the new motion.",
+  "reproduce": "python scripts/measure-garments.py <export.glb> --arm-motion <source.form.json> --samples 32 --output <report.json>",
+  "comparisonImage": "arm-walk-comparison.webp",
+  "imagePhase": "11/16 of Walk",
+  "imageOverlay": "Upper pair turquoise, lower pair ochre. Red lines are exact non-coplanar triangle intersection segments. Multiple affected regions can coincide at one apparent crossing. Colour and diagnostic use separate views, each fixed for both versions.",
+  "abandonedAttempt": "A shared shoulder axis cleared the arms of the counter merchant but its forearms still crossed the torso during walking. The final algorithm spreads arms in the bind frame before applying the swing, allowing the upper sleeve to clear the lower socket.",
+  "forms": [
+    {
+      "form": "examples/merchant-counter.form.json",
+      "earlierGLB": {
+        "path": "examples/merchant-counter.glb",
+        "commit": "360fa07",
+        "sha256": "2a37105e5d224dd174dbc498e9889bc06ec62febe6ef79dad5e3ec155ae339a3"
+      },
+      "revisedExportSHA256": "00ddf11f321d7a0c78f1ce72b14000b79b6808c117dc7c53d61a5a339106909a",
+      "chains": [
+        [
+          "right upper arm",
+          "right forearm",
+          "right hand",
+          "turned leather cuff right forearm",
+          "welt right forearm"
+        ],
+        [
+          "right upper arm mirrored",
+          "right forearm mirrored",
+          "right hand mirrored",
+          "turned leather cuff right forearm mirrored",
+          "welt right forearm mirrored"
+        ],
+        [
+          "right upper arm copy",
+          "right forearm copy",
+          "right hand copy",
+          "turned leather cuff right forearm copy",
+          "welt right forearm copy"
+        ],
+        [
+          "right upper arm mirrored copy",
+          "right forearm mirrored copy",
+          "right hand mirrored copy",
+          "turned leather cuff right forearm mirrored copy",
+          "welt right forearm mirrored copy"
+        ]
+      ],
+      "crossArmPairsPerFrame": 150,
+      "distalArmCarrierPairsPerFrame": 8,
+      "clipReadings": {
+        "Idle": {
+          "earlierFramesWithArmCrossing": 0,
+          "revisedFramesWithArmCrossing": 0,
+          "earlierFramesWithDistalArmOrHandCrossingCarrier": 23,
+          "revisedFramesWithDistalArmOrHandCrossingCarrier": 0
+        },
+        "Walk": {
+          "earlierFramesWithArmCrossing": 22,
+          "revisedFramesWithArmCrossing": 0,
+          "earlierFramesWithDistalArmOrHandCrossingCarrier": 0,
+          "revisedFramesWithDistalArmOrHandCrossingCarrier": 0
+        },
+        "Crouch": {
+          "earlierFramesWithArmCrossing": 19,
+          "revisedFramesWithArmCrossing": 0,
+          "earlierFramesWithDistalArmOrHandCrossingCarrier": 3,
+          "revisedFramesWithDistalArmOrHandCrossingCarrier": 0
+        },
+        "Reach": {
+          "earlierFramesWithArmCrossing": 14,
+          "revisedFramesWithArmCrossing": 0,
+          "earlierFramesWithDistalArmOrHandCrossingCarrier": 3,
+          "revisedFramesWithDistalArmOrHandCrossingCarrier": 0
+        }
+      }
+    },
+    {
+      "form": "examples/quayside-fitted.form.json",
+      "earlierGLB": {
+        "path": "examples/quayside-fitted.glb",
+        "commit": "360fa07",
+        "sha256": "84ab3392c524f300fcc6c0c7bd39cb5b6677fb6acb92957e81babf11399f42bc"
+      },
+      "revisedExportSHA256": "27291bd7081339a8933f4bee0bb9395023021776ae721352d6e939a1e702bf3c",
+      "chains": [
+        [
+          "bent arm -1 0",
+          "palm -1 0"
+        ],
+        [
+          "bent arm -1 1",
+          "palm -1 1"
+        ],
+        [
+          "bent arm 1 0",
+          "palm 1 0"
+        ],
+        [
+          "bent arm 1 1",
+          "palm 1 1"
+        ]
+      ],
+      "crossArmPairsPerFrame": 24,
+      "distalArmCarrierPairsPerFrame": 4,
+      "clipReadings": {
+        "Idle": {
+          "earlierFramesWithArmCrossing": 0,
+          "revisedFramesWithArmCrossing": 0,
+          "earlierFramesWithDistalArmOrHandCrossingCarrier": 0,
+          "revisedFramesWithDistalArmOrHandCrossingCarrier": 0
+        },
+        "Walk": {
+          "earlierFramesWithArmCrossing": 14,
+          "revisedFramesWithArmCrossing": 0,
+          "earlierFramesWithDistalArmOrHandCrossingCarrier": 0,
+          "revisedFramesWithDistalArmOrHandCrossingCarrier": 0
+        },
+        "Crouch": {
+          "earlierFramesWithArmCrossing": 0,
+          "revisedFramesWithArmCrossing": 0,
+          "earlierFramesWithDistalArmOrHandCrossingCarrier": 0,
+          "revisedFramesWithDistalArmOrHandCrossingCarrier": 0
+        },
+        "Reach": {
+          "earlierFramesWithArmCrossing": 0,
+          "revisedFramesWithArmCrossing": 0,
+          "earlierFramesWithDistalArmOrHandCrossingCarrier": 0,
+          "revisedFramesWithDistalArmOrHandCrossingCarrier": 0
+        }
+      }
+    },
+    {
+      "form": "examples/festival-conductor.form.json",
+      "earlierGLB": {
+        "path": "examples/festival-conductor.glb",
+        "commit": "360fa07",
+        "sha256": "486af3e4eae22f128bb95a7c0badde4f06150c69c81ecb394f20653e20d48319"
+      },
+      "revisedExportSHA256": "07dfb1ba07996eee4c185f2b4314121ef9f96ab90e0f3518a1fd038df2b01bc1",
+      "chains": [
+        [
+          "right upper arm",
+          "right forearm",
+          "right hand"
+        ],
+        [
+          "right upper arm mirrored",
+          "right forearm mirrored",
+          "right hand mirrored"
+        ],
+        [
+          "right upper arm copy",
+          "right forearm copy",
+          "right hand copy"
+        ],
+        [
+          "right upper arm mirrored copy",
+          "right forearm mirrored copy",
+          "right hand mirrored copy"
+        ]
+      ],
+      "crossArmPairsPerFrame": 54,
+      "distalArmCarrierPairsPerFrame": 8,
+      "clipReadings": {
+        "Idle": {
+          "earlierFramesWithArmCrossing": 32,
+          "revisedFramesWithArmCrossing": 0,
+          "earlierFramesWithDistalArmOrHandCrossingCarrier": 32,
+          "revisedFramesWithDistalArmOrHandCrossingCarrier": 0
+        },
+        "Walk": {
+          "earlierFramesWithArmCrossing": 32,
+          "revisedFramesWithArmCrossing": 0,
+          "earlierFramesWithDistalArmOrHandCrossingCarrier": 25,
+          "revisedFramesWithDistalArmOrHandCrossingCarrier": 0
+        },
+        "Crouch": {
+          "earlierFramesWithArmCrossing": 32,
+          "revisedFramesWithArmCrossing": 0,
+          "earlierFramesWithDistalArmOrHandCrossingCarrier": 15,
+          "revisedFramesWithDistalArmOrHandCrossingCarrier": 0
+        },
+        "Reach": {
+          "earlierFramesWithArmCrossing": 17,
+          "revisedFramesWithArmCrossing": 0,
+          "earlierFramesWithDistalArmOrHandCrossingCarrier": 7,
+          "revisedFramesWithDistalArmOrHandCrossingCarrier": 0
+        }
+      }
+    }
+  ],
+  "savedGestureInterpolation": {
+    "source": "merchant-counter",
+    "segments": [
+      "rest to offer jar",
+      "offer jar to take payment",
+      "take payment to rest"
+    ],
+    "method": "Interpolate the local rotations by shortest-path slerp, local translations linearly, with 17 samples inclusive per segment. These transitions were measured separately from the named constant-pose clips.",
+    "crossArmPairsPerSample": 150,
+    "samples": 51,
+    "samplesWithCrossing": 0
+  },
+  "counterMerchantStaticTorsoIntersections": {
+    "Rest": [
+      [
+        "right forearm mirrored",
+        "body",
+        4
+      ]
+    ],
+    "Pose \u00b7 Offer the spice jar": [
+      [
+        "right forearm mirrored",
+        "body",
+        4
+      ]
+    ],
+    "Pose \u00b7 Offer spice and take payment": [
+      [
+        "right forearm mirrored",
+        "body",
+        4
+      ]
+    ]
+  }
+}

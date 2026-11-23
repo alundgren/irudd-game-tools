@@ -14,6 +14,7 @@ export function plateGrowthEditor({ current, selected, commit, status }) {
     rows: { step: 1, min: 2, max: 12 },
     columns: { step: 2, min: 1, max: 7 },
     crest: { step: 0.1, min: 0, max: 1 },
+    rise: { step: 0.25, min: 0.5, max: 3, fallback: 1 },
     overlap: { step: 0.1, min: 0, max: 0.8 },
     wrap: { step: 10, min: 20, max: 165 },
   };
@@ -49,8 +50,9 @@ export function plateGrowthEditor({ current, selected, commit, status }) {
         else if (key === "tips") patch = { tipSeed: seed() };
         else if (key === "layout") patch = { seed: seed() };
         else {
-          const { step, min, max } = steps[key];
-          const value = settings[key] + Number(button.dataset.sign) * step;
+          const { step, min, max, fallback } = steps[key];
+          const value =
+            (settings[key] ?? fallback) + Number(button.dataset.sign) * step;
           patch = {
             [key]: Math.min(max, Math.max(min, Number(value.toFixed(3)))),
           };
@@ -78,16 +80,18 @@ export function plateGrowthEditor({ current, selected, commit, status }) {
       carrier.id,
       settings.rows + " rows x " + settings.columns + " columns",
       "crest " + percent(settings.crest),
+      "plate relief " + (settings.rise ?? 1) + "x",
       "overlap " + percent(settings.overlap),
       "wrap " + settings.wrap + " degrees",
     ].join(" | ");
     for (const button of buttons) {
       const key = button.dataset.growth;
       if (!steps[key]) continue;
+      const value = settings[key] ?? steps[key].fallback;
       button.disabled =
         Number(button.dataset.sign) < 0
-          ? settings[key] <= steps[key].min
-          : settings[key] >= steps[key].max;
+          ? value <= steps[key].min
+          : value >= steps[key].max;
     }
   };
 }

@@ -1,0 +1,166 @@
+{
+  "specimen": "Moraine porter, isolated mantle paint",
+  "source": {
+    "form": "examples/moraine-porter.form.json",
+    "sha256": "416da99d43c6576165c26706afbe52e219b9a5220a0ba1bb267021e6d7635122",
+    "gameGLB": "examples/moraine-porter.glb"
+  },
+  "repair": {
+    "form": "examples/moraine-mantle-repair.form.json",
+    "sha256": "1ca182a9a81a4c528ecf99a6fc14f9f6888ffb66f6d4022d598dd1e12f74222f",
+    "comparison": "docs/media/moraine-mantle-repair.webp",
+    "comparisonPixels": [
+      1092,
+      623
+    ]
+  },
+  "diagnosis": "The original whole-character turnaround occludes the dorsal mantle under each arm. A rear-quarter Reach exposes horizontally repeated colors in that torso region. An unlit GLB region-ID pass identified the carrier.",
+  "repairMethod": "Paint a four-view turnaround of just the existing dorsal mantle. Center and scale that projection to its local geometry. Keep the original full-body paint as an occluder for the remaining parts. The embedded replacement is editable and travels with the form.",
+  "artwork": {
+    "tool": "OpenAI ImageGen",
+    "purpose": "Original pigment for the entire dorsal mantle, including the occluded underarm.",
+    "inputGuide": "Four matched orthographic clay views, rendered directly from the original Moraine dorsal mantle sweep.",
+    "paletteReference": "Original project-generated keratin swatches from character-view/horn-growth.atlas.webp.",
+    "thirdPartyImageInputs": false,
+    "embeddedArtworkId": "art-132c0da3f7a29bab1d25faa68fa623ef5ac29f3b929d39c5bd254be98059bc58",
+    "encoding": "1024 x 1024 WebP"
+  },
+  "underarmComparison": {
+    "pose": "Reach, t=1.30 s of 2.60 s",
+    "view": {
+      "yawDeg": -135,
+      "pitchDeg": 6,
+      "orthographicSpanM": 2.65,
+      "targetM": [
+        0,
+        1,
+        0
+      ],
+      "sizePx": [
+        740,
+        510
+      ]
+    },
+    "sample": "Adjacent pixel pairs in the exposed dorsal mantle only, located using the unlit region-ID pass. x=398..435, y=159..205, pixel origin upper left.",
+    "wholeBodyProjection": {
+      "meanAbsLumaDifferenceHorizontal": 2.07,
+      "meanAbsLumaDifferenceVertical": 7.06,
+      "equalHorizontalNeighborPercent": 36.59
+    },
+    "isolatedMantleProjection": {
+      "meanAbsLumaDifferenceHorizontal": 5.14,
+      "meanAbsLumaDifferenceVertical": 4.8,
+      "equalHorizontalNeighborPercent": 8.56
+    },
+    "acceptedHorizontalNeighborPairs": 1566,
+    "acceptedVerticalNeighborPairs": 1577,
+    "luma": "8-bit luminance (Pillow RGB to L), with both endpoints required to share the dorsal-mantle region."
+  },
+  "baselineParity": {
+    "beforeGLBSha256": "4d9cf7ff678b8c3eafa361440b9c97b00605c0ba3ff7e8a8661f44f3875db3eb",
+    "repairedGLBSha256": "22108dbc3a9914afa0987e546a2d74568ec7139e74c89eaeba7ad1607f26416e",
+    "triangles": 24124,
+    "namedRegions": 117,
+    "skinJoints": 130,
+    "clips": [
+      "Idle",
+      "Walk",
+      "Crouch",
+      "Reach"
+    ],
+    "identical": {
+      "positions": true,
+      "triangleIndices": true,
+      "jointIndices": true,
+      "jointWeights": true,
+      "regionIndices": true,
+      "inverseBindMatrices": true,
+      "regionNames": true,
+      "animations": true
+    }
+  },
+  "proposalReplayMethod": "Apply the two saved live growPlateField operation lists, in sequence, to the repaired form. Deep-compare each recipe to the corresponding original proposal result after normalizing the default rise of 1 and excluding the replaced carrier paint. Export each through the editor game GLB action. Read GLB accessors to compare geometry, skin bindings, region names and IDs, and all per-clip times and values. The temporary repaired GLBs are identified by hash.",
+  "liveProposalReplays": [
+    {
+      "stage": "sawcrest",
+      "operations": [
+        {
+          "op": "growPlateField",
+          "id": "dorsal mantle",
+          "seed": 647038835,
+          "rows": 8,
+          "columns": 1,
+          "direction": "last",
+          "start": 0.13,
+          "end": 0.96,
+          "wrap": 20,
+          "overlap": 0.1,
+          "crest": 1,
+          "color": "#c77f2d"
+        }
+      ],
+      "allPartsEquivalentExceptMantlePaint": true,
+      "allOutsidePartsExact": true,
+      "backPlates": 8,
+      "beforeGLBSha256": "2b67325c75ac8cf210f132c28984e9833d83965c1f6874a02121040f9963b9ed",
+      "repairedGLBSha256": "f9a05dff0219ebe865c7dfebbb25d62e7221436c8c1350f3830e4b161e07d236",
+      "triangles": 24106,
+      "namedRegions": 95,
+      "skinJoints": 108,
+      "clips": [
+        "Idle",
+        "Walk",
+        "Crouch",
+        "Reach"
+      ],
+      "identical": {
+        "positions": true,
+        "triangleIndices": true,
+        "jointIndices": true,
+        "jointWeights": true,
+        "regionIndices": true,
+        "inverseBindMatrices": true,
+        "regionNames": true,
+        "animations": true
+      }
+    },
+    {
+      "stage": "highcrest",
+      "operations": [
+        {
+          "op": "growPlateField",
+          "id": "dorsal mantle",
+          "rise": 2
+        }
+      ],
+      "allPartsEquivalentExceptMantlePaint": true,
+      "allOutsidePartsExact": true,
+      "backPlates": 8,
+      "beforeGLBSha256": "afcb3fa220bd0917b502cf46ec8cc4e7061761697264313ed5031c4405347d99",
+      "repairedGLBSha256": "e4e5230794c23b5d7310d099e9fd691fed3fda1a32bdbce4bf85ac5440298593",
+      "triangles": 24106,
+      "namedRegions": 95,
+      "skinJoints": 108,
+      "clips": [
+        "Idle",
+        "Walk",
+        "Crouch",
+        "Reach"
+      ],
+      "identical": {
+        "positions": true,
+        "triangleIndices": true,
+        "jointIndices": true,
+        "jointWeights": true,
+        "regionIndices": true,
+        "inverseBindMatrices": true,
+        "regionNames": true,
+        "animations": true
+      }
+    }
+  ],
+  "limitations": [
+    "The new pigment covers the entire dorsal mantle. The belly is visibly paler than the original.",
+    "The numerical stripe measurement samples one exposed patch in one pose. Identical geometry and animation channels apply across the tested exports."
+  ]
+}

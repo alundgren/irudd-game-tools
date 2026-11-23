@@ -1,0 +1,151 @@
+{
+  "specimen": "Reef cartographer, plates on a diagonally turning and tapering swimming tail",
+  "input": {
+    "editableForm": "examples/reef-cartographer.form.json",
+    "sha256": "4e1836cbcf44a6cde259d97ae968e4073827d01ff03c6c39da965cfd7c7da3cb",
+    "operations": [
+      {
+        "op": "growPlateField",
+        "id": "tail",
+        "seed": 575,
+        "tipSeed": 11,
+        "rows": 7,
+        "columns": 3,
+        "face": "Top",
+        "direction": "last",
+        "start": 0.06,
+        "end": 0.76,
+        "wrap": 140,
+        "overlap": 0.4,
+        "crest": 0.75,
+        "rise": 1.65,
+        "color": "#cbd7ad"
+      }
+    ]
+  },
+  "reproduction": [
+    "Apply the operations to the original form with character-view/variations.js applyOperations or a workshop proposal. The test verified the replay equals the measured 33-part form, including 21 plate regions.",
+    "Export Game with the rig enabled. Name the new GLB reef-tail.glb.",
+    "To reproduce the distal joint: python scripts/measure-garments.py reef-tail.glb --contact \"tail plate 7.2\" tail --samples 6. For the full check, repeat --contact for every row 1..7 and column 1..3 (IDs tail plate ROW.COLUMN)."
+  ],
+  "method": {
+    "contact": "Count a plate/carrier pair once if any child triangle intersects its parent mesh, using the exported skinned GLB and its _REGION triangles. Rest plus phases 0, 1/6, 2/6, 3/6, 4/6, 5/6 of Idle, Walk, Crouch, Reach, Fly and Swim.",
+    "shapeReference": {
+      "detail": "Full detail with rig",
+      "triangles": 185492,
+      "sha256": "0625c417db6156b445568f9266b765b0eb1b8afda300bc598338efd87b9cec88",
+      "bounds": "Maximum absolute difference among six axis-aligned bounds of the posed tail region in Swim phase 0.",
+      "silhouette": "Intersection over union of full-detail and game binary masks in a lower-body crop. 700 x 440, 0.86 m orthographic vertical span, target [0.25,0.355,-0.18] m, pitch 14 degrees, yaw -100/110/160 degrees. Both are posed in Swim phase 0."
+    }
+  },
+  "before": {
+    "sha256": "9850a99402ad3978bd3d31dd2a6f79cac7dc69edab4f3f27c4decbcb99231d59",
+    "triangles": 24000,
+    "byClip": {
+      "Rest": {
+        "intersecting": 21,
+        "sampled": 21,
+        "minCrossingTriangles": 10
+      },
+      "Idle": {
+        "intersecting": 126,
+        "sampled": 126,
+        "minCrossingTriangles": 10
+      },
+      "Walk": {
+        "intersecting": 126,
+        "sampled": 126,
+        "minCrossingTriangles": 5
+      },
+      "Crouch": {
+        "intersecting": 126,
+        "sampled": 126,
+        "minCrossingTriangles": 10
+      },
+      "Reach": {
+        "intersecting": 126,
+        "sampled": 126,
+        "minCrossingTriangles": 10
+      },
+      "Fly": {
+        "intersecting": 126,
+        "sampled": 126,
+        "minCrossingTriangles": 8
+      },
+      "Swim": {
+        "intersecting": 125,
+        "sampled": 126,
+        "minCrossingTriangles": 0
+      }
+    },
+    "worstTailBoundsDifferenceFromFullM": 0.002107,
+    "lowerBodySilhouetteIoUFromFullByYaw": {
+      "-100": 0.987815,
+      "110": 0.994361,
+      "160": 0.991667
+    },
+    "totalIntersecting": 776,
+    "totalSampled": 777
+  },
+  "after": {
+    "sha256": "49a2adc3667b5643e79199aec06684b3e413f2aa26170cd40d86c97a1b6cfc34",
+    "triangles": 24376,
+    "byClip": {
+      "Rest": {
+        "intersecting": 21,
+        "sampled": 21,
+        "minCrossingTriangles": 22
+      },
+      "Idle": {
+        "intersecting": 126,
+        "sampled": 126,
+        "minCrossingTriangles": 22
+      },
+      "Walk": {
+        "intersecting": 126,
+        "sampled": 126,
+        "minCrossingTriangles": 21
+      },
+      "Crouch": {
+        "intersecting": 126,
+        "sampled": 126,
+        "minCrossingTriangles": 22
+      },
+      "Reach": {
+        "intersecting": 126,
+        "sampled": 126,
+        "minCrossingTriangles": 22
+      },
+      "Fly": {
+        "intersecting": 126,
+        "sampled": 126,
+        "minCrossingTriangles": 21
+      },
+      "Swim": {
+        "intersecting": 126,
+        "sampled": 126,
+        "minCrossingTriangles": 16
+      }
+    },
+    "worstTailBoundsDifferenceFromFullM": 0.003363,
+    "lowerBodySilhouetteIoUFromFullByYaw": {
+      "-100": 0.995133,
+      "110": 0.993242,
+      "160": 0.992641
+    },
+    "totalIntersecting": 777,
+    "totalSampled": 777
+  },
+  "distalJoint": {
+    "region": "tail plate 7.2",
+    "clip": "Swim",
+    "phase": 0,
+    "beforeCrossingTriangles": 0,
+    "beforeMinSurfaceDistanceMm": 0.229,
+    "afterCrossingTriangles": 23,
+    "distanceMethod": "Minimum distance between the 58 child and 260 carrier triangles in the original game mesh. Evaluated vertex-to-face and edge-to-edge distances.",
+    "visibility": "The original gap measures about 0.12 pixels at this inspection crop. Separated contact is measurable but not reliably distinguishable at game size."
+  },
+  "solution": "Keep the plate socket and its matching carrier triangles in the reduced mesh. Retain six angles around every sweep ring of plated tails and axial spines, including the free tip. A socket-only prototype with matching carrier triangles restored intersection but shortened the tail by up to 128 mm. The accepted version preserves its curved outline.",
+  "limits": "Contact is checked at the sampled phases. It does not establish continuous contact, lack of penetration, or lack of plate-to-plate collision on other carriers."
+}

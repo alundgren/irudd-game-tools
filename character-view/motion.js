@@ -92,6 +92,73 @@ function placeFoot(leg, dz, lift, drop, write) {
   write(leg.b, b, 0, 0);
   write(leg.c, -a - b, 0, 0);
 }
+// Arms that share one flank can sweep about the line through their shoulder
+// sockets. Both shoulders stay seated and the swing alone preserves spacing
+// between the two limbs. Elbows can still bend independently.
+function pairShoulderAxes(arms, elbowMap, regions) {
+  const pairs = [];
+  for (let i = 0; i < arms.length; i++) {
+    const a = arms[i],
+      elbowA = elbowMap.get(a);
+    if (!elbowA?.hand) continue;
+    const center =
+      regions.get(a.part.parent)?.bounds.getCenter(new Vector3()).x ?? 0;
+    for (const b of arms.slice(i + 1)) {
+      const elbowB = elbowMap.get(b);
+      if (!elbowB?.hand || a.part.parent !== b.part.parent) continue;
+      const start = a.points[0],
+        end = b.points[0];
+      if ((start.x - center) * (end.x - center) <= 0) continue;
+      const distance = start.distanceTo(end);
+      const reach = Math.min(
+        start.distanceTo(elbowA.hand.points[0]),
+        end.distanceTo(elbowB.hand.points[0]),
+      );
+      if (distance < 0.001 || distance > reach) continue;
+      pairs.push({ a, b, distance, side: start.x < center ? -1 : 1 });
+    }
+  }
+  const paired = new Map();
+  for (const { a, b, side } of pairs.sort((p, q) => p.distance - q.distance)) {
+    if (paired.has(a) || paired.has(b)) continue;
+    const axis = b.points[0].clone().sub(a.points[0]).normalize();
+    const arm = elbowMap.get(a).hand.points[0].clone().sub(a.points[0]);
+    if (new Vector3().crossVectors(axis, arm).z < 0) axis.negate();
+    // A hanging wrist directly on this axis would hardly move.
+    if (
+      [a, b].some((s) => {
+        const offset = elbowMap.get(s).hand.points[0].clone().sub(s.points[0]);
+        return axis.clone().cross(offset).length() < offset.length() * 0.22;
+      })
+    )
+      continue;
+    // Make room for the sleeve before sweeping the pair. The upper limb
+    // passes the lower socket and needs a wider lane than the lower limb.
+    const higher = a.points[0].y >= b.points[0].y ? a : b;
+    const hangsDown =
+      elbowMap.get(higher).hand.points[0].y <= higher.points[0].y;
+    for (const [limb, neighbour] of [
+      [a, b],
+      [b, a],
+    ]) {
+      const span = limb.points[0].distanceTo(limb.points.at(-1));
+      const scale = limb.object.getWorldScale(new Vector3());
+      const width = limb.part.knots?.length
+        ? Math.max(...limb.part.knots.map((k) => Math.max(k[3], k[4]))) *
+          Math.max(Math.abs(scale.x), Math.abs(scale.y), Math.abs(scale.z))
+        : span * 0.17;
+      const clearance = limb.points[0].y >= neighbour.points[0].y ? 1.5 : 0.38;
+      const angle = Math.min(0.48, Math.atan2(width * clearance, span));
+      const spread = new Quaternion().setFromAxisAngle(
+        new Vector3(0, 0, 1),
+        (hangsDown ? side : -side) * angle,
+      );
+      paired.set(limb, { axis, side, spread });
+    }
+  }
+  return paired;
+}
+
 export function buildClips(root, regions) {
   const legs = legChains(regions),
     bounds = new Box3().makeEmpty();
@@ -126,7 +193,11 @@ export function buildClips(root, regions) {
     if (axis.lengthSq() < 0.001) axis.set(-1, 0, 0);
     axis.normalize();
     if (new Vector3().crossVectors(axis, down).z < 0) axis.negate();
-    elbows.set(upper, { bone: lower.bones[0], axis });
+    const hand = [...regions.values()].find(
+      (region) =>
+        region.part.parent === lower.part.id && region.role === "hand",
+    );
+    elbows.set(upper, { bone: lower.bones[0], axis, hand });
   }
   const armMovement = new Map();
   const arms = [...regions.values()].filter((s) => s.role === "upper arm");
@@ -156,11 +227,18 @@ export function buildClips(root, regions) {
       const forearm = [...regions.values()].find(
         (s) => s.part.parent === arm.part.id && s.role === "forearm",
       );
-      const hand =
-        forearm &&
-        [...regions.values()].find(
-          (s) => s.part.parent === forearm.part.id && s.role === "hand",
-        );
+      const hand = [...regions.values()].find(
+        (s) => s.part.parent === (forearm ?? arm).part.id && s.role === "hand",
+      );
+      // Older single-sweep arms already have a middle bone for the elbow.
+      if (!elbows.has(arm) && hand && arm.bones.length >= 3) {
+        elbows.set(arm, {
+          hand,
+          bone: arm.bones[1],
+          axis: new Vector3(-1, 0, 0),
+          implicit: true,
+        });
+      }
       const loaded =
         hand &&
         [...regions.values()].some(
@@ -170,12 +248,15 @@ export function buildClips(root, regions) {
               (s.role === "rigid" && !s.part.visibleIn)),
         );
       armMovement.set(arm, {
+        loaded: Boolean(loaded),
         reach: loaded ? 0.12 : [1, 0.57, 0.36][Math.min(free++, 2)],
         swing: loaded ? 0.18 : 0.85,
         phase: i < 2 ? 0 : Math.PI,
       });
     }
   }
+  const pairedAxes =
+    arms.length > 2 ? pairShoulderAxes(arms, elbows, regions) : new Map();
   const reachingHeads = new Set([...regions.values()].filter(startsHeadChain));
   const size = bounds.getSize(new Vector3()),
     limb = legs.length
@@ -193,12 +274,14 @@ export function buildClips(root, regions) {
       translations = new Map(),
       time = [],
       positions = [];
-    function add(bone, x, y, z) {
-      if (!bone) return;
-      const q = new Quaternion().setFromEuler(new Euler(x, y, z));
+    function rotation(bone, q) {
       if (!tracks.has(bone)) tracks.set(bone, []);
       const data = tracks.get(bone);
       data.push(q.x, q.y, q.z, q.w);
+    }
+    function add(bone, x, y, z) {
+      if (bone)
+        rotation(bone, new Quaternion().setFromEuler(new Euler(x, y, z)));
     }
     for (let i = 0; i <= 32; i++) {
       const t = i / 32,
@@ -273,6 +356,34 @@ export function buildClips(root, regions) {
           }
         } else if (s.role === "upper arm") {
           const motion = armMovement.get(s);
+          const pair = pairedAxes.get(s);
+          if (pair) {
+            const swing =
+              name === "Walk"
+                ? -pair.side * 0.48 * sin
+                : (name === "Crouch" ? 0.42 : 0.95) *
+                  (pair.side < 0 ? 1 : 0.64) *
+                  wave;
+            const shoulder = new Quaternion()
+              .setFromAxisAngle(
+                pair.axis,
+                name === "Idle" ? 0.015 * sin : swing,
+              )
+              .multiply(pair.spread);
+            rotation(s.bones[0], shoulder);
+            const elbow = elbows.get(s);
+            const bend = new Quaternion().setFromAxisAngle(
+              elbow.axis,
+              name === "Reach" ? 0.2 * motion.reach * wave : 0,
+            );
+            if (name === "Reach") rotation(elbow.bone, bend);
+            if (motion.loaded)
+              rotation(
+                elbow.hand.bones[0],
+                shoulder.clone().multiply(bend).invert(),
+              );
+            continue;
+          }
           if (name === "Walk") {
             const stride = motion
               ? motion.swing * Math.sin(t * tau + motion.phase)
@@ -295,7 +406,7 @@ export function buildClips(root, regions) {
                 side * 0.24 * lift,
               );
             const elbow = elbows.get(s);
-            if (elbow) {
+            if (elbow && !elbow.implicit) {
               const q = new Quaternion().setFromAxisAngle(
                 elbow.axis,
                 (motion?.natural ? 0.2 : 0.67) * lift,

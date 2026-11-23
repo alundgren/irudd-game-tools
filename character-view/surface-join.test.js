@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { BoxGeometry, Group, Mesh, Vector3 } from "three";
 import { cageGeometry, cubeCage } from "./control-cage.js";
 import { scuteGeometry } from "./scutes.js";
-import { sweepGeometry } from "./surface.js";
-import { fitSurfaceJoins, validSurfaceJoin } from "./surface-join.js";
+import { retainSweepSections, sweepGeometry } from "./surface.js";
+import { fitSurfaceJoins, hasPlatedAxis, validSurfaceJoin } from "./surface-join.js";
 test("an equipped plate seats on an outer pack instead of disappearing inside it", () => {
   const host = new Group(),
     lining = new Mesh(new BoxGeometry(0.6, 0.6, 0.2));
@@ -214,4 +214,73 @@ test("a strip on an already skinned carrier inherits both regional weights", () 
     assert.equal(b.ids[b.second[i]], "blade");
     assert.ok(Math.abs(b.weight[i] - 0.75) < 1e-6);
   }
+});
+
+test("reduction keeps both sides of generated sockets on bending axial carriers", () => {
+  for (const [role, generated, reduction, expectPins] of [
+    ["tail", true, true, true],
+    ["axial spine", true, true, true],
+    ["torso", true, true, false],
+    ["tail", false, true, false],
+    ["tail", true, false, false],
+  ]) {
+    const host = new Mesh(new BoxGeometry(1, 1, 1));
+    const cage = cubeCage();
+    const plate = new Mesh(cageGeometry(cage));
+    host.userData.partId = "host";
+    plate.userData.partId = "plate";
+    plate.position.y = 0.65;
+    plate.scale.set(0.2, 0.4, 0.2);
+    host.add(plate);
+    const part = {
+      id: "plate",
+      parent: "host",
+      shape: "cage",
+      cage,
+      surfaceJoin: { faces: [5], depth: 0.001 },
+    };
+    if (generated) part.plateSite = { row: 0, column: 0 };
+    const hostPart = {
+      id: "host",
+      shape: "sweep",
+      knots: [[0, 0, 0, 0.2, 0.2], [0, 1, 0, 0.1, 0.1]],
+      plateGrowth: {},
+      motionRole: role,
+    };
+    const form = { parts: [hostPart, part] };
+    const objects = new Map([["host", host], ["plate", plate]]);
+    fitSurfaceJoins(form, objects, false, reduction);
+    for (const mesh of [host, plate]) {
+      const pins = mesh.geometry.attributes.lodAnchor;
+      assert.equal(!!pins, expectPins);
+      if (expectPins) {
+        assert.ok(pins.array.includes(1));
+        assert.ok(pins.array.includes(0), "leave the rest of the surface reducible");
+      }
+    }
+  }
+});
+
+
+test("an inferred plated tail keeps sparse profile points through its free end", () => {
+  const knots = [
+    [0, 0, 0, 0.15, 0.1],
+    [0.1, -0.2, 0, 0.13, 0.09],
+    [0.2, 0, -0.4, 0.03, 0.03],
+  ];
+  const tail = { id: "reeftail", shape: "sweep", knots, plateGrowth: {} };
+  assert.ok(hasPlatedAxis(tail));
+  assert.equal(hasPlatedAxis({ ...tail, plateGrowth: undefined }), false);
+  const bands = 10;
+  const sides = 28;
+  const geo = sweepGeometry(knots, false, sides);
+  retainSweepSections(geo, bands, sides, hasPlatedAxis(tail));
+  const pins = geo.attributes.lodAnchor.array;
+  for (let ring = 0; ring <= bands; ring++) {
+    const row = pins.subarray(ring * (sides + 1), (ring + 1) * (sides + 1));
+    assert.equal(row.reduce((sum, value) => sum + value, 0), 7);
+    assert.equal(row[0], 1);
+    assert.equal(row[sides], 1);
+  }
+  geo.dispose();
 });
