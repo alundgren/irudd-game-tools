@@ -1,0 +1,1102 @@
+{
+  "experiment": "Can an ordinary nonhuman courier visibly present its own dispatch with opposing digit contact?",
+  "provenance": "All animals, the dispatch tube, its case and its handle were generated locally by the workshop and rendered from production game GLBs on NVIDIA GeForce RTX 5070 Ti. No downloaded models, practice references or generated bitmaps were used.",
+  "replay": {
+    "chosenPlan": "randomCreaturePlan(seed)",
+    "editorOrAgentOperation": {
+      "op": "steerCreature",
+      "set": {
+        "equipment": {
+          "kind": "courier satchel",
+          "handling": "offer"
+        }
+      }
+    },
+    "normalRandomDraw": "packed, until the artist asks to offer",
+    "example": "examples/creature-dispatch.form.json",
+    "exports": "Game GLB with Motion and 1024 atlas",
+    "physicalAudit": "python scripts/measure-dispatch.py character.glb",
+    "development": [
+      8716
+    ],
+    "initialHeldOutRun": [
+      8950,
+      8973
+    ],
+    "allGraspersInInitialRun": [
+      8958,
+      8960,
+      8965,
+      8966
+    ],
+    "untouchedTransferRunAfterSecondPose": [
+      8990,
+      9001
+    ],
+    "allGraspersInTransferRun": [
+      8990,
+      8994,
+      9001
+    ],
+    "twoPackedControls": [
+      8715,
+      8804
+    ]
+  },
+  "blindMethod": "Two camera views from a fixed side-relative 67 and 23 degrees at 12 degrees elevation. Each row uses identical scale, camera and light across states. Across five eligible animals each panel places three actions on one side and two on the other, plus two identical controls. A different reader for the second pass received only the randomized image. The second pass repeats the animals after addressing the first observations. The three untouched transfer bodies received geometric and rendered checks only.",
+  "firstBlind": {
+    "file": "creature-dispatch-first-blind.webp",
+    "actionSideCorrect": 1,
+    "eligible": 5,
+    "unchangedCorrect": 2,
+    "unchanged": 2,
+    "rows": [
+      {
+        "seed": 8965,
+        "row": "A",
+        "actionSide": 2,
+        "views": [
+          {
+            "yaw": -67,
+            "silhouetteDistance": 0.08
+          },
+          {
+            "yaw": -23,
+            "silhouetteDistance": 0.032
+          }
+        ],
+        "review": 2,
+        "certainty": "near strong",
+        "observation": "raised to head",
+        "correct": true
+      },
+      {
+        "seed": 8715,
+        "row": "B",
+        "actionSide": null,
+        "views": [
+          {
+            "yaw": -67,
+            "silhouetteDistance": 0.0
+          },
+          {
+            "yaw": -23,
+            "silhouetteDistance": 0.0
+          }
+        ],
+        "review": null,
+        "certainty": "strong",
+        "observation": "packed",
+        "correct": true
+      },
+      {
+        "seed": 8966,
+        "row": "C",
+        "actionSide": 1,
+        "views": [
+          {
+            "yaw": 67,
+            "silhouetteDistance": 0.109
+          },
+          {
+            "yaw": 23,
+            "silhouetteDistance": 0.103
+          }
+        ],
+        "review": 2,
+        "certainty": "lean",
+        "observation": "upright like planting a stake",
+        "correct": false
+      },
+      {
+        "seed": 8716,
+        "row": "D",
+        "actionSide": 1,
+        "views": [
+          {
+            "yaw": 67,
+            "silhouetteDistance": 0.124
+          },
+          {
+            "yaw": 23,
+            "silhouetteDistance": 0.07
+          }
+        ],
+        "review": 2,
+        "certainty": "near strong",
+        "observation": "lifting to head",
+        "correct": false
+      },
+      {
+        "seed": 8804,
+        "row": "E",
+        "actionSide": null,
+        "views": [
+          {
+            "yaw": 67,
+            "silhouetteDistance": 0.0
+          },
+          {
+            "yaw": 23,
+            "silhouetteDistance": 0.0
+          }
+        ],
+        "review": null,
+        "certainty": "lean",
+        "observation": "packed",
+        "correct": true
+      },
+      {
+        "seed": 8958,
+        "row": "F",
+        "actionSide": 2,
+        "views": [
+          {
+            "yaw": 67,
+            "silhouetteDistance": 0.115
+          },
+          {
+            "yaw": 23,
+            "silhouetteDistance": 0.029
+          }
+        ],
+        "review": 1,
+        "certainty": "strong",
+        "observation": "purposeful handoff",
+        "correct": false
+      },
+      {
+        "seed": 8960,
+        "row": "G",
+        "actionSide": 2,
+        "views": [
+          {
+            "yaw": 67,
+            "silhouetteDistance": 0.152
+          },
+          {
+            "yaw": 23,
+            "silhouetteDistance": 0.157
+          }
+        ],
+        "review": 1,
+        "certainty": "lean",
+        "observation": "staff touching ground",
+        "correct": false
+      }
+    ]
+  },
+  "secondBlind": {
+    "file": "creature-dispatch-blind.webp",
+    "actionSideCorrect": 5,
+    "eligible": 5,
+    "unchangedCorrect": 2,
+    "unchanged": 2,
+    "rows": [
+      {
+        "seed": 8804,
+        "row": "A",
+        "actionSide": null,
+        "views": [
+          {
+            "yaw": 67,
+            "silhouetteDistance": 0.0
+          },
+          {
+            "yaw": 23,
+            "silhouetteDistance": 0.0
+          }
+        ],
+        "review": null,
+        "certainty": "unchanged",
+        "observation": "unchanged",
+        "correct": true
+      },
+      {
+        "seed": 8966,
+        "row": "B",
+        "actionSide": 2,
+        "views": [
+          {
+            "yaw": 67,
+            "silhouetteDistance": 0.126
+          },
+          {
+            "yaw": 23,
+            "silhouetteDistance": 0.15
+          }
+        ],
+        "review": 2,
+        "certainty": "moderate",
+        "observation": "action side",
+        "correct": true
+      },
+      {
+        "seed": 8716,
+        "row": "C",
+        "actionSide": 1,
+        "views": [
+          {
+            "yaw": 67,
+            "silhouetteDistance": 0.175
+          },
+          {
+            "yaw": 23,
+            "silhouetteDistance": 0.105
+          }
+        ],
+        "review": 1,
+        "certainty": "moderate to high",
+        "observation": "clearest action",
+        "correct": true
+      },
+      {
+        "seed": 8965,
+        "row": "D",
+        "actionSide": 2,
+        "views": [
+          {
+            "yaw": -67,
+            "silhouetteDistance": 0.052
+          },
+          {
+            "yaw": -23,
+            "silhouetteDistance": 0.033
+          }
+        ],
+        "review": 2,
+        "certainty": "moderate",
+        "observation": "action side",
+        "correct": true
+      },
+      {
+        "seed": 8715,
+        "row": "E",
+        "actionSide": null,
+        "views": [
+          {
+            "yaw": -67,
+            "silhouetteDistance": 0.0
+          },
+          {
+            "yaw": -23,
+            "silhouetteDistance": 0.0
+          }
+        ],
+        "review": null,
+        "certainty": "unchanged",
+        "observation": "unchanged",
+        "correct": true
+      },
+      {
+        "seed": 8958,
+        "row": "F",
+        "actionSide": 2,
+        "views": [
+          {
+            "yaw": 67,
+            "silhouetteDistance": 0.038
+          },
+          {
+            "yaw": 23,
+            "silhouetteDistance": 0.065
+          }
+        ],
+        "review": 2,
+        "certainty": "lean",
+        "observation": "action side",
+        "correct": true
+      },
+      {
+        "seed": 8960,
+        "row": "G",
+        "actionSide": 1,
+        "views": [
+          {
+            "yaw": 67,
+            "silhouetteDistance": 0.17
+          },
+          {
+            "yaw": 23,
+            "silhouetteDistance": 0.165
+          }
+        ],
+        "review": 1,
+        "certainty": "moderate",
+        "observation": "action side",
+        "correct": true
+      }
+    ],
+    "semanticFinding": "Reader described a baton or club. Three-quarter foreshortening often hides the tube. This rates purpose-direction recognition only, not recognition of courier or delivery."
+  },
+  "physicalMethod": "Measure only the game GLB. Split the handle into geometric components by position connectivity, take the long rod and exclude both end standoffs. In the held hand count triangles with mean bone influence above 0.35 per digit that intersect the rod. Project the centroid of unique contact intersections per digit onto the plane perpendicular to the rod. Report greatest opposition between thumb and a finger. Sample rest plus four phases of Walk, Reach, Offer dispatch, and Pose · Present dispatch. Crossing counts depend on mesh tessellation and are not grasp force or evidence of a contact between keyed samples.",
+  "meshes": [
+    {
+      "file": "game-offer-8716.glb",
+      "sha256": "641e8fdf34e720e6d64bd508633cca9f0f39bca3db0d7fa3358d6687861ed4e1",
+      "tubeCarrier": "left arm 1 hand",
+      "triangles": 24029,
+      "rodTriangles": 46,
+      "sampledPoses": 17,
+      "phaseSummary": {
+        "Rest": {
+          "phases": [
+            0
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 59,
+            "Middle": 65,
+            "Thumb": 33
+          },
+          "leastThumbOppositionDegrees": 161.1
+        },
+        "Walk": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 59,
+            "Middle": 65,
+            "Thumb": 33
+          },
+          "leastThumbOppositionDegrees": 161.1
+        },
+        "Reach": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 59,
+            "Middle": 65,
+            "Thumb": 33
+          },
+          "leastThumbOppositionDegrees": 161.1
+        },
+        "Offer dispatch": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 59,
+            "Middle": 65,
+            "Thumb": 33
+          },
+          "leastThumbOppositionDegrees": 161.1
+        },
+        "Pose · Present dispatch": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 59,
+            "Middle": 65,
+            "Thumb": 33
+          },
+          "leastThumbOppositionDegrees": 161.1
+        }
+      }
+    },
+    {
+      "file": "game-offer-8958.glb",
+      "sha256": "5659558829556b11f4e49cc59eb92a717bcfb9119384d9dc5f99327d34ccacb9",
+      "tubeCarrier": "left arm 1 hand",
+      "triangles": 24138,
+      "rodTriangles": 76,
+      "sampledPoses": 17,
+      "phaseSummary": {
+        "Rest": {
+          "phases": [
+            0
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 72,
+            "Little": 75,
+            "Middle": 62,
+            "Ring": 67,
+            "Thumb": 45
+          },
+          "leastThumbOppositionDegrees": 166.7
+        },
+        "Walk": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 72,
+            "Little": 75,
+            "Middle": 62,
+            "Ring": 67,
+            "Thumb": 45
+          },
+          "leastThumbOppositionDegrees": 165.9
+        },
+        "Reach": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 72,
+            "Little": 75,
+            "Middle": 62,
+            "Ring": 67,
+            "Thumb": 45
+          },
+          "leastThumbOppositionDegrees": 165.9
+        },
+        "Offer dispatch": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 72,
+            "Little": 75,
+            "Middle": 62,
+            "Ring": 67,
+            "Thumb": 45
+          },
+          "leastThumbOppositionDegrees": 165.9
+        },
+        "Pose · Present dispatch": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 72,
+            "Little": 75,
+            "Middle": 62,
+            "Ring": 67,
+            "Thumb": 45
+          },
+          "leastThumbOppositionDegrees": 165.9
+        }
+      }
+    },
+    {
+      "file": "game-offer-8960.glb",
+      "sha256": "2b9230970e2b03f2d61c156481c370465c25b66fbd5698033954d708ea294c97",
+      "tubeCarrier": "left arm 1 hand",
+      "triangles": 24152,
+      "rodTriangles": 76,
+      "sampledPoses": 17,
+      "phaseSummary": {
+        "Rest": {
+          "phases": [
+            0
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 71,
+            "Little": 78,
+            "Middle": 64,
+            "Ring": 67,
+            "Thumb": 45
+          },
+          "leastThumbOppositionDegrees": 166.4
+        },
+        "Walk": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 71,
+            "Little": 78,
+            "Middle": 64,
+            "Ring": 67,
+            "Thumb": 45
+          },
+          "leastThumbOppositionDegrees": 166.7
+        },
+        "Reach": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 71,
+            "Little": 78,
+            "Middle": 64,
+            "Ring": 67,
+            "Thumb": 45
+          },
+          "leastThumbOppositionDegrees": 166.7
+        },
+        "Offer dispatch": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 71,
+            "Little": 78,
+            "Middle": 64,
+            "Ring": 67,
+            "Thumb": 45
+          },
+          "leastThumbOppositionDegrees": 166.7
+        },
+        "Pose · Present dispatch": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 71,
+            "Little": 78,
+            "Middle": 64,
+            "Ring": 67,
+            "Thumb": 45
+          },
+          "leastThumbOppositionDegrees": 166.7
+        }
+      }
+    },
+    {
+      "file": "game-offer-8965.glb",
+      "sha256": "68835d8919509004e1f106a9c9b1aa63569ba775eb84f683d3c640c9190ce3c2",
+      "tubeCarrier": "right arm 1 hand",
+      "triangles": 24053,
+      "rodTriangles": 34,
+      "sampledPoses": 17,
+      "phaseSummary": {
+        "Rest": {
+          "phases": [
+            0
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 45,
+            "Little": 46,
+            "Middle": 53,
+            "Ring": 51,
+            "Thumb": 24
+          },
+          "leastThumbOppositionDegrees": 160.8
+        },
+        "Walk": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 45,
+            "Little": 46,
+            "Middle": 53,
+            "Ring": 51,
+            "Thumb": 24
+          },
+          "leastThumbOppositionDegrees": 159.7
+        },
+        "Reach": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 45,
+            "Little": 46,
+            "Middle": 53,
+            "Ring": 51,
+            "Thumb": 24
+          },
+          "leastThumbOppositionDegrees": 159.7
+        },
+        "Offer dispatch": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 45,
+            "Little": 46,
+            "Middle": 53,
+            "Ring": 51,
+            "Thumb": 24
+          },
+          "leastThumbOppositionDegrees": 159.7
+        },
+        "Pose · Present dispatch": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 45,
+            "Little": 46,
+            "Middle": 53,
+            "Ring": 51,
+            "Thumb": 24
+          },
+          "leastThumbOppositionDegrees": 159.7
+        }
+      }
+    },
+    {
+      "file": "game-offer-8966.glb",
+      "sha256": "1482cd85aa6f49342d3656d83788c5a94331d2543a23d0b56d8903d8c44cde00",
+      "tubeCarrier": "left arm 1 hand",
+      "triangles": 24090,
+      "rodTriangles": 44,
+      "sampledPoses": 17,
+      "phaseSummary": {
+        "Rest": {
+          "phases": [
+            0
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 65,
+            "Little": 58,
+            "Middle": 57,
+            "Ring": 55,
+            "Thumb": 28
+          },
+          "leastThumbOppositionDegrees": 167.0
+        },
+        "Walk": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 65,
+            "Little": 58,
+            "Middle": 57,
+            "Ring": 55,
+            "Thumb": 28
+          },
+          "leastThumbOppositionDegrees": 166.6
+        },
+        "Reach": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 65,
+            "Little": 58,
+            "Middle": 57,
+            "Ring": 55,
+            "Thumb": 28
+          },
+          "leastThumbOppositionDegrees": 166.6
+        },
+        "Offer dispatch": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 65,
+            "Little": 58,
+            "Middle": 57,
+            "Ring": 55,
+            "Thumb": 28
+          },
+          "leastThumbOppositionDegrees": 166.6
+        },
+        "Pose · Present dispatch": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 65,
+            "Little": 58,
+            "Middle": 57,
+            "Ring": 55,
+            "Thumb": 28
+          },
+          "leastThumbOppositionDegrees": 166.6
+        }
+      }
+    },
+    {
+      "file": "game-offer-8990.glb",
+      "sha256": "965687b6c9d690bbb708785e8cce09824b6132188edc4ac78b67360fce7f06b7",
+      "tubeCarrier": "right arm 1 hand",
+      "triangles": 24103,
+      "rodTriangles": 78,
+      "sampledPoses": 17,
+      "phaseSummary": {
+        "Rest": {
+          "phases": [
+            0
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 75,
+            "Middle": 65,
+            "Ring": 73,
+            "Thumb": 47
+          },
+          "leastThumbOppositionDegrees": 161.9
+        },
+        "Walk": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 75,
+            "Middle": 65,
+            "Ring": 73,
+            "Thumb": 47
+          },
+          "leastThumbOppositionDegrees": 162.0
+        },
+        "Reach": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 75,
+            "Middle": 65,
+            "Ring": 73,
+            "Thumb": 47
+          },
+          "leastThumbOppositionDegrees": 162.0
+        },
+        "Offer dispatch": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 75,
+            "Middle": 65,
+            "Ring": 73,
+            "Thumb": 47
+          },
+          "leastThumbOppositionDegrees": 162.0
+        },
+        "Pose · Present dispatch": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 75,
+            "Middle": 65,
+            "Ring": 73,
+            "Thumb": 47
+          },
+          "leastThumbOppositionDegrees": 162.0
+        }
+      }
+    },
+    {
+      "file": "game-offer-8994.glb",
+      "sha256": "7667c7228840788b06aa782f78802ff4b3cd90f925a68feab8ce8e8c02e624aa",
+      "tubeCarrier": "left arm 1 hand",
+      "triangles": 24085,
+      "rodTriangles": 78,
+      "sampledPoses": 17,
+      "phaseSummary": {
+        "Rest": {
+          "phases": [
+            0
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 71,
+            "Little": 78,
+            "Middle": 62,
+            "Ring": 64,
+            "Thumb": 52
+          },
+          "leastThumbOppositionDegrees": 168.0
+        },
+        "Walk": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 71,
+            "Little": 78,
+            "Middle": 62,
+            "Ring": 64,
+            "Thumb": 52
+          },
+          "leastThumbOppositionDegrees": 170.9
+        },
+        "Reach": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 71,
+            "Little": 78,
+            "Middle": 62,
+            "Ring": 64,
+            "Thumb": 52
+          },
+          "leastThumbOppositionDegrees": 170.9
+        },
+        "Offer dispatch": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 71,
+            "Little": 78,
+            "Middle": 62,
+            "Ring": 64,
+            "Thumb": 52
+          },
+          "leastThumbOppositionDegrees": 170.9
+        },
+        "Pose · Present dispatch": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 71,
+            "Little": 78,
+            "Middle": 62,
+            "Ring": 64,
+            "Thumb": 52
+          },
+          "leastThumbOppositionDegrees": 170.9
+        }
+      }
+    },
+    {
+      "file": "game-offer-9001.glb",
+      "sha256": "8106fe68ea4959d1ba495cf4390103a95e8193776d93f2ad1e6c10c30dea524d",
+      "tubeCarrier": "left arm 1 hand",
+      "triangles": 24119,
+      "rodTriangles": 74,
+      "sampledPoses": 17,
+      "phaseSummary": {
+        "Rest": {
+          "phases": [
+            0
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 70,
+            "Middle": 62,
+            "Ring": 71,
+            "Thumb": 48
+          },
+          "leastThumbOppositionDegrees": 167.9
+        },
+        "Walk": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 70,
+            "Middle": 62,
+            "Ring": 71,
+            "Thumb": 48
+          },
+          "leastThumbOppositionDegrees": 167.5
+        },
+        "Reach": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 70,
+            "Middle": 62,
+            "Ring": 71,
+            "Thumb": 48
+          },
+          "leastThumbOppositionDegrees": 167.5
+        },
+        "Offer dispatch": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 70,
+            "Middle": 62,
+            "Ring": 71,
+            "Thumb": 48
+          },
+          "leastThumbOppositionDegrees": 167.5
+        },
+        "Pose · Present dispatch": {
+          "phases": [
+            0,
+            0.25,
+            0.5,
+            0.75
+          ],
+          "minimumCrossedTrianglesPerDigit": {
+            "Index": 70,
+            "Middle": 62,
+            "Ring": 71,
+            "Thumb": 48
+          },
+          "leastThumbOppositionDegrees": 167.5
+        }
+      }
+    },
+    {
+      "file": "game-offer-8804.glb",
+      "sha256": "c4c5c302554a05795e67e4655e9e51cc397776fd5f5c5b94fb1298adae121bfc",
+      "tubeCarrier": "gear bag",
+      "triangles": 24006,
+      "sampledPoses": 0
+    },
+    {
+      "file": "game-offer-8715.glb",
+      "sha256": "c59372527ae2ef3166365c90adba11fa9db4cb4e16f482cee3818d6288d3ecb9",
+      "tubeCarrier": "gear bag",
+      "triangles": 24016,
+      "sampledPoses": 0
+    }
+  ],
+  "totalGraspPoseSamples": 136,
+  "strapMethod": "Each named moving limb versus carried gear (main harness excluded) in rest and four Walk phases 0, 0.25, 0.5, 0.75. For this checked historical set all after dictionaries are empty. No dynamic collision avoidance guarantee.",
+  "strapRetest": [
+    {
+      "source": "dispatch-8804",
+      "sourceSha256": "2a15ab13d2615211f9e83d237992c5dbd349f14e52bb22f43afb75ab9d69b544",
+      "rebuildSha256": "c4c5c302554a05795e67e4655e9e51cc397776fd5f5c5b94fb1298adae121bfc",
+      "before": {
+        "gear courier sling / right arm 2 upper": {
+          "0.25": 5
+        }
+      },
+      "after": {}
+    },
+    {
+      "source": "transfer-8822",
+      "sourceSha256": "43d9700e9ddfe972194e420dedc8f91a48b8471d8b5c14f1e64090ffb0cf7df9",
+      "rebuildSha256": "aa512cb4277e06549b115f185cf243f202bf9c2229ff1c6aca5b64fe7d02b370",
+      "before": {
+        "gear courier sling / left wing 1": {
+          "None": 9,
+          "0": 9,
+          "0.25": 7,
+          "0.5": 11,
+          "0.75": 11
+        },
+        "gear courier sling / left wing 1 membrane": {
+          "None": 12,
+          "0": 12,
+          "0.25": 11,
+          "0.5": 13,
+          "0.75": 15
+        }
+      },
+      "after": {}
+    },
+    {
+      "source": "dispatch-8716",
+      "sourceSha256": "035685e504289add838f205df0df1f0323936860159516bf4e578d8a01c2ea33",
+      "rebuildSha256": "56f53766428b5c8828e9239e0fc14cb21e7049ea54db25cd217a6610ac394cfc",
+      "before": {},
+      "after": {}
+    },
+    {
+      "source": "dispatch-8721",
+      "sourceSha256": "a179a4cb1e2ba025645e243c3e6a654506cf8f4eafb6b9e2557576b3833cdc99",
+      "rebuildSha256": "cd52dc81c20290d6ec7f311250aac04425eab2ccae087b4d92aebf2d3b55fbdf",
+      "before": {},
+      "after": {}
+    },
+    {
+      "source": "dispatch-8821",
+      "sourceSha256": "2680cdb5a1af5c41e679134c8c86dc0dd7d99a541f81b0b3f1d4ac8d1a3e352f",
+      "rebuildSha256": "9604bd77f026f5f503e6e25e29353ce0486b96cfeb9f58145399da99833d36e0",
+      "before": {},
+      "after": {}
+    },
+    {
+      "source": "dispatch-8827",
+      "sourceSha256": "7e94fa5c9003280aa4fb5ff86585ff843f5e63ea1813037e37705de5ebbfe074",
+      "rebuildSha256": "f10fb96e0a47fa53f7cbd1150a59d4b99e50bb1801a30451cbdbc5fbe48ba579",
+      "before": {},
+      "after": {}
+    },
+    {
+      "source": "transfer-8823",
+      "sourceSha256": "c0f78386b15dfa39e82a7a17ff71cb1bb092cfcc95e28c0439d2a38b4a76be53",
+      "rebuildSha256": "ded6c2bd745fcd8d6196af54102cf2568165c7299545836a1333b4446653efc4",
+      "before": {},
+      "after": {}
+    }
+  ],
+  "limits": [
+    "The hand grasps a separate steel handle, not the full tube barrel. The animation presents an already-held tube, without simulating removal from the bag or transfer to a recipient.",
+    "At the wrong angle the seal and hand can overlap the face, particularly on 8990. The wrist seam and rods remain visible in close-up. A baton, staff or club is a plausible interpretation.",
+    "Only generated grasping hands with two or more opposed fingers qualify. Animals with pincers or spikes keep the tube packed."
+  ]
+}

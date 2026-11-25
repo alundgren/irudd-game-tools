@@ -1,0 +1,754 @@
+{
+  "title": "Creature growth on twelve consecutive body plans",
+  "reproduce": "In character-view/creature-plan.js, call buildCreature(randomCreaturePlan(seed)). Export through character-view/export-form.js exportForm(form,{motion:true,game:true,atlasSize:1024}). For the matched control use the same random plan with back replaced by the recorded previousBack. Before export, all twelve control forms were checked for exact equality with their saved pre-change versions.",
+  "steering": "In Creature body plan, open Along the back. Select shingles, gill fans, drum sacs or shag mantle. Count, height and spread change geometry. Reroll growth changes the local pattern. An agent can send steerCreature with set.back. Individual shingle sites can still be edited or tip-locked.",
+  "evidence": {
+    "paired": "docs/media/creature-back-growth.webp",
+    "unpickedTwelve": "docs/media/creature-growth-seeds.webp",
+    "renderer": "NVIDIA GeForce RTX 5070 Ti/PCIe/SSE2",
+    "export": "Production Game GLB, animated, one skinned surface, shared 1024px material atlas. A native Canvas2D adapter supplied atlas packing while running the workshop exporter in Node. PNG payloads were decoded from the GLBs.",
+    "raster": "Native OpenGL rasterization of outward-facing exported triangles at rest. Colors sample the exported atlas and vertex colors under fixed diffuse lighting; 2x supersampling. Each control and candidate use shared bounds, pixel scale and lighting per view. The twelve-draw sheet fits each creature to its cell and prints the actual world height.",
+    "measurementCamera": "365 x 300 pixels. Three fixed azimuth/elevation pairs [22,12], [106,10], [167,23] degrees. Count an exported growth region with at least 12 visible pixels using the GLB _REGION attribute. IoU is the intersection over union of control and candidate silhouette masks at that view.",
+    "exampleDetail": "The third column uses a tighter camera fitted to the new organs on the same exported model.",
+    "pairedSha256": "5d93634953cec7946179f8ac99e7b9d24d2424720766f4aaa736e9a36b22661c",
+    "unpickedTwelveSha256": "76383a4e88be96aa32b0ccb085638f04bca39d0b3812f39fb2381962caa6fdc2"
+  },
+  "batch": {
+    "firstSeed": 8710,
+    "lastSeed": 8721,
+    "uniqueSpinePlans": 12,
+    "functionalSmoke": "1,000 further raw draws (1010\u20132009) validated under the 128-region cap.",
+    "familyCounts1010to2009": {
+      "drum sacs": 119,
+      "spikes": 64,
+      "shag mantle": 39,
+      "shingles": 362,
+      "plates": 62,
+      "none": 63,
+      "gill fans": 171,
+      "sail": 57,
+      "fins": 63
+    }
+  },
+  "results": [
+    {
+      "seed": 8710,
+      "back": {
+        "kind": "gill fans",
+        "count": 2,
+        "height": 0.26061790851926836,
+        "spread": 0.5160003142431379,
+        "seed": 3281044283
+      },
+      "previousBack": {
+        "kind": "fins",
+        "count": 3,
+        "height": 0.18325787603855132
+      },
+      "regions": 32,
+      "growthRegions": 4,
+      "beforeGLBSha256": "62ddfb61e223194f5b6f9ca4f90371e44a96ef4b20ca7ca887e4877c3841dd03",
+      "gameGLBSha256": "e2cba993769666e12a5726d2634a72fcf56c06711b5a6fb253e745cae657e819",
+      "triangles": 23994,
+      "joints": 59,
+      "skinCount": 1,
+      "animations": [
+        "Idle",
+        "Reach",
+        "Swim",
+        "Slither",
+        "Coil"
+      ],
+      "heightM": 0.7945,
+      "visibleGrowthRegionsAtLeast12px": [
+        4,
+        4,
+        4
+      ],
+      "beforeAfterSilhouetteIoU": [
+        0.8146,
+        0.9412,
+        0.933
+      ]
+    },
+    {
+      "seed": 8711,
+      "back": {
+        "kind": "plates",
+        "count": 7,
+        "height": 0.15154206994920968
+      },
+      "previousBack": {
+        "kind": "plates",
+        "count": 7,
+        "height": 0.15154206994920968
+      },
+      "regions": 58,
+      "growthRegions": 0,
+      "beforeGLBSha256": "679111ebe0e023999ad21355e205576ea88ff6546fee5726a577c62c50216ace",
+      "gameGLBSha256": "679111ebe0e023999ad21355e205576ea88ff6546fee5726a577c62c50216ace",
+      "triangles": 24007,
+      "joints": 89,
+      "skinCount": 1,
+      "animations": [
+        "Idle",
+        "Walk",
+        "Crouch",
+        "Reach",
+        "Fly"
+      ],
+      "heightM": 0.8839,
+      "visibleGrowthRegionsAtLeast12px": [
+        0,
+        0,
+        0
+      ],
+      "beforeAfterSilhouetteIoU": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    {
+      "seed": 8712,
+      "back": {
+        "kind": "shingles",
+        "count": 6,
+        "height": 0.23615686486733337,
+        "spread": 0.6112634770944714,
+        "seed": 19445461
+      },
+      "previousBack": {
+        "kind": "fins",
+        "count": 7,
+        "height": 0.12609952878206968
+      },
+      "regions": 87,
+      "growthRegions": 18,
+      "beforeGLBSha256": "f04092a45896f2a7c86d8b35034a4fd5cf681f8d693a312b066df49a4f60e886",
+      "gameGLBSha256": "6d8c2af12ec3e7396879534f6bc2725e1cebaab745b62aa6a8bc409659a473c9",
+      "triangles": 23991,
+      "joints": 124,
+      "skinCount": 1,
+      "animations": [
+        "Idle",
+        "Walk",
+        "Crouch",
+        "Reach",
+        "Fly",
+        "Swim"
+      ],
+      "heightM": 0.716,
+      "visibleGrowthRegionsAtLeast12px": [
+        12,
+        14,
+        16
+      ],
+      "beforeAfterSilhouetteIoU": [
+        0.9647,
+        0.9843,
+        0.9946
+      ]
+    },
+    {
+      "seed": 8713,
+      "back": {
+        "kind": "drum sacs",
+        "count": 1,
+        "height": 0.10815069696073436,
+        "spread": 0.7270617347583175,
+        "seed": 121231373
+      },
+      "previousBack": {
+        "kind": "fins",
+        "count": 7,
+        "height": 0.1697633848711848
+      },
+      "regions": 48,
+      "growthRegions": 4,
+      "beforeGLBSha256": "f70a53b0e9ef8f260a26a6c4345a5ae7f0cfc8e152e752f709b3f0da02dba0dc",
+      "gameGLBSha256": "190e948a0cfd694205e088782e38d66c67e3d61e091069bbff3f74fffad0729b",
+      "triangles": 24024,
+      "joints": 101,
+      "skinCount": 1,
+      "animations": [
+        "Idle",
+        "Walk",
+        "Crouch",
+        "Reach",
+        "Swim"
+      ],
+      "heightM": 1.0588,
+      "visibleGrowthRegionsAtLeast12px": [
+        2,
+        3,
+        3
+      ],
+      "beforeAfterSilhouetteIoU": [
+        0.9665,
+        0.9554,
+        0.9607
+      ]
+    },
+    {
+      "seed": 8714,
+      "back": {
+        "kind": "shingles",
+        "count": 4,
+        "height": 0.10742448370121904,
+        "spread": 0.8541971122473477,
+        "seed": 2767366811
+      },
+      "previousBack": {
+        "kind": "none",
+        "count": 3,
+        "height": 0.12748437833040954
+      },
+      "regions": 73,
+      "growthRegions": 20,
+      "beforeGLBSha256": "95db189caf65d4ad12f39ebc03eb3952aa866676ce8a0e7f0187fd8bafc8ce04",
+      "gameGLBSha256": "a1725accf9e6fa0871bbf6220eb43c24280c61a6b2b91a3f7ebe69416e4b8a13",
+      "triangles": 24050,
+      "joints": 165,
+      "skinCount": 1,
+      "animations": [
+        "Idle",
+        "Walk",
+        "Crouch",
+        "Reach",
+        "Swim"
+      ],
+      "heightM": 0.8912,
+      "visibleGrowthRegionsAtLeast12px": [
+        7,
+        14,
+        16
+      ],
+      "beforeAfterSilhouetteIoU": [
+        0.9948,
+        0.9807,
+        0.9983
+      ]
+    },
+    {
+      "seed": 8715,
+      "back": {
+        "kind": "drum sacs",
+        "count": 2,
+        "height": 0.21292408669064805,
+        "spread": 0.6151267436519265,
+        "seed": 377937796
+      },
+      "previousBack": {
+        "kind": "fins",
+        "count": 7,
+        "height": 0.10819375436753034
+      },
+      "regions": 51,
+      "growthRegions": 8,
+      "beforeGLBSha256": "7e42a3c700c8b93f42234c85d6da71336ce8641f098ac128e833e0cc477d5f71",
+      "gameGLBSha256": "0d3190754f2cb109e930eda65129eb22bb7b0bfce5e98610817433a98fb68137",
+      "triangles": 24033,
+      "joints": 74,
+      "skinCount": 1,
+      "animations": [
+        "Idle",
+        "Walk",
+        "Crouch",
+        "Reach",
+        "Swim"
+      ],
+      "heightM": 1.2042,
+      "visibleGrowthRegionsAtLeast12px": [
+        3,
+        6,
+        5
+      ],
+      "beforeAfterSilhouetteIoU": [
+        0.9178,
+        0.9211,
+        0.8971
+      ]
+    },
+    {
+      "seed": 8716,
+      "back": {
+        "kind": "shag mantle",
+        "count": 5,
+        "height": 0.15799739798805076,
+        "spread": 0.5959398956224322,
+        "seed": 3843414745
+      },
+      "previousBack": {
+        "kind": "fins",
+        "count": 5,
+        "height": 0.07415519282221794
+      },
+      "regions": 71,
+      "growthRegions": 26,
+      "beforeGLBSha256": "d9c3fbb8ad54eff5d9deb1c1e258c58ddb75380554e938dbae8bcb43de7cae60",
+      "gameGLBSha256": "9629635e8e25b471b2d0f301f8f7b69a22c4f6418acae3a0cd24836204173265",
+      "triangles": 24130,
+      "joints": 112,
+      "skinCount": 1,
+      "animations": [
+        "Idle",
+        "Walk",
+        "Crouch",
+        "Reach",
+        "Swim"
+      ],
+      "heightM": 1.5477,
+      "visibleGrowthRegionsAtLeast12px": [
+        16,
+        18,
+        26
+      ],
+      "beforeAfterSilhouetteIoU": [
+        0.9307,
+        0.9267,
+        0.9152
+      ]
+    },
+    {
+      "seed": 8717,
+      "back": {
+        "kind": "gill fans",
+        "count": 2,
+        "height": 0.19712995578649617,
+        "spread": 0.49052939403802154,
+        "seed": 217166765
+      },
+      "previousBack": {
+        "kind": "spikes",
+        "count": 6,
+        "height": 0.07935614060610532
+      },
+      "regions": 46,
+      "growthRegions": 4,
+      "beforeGLBSha256": "a26de79598d70e29e26dd106a7b018c625885669ee06387871a80a2d39f2d11d",
+      "gameGLBSha256": "04e7f6653401a880c7b0ea007754cf8923daa2feb54eca2a38121d2aa39abdef",
+      "triangles": 23990,
+      "joints": 67,
+      "skinCount": 1,
+      "animations": [
+        "Idle",
+        "Reach",
+        "Swim",
+        "Slither",
+        "Coil"
+      ],
+      "heightM": 0.5898,
+      "visibleGrowthRegionsAtLeast12px": [
+        4,
+        4,
+        4
+      ],
+      "beforeAfterSilhouetteIoU": [
+        0.8631,
+        0.9417,
+        0.9191
+      ]
+    },
+    {
+      "seed": 8718,
+      "back": {
+        "kind": "shingles",
+        "count": 5,
+        "height": 0.17196656230976434,
+        "spread": 0.7519028271362185,
+        "seed": 618670648
+      },
+      "previousBack": {
+        "kind": "spikes",
+        "count": 7,
+        "height": 0.07250888749957085
+      },
+      "regions": 93,
+      "growthRegions": 15,
+      "beforeGLBSha256": "2cb818d5d0b1a177c2b456abdc101fa883c65d1af65b870f9285ccf1c2a94ba5",
+      "gameGLBSha256": "0a6480a869edb11a1158798c909aff223ff674bea65301f34b1436c76cd22fa4",
+      "triangles": 24078,
+      "joints": 138,
+      "skinCount": 1,
+      "animations": [
+        "Idle",
+        "Walk",
+        "Crouch",
+        "Reach",
+        "Fly",
+        "Swim"
+      ],
+      "heightM": 1.1597,
+      "visibleGrowthRegionsAtLeast12px": [
+        11,
+        12,
+        12
+      ],
+      "beforeAfterSilhouetteIoU": [
+        0.9568,
+        0.984,
+        0.9878
+      ]
+    },
+    {
+      "seed": 8719,
+      "back": {
+        "kind": "shingles",
+        "count": 7,
+        "height": 0.13943690672359774,
+        "spread": 0.7611612609028816,
+        "seed": 2470502084
+      },
+      "previousBack": {
+        "kind": "none",
+        "count": 8,
+        "height": 0.07417413588613271
+      },
+      "regions": 113,
+      "growthRegions": 35,
+      "beforeGLBSha256": "8634aa667c83a0f4cb25f9e09d8317a6c8513eb11d59621139b4bdf9e76e33b3",
+      "gameGLBSha256": "c00b26bc5451c9229ca2cb5d3789e2426e823bd2f3784c9fa69e0ea48bf4f567",
+      "triangles": 24067,
+      "joints": 166,
+      "skinCount": 1,
+      "animations": [
+        "Idle",
+        "Walk",
+        "Crouch",
+        "Reach",
+        "Fly",
+        "Swim"
+      ],
+      "heightM": 1.0856,
+      "visibleGrowthRegionsAtLeast12px": [
+        4,
+        12,
+        32
+      ],
+      "beforeAfterSilhouetteIoU": [
+        0.9912,
+        0.994,
+        0.9878
+      ]
+    },
+    {
+      "seed": 8720,
+      "back": {
+        "kind": "shingles",
+        "count": 5,
+        "height": 0.11933815404766991,
+        "spread": 0.7839276022464037,
+        "seed": 4066742758
+      },
+      "previousBack": {
+        "kind": "fins",
+        "count": 5,
+        "height": 0.0987779852375388
+      },
+      "regions": 67,
+      "growthRegions": 25,
+      "beforeGLBSha256": "288ce280f6b18f6f32725b7d35c9139dcabb8ce0a8e64ec8a696ba49f78f91e6",
+      "gameGLBSha256": "e078566e2bd6efc8038db3bca30f5d1e6b40d8e338daa95b72964a03b5e45be5",
+      "triangles": 23986,
+      "joints": 90,
+      "skinCount": 1,
+      "animations": [
+        "Idle",
+        "Walk",
+        "Crouch",
+        "Reach",
+        "Swim"
+      ],
+      "heightM": 1.5016,
+      "visibleGrowthRegionsAtLeast12px": [
+        19,
+        15,
+        24
+      ],
+      "beforeAfterSilhouetteIoU": [
+        0.9679,
+        0.9612,
+        0.9778
+      ]
+    },
+    {
+      "seed": 8721,
+      "back": {
+        "kind": "fins",
+        "count": 3,
+        "height": 0.2089804070070386
+      },
+      "previousBack": {
+        "kind": "fins",
+        "count": 3,
+        "height": 0.2089804070070386
+      },
+      "regions": 37,
+      "growthRegions": 0,
+      "beforeGLBSha256": "84e1dd867a0a8d8de41bbf35ab515987a3fad225d2f4a72b43420ae63b90d307",
+      "gameGLBSha256": "84e1dd867a0a8d8de41bbf35ab515987a3fad225d2f4a72b43420ae63b90d307",
+      "triangles": 24005,
+      "joints": 89,
+      "skinCount": 1,
+      "animations": [
+        "Idle",
+        "Walk",
+        "Crouch",
+        "Reach",
+        "Swim"
+      ],
+      "heightM": 1.2692,
+      "visibleGrowthRegionsAtLeast12px": [
+        0,
+        0,
+        0
+      ],
+      "beforeAfterSilhouetteIoU": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    }
+  ],
+  "sampledContact": {
+    "method": "scripts/measure-garments.py contact_report, six equally spaced phases per clip plus rest. An attachment passes if a child triangle intersects the host body triangles. Includes gill roots, resonator outer sockets and shingle roots.",
+    "bySeed": {
+      "8710": {
+        "host": "body",
+        "sockets": 4,
+        "clips": {
+          "Rest": {
+            "withIntersection": 4,
+            "tested": 4,
+            "lowestIntersectingChildTriangleCount": 17
+          },
+          "Idle": {
+            "withIntersection": 24,
+            "tested": 24,
+            "lowestIntersectingChildTriangleCount": 17
+          },
+          "Reach": {
+            "withIntersection": 24,
+            "tested": 24,
+            "lowestIntersectingChildTriangleCount": 17
+          },
+          "Swim": {
+            "withIntersection": 24,
+            "tested": 24,
+            "lowestIntersectingChildTriangleCount": 17
+          },
+          "Slither": {
+            "withIntersection": 24,
+            "tested": 24,
+            "lowestIntersectingChildTriangleCount": 16
+          },
+          "Coil": {
+            "withIntersection": 24,
+            "tested": 24,
+            "lowestIntersectingChildTriangleCount": 17
+          }
+        }
+      },
+      "8715": {
+        "host": "body",
+        "sockets": 4,
+        "clips": {
+          "Rest": {
+            "withIntersection": 4,
+            "tested": 4,
+            "lowestIntersectingChildTriangleCount": 31
+          },
+          "Idle": {
+            "withIntersection": 24,
+            "tested": 24,
+            "lowestIntersectingChildTriangleCount": 31
+          },
+          "Walk": {
+            "withIntersection": 24,
+            "tested": 24,
+            "lowestIntersectingChildTriangleCount": 31
+          },
+          "Crouch": {
+            "withIntersection": 24,
+            "tested": 24,
+            "lowestIntersectingChildTriangleCount": 31
+          },
+          "Reach": {
+            "withIntersection": 24,
+            "tested": 24,
+            "lowestIntersectingChildTriangleCount": 31
+          },
+          "Swim": {
+            "withIntersection": 24,
+            "tested": 24,
+            "lowestIntersectingChildTriangleCount": 31
+          }
+        }
+      },
+      "8720": {
+        "host": "body",
+        "sockets": 25,
+        "clips": {
+          "Rest": {
+            "withIntersection": 25,
+            "tested": 25,
+            "lowestIntersectingChildTriangleCount": 27
+          },
+          "Idle": {
+            "withIntersection": 150,
+            "tested": 150,
+            "lowestIntersectingChildTriangleCount": 27
+          },
+          "Walk": {
+            "withIntersection": 150,
+            "tested": 150,
+            "lowestIntersectingChildTriangleCount": 27
+          },
+          "Crouch": {
+            "withIntersection": 150,
+            "tested": 150,
+            "lowestIntersectingChildTriangleCount": 27
+          },
+          "Reach": {
+            "withIntersection": 150,
+            "tested": 150,
+            "lowestIntersectingChildTriangleCount": 27
+          },
+          "Swim": {
+            "withIntersection": 150,
+            "tested": 150,
+            "lowestIntersectingChildTriangleCount": 27
+          }
+        }
+      }
+    }
+  },
+  "provenance": "Original generative anatomy. Shingles use the existing project-generated horn swatches; the other organs and the short-fur pigment are generated in code. Source and project-created assets are under the repository MIT license.",
+  "limits": [
+    "Visible area measures which geometry can be read in these cameras. It is not a rating of appeal, plausible behavior or reference-game parity.",
+    "Measured attachment intersections cover three specimens and sampled clip frames. They do not establish continuous contact or cover the groom.",
+    "The game fur budget keeps fewer geometric strands than the full-detail export. A fitted short-fur undercoat fills the gaps.",
+    "Ten of these twelve draws use new growth. The legacy dorsal-fin and dorsal-plate controls remain unchanged in two draws."
+  ],
+  "sameBodyWingControl": {
+    "seed": 8712,
+    "source": "randomCreaturePlan(8712), native feather wing; other three variants apply steerCreaturePlan setLimbs on that wing group, preserving the body and the shingle field.",
+    "clip": "Fly",
+    "displayCycleSeconds": 0.8445894122123718,
+    "timing": "All four clips sampled at the same normalized phase, displayed on the plain variant clock.",
+    "frames": 24,
+    "firstPhase": 0.14,
+    "camera": {
+      "yaw": 148,
+      "pitch": 36,
+      "pixelsPerMetre": 166.38
+    },
+    "variants": {
+      "plain": {
+        "group": {
+          "kind": "wing",
+          "pairs": 1,
+          "side": "both",
+          "from": 0.7178495998028666,
+          "to": 0.7178495998028666,
+          "girth": 1,
+          "muscle": 0.8,
+          "length": 0.8034923607026615,
+          "rise": 16.096176059218124,
+          "sweep": 23.954231950920075,
+          "chord": 0.39535051431739704,
+          "structure": "plain"
+        },
+        "clipSeconds": 0.8445894122123718,
+        "gameGLBSha256": "f5da7585541e76f8e791317c88d9af82e402b6747e32ece0575abc0a59a897fe",
+        "triangles": 24139,
+        "bones": 130,
+        "exportedFlyTracks": 37
+      },
+      "bat": {
+        "group": {
+          "kind": "wing",
+          "pairs": 1,
+          "side": "both",
+          "from": 0.7178495998028666,
+          "to": 0.7178495998028666,
+          "girth": 1,
+          "muscle": 0.8,
+          "length": 0.8034923607026615,
+          "rise": 16.096176059218124,
+          "sweep": 23.954231950920075,
+          "chord": 0.39535051431739704,
+          "structure": "bat",
+          "ribs": 4,
+          "bend": 0.6515270685194992,
+          "notch": 0.42761025263462216,
+          "point": 0.3970689394045621,
+          "pattern": "tips",
+          "seed": 1795365667
+        },
+        "clipSeconds": 0.8396000862121582,
+        "gameGLBSha256": "7d8f9685edea2cc0646376f7ddae189913d98fedc4b28f8ff4378e12158cd863",
+        "triangles": 24250,
+        "bones": 124,
+        "exportedFlyTracks": 29
+      },
+      "feather": {
+        "group": {
+          "kind": "wing",
+          "pairs": 1,
+          "side": "both",
+          "from": 0.7178495998028666,
+          "to": 0.7178495998028666,
+          "girth": 1,
+          "muscle": 0.8,
+          "length": 0.8034923607026615,
+          "rise": 16.096176059218124,
+          "sweep": 23.954231950920075,
+          "chord": 0.39535051431739704,
+          "structure": "feather",
+          "ribs": 11,
+          "bend": 0.6515270685194992,
+          "notch": 0.42761025263462216,
+          "point": 0.3970689394045621,
+          "pattern": "tips",
+          "seed": 1795365667
+        },
+        "clipSeconds": 0.8440648317337036,
+        "gameGLBSha256": "6d8c2af12ec3e7396879534f6bc2725e1cebaab745b62aa6a8bc409659a473c9",
+        "triangles": 23991,
+        "bones": 124,
+        "exportedFlyTracks": 29
+      },
+      "insect": {
+        "group": {
+          "kind": "wing",
+          "pairs": 1,
+          "side": "both",
+          "from": 0.7178495998028666,
+          "to": 0.7178495998028666,
+          "girth": 1,
+          "muscle": 0.8,
+          "length": 0.8034923607026615,
+          "rise": 16.096176059218124,
+          "sweep": 23.954231950920075,
+          "chord": 0.39535051431739704,
+          "structure": "insect",
+          "ribs": 5,
+          "bend": 0.6515270685194992,
+          "notch": 0.42761025263462216,
+          "point": 0.3970689394045621,
+          "pattern": "tips",
+          "seed": 1795365667
+        },
+        "clipSeconds": 0.8434213399887085,
+        "gameGLBSha256": "a871edfa250b987ff7bbbd385e7152b0d7b4d80aab4c007da3d340a3d2fc5321",
+        "triangles": 24112,
+        "bones": 124,
+        "exportedFlyTracks": 29
+      }
+    },
+    "media": "docs/media/creature-wing-motion.webp",
+    "sha256": "10c12b66d1c74b6b8a84b333dcde1e9e279c984c0e0e3ec8c2a15f7d9df4a442"
+  }
+}

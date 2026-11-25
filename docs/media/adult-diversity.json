@@ -1,0 +1,106 @@
+{
+  "seed": 8710,
+  "count": 64,
+  "method": "Equal-topology landmark RMS in millimetres at matched stature. Includes proportion changes. The skull group is separately centred. This measures shape spread, not attractiveness, likeness or realism.",
+  "statureCm": {
+    "min": 152.3,
+    "p10": 156.4,
+    "median": 178.7,
+    "p90": 194.8,
+    "max": 198.3
+  },
+  "body": {
+    "anchors": 461,
+    "pairs": 2016,
+    "rmsMm": {
+      "min": 8.22,
+      "p10": 23.27,
+      "median": 35.74,
+      "p90": 51.84,
+      "max": 85.82
+    },
+    "closest": [
+      8727,
+      8755
+    ],
+    "furthest": [
+      8712,
+      8741
+    ],
+    "closePairs": [
+      [
+        8727,
+        8755
+      ],
+      [
+        8734,
+        8751
+      ],
+      [
+        8711,
+        8722
+      ]
+    ],
+    "identityControlMm": 0
+  },
+  "head": {
+    "anchors": 317,
+    "pairs": 2016,
+    "rmsMm": {
+      "min": 3.4,
+      "p10": 6.66,
+      "median": 10.2,
+      "p90": 15.12,
+      "max": 24.01
+    },
+    "closest": [
+      8745,
+      8749
+    ],
+    "furthest": [
+      8712,
+      8773
+    ],
+    "closePairs": [
+      [
+        8745,
+        8749
+      ],
+      [
+        8731,
+        8736
+      ],
+      [
+        8711,
+        8765
+      ]
+    ],
+    "identityControlMm": 0
+  },
+  "firstFour": [
+    {
+      "id": 8710,
+      "height": 1.552,
+      "outfit": "Tailored suit",
+      "hair": "Wavy"
+    },
+    {
+      "id": 8711,
+      "height": 1.568,
+      "outfit": "Workshop apron",
+      "hair": "Buzz cut"
+    },
+    {
+      "id": 8712,
+      "height": 1.797,
+      "outfit": "Shirt and chinos",
+      "hair": "Crown braid"
+    },
+    {
+      "id": 8713,
+      "height": 1.693,
+      "outfit": "Overcoat",
+      "hair": "None"
+    }
+  ]
+}

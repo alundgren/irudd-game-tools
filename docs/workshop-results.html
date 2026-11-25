@@ -178,6 +178,7 @@
           position: static;
         }
       }
+      [data-local]:not([data-local-found]) { display: none !important; }
     </style>
   </head>
   <body>
@@ -195,6 +196,31 @@
         come from the workshop. The linked community creations supply each
         design target.
       </p>
+      <section class="method" id="adult-shapes">
+        <h2>Six bodies, one editable surface</h2>
+        <p>Six identities sampled from the Momentum Human Rig were each fitted from the same neutral adult. A single fit in the workshop adjusted its measurements and surface. The mean distance from the editable body to the reference ranged from 3.7 to 5.2 mm. For F3, the 95th percentile was 17.7 mm. <a href="media/workshop-body-readings.json">Inspect errors by region</a>.</p>
+        <p>The comparison sheet and the six fitted studies derive from the reference bodies. They are <a href="local-references.md">local reference material</a> and appear below in a copy that has them.</p>
+        <div data-local="media/workshop-body-fits.webp">
+        <p>The blue-grey figure in each pair is the reference body. The warm clay figure is its editable fit.</p>
+        <figure>
+          <a href="media/workshop-body-fits.webp"><img src="media/workshop-body-fits.webp" alt="Front and oblique views of all six reference bodies beside their fits" /></a>
+          <figcaption>Matching orthographic cameras within each pair. Reference shapes derived from Meta’s Momentum Human Rig under Apache-2.0.</figcaption>
+        </figure>
+        <p>Open an editable fit
+          <a class="workshop-study" data-key="mhr-f1" href="../dist/character-view.html#study=mhr-f1">F1</a> ·
+          <a class="workshop-study" data-key="mhr-f2" href="../dist/character-view.html#study=mhr-f2">F2</a> ·
+          <a class="workshop-study" data-key="mhr-f3" href="../dist/character-view.html#study=mhr-f3">F3</a> ·
+          <a class="workshop-study" data-key="mhr-m1" href="../dist/character-view.html#study=mhr-m1">M1</a> ·
+          <a class="workshop-study" data-key="mhr-m2" href="../dist/character-view.html#study=mhr-m2">M2</a> ·
+          <a class="workshop-study" data-key="mhr-m3" href="../dist/character-view.html#study=mhr-m3">M3</a>.
+        </p>
+        </div>
+        <p data-local="media/head-study/region-map.png"><a class="workshop-study" data-key="lee-perry-smith" href="../dist/character-view.html#study=lee-perry-smith">Inspect an editable fit to the Lee Perry-Smith head scan</a>. The source is Infinite’s scan by Lee Perry-Smith, licensed under <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>. The fit reproduces its surface on the workshop’s head topology.</p>
+        <h3>Fitting clothes over a smooth base</h3>
+        <p>The same person wears the same field jacket at two bust settings. Compare where the jacket crosses the sternum, where its pocket sits, and where the fabric falls away toward the waist. All four columns share a camera scale.</p>
+        <figure><a href="media/avatar-bust-fit.webp"><img loading="lazy" src="media/avatar-bust-fit.webp" alt="Smaller and fuller bust, each in clay and the same jacket, seen from the front and side" /></a></figure>
+        <p><a class="workshop-study" data-key="adult-f1" href="../dist/character-view.html#study=adult-f1">Nudge the body</a> · <a class="workshop-study" data-key="field-engineer" href="../dist/character-view.html#study=field-engineer">Try clothing</a> · <a class="workshop-study" data-key="tidal-naturalist" href="../dist/character-view.html#study=tidal-naturalist">Open a finned AI variation</a>.</p>
+      </section>
       <section id="start-here" aria-label="Three character generator comparisons">
         <figure>
           <img src="media/three-generator-studies.webp" alt="Three workshop exports. A balding man wears square glasses, a four-handed merchant carries a jar, and a runner wears a fitted concert skirt.">
@@ -1586,16 +1612,22 @@
         </p>
       </section>
       <footer>
-        Editor captures use original procedural geometry and original generated
-        artwork distributed with this MIT project. Community reference images
-        remain at their credited sources.
+        The workshop uses original procedural geometry and artwork and CC0 MakeHuman assets. Fits and pictures derived from Meta’s Apache-2.0 Momentum Human Rig stay in local copies. Community reference images remain at their credited sources.
       </footer>
     </main>
     <script>
+      // Comparison pictures are local reference material (local-references.md).
+      // Show a picture, or a block that depends on one, only where its file loads.
+      for (const item of document.querySelectorAll("[data-local]")) {
+        const probe = new Image();
+        probe.onload = () => item.setAttribute("data-local-found", "");
+        probe.src = item.dataset.local;
+      }
       if (
         /^https?:$/.test(location.protocol) &&
         ["localhost", "127.0.0.1"].includes(location.hostname)
       ) {
+        document.querySelectorAll(".workshop-study").forEach(a=>a.href="../#study="+a.dataset.key);
         document
           .querySelectorAll("[data-player]")
           .forEach(

@@ -1,0 +1,382 @@
+{
+  "beforeArmOutlineFit": {
+    "f1": {
+      "note": "Whole body fitted. Whole body now 3.8 mm from the reference on average, 18.4 mm in your original. Apply to keep it.",
+      "steps": "Whole body \u00b7 measurements 13.4 \u2192 7.0 mm \u00b7 surface 7.0 \u2192 3.8 mm mean, 10.3 mm at 95%, 1045 of 1045 anchors",
+      "table": "Mean / 95% in mm\tOriginal\tNow\tBias\nWhole body\t18.4 / 47.0\t3.8 / 10.7\t-1.3\nHead\t10.2 / 31.8\t3.8 / 12.1\t-1.9\nTrunk\t24.9 / 63.5\t3.6 / 9.7\t-1.3\nArms\t31.7 / 49.4\t3.3 / 8.9\t+0.4\nLegs\t7.7 / 19.3\t4.6 / 11.4\t-3.0",
+      "facts": "Model\nMHR benchmark adult \u00b7 female-typical 1 \u00b7 36,874 triangles\nScale\nIn metres as supplied (detected) \u00b7 1.745 m tall\nFacing\nY up \u00b7 already facing front\nTemplate\nAdult human \u00b7 1.745 m \u00b7 prealigned: stature 1.720 \u2192 1.745 m, arm rest angle 0.00 \u2192 -0.02 \u00b7 1045 surface corrections\nPose\nArms below level: reference 51\u00b0, template 50\u00b0 \u00b7 feet apart: reference 39 cm, template 38 cm"
+    },
+    "f2": {
+      "note": "Whole body fitted. Whole body now 4.1 mm from the reference on average, 24.1 mm in your original. Apply to keep it.",
+      "steps": "Whole body \u00b7 measurements 20.8 \u2192 8.9 mm \u00b7 surface 8.9 \u2192 4.1 mm mean, 12.2 mm at 95%, 1045 of 1045 anchors",
+      "table": "Mean / 95% in mm\tOriginal\tNow\tBias\nWhole body\t24.1 / 67.0\t4.1 / 12.8\t-1.4\nHead\t15.8 / 52.5\t3.5 / 10.5\t-1.5\nTrunk\t45.8 / 79.5\t4.6 / 12.4\t-3.3\nArms\t29.2 / 66.9\t3.7 / 12.5\t+0.0\nLegs\t17.4 / 46.2\t5.3 / 13.8\t-2.3",
+      "facts": "Model\nMHR benchmark adult \u00b7 female-typical 2 \u00b7 36,874 triangles\nScale\nIn metres as supplied (detected) \u00b7 1.639 m tall\nFacing\nY up \u00b7 already facing front\nTemplate\nAdult human \u00b7 1.639 m \u00b7 prealigned: stature 1.720 \u2192 1.639 m, arm rest angle 0.00 \u2192 -0.01 \u00b7 1045 surface corrections\nPose\nArms below level: reference 51\u00b0, template 49\u00b0 \u00b7 feet apart: reference 33 cm, template 29 cm"
+    },
+    "f3": {
+      "note": "Whole body fitted. Whole body now 7.1 mm from the reference on average, 62.5 mm in your original. Apply to keep it.",
+      "steps": "Whole body \u00b7 measurements 32.5 \u2192 12.8 mm \u00b7 surface 12.8 \u2192 7.2 mm mean, 26.8 mm at 95%, 1045 of 1045 anchors",
+      "table": "Mean / 95% in mm\tOriginal\tNow\tBias\nWhole body\t62.5 / 172\t7.1 / 26.8\t+2.3\nHead\t37.2 / 70.7\t3.7 / 11.4\t-1.8\nTrunk\t33.6 / 80.6\t3.1 / 9.3\t-1.4\nArms\t131 / 186\t11.9 / 34.1\t+10.6\nLegs\t15.1 / 37.3\t6.5 / 17.4\t-2.2",
+      "facts": "Model\nMHR benchmark adult \u00b7 female-typical 3 \u00b7 36,874 triangles\nScale\nIn metres as supplied (detected) \u00b7 1.899 m tall\nFacing\nY up \u00b7 already facing front\nTemplate\nAdult human \u00b7 1.899 m \u00b7 prealigned: stature 1.720 \u2192 1.899 m, arm rest angle 0.00 \u2192 0.01 \u00b7 1044 surface corrections\nPose\nArms below level: reference 52\u00b0, template 54\u00b0 \u00b7 feet apart: reference 33 cm, template 28 cm"
+    },
+    "m1": {
+      "note": "Whole body fitted. Whole body now 6.2 mm from the reference on average, 29.3 mm in your original. Apply to keep it.",
+      "steps": "Whole body \u00b7 measurements 29.1 \u2192 11.6 mm \u00b7 surface 11.6 \u2192 6.4 mm mean, 24.1 mm at 95%, 1045 of 1045 anchors",
+      "table": "Mean / 95% in mm\tOriginal\tNow\tBias\nWhole body\t29.3 / 103\t6.2 / 23.3\t+1.4\nHead\t8.4 / 28.8\t3.5 / 11.5\t-1.9\nTrunk\t31.9 / 55.7\t2.8 / 8.1\t-1.4\nArms\t61.6 / 116\t10.1 / 28.2\t+8.7\nLegs\t10.5 / 27.1\t5.8 / 14.8\t-3.0",
+      "facts": "Model\nMHR benchmark adult \u00b7 male-typical 1 \u00b7 36,874 triangles\nScale\nIn metres as supplied (detected) \u00b7 1.725 m tall\nFacing\nY up \u00b7 already facing front\nTemplate\nAdult human \u00b7 1.725 m \u00b7 prealigned: stature 1.720 \u2192 1.725 m, arm rest angle 0.00 \u2192 0.02 \u00b7 1045 surface corrections\nPose\nArms below level: reference 52\u00b0, template 54\u00b0 \u00b7 feet apart: reference 35 cm, template 31 cm"
+    },
+    "m2": {
+      "note": "Whole body fitted. Whole body now 3.5 mm from the reference on average, 17.6 mm in your original. Apply to keep it.",
+      "steps": "Whole body \u00b7 measurements 20.1 \u2192 6.7 mm \u00b7 surface 6.7 \u2192 3.6 mm mean, 10.0 mm at 95%, 1045 of 1045 anchors",
+      "table": "Mean / 95% in mm\tOriginal\tNow\tBias\nWhole body\t17.6 / 75.7\t3.5 / 10.4\t-1.4\nHead\t10.2 / 30.4\t3.4 / 9.5\t-1.3\nTrunk\t68.2 / 125\t3.9 / 11.5\t-1.7\nArms\t11.0 / 32.7\t2.8 / 7.7\t-0.3\nLegs\t11.9 / 33.6\t4.6 / 11.6\t-2.9",
+      "facts": "Model\nMHR benchmark adult \u00b7 male-typical 2 \u00b7 36,874 triangles\nScale\nIn metres as supplied (detected) \u00b7 1.689 m tall\nFacing\nY up \u00b7 already facing front\nTemplate\nAdult human \u00b7 1.689 m \u00b7 prealigned: stature 1.720 \u2192 1.689 m, arm rest angle 0.00 \u2192 0.02 \u00b7 1045 surface corrections\nPose\nArms below level: reference 52\u00b0, template 51\u00b0 \u00b7 feet apart: reference 39 cm, template 37 cm"
+    },
+    "m3": {
+      "note": "Whole body fitted. Whole body now 6.4 mm from the reference on average, 56.8 mm in your original. Apply to keep it.",
+      "steps": "Whole body \u00b7 measurements 24.2 \u2192 11.5 mm \u00b7 surface 11.5 \u2192 6.5 mm mean, 28.3 mm at 95%, 1045 of 1045 anchors",
+      "table": "Mean / 95% in mm\tOriginal\tNow\tBias\nWhole body\t56.8 / 155\t6.4 / 27.0\t+2.4\nHead\t36.1 / 62.7\t3.6 / 11.5\t-1.9\nTrunk\t27.2 / 66.8\t2.8 / 8.8\t-1.1\nArms\t119 / 169\t12.0 / 34.8\t+10.6\nLegs\t12.4 / 27.7\t4.0 / 10.8\t-1.9",
+      "facts": "Model\nMHR benchmark adult \u00b7 male-typical 3 \u00b7 36,874 triangles\nScale\nIn metres as supplied (detected) \u00b7 1.890 m tall\nFacing\nY up \u00b7 already facing front\nTemplate\nAdult human \u00b7 1.890 m \u00b7 prealigned: stature 1.720 \u2192 1.890 m, arm rest angle 0.00 \u2192 0.02 \u00b7 1045 surface corrections\nPose\nArms below level: reference 52\u00b0, template 54\u00b0 \u00b7 feet apart: reference 43 cm, template 41 cm"
+    }
+  },
+  "current": {
+    "f1": {
+      "note": "Whole body fitted. Whole body now 3.7 mm from the reference on average, 18.4 mm in your original. Apply to keep it.",
+      "steps": "Whole body \u00b7 measurements 13.4 \u2192 5.9 mm \u00b7 surface 5.9 \u2192 3.7 mm mean, 11.6 mm at 95%, 1045 of 1045 anchors \u00b7 head triangles turned 90\u00b0 or more: 0 of 8032",
+      "table": "Mean / 95% in mm\tOriginal\tNow\tBias\nWhole body\t18.4 / 47.0\t3.7 / 11.8\t-1.5\nHead\t10.2 / 31.8\t4.4 / 19.2\t-2.5\nTrunk\t24.7 / 63.5\t3.6 / 10.1\t-1.2\nArms\t31.7 / 49.4\t2.4 / 6.9\t-0.0\nLegs\t7.7 / 19.3\t4.9 / 12.1\t-2.6",
+      "facts": "Model\nMHR benchmark adult \u00b7 female-typical 1 \u00b7 36,874 triangles\nScale\nIn metres as supplied (detected) \u00b7 1.745 m tall\nFacing\nY up \u00b7 already facing front\nTemplate\nAdult human \u00b7 1.745 m \u00b7 prealigned: stature 1.720 \u2192 1.745 m, arm rest angle 0.00 \u2192 -0.02 \u00b7 1045 surface corrections\nPose\nArms below level: reference 51\u00b0, template 50\u00b0 \u00b7 feet apart: reference 39 cm, template 38 cm",
+      "headViews": {
+        "oblique": {
+          "width": 254,
+          "height": 384,
+          "original": {
+            "overlap": 0.7753913430467677,
+            "meanMm": 11.636596770289762,
+            "p95Mm": 35.19727328945637,
+            "sharedPixels": 40073,
+            "unionPixels": 51681
+          },
+          "fitted": {
+            "overlap": 0.9758696455307316,
+            "meanMm": 2.823827946963983,
+            "p95Mm": 9.226875901222229,
+            "sharedPixels": 50188,
+            "unionPixels": 51429
+          }
+        },
+        "profile": {
+          "width": 254,
+          "height": 384,
+          "original": {
+            "overlap": 0.7962250093132994,
+            "meanMm": 15.064387823646541,
+            "p95Mm": 85.29318829844952,
+            "sharedPixels": 38472,
+            "unionPixels": 48318
+          },
+          "fitted": {
+            "overlap": 0.969832884097035,
+            "meanMm": 3.1774916809739566,
+            "p95Mm": 11.890532767071722,
+            "sharedPixels": 44976,
+            "unionPixels": 46375
+          }
+        }
+      }
+    },
+    "f2": {
+      "note": "Whole body fitted. Whole body now 4.4 mm from the reference on average, 24.1 mm in your original. Apply to keep it.",
+      "steps": "Whole body \u00b7 measurements 20.8 \u2192 9.2 mm \u00b7 surface 9.2 \u2192 4.4 mm mean, 13.4 mm at 95%, 1045 of 1045 anchors \u00b7 head triangles turned 90\u00b0 or more: 0 of 8042",
+      "table": "Mean / 95% in mm\tOriginal\tNow\tBias\nWhole body\t24.1 / 67.0\t4.4 / 13.5\t-1.3\nHead\t15.8 / 52.5\t4.4 / 16.9\t-1.7\nTrunk\t45.9 / 79.5\t4.7 / 12.7\t-3.4\nArms\t29.2 / 66.9\t3.4 / 11.8\t+0.3\nLegs\t17.4 / 46.2\t5.6 / 14.5\t-2.1",
+      "facts": "Model\nMHR benchmark adult \u00b7 female-typical 2 \u00b7 36,874 triangles\nScale\nIn metres as supplied (detected) \u00b7 1.639 m tall\nFacing\nY up \u00b7 already facing front\nTemplate\nAdult human \u00b7 1.639 m \u00b7 prealigned: stature 1.720 \u2192 1.639 m, arm rest angle 0.00 \u2192 -0.01 \u00b7 1045 surface corrections\nPose\nArms below level: reference 51\u00b0, template 49\u00b0 \u00b7 feet apart: reference 33 cm, template 30 cm",
+      "headViews": {
+        "oblique": {
+          "width": 254,
+          "height": 384,
+          "original": {
+            "overlap": 0.6418090687165636,
+            "meanMm": 37.668041141288455,
+            "p95Mm": 92.37602055072786,
+            "sharedPixels": 49427,
+            "unionPixels": 77012
+          },
+          "fitted": {
+            "overlap": 0.9742147707979627,
+            "meanMm": 2.7899050824324627,
+            "p95Mm": 9.029037952423096,
+            "sharedPixels": 55086,
+            "unionPixels": 56544
+          }
+        },
+        "profile": {
+          "width": 254,
+          "height": 384,
+          "original": {
+            "overlap": 0.6340753098886304,
+            "meanMm": 41.9136804631752,
+            "p95Mm": 137.92045692135335,
+            "sharedPixels": 43327,
+            "unionPixels": 68331
+          },
+          "fitted": {
+            "overlap": 0.9668351292075904,
+            "meanMm": 3.178672364358445,
+            "p95Mm": 10.872739946141241,
+            "sharedPixels": 50696,
+            "unionPixels": 52435
+          }
+        }
+      }
+    },
+    "f3": {
+      "note": "Whole body fitted. Whole body now 5.2 mm from the reference on average, 62.5 mm in your original. Apply to keep it.",
+      "steps": "Whole body \u00b7 measurements 32.4 \u2192 9.0 mm \u00b7 surface 9.0 \u2192 5.2 mm mean, 18.3 mm at 95%, 1045 of 1045 anchors \u00b7 head triangles turned 90\u00b0 or more: 0 of 8054",
+      "table": "Mean / 95% in mm\tOriginal\tNow\tBias\nWhole body\t62.5 / 172\t5.2 / 17.7\t-0.2\nHead\t37.2 / 70.7\t4.4 / 19.5\t-2.5\nTrunk\t33.6 / 80.5\t3.1 / 9.8\t-1.4\nArms\t131 / 186\t5.4 / 17.2\t+3.4\nLegs\t15.1 / 37.3\t6.8 / 19.2\t-1.5",
+      "facts": "Model\nMHR benchmark adult \u00b7 female-typical 3 \u00b7 36,874 triangles\nScale\nIn metres as supplied (detected) \u00b7 1.899 m tall\nFacing\nY up \u00b7 already facing front\nTemplate\nAdult human \u00b7 1.899 m \u00b7 prealigned: stature 1.720 \u2192 1.899 m, arm rest angle 0.00 \u2192 0.01 \u00b7 1045 surface corrections\nPose\nArms below level: reference 52\u00b0, template 52\u00b0 \u00b7 feet apart: reference 33 cm, template 28 cm",
+      "headViews": {
+        "oblique": {
+          "width": 253,
+          "height": 384,
+          "original": {
+            "overlap": 0.345343591396117,
+            "meanMm": 42.63945949987284,
+            "p95Mm": 115.6672724134779,
+            "sharedPixels": 17147,
+            "unionPixels": 49652
+          },
+          "fitted": {
+            "overlap": 0.9730085853698709,
+            "meanMm": 2.6918653246114217,
+            "p95Mm": 8.179283534779549,
+            "sharedPixels": 47260,
+            "unionPixels": 48571
+          }
+        },
+        "profile": {
+          "width": 253,
+          "height": 384,
+          "original": {
+            "overlap": 0.3464684483882499,
+            "meanMm": 37.40801687053968,
+            "p95Mm": 146.45490467548373,
+            "sharedPixels": 16477,
+            "unionPixels": 47557
+          },
+          "fitted": {
+            "overlap": 0.9680734196914909,
+            "meanMm": 3.328284999446784,
+            "p95Mm": 11.884578466415405,
+            "sharedPixels": 42299,
+            "unionPixels": 43694
+          }
+        }
+      }
+    },
+    "m1": {
+      "note": "Whole body fitted. Whole body now 4.5 mm from the reference on average, 29.2 mm in your original. Apply to keep it.",
+      "steps": "Whole body \u00b7 measurements 29.1 \u2192 7.6 mm \u00b7 surface 7.6 \u2192 4.5 mm mean, 14.6 mm at 95%, 1045 of 1045 anchors \u00b7 head triangles turned 90\u00b0 or more: 0 of 8042",
+      "table": "Mean / 95% in mm\tOriginal\tNow\tBias\nWhole body\t29.2 / 103\t4.5 / 14.7\t-0.8\nHead\t8.3 / 28.7\t4.5 / 20.2\t-2.6\nTrunk\t31.8 / 55.7\t2.8 / 8.2\t-1.5\nArms\t61.6 / 116\t4.1 / 12.2\t+2.0\nLegs\t10.5 / 27.1\t5.8 / 15.3\t-1.9",
+      "facts": "Model\nMHR benchmark adult \u00b7 male-typical 1 \u00b7 36,874 triangles\nScale\nIn metres as supplied (detected) \u00b7 1.725 m tall\nFacing\nY up \u00b7 already facing front\nTemplate\nAdult human \u00b7 1.725 m \u00b7 prealigned: stature 1.720 \u2192 1.725 m, arm rest angle 0.00 \u2192 0.02 \u00b7 1045 surface corrections\nPose\nArms below level: reference 52\u00b0, template 52\u00b0 \u00b7 feet apart: reference 35 cm, template 32 cm",
+      "headViews": {
+        "oblique": {
+          "width": 254,
+          "height": 384,
+          "original": {
+            "overlap": 0.8231102850061958,
+            "meanMm": 14.54791126358231,
+            "p95Mm": 51.50818725894452,
+            "sharedPixels": 45169,
+            "unionPixels": 54876
+          },
+          "fitted": {
+            "overlap": 0.9830843017893378,
+            "meanMm": 2.2268645213150795,
+            "p95Mm": 6.218785643577576,
+            "sharedPixels": 53293,
+            "unionPixels": 54210
+          }
+        },
+        "profile": {
+          "width": 254,
+          "height": 384,
+          "original": {
+            "overlap": 0.8321679734863794,
+            "meanMm": 22.512113952318813,
+            "p95Mm": 126.33145293067454,
+            "sharedPixels": 41179,
+            "unionPixels": 49484
+          },
+          "fitted": {
+            "overlap": 0.9754366696939616,
+            "meanMm": 3.2460759774654813,
+            "p95Mm": 11.249347125782965,
+            "sharedPixels": 46184,
+            "unionPixels": 47347
+          }
+        }
+      }
+    },
+    "m2": {
+      "note": "Whole body fitted. Whole body now 4.0 mm from the reference on average, 17.5 mm in your original. Apply to keep it.",
+      "steps": "Whole body \u00b7 measurements 20.0 \u2192 6.8 mm \u00b7 surface 6.8 \u2192 4.1 mm mean, 12.1 mm at 95%, 1045 of 1045 anchors \u00b7 head triangles turned 90\u00b0 or more: 0 of 8038",
+      "table": "Mean / 95% in mm\tOriginal\tNow\tBias\nWhole body\t17.5 / 75.7\t4.0 / 11.6\t-1.4\nHead\t10.2 / 30.4\t4.3 / 17.1\t-1.9\nTrunk\t68.1 / 125\t4.1 / 11.7\t-2.3\nArms\t11.0 / 32.7\t3.2 / 7.8\t-0.2\nLegs\t11.9 / 33.6\t4.6 / 11.8\t-1.9",
+      "facts": "Model\nMHR benchmark adult \u00b7 male-typical 2 \u00b7 36,874 triangles\nScale\nIn metres as supplied (detected) \u00b7 1.689 m tall\nFacing\nY up \u00b7 already facing front\nTemplate\nAdult human \u00b7 1.689 m \u00b7 prealigned: stature 1.720 \u2192 1.689 m, arm rest angle 0.00 \u2192 0.02 \u00b7 1045 surface corrections\nPose\nArms below level: reference 52\u00b0, template 51\u00b0 \u00b7 feet apart: reference 39 cm, template 37 cm",
+      "headViews": {
+        "oblique": {
+          "width": 254,
+          "height": 384,
+          "original": {
+            "overlap": 0.7816426336231975,
+            "meanMm": 18.465652732437025,
+            "p95Mm": 47.276118993759155,
+            "sharedPixels": 49707,
+            "unionPixels": 63593
+          },
+          "fitted": {
+            "overlap": 0.9737875208449138,
+            "meanMm": 3.2852215054226295,
+            "p95Mm": 9.86567795276642,
+            "sharedPixels": 56059,
+            "unionPixels": 57568
+          }
+        },
+        "profile": {
+          "width": 254,
+          "height": 384,
+          "original": {
+            "overlap": 0.7184073577062808,
+            "meanMm": 19.529676371277162,
+            "p95Mm": 53.03606828521252,
+            "sharedPixels": 43899,
+            "unionPixels": 61106
+          },
+          "fitted": {
+            "overlap": 0.9841230109064902,
+            "meanMm": 4.484311301130026,
+            "p95Mm": 15.04998564720154,
+            "sharedPixels": 55042,
+            "unionPixels": 55930
+          }
+        }
+      }
+    },
+    "m3": {
+      "note": "Whole body fitted. Whole body now 4.5 mm from the reference on average, 56.8 mm in your original. Apply to keep it.",
+      "steps": "Whole body \u00b7 measurements 24.2 \u2192 7.7 mm \u00b7 surface 7.7 \u2192 4.5 mm mean, 15.2 mm at 95%, 1045 of 1045 anchors \u00b7 head triangles turned 90\u00b0 or more: 0 of 8042",
+      "table": "Mean / 95% in mm\tOriginal\tNow\tBias\nWhole body\t56.8 / 155\t4.5 / 15.2\t-0.2\nHead\t36.1 / 62.7\t4.3 / 18.1\t-2.2\nTrunk\t27.2 / 66.6\t2.7 / 8.7\t-1.2\nArms\t119 / 169\t5.3 / 16.6\t+3.1\nLegs\t12.4 / 27.7\t4.4 / 12.2\t-1.6",
+      "facts": "Model\nMHR benchmark adult \u00b7 male-typical 3 \u00b7 36,874 triangles\nScale\nIn metres as supplied (detected) \u00b7 1.890 m tall\nFacing\nY up \u00b7 already facing front\nTemplate\nAdult human \u00b7 1.890 m \u00b7 prealigned: stature 1.720 \u2192 1.890 m, arm rest angle 0.00 \u2192 0.02 \u00b7 1044 surface corrections\nPose\nArms below level: reference 52\u00b0, template 53\u00b0 \u00b7 feet apart: reference 43 cm, template 41 cm",
+      "headViews": {
+        "oblique": {
+          "width": 254,
+          "height": 384,
+          "original": {
+            "overlap": 0.36890231781497235,
+            "meanMm": 41.575845287668386,
+            "p95Mm": 97.25641587902547,
+            "sharedPixels": 18558,
+            "unionPixels": 50306
+          },
+          "fitted": {
+            "overlap": 0.9717989353488561,
+            "meanMm": 2.665894762233603,
+            "p95Mm": 8.068451285362244,
+            "sharedPixels": 47830,
+            "unionPixels": 49218
+          }
+        },
+        "profile": {
+          "width": 254,
+          "height": 384,
+          "original": {
+            "overlap": 0.35772761101463657,
+            "meanMm": 43.791360707582044,
+            "p95Mm": 163.58338057994843,
+            "sharedPixels": 17304,
+            "unionPixels": 48372
+          },
+          "fitted": {
+            "overlap": 0.9698550856726212,
+            "meanMm": 3.3030513950036005,
+            "p95Mm": 12.559134364128113,
+            "sharedPixels": 42565,
+            "unionPixels": 43888
+          }
+        }
+      }
+    }
+  },
+  "beforeHeadAndNeckUpdate": {
+    "f1": {
+      "note": "Whole body fitted. Whole body now 3.3 mm from the reference on average, 18.4 mm in your original. Apply to keep it.",
+      "steps": "Whole body \u00b7 measurements 13.4 \u2192 6.0 mm \u00b7 surface 6.0 \u2192 3.3 mm mean, 9.5 mm at 95%, 1045 of 1045 anchors",
+      "table": "Mean / 95% in mm\tOriginal\tNow\tBias\nWhole body\t18.4 / 47.0\t3.3 / 9.6\t-1.3\nHead\t10.2 / 31.8\t3.8 / 12.4\t-2.0\nTrunk\t24.9 / 63.5\t3.5 / 10.1\t-1.3\nArms\t31.7 / 49.4\t2.3 / 6.7\t-0.1\nLegs\t7.7 / 19.3\t4.0 / 10.7\t-1.9",
+      "facts": "Model\nMHR benchmark adult \u00b7 female-typical 1 \u00b7 36,874 triangles\nScale\nIn metres as supplied (detected) \u00b7 1.745 m tall\nFacing\nY up \u00b7 already facing front\nTemplate\nAdult human \u00b7 1.745 m \u00b7 prealigned: stature 1.720 \u2192 1.745 m, arm rest angle 0.00 \u2192 -0.02 \u00b7 1045 surface corrections\nPose\nArms below level: reference 51\u00b0, template 50\u00b0 \u00b7 feet apart: reference 39 cm, template 38 cm"
+    },
+    "f2": {
+      "note": "Whole body fitted. Whole body now 4.2 mm from the reference on average, 24.1 mm in your original. Apply to keep it.",
+      "steps": "Whole body \u00b7 measurements 20.8 \u2192 8.7 mm \u00b7 surface 8.7 \u2192 4.1 mm mean, 11.6 mm at 95%, 1045 of 1045 anchors",
+      "table": "Mean / 95% in mm\tOriginal\tNow\tBias\nWhole body\t24.1 / 67.0\t4.2 / 12.2\t-1.2\nHead\t15.8 / 52.5\t3.5 / 10.4\t-1.5\nTrunk\t45.8 / 79.5\t4.7 / 12.2\t-3.3\nArms\t29.2 / 66.9\t3.8 / 11.0\t+1.1\nLegs\t17.4 / 46.2\t5.3 / 13.4\t-2.9",
+      "facts": "Model\nMHR benchmark adult \u00b7 female-typical 2 \u00b7 36,874 triangles\nScale\nIn metres as supplied (detected) \u00b7 1.639 m tall\nFacing\nY up \u00b7 already facing front\nTemplate\nAdult human \u00b7 1.639 m \u00b7 prealigned: stature 1.720 \u2192 1.639 m, arm rest angle 0.00 \u2192 -0.01 \u00b7 1045 surface corrections\nPose\nArms below level: reference 51\u00b0, template 49\u00b0 \u00b7 feet apart: reference 33 cm, template 30 cm"
+    },
+    "f3": {
+      "note": "Whole body fitted. Whole body now 5.0 mm from the reference on average, 62.5 mm in your original. Apply to keep it.",
+      "steps": "Whole body \u00b7 measurements 32.5 \u2192 9.1 mm \u00b7 surface 9.1 \u2192 5.0 mm mean, 16.8 mm at 95%, 1045 of 1045 anchors",
+      "table": "Mean / 95% in mm\tOriginal\tNow\tBias\nWhole body\t62.5 / 172\t5.0 / 16.3\t-0.2\nHead\t37.2 / 70.7\t3.7 / 11.4\t-1.7\nTrunk\t33.6 / 80.6\t3.1 / 9.4\t-1.4\nArms\t131 / 186\t5.5 / 17.4\t+3.5\nLegs\t15.1 / 37.3\t6.8 / 17.0\t-2.9",
+      "facts": "Model\nMHR benchmark adult \u00b7 female-typical 3 \u00b7 36,874 triangles\nScale\nIn metres as supplied (detected) \u00b7 1.899 m tall\nFacing\nY up \u00b7 already facing front\nTemplate\nAdult human \u00b7 1.899 m \u00b7 prealigned: stature 1.720 \u2192 1.899 m, arm rest angle 0.00 \u2192 0.01 \u00b7 1045 surface corrections\nPose\nArms below level: reference 52\u00b0, template 52\u00b0 \u00b7 feet apart: reference 33 cm, template 28 cm"
+    },
+    "m1": {
+      "note": "Whole body fitted. Whole body now 4.1 mm from the reference on average, 29.3 mm in your original. Apply to keep it.",
+      "steps": "Whole body \u00b7 measurements 29.1 \u2192 7.7 mm \u00b7 surface 7.7 \u2192 4.1 mm mean, 12.8 mm at 95%, 1045 of 1045 anchors",
+      "table": "Mean / 95% in mm\tOriginal\tNow\tBias\nWhole body\t29.3 / 103\t4.1 / 12.6\t-0.8\nHead\t8.4 / 28.8\t3.6 / 12.8\t-2.0\nTrunk\t31.9 / 55.7\t2.9 / 8.3\t-1.5\nArms\t61.6 / 116\t4.0 / 11.6\t+1.7\nLegs\t10.5 / 27.1\t5.4 / 14.4\t-2.4",
+      "facts": "Model\nMHR benchmark adult \u00b7 male-typical 1 \u00b7 36,874 triangles\nScale\nIn metres as supplied (detected) \u00b7 1.725 m tall\nFacing\nY up \u00b7 already facing front\nTemplate\nAdult human \u00b7 1.725 m \u00b7 prealigned: stature 1.720 \u2192 1.725 m, arm rest angle 0.00 \u2192 0.02 \u00b7 1044 surface corrections\nPose\nArms below level: reference 52\u00b0, template 52\u00b0 \u00b7 feet apart: reference 35 cm, template 32 cm"
+    },
+    "m2": {
+      "note": "Whole body fitted. Whole body now 3.4 mm from the reference on average, 17.6 mm in your original. Apply to keep it.",
+      "steps": "Whole body \u00b7 measurements 20.1 \u2192 6.5 mm \u00b7 surface 6.5 \u2192 3.4 mm mean, 9.7 mm at 95%, 1045 of 1045 anchors",
+      "table": "Mean / 95% in mm\tOriginal\tNow\tBias\nWhole body\t17.6 / 75.7\t3.4 / 9.7\t-1.1\nHead\t10.2 / 30.4\t3.4 / 9.6\t-1.3\nTrunk\t68.2 / 125\t3.9 / 11.3\t-1.8\nArms\t11.0 / 32.7\t2.6 / 7.1\t-0.0\nLegs\t11.9 / 33.6\t4.2 / 10.9\t-2.2",
+      "facts": "Model\nMHR benchmark adult \u00b7 male-typical 2 \u00b7 36,874 triangles\nScale\nIn metres as supplied (detected) \u00b7 1.689 m tall\nFacing\nY up \u00b7 already facing front\nTemplate\nAdult human \u00b7 1.689 m \u00b7 prealigned: stature 1.720 \u2192 1.689 m, arm rest angle 0.00 \u2192 0.02 \u00b7 1045 surface corrections\nPose\nArms below level: reference 52\u00b0, template 51\u00b0 \u00b7 feet apart: reference 39 cm, template 37 cm"
+    },
+    "m3": {
+      "note": "Whole body fitted. Whole body now 4.0 mm from the reference on average, 56.8 mm in your original. Apply to keep it.",
+      "steps": "Whole body \u00b7 measurements 24.2 \u2192 7.5 mm \u00b7 surface 7.5 \u2192 4.1 mm mean, 13.2 mm at 95%, 1045 of 1045 anchors",
+      "table": "Mean / 95% in mm\tOriginal\tNow\tBias\nWhole body\t56.8 / 155\t4.0 / 13.0\t-0.2\nHead\t36.1 / 62.7\t3.5 / 11.8\t-2.1\nTrunk\t27.2 / 66.8\t2.9 / 8.9\t-1.2\nArms\t119 / 169\t5.1 / 16.0\t+2.8\nLegs\t12.4 / 27.7\t3.8 / 10.5\t-1.5",
+      "facts": "Model\nMHR benchmark adult \u00b7 male-typical 3 \u00b7 36,874 triangles\nScale\nIn metres as supplied (detected) \u00b7 1.890 m tall\nFacing\nY up \u00b7 already facing front\nTemplate\nAdult human \u00b7 1.890 m \u00b7 prealigned: stature 1.720 \u2192 1.890 m, arm rest angle 0.00 \u2192 0.02 \u00b7 1045 surface corrections\nPose\nArms below level: reference 52\u00b0, template 52\u00b0 \u00b7 feet apart: reference 43 cm, template 41 cm"
+    }
+  },
+  "beforeCameraDepthFit": {
+    "f1": {
+      "note": "Whole body fitted. Whole body now 4.0 mm from the reference on average, 18.4 mm in your original. Apply to keep it.",
+      "steps": "Whole body \u00b7 measurements 13.4 \u2192 6.3 mm \u00b7 surface 6.3 \u2192 4.1 mm mean, 10.9 mm at 95%, 1045 of 1045 anchors \u00b7 head triangles turned 90\u00b0 or more: 0 of 8032",
+      "table": "Mean / 95% in mm\tOriginal\tNow\tBias\nWhole body\t18.4 / 47.0\t4.0 / 11.4\t-1.5\nHead\t10.2 / 31.8\t5.3 / 18.5\t-1.6\nTrunk\t24.7 / 63.5\t3.6 / 10.1\t-1.3\nArms\t31.7 / 49.4\t2.4 / 6.8\t-0.1\nLegs\t7.7 / 19.3\t4.9 / 11.8\t-3.2",
+      "facts": "Model\nMHR benchmark adult \u00b7 female-typical 1 \u00b7 36,874 triangles\nScale\nIn metres as supplied (detected) \u00b7 1.745 m tall\nFacing\nY up \u00b7 already facing front\nTemplate\nAdult human \u00b7 1.745 m \u00b7 prealigned: stature 1.720 \u2192 1.745 m, arm rest angle 0.00 \u2192 -0.02 \u00b7 1045 surface corrections\nPose\nArms below level: reference 51\u00b0, template 50\u00b0 \u00b7 feet apart: reference 39 cm, template 38 cm"
+    },
+    "f2": {
+      "note": "Whole body fitted. Whole body now 4.7 mm from the reference on average, 24.1 mm in your original. Apply to keep it.",
+      "steps": "Whole body \u00b7 measurements 20.8 \u2192 8.7 mm \u00b7 surface 8.7 \u2192 4.6 mm mean, 12.9 mm at 95%, 1045 of 1045 anchors \u00b7 head triangles turned 90\u00b0 or more: 0 of 8044",
+      "table": "Mean / 95% in mm\tOriginal\tNow\tBias\nWhole body\t24.1 / 67.0\t4.7 / 12.9\t-1.1\nHead\t15.8 / 52.5\t5.0 / 17.9\t-1.4\nTrunk\t45.9 / 79.5\t4.6 / 12.0\t-3.3\nArms\t29.2 / 66.9\t3.9 / 11.3\t+1.2\nLegs\t17.4 / 46.2\t5.3 / 13.3\t-2.9",
+      "facts": "Model\nMHR benchmark adult \u00b7 female-typical 2 \u00b7 36,874 triangles\nScale\nIn metres as supplied (detected) \u00b7 1.639 m tall\nFacing\nY up \u00b7 already facing front\nTemplate\nAdult human \u00b7 1.639 m \u00b7 prealigned: stature 1.720 \u2192 1.639 m, arm rest angle 0.00 \u2192 -0.01 \u00b7 1045 surface corrections\nPose\nArms below level: reference 51\u00b0, template 49\u00b0 \u00b7 feet apart: reference 33 cm, template 30 cm"
+    },
+    "f3": {
+      "note": "Whole body fitted. Whole body now 5.4 mm from the reference on average, 62.5 mm in your original. Apply to keep it.",
+      "steps": "Whole body \u00b7 measurements 32.4 \u2192 9.2 mm \u00b7 surface 9.2 \u2192 5.5 mm mean, 17.4 mm at 95%, 1045 of 1045 anchors \u00b7 head triangles turned 90\u00b0 or more: 0 of 8054",
+      "table": "Mean / 95% in mm\tOriginal\tNow\tBias\nWhole body\t62.5 / 172\t5.4 / 16.9\t-0.0\nHead\t37.2 / 70.7\t5.2 / 17.8\t-1.5\nTrunk\t33.6 / 80.5\t3.1 / 9.4\t-1.4\nArms\t131 / 186\t5.5 / 17.4\t+3.5\nLegs\t15.1 / 37.3\t6.6 / 17.1\t-2.4",
+      "facts": "Model\nMHR benchmark adult \u00b7 female-typical 3 \u00b7 36,874 triangles\nScale\nIn metres as supplied (detected) \u00b7 1.899 m tall\nFacing\nY up \u00b7 already facing front\nTemplate\nAdult human \u00b7 1.899 m \u00b7 prealigned: stature 1.720 \u2192 1.899 m, arm rest angle 0.00 \u2192 0.01 \u00b7 1045 surface corrections\nPose\nArms below level: reference 52\u00b0, template 52\u00b0 \u00b7 feet apart: reference 33 cm, template 28 cm"
+    },
+    "m1": {
+      "note": "Whole body fitted. Whole body now 4.6 mm from the reference on average, 29.2 mm in your original. Apply to keep it.",
+      "steps": "Whole body \u00b7 measurements 29.1 \u2192 7.8 mm \u00b7 surface 7.8 \u2192 4.7 mm mean, 13.6 mm at 95%, 1045 of 1045 anchors \u00b7 head triangles turned 90\u00b0 or more: 0 of 8048",
+      "table": "Mean / 95% in mm\tOriginal\tNow\tBias\nWhole body\t29.2 / 103\t4.6 / 13.9\t-0.8\nHead\t8.3 / 28.7\t5.1 / 19.7\t-1.7\nTrunk\t31.8 / 55.7\t2.9 / 8.2\t-1.4\nArms\t61.6 / 116\t3.9 / 11.6\t+1.7\nLegs\t10.5 / 27.1\t5.6 / 14.7\t-2.7",
+      "facts": "Model\nMHR benchmark adult \u00b7 male-typical 1 \u00b7 36,874 triangles\nScale\nIn metres as supplied (detected) \u00b7 1.725 m tall\nFacing\nY up \u00b7 already facing front\nTemplate\nAdult human \u00b7 1.725 m \u00b7 prealigned: stature 1.720 \u2192 1.725 m, arm rest angle 0.00 \u2192 0.02 \u00b7 1045 surface corrections\nPose\nArms below level: reference 52\u00b0, template 52\u00b0 \u00b7 feet apart: reference 35 cm, template 31 cm"
+    },
+    "m2": {
+      "note": "Whole body fitted. Whole body now 4.0 mm from the reference on average, 17.5 mm in your original. Apply to keep it.",
+      "steps": "Whole body \u00b7 measurements 20.0 \u2192 6.7 mm \u00b7 surface 6.7 \u2192 4.1 mm mean, 11.2 mm at 95%, 1045 of 1045 anchors \u00b7 head triangles turned 90\u00b0 or more: 0 of 8036",
+      "table": "Mean / 95% in mm\tOriginal\tNow\tBias\nWhole body\t17.5 / 75.7\t4.0 / 11.1\t-1.3\nHead\t10.2 / 30.4\t5.1 / 17.5\t-1.3\nTrunk\t68.1 / 125\t3.8 / 11.2\t-1.9\nArms\t11.0 / 32.7\t2.6 / 7.0\t-0.0\nLegs\t11.9 / 33.6\t4.6 / 11.4\t-2.7",
+      "facts": "Model\nMHR benchmark adult \u00b7 male-typical 2 \u00b7 36,874 triangles\nScale\nIn metres as supplied (detected) \u00b7 1.689 m tall\nFacing\nY up \u00b7 already facing front\nTemplate\nAdult human \u00b7 1.689 m \u00b7 prealigned: stature 1.720 \u2192 1.689 m, arm rest angle 0.00 \u2192 0.02 \u00b7 1045 surface corrections\nPose\nArms below level: reference 52\u00b0, template 51\u00b0 \u00b7 feet apart: reference 39 cm, template 37 cm"
+    },
+    "m3": {
+      "note": "Whole body fitted. Whole body now 4.5 mm from the reference on average, 56.8 mm in your original. Apply to keep it.",
+      "steps": "Whole body \u00b7 measurements 24.2 \u2192 7.7 mm \u00b7 surface 7.7 \u2192 4.5 mm mean, 13.6 mm at 95%, 1045 of 1045 anchors \u00b7 head triangles turned 90\u00b0 or more: 0 of 8046",
+      "table": "Mean / 95% in mm\tOriginal\tNow\tBias\nWhole body\t56.8 / 155\t4.5 / 13.9\t-0.4\nHead\t36.1 / 62.7\t4.9 / 18.1\t-1.8\nTrunk\t27.2 / 66.6\t2.8 / 8.9\t-1.2\nArms\t119 / 169\t5.0 / 15.5\t+2.7\nLegs\t12.4 / 27.7\t4.1 / 11.1\t-2.5",
+      "facts": "Model\nMHR benchmark adult \u00b7 male-typical 3 \u00b7 36,874 triangles\nScale\nIn metres as supplied (detected) \u00b7 1.890 m tall\nFacing\nY up \u00b7 already facing front\nTemplate\nAdult human \u00b7 1.890 m \u00b7 prealigned: stature 1.720 \u2192 1.890 m, arm rest angle 0.00 \u2192 0.02 \u00b7 1045 surface corrections\nPose\nArms below level: reference 52\u00b0, template 52\u00b0 \u00b7 feet apart: reference 43 cm, template 41 cm"
+    }
+  }
+}

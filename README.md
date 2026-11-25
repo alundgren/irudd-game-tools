@@ -1,5 +1,9 @@
 # irudd-game-tools
 
+[Quality handoff and playable checkpoint](docs/creator-quality-handoff.md) covers what worked, failed experiments, benchmark scores and where to start testing.
+
+The [adult avatar workshop](docs/adult-surface.md) opens on an editable human in clay. Adjust the frame and bust independently, fit the same outfit to the new body, or bring in a 3D reference.
+
 MIT-licensed tools for making games. The first tool is a 3D character workshop built with Three.js. Start with one form and keep changing it. A human, a four-armed trader and a low gliding animal use the same editable parts.
 
 ![Three workshop GLBs rendered in the game player. A sculpted portrait, a four-handed trader and a runner in a concert skirt.](docs/media/three-generator-studies.webp)
@@ -17,6 +21,10 @@ The [four-handed courier](examples/four-hand-courier.form.json) started as the f
 ![Original four-arm pose, corrected wrist and elbow placement, and a two-arm control.](docs/media/arm-revision.webp)
 
 [Compare the arm repair in motion](docs/workshop-results.html#jointed-arms). The [two-arm conductor](examples/jointed-conductor.form.json) and the [four-arm wardrobe](examples/festival-wardrobe.form.json) share a portrait and torso. Select an upper arm, forearm or hand and use **Bend elbow 15°**. The [wardrobe GLB](examples/festival-wardrobe.glb) includes practice clothes, a stage costume and a bulky pressure suit with 33 fitted plates.
+
+The [3D rig comparison](docs/mhr-reference.md) puts a rigged Meta MHR body beside the editor's starting and fitted torsos. Orbit the three together and move a horizontal section through them to inspect surface depth in metres. The rig and the fit derived from it use [Apache-2.0](docs/licenses/mhr-apache-2.0.txt) and are kept out of the repository. [Install them locally](docs/local-references.md) to open the comparison.
+
+Six editable [body scan studies](docs/body-scan-studies.html) compare the same figure generator with front, profile, rear and oblique views of six scanned adults. Open them under **Forms ? Reference studies**. The study records individual failures, source plates, and instructions for repeating the fit. The fitted studies and their comparison sheets are [local reference material](docs/local-references.md) and open in a copy that has them.
 
 For an ordinary person, choose **Forms → Generate a starting form → Jointed person in everyday clothes**. The body is built from a figure request: height, stature in head heights, widths, stance and a choice of top, sleeves, bottoms, pockets and shoes. Shoulders, elbows, wrists, hips and knees are placed from those measurements and the clothes are separate parts over a bare body. An agent proposal can start with the same request as a `buildFigure` operation and then edit the named regions. Two people were made this way from photographs the code had not seen, each in one attempt and three revisions without code changes: an [athlete in a tee and shorts](examples/field-athlete.glb) with a saved hands-on-hips pose ([form](examples/field-athlete.form.json)) and an [aviator in a tucked shirt](examples/tucked-aviator.glb) ([form](examples/tucked-aviator.form.json)). A [heavy dock worker](examples/hooded-docker.glb) carries the same body under a hooded top and the pressure suit ([form](examples/hooded-docker.form.json)), and the [Sims-inspired runner](examples/figure-runner.glb) is rebuilt with her original painted head ([form](examples/figure-runner.form.json)). The joints and clothing hold up in movement. The faces are stock and neither person is a likeness. [Attempts, failures and the changes that followed](docs/workshop-results.html#measured-figure).
 
@@ -58,6 +66,8 @@ To fit an attachment, select its region in **Build parts**, choose a cage face o
 
 Six praised community creations from Dragon’s Dogma 2, Spore and The Sims 4 supplied design goals. Each has a procedural and a painted study. The two live AI anatomy trials are also editable in the workshop. Two held-out painted trials can be opened with **Forms → Open form**: a [four-legged lantern grazer](examples/lantern-grazer.form.json) and a [feline harbour worker](examples/feline-worker.form.json). An [aquatic reef cartographer](examples/reef-cartographer.form.json) shows editable fin membranes and a tail built from paired landmarks. A third outfit trial contains an independently fitted [rescue vest](examples/rescue-vest.form.json). An [original coastal biologist](examples/coastal-biologist.form.json) adds a newly generated, expression-capable face to the same rescue vest. An artist-written leg-count draw produced a [tripod](examples/marsh-tripod.form.json) and an [eight-legged animal](examples/marsh-eight-legs.form.json) around an identical locked body. The [benchmark gallery](docs/workshop-results.html) distinguishes authored studies, live proposals, shape recognition and game playback.
 
+A creature can start from a body plan: a spine with a free posture and up to eight groups of legs, arms, wings, fins or tentacles. In **Forms**, choose *Creature · free body plan*, then change the plan in the **Creature body plan** panel. Every plan walks, swims or flies, and **Pose joints…** poses a pair or a whole set of limbs together. [How it works, what was measured and where it falls short](docs/creature-body-plans.md) · [Six-legged crawler](examples/six-legged-crawler.glb).
+
 An [eleven-point eel](examples/glassgrass-eel.form.json) came from a live human-to-creature revision. A [printed rescue vest](examples/tidal-print.form.json) retains the source garment's exact geometry. The [historical portrait revision](examples/composed-portrait.form.json) includes six paired facial depth points.
 
 **Cut clothing and save outfits → Skirt → Adjust the cut → Trace waist to hem** fits a photographed outline to the current wearer. Mark the waistband centre and one edge, then follow that edge downwards. Set diagonal gathers, tiers and train length, and save the outfit. The [relay wardrobe](examples/relay-wardrobe.form.json) opens with four saved looks on the same body. [Compare the reference proportions and movement](docs/workshop-results.html#traced-wardrobe).
@@ -71,6 +81,8 @@ A [pressure-suit poncho](examples/pressure-poncho.form.json) and a [four-armed t
 Under **Sculpt → Build parts**, add a **Freeform control cage**. Select a face to extrude or inset it, or choose an opposite face and open a tunnel. Select a corner to drag it on the model. The [editable fen-crowned eel](examples/fen-crown.form.json) uses the same cage format in an agent-built crest.
 
 Run `npm test` for local checks. To regenerate the benchmark screenshots, build the pages and run `python scripts/capture-studies.py` with Chrome, Playwright, Pillow and NumPy installed. The capture script drives the editor’s public controls.
+
+Reference rigs, scans, the fits measured from them and the pictures that show them stay on the machine that made them. The workshop builds and its tests pass without them. `npm run references` lists what is installed. [Local reference material](docs/local-references.md)
 
 ## Artwork and license
 
