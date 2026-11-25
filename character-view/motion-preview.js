@@ -1,3 +1,4 @@
+import { hasDispatchAction } from "./dispatch-pose.js";
 import { captureJoints, inactiveJoints, poseClipName } from "./poses.js";
 import { setGaze } from "./ocular.js";
 import { creatureMoves, standardMoves } from "./creature-motion.js";
@@ -82,7 +83,7 @@ export function motionPreview(scene, render, changed) {
   }
   function tick(now) {
     frame = null;
-    if (!playing || !rig) return;
+    if (!playing || !rig || !clip) return;
     mixer.update(Math.min(0.08, (now - previous) / 1000));
     if (expression.value !== "Rest")
       poseExpression(rig.actor, expression.value, Number(amount.value) / 100);
@@ -103,7 +104,7 @@ export function motionPreview(scene, render, changed) {
   }
   function configure() {
     release();
-    details.hidden = select.value === "Bind";
+    details.hidden = select.value === "Bind" || select.value === "Stand";
     const missing = document.getElementById("pose-missing");
     missing.hidden = true;
     if (!model) return;
@@ -129,13 +130,16 @@ export function motionPreview(scene, render, changed) {
     }
     scene.add(rig.actor);
     mixer = new AnimationMixer(rig.actor);
-    clip = rig.clips.find((c) => c.name === select.value);
-    mixer.clipAction(clip).play();
-    mixer.setTime(0);
+    // "Stand" shows the rig at rest: an adult with a posture rests in it.
+    clip = rig.clips.find((c) => c.name === select.value) ?? null;
+    if (clip) {
+      mixer.clipAction(clip).play();
+      mixer.setTime(0);
+    }
     time.value = 0;
     setExpression();
     overlay();
-    play(playing);
+    if (clip) play(playing);
     render();
   }
   select.onchange = () => {
@@ -151,7 +155,7 @@ export function motionPreview(scene, render, changed) {
   };
   toggle.onclick = () => play(!playing);
   time.oninput = () => {
-    if (rig) {
+    if (rig && clip) {
       play(false);
       mixer.setTime((Number(time.value) / 1000) * clip.duration);
       if (expression.value !== "Rest") setExpression();
@@ -168,13 +172,19 @@ export function motionPreview(scene, render, changed) {
       const roles = [...movementRoles(form.parts).values()],
         names = [
           "Bind",
+          ...(form.posture ? ["Stand"] : []),
           ...standardMoves(roles),
           ...creatureMoves(roles),
+          ...(hasDispatchAction(form) ? ["Offer dispatch"] : []),
           ...(form.poses ?? []).map((p) => poseClipName(p.name)),
         ];
       select.replaceChildren(
         ...names.map(
-          (name) => new Option(name === "Bind" ? "Rest" : name, name),
+          (name) =>
+            new Option(
+              name === "Stand" ? "Standing" : name !== "Bind" ? name : form.posture ? "Fitting pose" : "Rest",
+              name,
+            ),
         ),
       );
       select.value = names.includes(last) ? last : "Bind";
@@ -217,6 +227,13 @@ export function motionPreview(scene, render, changed) {
         select.value = "Bind";
         configure();
       }
+    },
+    /** Show an adult that has a posture standing in it, as it rests in a game. */
+    stand() {
+      if (!recipe?.posture || select.value !== "Bind") return;
+      select.value = "Stand";
+      configure();
+      changed();
     },
   };
 }

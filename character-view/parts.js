@@ -13,6 +13,7 @@ const nextId = (used, name) => {
 export function appendPart(form, parent, shape) {
   if (
     shape === "volume" ||
+    shape === "wing" ||
     !shapes.includes(shape) ||
     Object.hasOwn(anchors, shape)
   )
@@ -93,6 +94,7 @@ export function copyBranch(form, id, mirror) {
       copy.rotation[1] *= -1;
       copy.rotation[2] *= -1;
       if (p.knots) for (const knot of copy.knots) knot[0] *= -1;
+      if (p.humanBone) copy.humanBone=p.humanBone.replace(/_([lr])$/,(_,side)=>side==="l"?"_r":"_l");
       if (p.shape.startsWith("left "))
         copy.shape = p.shape.replace("left ", "right ");
       if (p.shape.startsWith("right "))

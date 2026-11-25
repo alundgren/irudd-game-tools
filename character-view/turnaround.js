@@ -1,4 +1,6 @@
 import { fitDepth } from "./depth-pins.js";
+import { artworkImages, registerPortraitImage } from "./portrait-images.js";
+export { portraitImage } from "./portrait-images.js";
 import { fitHairCap } from "./portrait-hair.js";
 import { registerFace } from "./portrait-frame.js";
 import * as T from "three";
@@ -32,7 +34,6 @@ const sources = {
   conductorPortrait,
 };
 const atlases = new Map(),
-  artworkImages = new Map(),
   baked = new Map(),
   viewsByAtlas = new Map();
 export const hasTurnaround = (id) => atlases.has(id);
@@ -187,15 +188,11 @@ export function loadTurnarounds() {
 export function registeredArtwork() {
   return [...atlases.keys()];
 }
-export const portraitImage = (id) => artworkImages.get(id);
-async function registerPortraitImage(id, url) {
-  if (!artworkImages.has(id))
-    artworkImages.set(id, await new T.ImageLoader().loadAsync(url));
-}
 export async function restoreArtwork(form) {
   const referenced = form.parts
     .flatMap((p) => [
       p.profileFit?.paint?.atlas,
+      p.nativePortrait,
       ...(p.frontFits ?? []).map((f) => f.overlay),
     ])
     .filter(Boolean);
@@ -211,7 +208,7 @@ export async function restoreArtwork(form) {
       );
       const kind = id.split("-")[0];
       if (
-        !["art", "side", "face"].includes(kind) ||
+        !["art", "side", "face", "nativeportrait"].includes(kind) ||
         id !== (await artworkId(bytes, kind))
       )
         throw new Error("The saved artwork does not match its content hash.");

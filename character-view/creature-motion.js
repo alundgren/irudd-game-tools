@@ -31,12 +31,85 @@ function bendAxis(direction, toward) {
   const axis = new Vector3().crossVectors(direction, toward);
   return axis.lengthSq() < 1e-6 ? forward : axis.normalize();
 }
+// A leg whose knee stands above its hip, as on a spider or crab, cannot
+// shorten in the sagittal plane. Solve its two links in space instead. The
+// rest pose supplies the plane of the bend, so each leg keeps its own splay.
+export function spatialLeg(hip, knee, ankle) {
+  const upper = hip.distanceTo(knee),
+    lower = knee.distanceTo(ankle);
+  return knee.y > hip.y + 0.04 * (upper + lower);
+}
+const ahead = new Vector3(0, 0, 1);
+export function placeFootInSpace(leg, dz, lift, drop, write) {
+  const { hip, knee, ankle } = leg;
+  const thigh = knee.clone().sub(hip),
+    shin = ankle.clone().sub(knee),
+    rest = ankle.clone().sub(hip);
+  const upper = thigh.length(),
+    lower = shin.length();
+  const goal = rest.clone().add(new Vector3(0, lift - drop, dz));
+  const reach = MathUtils.clamp(
+    goal.length(),
+    Math.abs(upper - lower) + 1e-5,
+    upper + lower - 1e-5,
+  );
+  const normal = new Vector3().crossVectors(thigh, shin);
+  if (normal.lengthSq() < 1e-10) normal.crossVectors(ahead, rest);
+  if (normal.lengthSq() < 1e-10) normal.set(1, 0, 0);
+  normal.normalize();
+  const swing = new Quaternion().setFromUnitVectors(
+    rest.clone().normalize(),
+    goal.clone().normalize(),
+  );
+  const interior = (a, b, c) =>
+    Math.acos(MathUtils.clamp((a * a + b * b - c * c) / (2 * a * b), -1, 1));
+  // The thigh leaves the hip-to-foot line by this angle, about the same
+  // side of the bend as at rest.
+  const hipAngle = interior(upper, reach, lower) - thigh.angleTo(rest);
+  const first = new Quaternion()
+    .setFromAxisAngle(normal.clone().negate().applyQuaternion(swing), hipAngle)
+    .multiply(swing);
+  const second = new Quaternion().setFromAxisAngle(
+    normal,
+    Math.PI - interior(upper, lower, reach) - thigh.angleTo(shin),
+  );
+  write(leg.a, first);
+  write(leg.b, second);
+  write(leg.c, first.clone().multiply(second).invert());
+}
+// Long arms can hang to the floor. Bound a sagittal swing about the shoulder
+// so the hand does not pass through the ground on its way under the body.
+// Returns the least and greatest turn about the side axis in radians.
+export function floorSwing(shoulder, hand, floor, sink = 0) {
+  if (!hand || hand.bounds.isEmpty()) return [-Infinity, Infinity];
+  const z = (hand.bounds.min.z + hand.bounds.max.z) / 2 - shoulder.z,
+    y = hand.bounds.min.y - shoulder.y,
+    reach = Math.hypot(z, y);
+  const room = (shoulder.y - sink - floor - 0.01) / Math.max(reach, 1e-6);
+  if (room >= 1) return [-Infinity, Infinity];
+  const rest = Math.atan2(z, -y),
+    closest = Math.acos(MathUtils.clamp(room, -1, 1));
+  if (Math.abs(rest) <= closest) return [0, 0];
+  return rest > 0 ? [-Infinity, rest - closest] : [rest + closest, Infinity];
+}
 export function creatureClips(root, regions) {
   const values = [...regions.values()],
     box = new Box3();
   for (const s of values) box.union(s.bounds);
   const size = box.getSize(new Vector3()),
     span = Math.max(size.x, size.y, size.z);
+  // A long wing can sweep well below a short-legged body's resting feet.
+  // Reserve room for its stroke using the lengths of the articulated spar.
+  let wingClearance = 0;
+  for (const region of values) {
+    if (region.role !== "wing" || region.points.length < 2) continue;
+    const {points, bounds} = region;
+    let reach = 0;
+    for (let i = 1; i < points.length; i++)
+      reach += points[i].distanceTo(points[i - 1]);
+    const sectionDepth = Math.max(0, Math.min(...points.map(p => p.y)) - bounds.min.y);
+    wingClearance = Math.max(wingClearance, reach + sectionDepth - points[0].y);
+  }
   return creatureMoves(values.map((s) => s.role)).map((name) => {
     const period = MathUtils.clamp(
       (name === "Fly" ? 0.83 : name === "Swim" ? 1.45 : 1.76) *
@@ -60,7 +133,8 @@ export function creatureClips(root, regions) {
       time.push(t * period);
       const lift =
         name === "Fly"
-          ? size.y * (0.18 + 0.065 * Math.cos(phase))
+          ? Math.max(size.y * 0.24, wingClearance) + span * 0.05
+            + size.y * 0.035 * (1 + Math.cos(phase))
           : name === "Swim"
             ? Math.max(0.065 * span, 0.12 * size.y) +
               0.025 * size.y * Math.sin(phase)

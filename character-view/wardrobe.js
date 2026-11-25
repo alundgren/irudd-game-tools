@@ -23,7 +23,12 @@ const dyes = {
   Polar: ["#718f99", "#c88e54", "#c6d6d1"],
 };
 export function fitWardrobe(part, form) {
-  if (form.outfit === "Work clothes" || !part.outfitRole) return null;
+  if (
+    form.outfit === "Anatomy" ||
+    form.outfit === "Work clothes" ||
+    !part.outfitRole
+  )
+    return null;
   const role = part.outfitRole,
     suit = form.outfit === "Pressure suit";
   const [cloth, trim, panel] = dyes[form.appearance.palette];

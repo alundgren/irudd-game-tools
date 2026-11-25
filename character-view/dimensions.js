@@ -67,6 +67,14 @@ export function resizeInMetres(form, current, requested) {
   const ratio = requested / current;
   const next = {
     ...form,
+    ...(form.sectionProfile
+      ? {
+          sectionProfile: {
+            ...form.sectionProfile,
+            height: form.sectionProfile.height * ratio,
+          },
+        }
+      : {}),
     parts: form.parts.map((p) =>
       p.parent
         ? p

@@ -76,3 +76,40 @@ test("an individual finger moves in a skinned hand while the neighbouring digits
   skeleton.dispose();
   material.dispose();
 });
+
+test("padded paws and hooked talons retain each digit and close around a carried handle", () => {
+  const grip = { fingers: 3, spread: 0.26, curl: 0.18 };
+  const positions = geometry => geometry.getAttribute("position").array;
+  const hand = handGeometry(grip), closed = handGeometry({ ...grip, cylindrical: true });
+  for (const pad of ["paw", "talon"]) {
+    const open = handGeometry({ ...grip, pad });
+    assert.notDeepEqual(positions(open), positions(hand));
+    assert.deepEqual(open.handRig.map(d => d.name), hand.handRig.map(d => d.name));
+    assert.ok(open.handRig.every(d => d.vertices.length && d.anchors.length === 3));
+    const grasp = handGeometry({ ...grip, pad, cylindrical: true });
+    assert.deepEqual(positions(grasp), positions(closed));
+  }
+});
+
+test("game creature digits keep their joint chains and a closed surface at lower density", () => {
+  for (const [pad, fingers] of [["paw", 4], ["talon", 3], ["hand", 2]]) {
+    const grip = { pad, fingers, spread: 0.3, curl: 0.22 };
+    const full = handGeometry(grip);
+    const game = handGeometry(grip, { game: true });
+    assert.ok(game.index.count < full.index.count / 3);
+    assert.deepEqual(game.handRig.map(d => d.anchors), full.handRig.map(d => d.anchors));
+    assert.ok(game.handRig.every(d => d.vertices.length && Math.max(...d.parameters) > 2.9));
+    const edges = new Map();
+    const indices = game.index.array;
+    for (let i = 0; i < indices.length; i += 3) {
+      for (let k = 0; k < 3; k++) {
+        const a = indices[i + k], b = indices[i + (k + 1) % 3];
+        const edge = Math.min(a, b) * game.attributes.position.count + Math.max(a, b);
+        edges.set(edge, (edges.get(edge) ?? 0) + 1);
+      }
+    }
+    assert.ok([...edges.values()].every(uses => uses === 2), pad + " surface is closed");
+    full.dispose();
+    game.dispose();
+  }
+});

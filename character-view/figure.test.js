@@ -16,6 +16,7 @@ import {
   Raycaster,
 } from "three";
 import { sweepGeometry } from "./surface.js";
+import { blendSkin } from "./blended-skin.js";
 import { skinCharacter } from "./skin.js";
 
 const world = (form, id) => {
@@ -49,6 +50,30 @@ test("a default figure is a valid, metric, two-armed form", () => {
     2,
   );
   assert.equal(form.parts.filter((p) => p.shape === "hand").length, 2);
+});
+
+test("starting proportions survive a recipe round trip and leave height, face and clothing independent", () => {
+  const profiles = ["male", "neutral", "female"].map((archetype) => {
+    const fig = randomFigure(randomStream(161), archetype);
+    const form = buildFigure(fig);
+    validateForm(form);
+    assert.deepEqual(buildFigure(form.origin.figure), form);
+    assert.equal(form.origin.figure.archetype, archetype);
+    const neck = form.parts.find((p) => p.anatomy === "neck");
+    assert.equal(form.parts.find((p) => p.shape === "head").parent, neck.id);
+    assert.ok(neck.knots.at(-1)[2] > neck.knots[0][2]);
+    return form.origin.figure;
+  });
+  for (const key of ["height", "face", "hair", "top", "bottom", "shoes"]) {
+    assert.deepEqual(profiles[0][key], profiles[2][key]);
+  }
+  const ratios = profiles.map((p) => p.shoulders / p.hips);
+  assert.ok(ratios[0] > ratios[1] && ratios[1] > ratios[2]);
+  assert.equal(
+    readFigure({ archetype: "female", shoulders: 1.3 }).shoulders,
+    1.3,
+  );
+  assert.equal(readFigure({}).archetype, "neutral");
 });
 
 test("limb segments close with matching rounded ends at each joint", () => {
@@ -95,7 +120,12 @@ test("clothes are separate from the bare body in every wardrobe", () => {
     top: { kind: "jacket" },
     shoes: { kind: "boots" },
   });
-  const worn = form.parts.filter((p) => p.visibleIn);
+  assert.equal(form.outfit, "Anatomy");
+  const worn = form.parts.filter((p) => p.visibleIn?.includes("Work clothes"));
+  const barefoot = form.parts.filter((p) => p.visibleIn?.includes("Anatomy"));
+  assert.equal(barefoot.filter((p) => / toe [1-5]$/.test(p.id)).length, 10);
+  assert.ok(barefoot.every((p) => p.seamGroup?.endsWith(" foot")));
+  assert.ok(worn.every((p) => !p.visibleIn.includes("Anatomy")));
   assert.ok(worn.length >= 14);
   assert.ok(
     worn.every((p) => p.visibleIn[0] === "Work clothes" && !p.outfitRole),
@@ -131,6 +161,13 @@ test("a proposal can build a figure and then edit its regions", () => {
     { op: "setPart", id: "left sleeve", set: { color: "#aa3322" } },
   ]);
   validateForm(next);
+  assert.equal(next.outfit, "Anatomy");
+  assert.equal(
+    applyOperations({ ...start, outfit: "Work clothes" }, [
+      { op: "buildFigure", figure: {} },
+    ]).outfit,
+    "Work clothes",
+  );
   assert.equal(next.origin.figure.height, 1.6);
   assert.equal(next.parts.find((p) => p.id === "left sleeve").color, "#aa3322");
   assert.ok(!next.parts.some((p) => p.id === "left cuff"));
@@ -246,4 +283,72 @@ test("a cropped groom carries the hairline to the nape", () => {
   validateForm(form);
   assert.equal(form.parts.find((p) => p.id === "head").groom.nape, 1);
   assert.equal(readFigure({ groom: { nape: 4 } }).groom.nape, 1);
+});
+
+test("the articulated pelvis joins the thighs and trouser seat on separate surfaces", () => {
+  const form = buildFigure({
+    top: { kind: "none" },
+    bottom: { kind: "trousers" },
+  });
+  form.parts = form.parts.filter((p) =>
+    /^(body|trouser seat|(left|right) (thigh|trouser thigh|shin))$/.test(p.id),
+  );
+  const model = new Group(),
+    nodes = new Map();
+  const materials = {
+    figure: new MeshBasicMaterial(),
+    bottom: new MeshBasicMaterial(),
+  };
+  for (const p of form.parts) {
+    const mesh = new Mesh(sweepGeometry(p.knots), materials[p.seamGroup]);
+    mesh.userData.partId = p.id;
+    mesh.position.fromArray(p.position);
+    mesh.rotation.set(...p.rotation.map(MathUtils.degToRad));
+    nodes.set(p.id, mesh);
+  }
+  for (const p of form.parts)
+    (nodes.get(p.parent) ?? model).add(nodes.get(p.id));
+  blendSkin(form, nodes, () =>
+    assert.fail("each layer keeps its own material"),
+  );
+  for (const part of form.parts) {
+    const mesh = nodes.get(part.id);
+    assert.equal(mesh.material, materials[part.seamGroup]);
+    assert.ok(
+      mesh.geometry.index.count > 2 * mesh.geometry.attributes.position.count,
+    );
+    assert.deepEqual(
+      new Set(mesh.blendOwners.ids),
+      new Set(
+        form.parts
+          .filter((p) => p.seamGroup === part.seamGroup)
+          .map((p) => p.id),
+      ),
+    );
+  }
+  const rig = skinCharacter(form, model);
+  const mesh = rig.actor.children.find((o) => o.isSkinnedMesh);
+  const { skinWeight, skinIndex, _region } = mesh.geometry.attributes;
+  for (const layer of Object.keys(materials)) {
+    let sharedSeat = false;
+    for (let i = 0; i < skinWeight.count; i++) {
+      if (form.parts[_region.getX(i)].seamGroup !== layer) continue;
+      const bones = new Set(
+        [0, 1, 2, 3]
+          .filter((k) => skinWeight.getComponent(i, k) > 0.01)
+          .map(
+            (k) =>
+              mesh.skeleton.bones[skinIndex.getComponent(i, k)].userData.region,
+          ),
+      );
+      if (["body", "left thigh", "right thigh"].every((id) => bones.has(id))) {
+        sharedSeat = true;
+        break;
+      }
+    }
+    assert.ok(sharedSeat, "seat bends between both hip joints");
+  }
+  rig.dispose();
+  for (const mesh of nodes.values()) mesh.geometry.dispose();
+  for (const material of Object.values(materials)) material.dispose();
 });

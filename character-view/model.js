@@ -1,12 +1,27 @@
+import { suckerGeometry } from "./creature-suckers.js";
+import {limbPigments,paintLimbPigment} from "./creature-limb-colour.js";
+import {paintFaceCoatVertices} from "./creature-face-coat.js";
+import {bakeCreatureHide} from "./creature-hide.js";
+import {creatureCoatField,applyCreatureCoat} from "./creature-coat.js";
+import {coatSwatch} from "./creature-coat-swatch.js";
+import { humanRegions } from "./human-mesh.js";
+import {dressedHuman} from "./human-wardrobe.js";
+import { applyRadialFit } from "./radial-fit.js";
 import { fitSurfaceJoins, hasPlatedAxis } from "./surface-join.js";
 import { attachEyes } from "./ocular.js";
+import { featherChart, finishContourFeather } from "./creature-plumage.js";
 import { cageGeometry } from "./control-cage.js";
+import { finishShoulder } from "./human-armour-surface.js";
+import { liveryChart, finishLivery, creaturePlateChart } from "./creature-livery.js";
+import { finishWhorl, finishCartilage } from "./creature-whorl.js";
+import { billChart, finishBill } from "./creature-bill.js";
+import { finishCreatureEye } from "./creature-eye-surface.js";
 import { finishPlateSurface } from "./plate-growth.js";
 import { fitDepth } from "./depth-pins.js";
 import { separateHair, scalpMaterial, seatHair } from "./portrait-hair.js";
 import { mantleGeometry, armAccess } from "./mantle.js";
 import { garmentOwners } from "./outfit-sets.js";
-import { paintMarkings } from "./markings.js";
+import { paintMarkings, paintJoinedCoat, markingField } from "./markings.js";
 import { headSpace } from "./portrait-frame.js";
 import * as T from "three";
 import { paintSources } from "./paint-sources.js";
@@ -37,7 +52,8 @@ import {
 } from "./turnaround.js";
 import { surfaceMaterial } from "./materials.js";
 import { retainSweepSections, sweepGeometry } from "./surface.js";
-import { createFace } from "./face.js";
+import { wingGeometry } from "./wing-surface.js";
+import { earGeometry, createFace, shapeNeck, shadeNape } from "./face.js";
 import { anchors } from "./recipe.js";
 
 const palettes = {
@@ -334,22 +350,31 @@ function baseParts(recipe, material, silhouette) {
     );
   }
   region = "head";
-  shell(
-    [
-      [1.37, 0.063, 0.062],
-      [1.49, 0.056, 0.06],
-    ],
+  mesh(
+    shapeNeck(
+      sweepGeometry(
+        [
+          [0, 1.364, -0.005, 0.095, 0.074],
+          [0, 1.389, -0.007, 0.078, 0.067],
+          [0, 1.421, -0.012, 0.068, 0.063],
+          [0, 1.458, -0.015, 0.057, 0.059],
+          [0, 1.505, -0.015, 0.052, 0.054],
+          [0, 1.547, -0.012, 0.051, 0.053],
+          [0, 1.564, -0.01, 0.045, 0.048],
+        ],
+        true,
+        48,
+      ),
+    ),
     skin,
-  );
+  ).userData.neckSurface = true;
   for (const side of [-1, 1])
-    oval(
-      side * 0.088,
-      1.606,
-      0.002,
-      0.021,
-      0.039,
-      0.019,
+    mesh(
+      earGeometry(side),
       skin,
+      side * 0.088,
+      1.601,
+      -0.02,
     ).userData.earSurface = true;
   groups.head.add(createFace(recipe, silhouette, material));
   const hairStart = groups.head.children.length;
@@ -524,11 +549,19 @@ export function createCharacter(
     form.parts.filter((p) => p.groom || p.hideSourceHair).map((p) => p.id),
   );
   const owners = garmentOwners(form);
+  const eyeMaterials = new Map(), liveryMaterials = new Map();
+  let plumageMaterial;
+  const buildHuman=(source)=>humanRegions(source,material,plainView,s=>dressedHuman(s,source,material,plainView,fibreBudget));
+  const humans = new Map();
   const objects = new Map(),
     localLooks = new Map();
   for (const part of form.parts) {
     let object;
-    if (Object.hasOwn(library, part.shape)) {
+    if (part.shape === "human region") {
+      const key=part.humanSource??"";
+      if(!humans.has(key))humans.set(key,buildHuman(key?form.humanSources[key]:form));
+      object = humans.get(key)(part);
+    } else if (Object.hasOwn(library, part.shape)) {
       let partLibrary = library;
       if (part.look) {
         const key = JSON.stringify(part.look);
@@ -544,7 +577,20 @@ export function createCharacter(
         partLibrary = localLooks.get(key);
       }
       object = partLibrary[part.shape].clone();
-      if (part.shape === "head" && part.sculpt) {
+      if (
+        part.shape === "head" &&
+        form.parts.some((p) => p.id === part.parent && p.anatomy === "neck")
+      ) {
+        object.remove(...object.children.filter((c) => c.userData.neckSurface));
+      }
+      const adultProfile = part.cranialProfile === "adult";
+      if (adultProfile) {
+        for (const child of object.children) {
+          if (child.userData.earSurface) child.position.z -= 0.013;
+          if (child.userData.baseHair) child.position.z -= 0.009;
+        }
+      }
+      if (part.shape === "head" && (part.sculpt || adultProfile)) {
         const original = object.children.find((o) => o.userData.faceSurface);
         const next = createFace(
           {
@@ -556,6 +602,7 @@ export function createCharacter(
           },
           plainView,
           material,
+          adultProfile,
         );
         next.position.copy(original.position);
         object.remove(original);
@@ -566,10 +613,13 @@ export function createCharacter(
       const carrier = part.mount
         ? form.parts.find((p) => p.id === part.parent)
         : null;
-      let geometry;
+      let geometry, livery, plateUV, bill;
       switch (part.shape) {
         case "cage":
-          geometry = cageGeometry(part.cage);
+          livery = !plainView && liveryChart(part, form.origin?.plan?.dress);
+          plateUV = !plainView && form.origin?.plan?.dress && creaturePlateChart(part);
+          bill = !plainView && billChart(part, form.origin?.plan?.head);
+          geometry = cageGeometry(part.cage, livery?.uv ?? (plateUV || bill?.uv || featherChart(part)));
           break;
         case "mantle":
           geometry = mantleGeometry(part.cut);
@@ -578,7 +628,14 @@ export function createCharacter(
           geometry = volumeGeometry(part.hull);
           break;
         case "hand":
-          geometry = handGeometry(part.grip);
+          geometry = handGeometry(part.grip, {
+            game: fibreBudget > 0 && form.origin?.kind === "creature plan",
+          });
+          break;
+        case "wing":
+          // Feathers, veins and skin carry their own colours vertex by vertex.
+          geometry = wingGeometry(part.wing, part.color, { game: fibreBudget > 0 });
+          if (plainView) geometry.deleteAttribute("color");
           break;
         case "scute":
           geometry = fittedScute(part, carrier);
@@ -589,16 +646,45 @@ export function createCharacter(
         case "ellipsoid":
           geometry = new T.SphereGeometry(0.5, 32, 24);
           break;
-        case "sweep":
+        case "sweep": {
+          let knots = fit?.knots ?? part.knots;
+          if (
+            part.footSection === "bare" &&
+            !fit &&
+            form.parts.some(
+              (p) =>
+                p.parent === part.id &&
+                p.visibleIn?.includes(form.outfit) &&
+                p.seamGroup === part.seamGroup,
+            )
+          ) {
+            // Expose the separate toes in everyday wear. Clothing fits
+            // still use the full length of the original foot last.
+            const ball = knots.at(-3),
+              next = knots.at(-2);
+            knots = [
+              ...knots.slice(0, -2),
+              ball.map((v, i) =>
+                i < 3 ? T.MathUtils.lerp(v, next[i], 0.33) : v * 0.51,
+              ),
+            ];
+          }
           geometry = sweepGeometry(
-            fit?.knots ?? part.knots,
-            Boolean(part.paint && part.paint.frame !== "path"),
+            knots,
+            Boolean(
+              (part.paint && part.paint.frame !== "path") ||
+              (part.seamGroup &&
+                part.knots.every((k) => k[0] === part.knots[0][0]) &&
+                part.knots.at(-1)[1] > part.knots[0][1]),
+            ),
             part.anatomy === "face" || part.sourceHairOnly
               ? 176
-              : part.outfitRole === "skirt"
+              : part.outfitRole === "skirt" || part.seamGroup
                 ? 64
                 : 28,
+            part.footSection,
           );
+          if (part.radialFit) applyRadialFit(geometry, part.radialFit);
           if (fibreBudget && !part.blendSkin) {
             const jointed = (p) =>
               ["upper arm", "forearm"].includes(p?.motionRole ?? p?.outfitRole);
@@ -608,7 +694,8 @@ export function createCharacter(
             const platedAxis = hasPlatedAxis(part);
             if (jointed(part) || cuff || platedAxis) {
               const bands = (part.knots.length - 1) * 5;
-              const sides = geometry.attributes.position.count / (bands + 1) - 1;
+              const sides =
+                geometry.attributes.position.count / (bands + 1) - 1;
               retainSweepSections(geometry, bands, sides, platedAxis);
             }
           }
@@ -628,6 +715,7 @@ export function createCharacter(
             );
           }
           break;
+        }
         case "cone":
           geometry = new T.ConeGeometry(0.5, 1, 28, 10);
           break;
@@ -649,6 +737,39 @@ export function createCharacter(
                 coat ? (fit.bare ? "plain" : "canvas") : part.surface,
               ),
       );
+      if (livery) finishLivery(object,part,form.origin.plan.dress,livery,liveryMaterials);
+      else if (plateUV) {
+        finishShoulder(object, null, {color: part.color, trim: form.origin.plan.dress.color, material: "steel"});
+      }
+      if (bill) finishBill(object,bill);
+      if (part.contourFeather && !plainView) {
+        plumageMaterial ??= material("#ffffff", "plain").clone();
+        plumageMaterial.vertexColors = true;
+        finishContourFeather(object, part, plumageMaterial);
+      }
+      if (part.shellFinish) finishWhorl(object,part,plainView);
+      if ((part.pinna || part.nasalWing) && !plainView) finishCartilage(object,part);
+      if (part.eyeSurface && !plainView) finishCreatureEye(object, part, eyeMaterials);
+      if (part.suckerRows && part.shape === "sweep") {
+        const cups = suckerGeometry(part.knots, part.suckerRows, part.color,
+          form.origin?.plan?.skin?.pale ?? "#e4c3a3", fibreBudget > 0);
+        const cupMaterial = material(plainView ? part.color : "#ffffff", "plain").clone();
+        cupMaterial.vertexColors = !plainView;
+        if (!plainView) cupMaterial.roughness = 0.43;
+        const mesh = new T.Mesh(cups, cupMaterial);
+        mesh.name = part.id + " suction cups";
+        mesh.castShadow = true;
+        object.add(mesh);
+      }
+      if (part.shape === "wing" && !plainView) {
+        object.material = material("#ffffff", "wing");
+        object.material.vertexColors = true;
+      }
+      if (part.shape === "wing" && part.wing.structure === "feather" && fibreBudget > 0) {
+        object.material = material("#ffffff", "feathered wing").clone();
+        object.material.vertexColors = !plainView;
+        object.material.userData.wingLOD = true;
+      }
       if (part.shape === "mantle") {
         if (!plainView) {
           object.material = object.material.clone();
@@ -744,7 +865,7 @@ export function createCharacter(
         owner && Object.hasOwn(form.layerStyles ?? {}, owner)
           ? form.layerStyles[owner]
           : null;
-    if (layer?.dye && !plainView) {
+    if (layer?.dye && !plainView && form.outfit !== "Anatomy") {
       const dye = new T.Color(layer.dye);
       object.traverse((node) => {
         if (!node.isMesh) return;
@@ -756,8 +877,11 @@ export function createCharacter(
     object.visible =
       !object.userData.hiddenByOutfit &&
       !(part.headLayer === "hair" && groomedHeads.has(part.parent)) &&
-      (layer?.show ??
-        (!part.visibleIn || part.visibleIn.includes(form.outfit)));
+      (form.outfit === "Anatomy"
+        ? (!part.visibleIn || part.visibleIn.includes("Anatomy")) &&
+          !["accessory", "skirt"].includes(part.outfitRole)
+        : (layer?.show ??
+          (!part.visibleIn || part.visibleIn.includes(form.outfit))));
     objects.set(part.id, object);
     object.userData.partId = part.id;
     if (part.rigidFaceAnchor)
@@ -832,6 +956,13 @@ export function createCharacter(
   }
   blendSkin(form, objects, material);
   sculptBuild(group, form);
+  for (const p of form.parts) {
+    if (p.cranialProfile !== "adult" || p.frontFits?.length || p.profileFit)
+      continue;
+    const neck = objects.get(p.parent);
+    const face = objects.get(p.id).children.find((c) => c.userData.faceSurface);
+    if (neck?.isMesh && neck.blendOwners && face) shadeNape(face, neck);
+  }
   for (const part of form.parts) {
     if (!part.profileFit && !part.frontFits?.length) continue;
     const owner = objects.get(part.id);
@@ -952,14 +1083,38 @@ export function createCharacter(
     }
   }
   growGuideFibres(form, objects, plainView, material, fibreBudget);
-  if (!plainView)
+  if (!plainView) {
+    const limbTints=limbPigments(form,objects);
+    const hideHandled=bakeCreatureHide(form,objects,limbTints,fitWardrobe);
+    const field=creatureCoatField(form,objects);
+    const swatch=field?coatSwatch(field.family):null;
+    const coatParts = new Map(form.parts.map(part => [part.id, part]));
     for (const part of form.parts) {
-      if (!part.markings) continue;
+      if (hideHandled.has(part.id)) continue;
       const mesh = objects.get(part.id),
         fit = fitWardrobe(part, form);
-      if (mesh?.isMesh && mesh.visible && (!fit || fit.preserve || fit.bare))
-        paintMarkings(mesh, part.markings);
+      if (mesh?.isMesh && mesh.visible && (!fit || fit.preserve || fit.bare)) {
+        if (field && applyCreatureCoat(mesh,part,field,swatch,part.markings?markingField(part.markings):null,part.undercoat?markingField(part.undercoat):null,limbTints.get(part.id))) continue;
+        if (mesh.blendOwners && part.blendSkin) {
+          paintJoinedCoat(mesh, coatParts, limbTints);
+          continue;
+        }
+        // The undercoat is painted first and the markings lie over it.
+        if (part.undercoat) paintMarkings(mesh, part.undercoat);
+        paintLimbPigment(mesh,limbTints.get(part.id));
+        if (part.markings) paintMarkings(mesh, part.markings);
+      }
     }
+    const plan = form.origin?.plan;
+    if (plan?.skin?.faceMarking) {
+      for (const part of form.parts) {
+        const mesh = objects.get(part.id);
+        if (!hideHandled.has(part.id) && /^head(?: \d+)?$/.test(part.id) && mesh?.visible && mesh.isMesh)
+          paintFaceCoatVertices(mesh,part,plan);
+      }
+    }
+  }
+  group.traverse(node=>{if(node.isMesh)node.receiveShadow=true;});
   return group;
 }
 
@@ -972,5 +1127,13 @@ export function disposeCharacter(group) {
       materials.add(part.material);
     }
   });
-  for (const material of materials) material.dispose();
+  for (const material of materials) {
+    if (material?.userData?.ownedColorMap || material?.userData?.ownedLivery || material?.userData?.contourPlumage) material.map?.dispose();
+    if (material?.userData?.ownedHideTextures) material.map?.dispose();
+    if (material?.userData?.ownedSurfaceMaps || material?.userData?.ownedHideTextures) {
+      material.normalMap?.dispose();
+      material.roughnessMap?.dispose();
+    }
+    material.dispose();
+  }
 }

@@ -73,6 +73,25 @@
             <h2>Shape nudges</h2>
             <button id="undo" class="quiet" disabled>Undo</button>
           </div>
+          <fieldset id="human-controls" hidden>
+            <legend>Adult anatomy</legend>
+            <button id="human-fit-open">Fit a 3D reference…</button>
+            <label class="field">Region<select id="human-group"><option>Body</option><option>Face</option><option>Limbs</option><option>Portrait foundations</option></select></label>
+            <label class="field">Measurement<select id="human-parameter"></select></label>
+            <label class="field">Nudge <output id="human-reading"></output><input id="human-delta" type="range" min="-100" max="100" value="0"></label>
+            <div class="actions"><button id="human-apply">Apply shape nudge</button><button id="human-roll">Reroll region</button></div>
+            <div class="actions">
+              <button id="human-dress-toggle">Show current outfit</button>
+              <button id="human-look-roll">Try a new outfit and hairstyle</button>
+            </div>
+            <details><summary>Appearance</summary>
+              <label class="field">Skin tone<input id="human-skin" type="color"></label>
+              <label class="field">Eyes<select id="human-iris"><option value="brown">Brown</option><option value="green">Green</option><option value="blue">Blue</option></select></label>
+              <label class="field">Facial detail<select id="human-complexion"></select></label>
+              <div id="human-styling"></div>
+            </details>
+          </fieldset>
+          <fieldset id="creature-plan" hidden></fieldset>
           <label class="field">Apply to<select id="target"></select></label>
           <div class="switch" id="operations">
             <button data-op="shape">Size</button
@@ -287,6 +306,8 @@
                 <option>Bands</option>
                 <option>Spots</option>
                 <option>Rosettes</option>
+                <option>Reticulated</option>
+                <option>Marbled</option>
                 <option>Countershade</option>
               </select></label
             >
@@ -603,12 +624,31 @@
           <label class="field"
             >Anatomy<select id="body-plan">
               <option value="any">Any anatomy</option>
-              <option value="human">Humanoid</option>
+              <option value="adult" selected>Adult human · continuous anatomy</option>
+              <option value="human">Procedural humanoid</option>
               <option value="figure">Jointed person in everyday clothes</option>
-              <option value="creature">Creature</option>
+              <option value="plan">Creature · free body plan</option>
+              <option value="creature">Creature · classic reptile</option>
               <option value="hybrid">Hybrid</option>
             </select></label
           >
+          <label class="field" id="figure-archetype-field">
+            Humanoid starting proportions
+            <select id="figure-archetype">
+              <option value="any">Random</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="neutral">Neutral</option>
+            </select>
+          </label>
+          <label class="field" id="adult-colours-field">
+            Adult colouring
+            <select id="adult-colours">
+              <option>Mixed</option>
+              <option>Natural</option>
+              <option>Fantasy</option>
+            </select>
+          </label>
           <div class="actions">
             <button id="fresh">Generate new form</button>
           </div>
@@ -636,6 +676,7 @@
           <h2>Form files</h2>
           <label class="field"
             >GLB detail<select id="export-detail">
+              <option value="clay">Clay (full geometry, no textures)</option>
               <option value="full">Full detail</option>
               <option value="game">Game · reduced mesh and shared atlas</option>
               <option value="portrait">Portrait · reduced mesh and 2048 px atlas</option>
@@ -647,14 +688,19 @@
             ><button id="open">Open form</button
             ><button id="glb">Export GLB</button>
           </div>
+          <details id="file-game-check">
+            <summary>Inspect game export</summary>
+            <button id="file-game-run">Render export check</button>
+            <div id="file-game-reading" aria-live="polite"></div>
+          </details>
           <label class="check"
             ><input id="with-motion" type="checkbox" checked />Include skeleton
             and motion clips</label
           ><input id="openfile" type="file" accept=".json" hidden />
           <p class="micro">
             <a href="play-model.html" target="_blank" rel="noopener"
-              >Open the separate GLB player</a
-            >
+              >Open empty GLB player</a
+            >. Under <strong>Character file</strong>, choose the file you downloaded with <strong>Export GLB</strong>.
           </p>
         </section>
         <section data-panel="files" hidden>
@@ -707,6 +753,7 @@
         </section>
         <section data-panel="files" hidden>
           <h2>Reference studies</h2>
+          <p class="micro"><a href="#compare-mhr" target="_blank" rel="noopener">Compare the editable torso with a rigged 3D reference</a></p>
           <p class="micro">
             <a
               href="../docs/workshop-results.html"
@@ -718,6 +765,7 @@
           <label class="field"
             >Load an editable study<select id="studies"></select></label
           ><button id="study">Load study</button>
+          <a id="study-source" class="micro" target="_blank" rel="noopener" hidden>View the original body scan</a>
         </section>
         <section data-panel="sculpt">
           <details>
@@ -968,8 +1016,8 @@
             aria-label="Material mode"
             role="group"
           >
-            <button data-mode="Color" aria-pressed="true">Studio color</button
-            ><button data-mode="Clay" aria-pressed="false">Clay</button
+            <button data-mode="Color" aria-pressed="false">Studio color</button
+            ><button data-mode="Clay" aria-pressed="true">Clay</button
             ><button data-mode="Silhouette" aria-pressed="false">
               Silhouette
             </button>
@@ -997,10 +1045,21 @@
             <option value="rotate">Rotate</option>
             <option value="translate">Move</option>
             <option id="pose-reach-mode" value="reach">Guide wrist</option>
+            <option id="pose-tip-mode" value="tip">Guide limb tip</option>
           </select></label
         ><button id="pose-front">Front view</button
         ><label class="check"
           ><input type="checkbox" checked id="pose-dots" />Show joints</label
+        >
+      </div>
+      <div class="scale-controls">
+        <label class="field"
+          >Pose together<select id="pose-scope">
+            <option value="one">This joint only</option>
+          </select></label
+        ><label class="check"
+          ><input type="checkbox" id="pose-plant" />Keep the other feet
+          planted</label
         >
       </div>
       <div class="scale-controls" id="pose-reach-controls" hidden>

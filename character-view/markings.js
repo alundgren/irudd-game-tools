@@ -8,13 +8,14 @@ import {
   Vector3,
 } from "three";
 
-export const markingKinds = ["Bands", "Spots", "Rosettes", "Countershade"];
+export const markingKinds = ["Bands", "Spots", "Rosettes", "Countershade", "Reticulated", "Marbled"];
 export const acceptsMarkings = (p) =>
   p &&
   [
     "sweep",
     "ellipsoid",
     "box",
+    "cage",
     "scute",
     "cone",
     "cylinder",
@@ -75,11 +76,19 @@ export function markingField(m) {
       const cutoff = Math.cos(Math.PI * m.coverage);
       return ease(wave, cutoff - 0.17, cutoff + 0.17);
     }
+    if (m.kind === "Marbled") {
+      // A continuous folded band curves and doubles back over the flank.
+      const drift = 0.67 * Math.sin(1.8 * z + 1.2 * x + phase)
+        + 0.26 * Math.sin(2.7 * y - 1.3 * z + 0.7 * phase);
+      const vein = Math.abs(Math.sin(Math.PI * (0.65 * y + 0.3 * x + drift)));
+      const width = Math.sin(0.5 * Math.PI * m.coverage);
+      return 1 - ease(vein, width - 0.08, width + 0.08);
+    }
     // Jittered 3D cells give neighbouring limbs the same field on their seam.
     const ix = Math.floor(x),
       iy = Math.floor(y),
       iz = Math.floor(z);
-    let distance = Infinity;
+    let distance = Infinity, second = Infinity;
     for (let dx = -1; dx <= 1; dx++)
       for (let dy = -1; dy <= 1; dy++)
         for (let dz = -1; dz <= 1; dz++) {
@@ -89,8 +98,19 @@ export function markingField(m) {
           const cx = a + 0.18 + 0.64 * hash(a, b, c, m.seed) - x,
             cy = b + 0.18 + 0.64 * hash(a, b, c, m.seed ^ 1543) - y,
             cz = c + 0.18 + 0.64 * hash(a, b, c, m.seed ^ 9377) - z;
-          distance = Math.min(distance, cx * cx + cy * cy + cz * cz);
+          const squared = cx * cx + cy * cy + cz * cz;
+          if (squared < distance) {
+            second = distance;
+            distance = squared;
+          } else if (squared < second) second = squared;
         }
+    if (m.kind === "Reticulated") {
+      // The boundary between two pigment patches is where their nearest
+      // centres are equidistant. This creates a continuous branching network.
+      const gap = Math.sqrt(second) - Math.sqrt(distance);
+      const width = 0.018 + 0.40 * m.coverage;
+      return 1 - ease(gap, width * 0.7, width * 1.3);
+    }
     const r = Math.sqrt(distance),
       outer = 0.26 + 0.48 * m.coverage;
     const spot = 1 - ease(r, outer - 0.07, outer + 0.05);
@@ -162,4 +182,46 @@ export function whiteVertexColors(geometry) {
         3,
       ),
     );
+}
+
+// A welded patch owns whole triangles, but an individual boundary vertex
+// can belong to both limbs. Use the same weights for pigment as for skinning.
+export function paintJoinedCoat(mesh, parts, limbTints) {
+  const owners = mesh.blendOwners;
+  const layer=mark=>mark&&({sample:markingField(mark),color:new Color(mark.color)});
+  const layers = owners.ids.map(id => {
+    const part=parts.get(id);
+    return {under:layer(part?.undercoat),tint:limbTints?.get(id),mark:layer(part?.markings)};
+  });
+  if (!layers.some(l=>l.under||l.tint||l.mark)) return;
+  mesh.updateWorldMatrix(true, false);
+  const geo = mesh.geometry, material = mesh.material.clone();
+  const pos = geo.attributes.position, normals = geo.attributes.normal;
+  const prior = material.vertexColors && geo.attributes.color;
+  const colors = new Float32Array(pos.count * 3);
+  const p = new Vector3(), n = new Vector3(), base = new Color(), a = new Color(), b = new Color();
+  const normalMatrix = new Matrix3().getNormalMatrix(mesh.matrixWorld);
+  function coat(color, index) {
+    color.copy(base);
+    const {under,tint,mark}=layers[index];
+    if(under)color.lerp(under.color,under.sample(p,n));
+    if(tint)tint(color,p);
+    if(mark)color.lerp(mark.color,mark.sample(p,n));
+  }
+  for (let i=0; i<pos.count; i++) {
+    p.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld);
+    n.fromBufferAttribute(normals, i).applyNormalMatrix(normalMatrix);
+    base.copy(material.color);
+    if (prior) base.multiply(b.fromBufferAttribute(prior, i));
+    coat(a, owners.first[i]);
+    if (owners.weight[i] < 1 && owners.first[i] !== owners.second[i]) {
+      coat(b, owners.second[i]);
+      a.lerp(b, 1-owners.weight[i]);
+    }
+    a.toArray(colors, i*3);
+  }
+  geo.setAttribute("color", new Float32BufferAttribute(colors, 3));
+  material.color.set(0xffffff);
+  material.vertexColors = true;
+  mesh.material = material;
 }

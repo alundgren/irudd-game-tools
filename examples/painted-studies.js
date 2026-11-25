@@ -1,3 +1,6 @@
+import { buildFigure } from "../character-view/figure.js";
+import { fitHand } from "../character-view/graft.js";
+import { eyeDefaults } from "../character-view/ocular.js";
 import {
   paintSources,
   retainPaintSources,
@@ -428,53 +431,48 @@ function human(atlas, height, gown) {
     "@lower sleeve",
     { pivot: "top", profile: 0.85 },
   );
-  const form = finish();
+  let form = finish();
   const originalPaint = paintSources(form);
-  const body = form.parts.find((p) => p.id === torso),
-    headHeight = gown ? 0.292 : 0.307;
-  const head = traceRegion(
-    "head and neck",
-    gown ? "conductorPortrait" : "coastPortrait",
-    headHeight,
-    [
-      [0.003, -0.55, 0.55, -0.19, 0.31],
-      [0.15, -0.55, 0.55, -0.22, 0.47],
-      [0.29, -0.56, 0.56, gown ? -0.52 : -0.27, 0.5],
-      [0.43, -0.56, 0.56, -0.44, 0.51],
-      [0.61, -0.56, 0.56, -0.54, 0.53],
-      [0.83, -0.56, 0.56, -0.54, 0.53],
-      [0.998, -0.56, 0.56, -0.54, 0.53],
+  const body = form.parts.find((p) => p.id === torso);
+  // Fit a skull and neck to the standing height. The body sheet still
+  // supplies the clothing, but its hair silhouette no longer defines the jaw.
+  const skullHeight = height / (gown ? 7.15 : 7.65);
+  const scale = skullHeight / 0.294;
+  const crownAbovePivot = 1.76 - 1.42;
+  const head = {
+    id: "head and neck",
+    shape: "head",
+    parent: body.id,
+    position: [
+      -body.position[0],
+      height - crownAbovePivot * scale - body.position[1],
+      -body.position[2],
     ],
-    null,
-    { samples: 48, smooth: 3, profile: 0.66 },
-  );
-  head.paint.portrait = gown
-    ? {
-        center: 0.07,
-        width: 0.25,
-        eyes: 0.563,
-        nose: 0.461,
-        mouth: 0.362,
-        chin: 0.212,
-      }
-    : {
-        center: 0.009,
-        width: 0.3,
-        eyes: 0.608,
-        nose: 0.453,
-        mouth: 0.343,
-        chin: 0.16,
-      };
-  head.parent = torso;
-  head.position = [0, height - headHeight, -0.005].map(
-    (v, i) => v - body.position[i],
-  );
+    rotation: [0, 0, 0],
+    size: [scale, scale, scale],
+    eyesRig: { ...eyeDefaults },
+    sculpt: gown
+      ? { cheek: 1.15, jaw: 1.09 }
+      : { jaw: 1.08, brow: 1.08, nose: 1.1 },
+  };
   form.parts[form.parts.findIndex((p) => p.id === head.id)] = head;
+  form.appearance.face = gown ? 2 : 0;
+  form.appearance.hair = "Bald";
+  if (gown)
+    head.groom = {
+      pattern: "Side part",
+      color: "#b8b2ad",
+      seed: 31,
+      length: 0.4,
+      curl: 0.3,
+      gather: 0.3,
+      volume: 0.48,
+      sweep: 0.8,
+    };
   form.appearance.skin = gown ? "#a293c1" : "#ba8c73";
   form.appearance.palette = gown ? "Polar" : "Tide";
   for (const p of form.parts) {
     if (p.id === "head and neck") {
-      p.anatomy = "face";
       p.outfitRole = "head";
     } else
       p.outfitRole =
@@ -495,22 +493,9 @@ function human(atlas, height, gown) {
   for (const p of form.parts) {
     if (p.outfitRole === "skirt")
       p.drape = { folds: 15, depth: 0.095, twist: 0.34 };
-    if (p.outfitRole === "hand") {
-      const sign = p.id.startsWith("left") ? 1 : -1;
-      p.shape = "hand";
-      p.size = [0.078, 0.163, 0.041];
-      p.rotation = [4, sign * 49, sign * 11];
-      p.color = form.appearance.skin;
-      p.grip = {
-        fingers: 4,
-        curl: gown ? 0.16 : 0.23,
-        spread: gown ? 0.25 : 0.17,
-        side: sign,
-      };
-      delete p.knots;
-      delete p.paint;
-    }
   }
+  for (const hand of form.parts.filter((p) => p.outfitRole === "hand"))
+    form = fitHand(form, hand.id, form.appearance.skin);
   if (gown) {
     form.build = { mass: 1.2, waist: 1.27, hips: 1.22, belly: 1.12 };
     const base = form.parts.find((p) => p.id === torso);
@@ -613,6 +598,35 @@ function scanHuman(atlas, height, skin, palette) {
   form.appearance.palette = palette;
   return retainPaintSources(form, originalPaint);
 }
+function cartographer() {
+  const form = buildFigure({
+    height: 1.88,
+    heads: 7.65,
+    face: 0,
+    hair: "Bald",
+    skin: "#ba8c73",
+    shoulders: 1.1,
+    chest: 1.13,
+    waist: 0.98,
+    hips: 1.03,
+    limbs: 1.05,
+    stance: { arms: 18, elbows: 14, feet: 1.08, curl: 0.32 },
+    top: {
+      kind: "tee",
+      sleeves: "short",
+      color: "#70685c",
+      ease: 0.12,
+      length: 0.06,
+    },
+    bottom: { kind: "trousers", ease: 0.12, color: "#484840", belt: "#524737" },
+    shoes: { kind: "boots", color: "#54493d" },
+  });
+  const head = form.parts.find((p) => p.shape === "head");
+  head.id = "head and neck";
+  head.sculpt = { jaw: 1.08, brow: 1.08, nose: 1.1 };
+  return form;
+}
+
 export const paintedStudies = [
   {
     id: "painted-trader",
@@ -640,7 +654,13 @@ export const paintedStudies = [
   },
   {
     id: "painted-ranger",
-    title: "Coast cartographer · painted volume",
+    title: "Coast cartographer · anatomy",
+    game: "Dragon’s Dogma 2",
+    make: cartographer,
+  },
+  {
+    id: "traced-coast-body",
+    title: "Coast cartographer · earlier traced body",
     game: "Dragon’s Dogma 2",
     make: () => human("cartographer", 1.88, false),
   },

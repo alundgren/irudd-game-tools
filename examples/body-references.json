@@ -1,0 +1,188 @@
+{
+  "f01": {
+    "title": "Narrow shoulders",
+    "page": "https://www.3dscanstore.com/3d-body-models/shaded-female/shaded-female-01-pose-1",
+    "views": {
+      "front": "https://www.3dscanstore.com/image/cache/data/Shaded%20Female%2007/FullBodyScan_F01P01_01-1000x1000h.JPG",
+      "side": "https://www.3dscanstore.com/image/cache/data/Shaded%20Female%2001/FullBodyScan_F01P01_04-1000x1000h.JPG",
+      "back": "https://www.3dscanstore.com/image/cache/data/Shaded%20Female%2001/FullBodyScan_F01P01_05-1000x1000h.JPG",
+      "oblique": "https://www.3dscanstore.com/image/cache/data/Shaded%20Female%2001/FullBodyScan_F01P01_03-1000x1000h.JPG"
+    },
+    "obliqueDegrees": -45,
+    "surface": {
+      "chestFullness": 0.4,
+      "lowerAbdomen": 0.17,
+      "muscleRelief": 0.1
+    },
+    "initialFigure": {
+      "stance": {
+        "arms": 4,
+        "feet": 1.2,
+        "elbows": 6
+      }
+    },
+    "sha256": {
+      "front": "ab8339cf1d77a6954b2577561ddcf784a5de60b61db66e2cfb3d2303d3f6ba7a",
+      "side": "99b531c580ebc688b4a50c3fcf8c775b2e94b1c94e4e122ce8af94f8b7c56906",
+      "back": "668b50f98005e6c24a2df4e8945a55193a800c78f7e5750ec264eca7922334fa",
+      "oblique": "38298289c91c49e3ac15862f91d1d0d1cabc8b3d3924c011947d4c60fb9dc822"
+    },
+    "catalogNote": "The product heading and preview filenames say Female 01. The vendor serves these previews from a folder labelled Female 07."
+  },
+  "f03": {
+    "title": "Athletic, tapered waist",
+    "page": "https://www.3dscanstore.com/3d-body-models/shaded-female/shaded-female-03-pose-1",
+    "views": {
+      "front": "https://www.3dscanstore.com/image/cache/data/Shaded%20Female%2003/FullBodyScan_F03P01_01-1000x1000h.jpg",
+      "side": "https://www.3dscanstore.com/image/cache/data/Shaded%20Female%2003/FullBodyScan_F03P01_05-1000x1000h.JPG",
+      "back": "https://www.3dscanstore.com/image/cache/data/Shaded%20Female%2003/FullBodyScan_F03P01_04-1000x1000h.JPG",
+      "oblique": "https://www.3dscanstore.com/image/cache/data/Shaded%20Female%2003/FullBodyScan_F03P01_02-1000x1000h.JPG"
+    },
+    "obliqueDegrees": -45,
+    "surface": {
+      "chestFullness": 0.27,
+      "lowerAbdomen": 0.09,
+      "muscleRelief": 0.24
+    },
+    "initialFigure": {
+      "stance": {
+        "arms": 9,
+        "feet": 1.2,
+        "elbows": 6
+      }
+    },
+    "sha256": {
+      "front": "e4191ae7011e127dca984d1dd0cfb1cbd285537e4f0fe557dc27b095fa14a25e",
+      "side": "0137fe103bce85b5fa8050e3b689d07e3bfe5e80c081d558b495a7bbaef2a24d",
+      "back": "309472754ec7afe79e51fc35fa426be70d9c7d7da78c401a0112e22056d04b3c",
+      "oblique": "ee6a5204c05372d997fcb4876d72255d58d9d8f4429f1fd6bcbae5b4ec5210fa"
+    }
+  },
+  "f08": {
+    "title": "Full abdomen and hips",
+    "page": "https://www.3dscanstore.com/3d-body-models/shaded-female/shaded-female-08-pose-1",
+    "views": {
+      "front": "https://www.3dscanstore.com/image/cache/data/Shaded%20Female%2008/FullBodyScan_F08P02_01-1000x1000h.JPG",
+      "side": "https://www.3dscanstore.com/image/cache/data/Shaded%20Female%2008/FullBodyScan_F08P02_05-1000x1000h.JPG",
+      "back": "https://www.3dscanstore.com/image/cache/data/Shaded%20Female%2008/FullBodyScan_F08P02_04-1000x1000h.JPG",
+      "oblique": "https://www.3dscanstore.com/image/cache/data/Shaded%20Female%2008/FullBodyScan_F08P02_02-1000x1000h.JPG"
+    },
+    "obliqueDegrees": 45,
+    "surface": {
+      "chestFullness": 0.98,
+      "lowerAbdomen": 0.98,
+      "muscleRelief": 0.08
+    },
+    "initialFigure": {
+      "stance": {
+        "arms": 20,
+        "feet": 1.2,
+        "elbows": 6
+      },
+      "chest": 1.55,
+      "waist": 1.6,
+      "hips": 1.55,
+      "belly": 0.8,
+      "limbs": 1.45,
+      "ribDepth": 1.5,
+      "pelvisDepth": 1.2
+    },
+    "sha256": {
+      "front": "1a4bd41338814b5156d3ac78d7b8137bdb1c619f9f9240288b220200b45c3b48",
+      "side": "efa95956f9fa674b3f0e853d5beed4a433de7e8795018f04673541cee34bb457",
+      "back": "652caac743d980fad84bed5ffa3f40c7b577649169eacdd27204171106ae6512",
+      "oblique": "948cc096420ddd1a473fbf3f1e554291fbbb460db5018d88ee561cc6c37d3f62"
+    },
+    "catalogNote": "The Female 08 Pose 1 product displays these F08P02 previews. This study fits the displayed A-pose plates."
+  },
+  "m04": {
+    "title": "Lean, narrow trunk",
+    "page": "https://www.3dscanstore.com/3d-body-models/shaded-female/shaded-male-04-nude-arms-down",
+    "views": {
+      "front": "https://www.3dscanstore.com/image/cache/data/Shaded%20Male%2004/Male04_Nude_AD_Front-1000x1000h.JPG",
+      "side": "https://www.3dscanstore.com/image/cache/data/Shaded%20Male%2004/Male0_Nude_AD_Side-1000x1000h.JPG",
+      "back": "https://www.3dscanstore.com/image/cache/data/Shaded%20Male%2004/Male04_Nude_AD_Back-1000x1000h.JPG",
+      "oblique": "https://www.3dscanstore.com/image/cache/data/Shaded%20Male%2004/Male04_Nude_AD_FQuarter-1000x1000h.JPG"
+    },
+    "obliqueDegrees": -45,
+    "surface": {
+      "chestFullness": 0.05,
+      "lowerAbdomen": 0.05,
+      "muscleRelief": 0.65
+    },
+    "initialFigure": {
+      "stance": {
+        "arms": 5,
+        "feet": 1.2,
+        "elbows": 6
+      }
+    },
+    "sha256": {
+      "front": "854a79b88dded5854bd2b00272364184a7cffb8e9417175c6c7873e5680b149d",
+      "side": "48086d5886e905d4e0a322d125f1da1cf1fbae9ff1c90440a087ef1cec42162c",
+      "back": "a72c4627fa54556f167b54832f959b99817c1c9d0b65205fdaaf39ee4cf79279",
+      "oblique": "71130e7a70e28234bf08431161f2e7629dc77204bcae85d14ddd3869f7831277"
+    }
+  },
+  "m08": {
+    "title": "Rounded abdomen",
+    "page": "https://www.3dscanstore.com/3d-body-models/shaded-female/shaded-male-08-pose-1",
+    "views": {
+      "front": "https://www.3dscanstore.com/image/cache/data/Shaded%20Male%2008/FullBodyScan_M08P01_01-1000x1000h.JPG",
+      "side": "https://www.3dscanstore.com/image/cache/data/Shaded%20Male%2008/FullBodyScan_M08P01_05-1000x1000h.JPG",
+      "back": "https://www.3dscanstore.com/image/cache/data/Shaded%20Male%2008/FullBodyScan_M08P01_03-1000x1000h.JPG",
+      "oblique": "https://www.3dscanstore.com/image/cache/data/Shaded%20Male%2008/FullBodyScan_M08P01_02-1000x1000h.JPG"
+    },
+    "obliqueDegrees": -45,
+    "surface": {
+      "chestFullness": 0.16,
+      "lowerAbdomen": 0.5,
+      "muscleRelief": 0.18
+    },
+    "initialFigure": {
+      "stance": {
+        "arms": 13,
+        "feet": 1.2,
+        "elbows": 6
+      }
+    },
+    "sha256": {
+      "front": "f455db973c6b545dec6a9f2ca83ffaef4e6ecd1e086c4b039fa653f095071419",
+      "side": "f866c73748185cc5c6d4527a85db671c2467580fb7a4112501b30f8dac5112c7",
+      "back": "e40f9afe3de51a4e77ba70ec16f3f47e552ff7f23443bc9a09d6b3135e156ee3",
+      "oblique": "05c21836880a11d14800f27d9050721a19261e1528ee0db8aba92367fd3980c6"
+    }
+  },
+  "m09": {
+    "title": "Broad upper torso",
+    "page": "https://www.3dscanstore.com/3d-body-models/shaded-female/shaded-male-09-pose-1",
+    "views": {
+      "front": "https://www.3dscanstore.com/image/cache/data/Shaded%20Male%2009/FullBodyScan_M09P01_01-1000x1000h.jpg",
+      "side": "https://www.3dscanstore.com/image/cache/data/Shaded%20Male%2009/FullBodyScan_M09P01_05-1000x1000h.jpg",
+      "back": "https://www.3dscanstore.com/image/cache/data/Shaded%20Male%2009/FullBodyScan_M09P01_04-1000x1000h.jpg",
+      "oblique": "https://www.3dscanstore.com/image/cache/data/Shaded%20Male%2009/FullBodyScan_M09P01_02-1000x1000h.jpg"
+    },
+    "obliqueDegrees": 45,
+    "surface": {
+      "chestFullness": 0.1,
+      "lowerAbdomen": 0.08,
+      "muscleRelief": 0.98
+    },
+    "initialFigure": {
+      "stance": {
+        "arms": 8,
+        "feet": 1.2,
+        "elbows": 6
+      },
+      "shoulders": 1.18,
+      "chest": 1.16,
+      "limbs": 1.1
+    },
+    "sha256": {
+      "front": "4956d5dbca834c71153f3403b67e9636c3916ce32f2a372f436187fc3d5332d1",
+      "side": "6c32c61ea556607dd9b34cbafe31c0444110138b8c11f4881ba0faa290aeaeca",
+      "back": "d9dbb6dd43574289a026739e832082d0b54664a1c4795e1fad3d651fd4e72d9f",
+      "oblique": "7ae464624da6390edf0f83c8736fd5cc39bc1df2c924a120d12c2a1cc4465e8e"
+    }
+  }
+}

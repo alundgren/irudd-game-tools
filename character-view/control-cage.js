@@ -275,18 +275,23 @@ function splitNormals(mesh, faceted) {
   }
   return { vertices, faces };
 }
-export function cageGeometry(cage) {
+export function cageGeometry(cage, controlUV) {
   let mesh = {
     vertices: cage.vertices.map(vector),
     faces: cage.faces,
     creases: cage.creases ?? [],
   };
   mesh.faces = orientShells(mesh.vertices, mesh.faces);
+  let uv = controlUV?.length === mesh.vertices.length
+    ? { vertices: controlUV.map(([u,v]) => new Vector3(u,v,0)), faces: mesh.faces, creases: mesh.creases }
+    : null;
   let source = mesh.faces.map((_, i) => i);
   for (let i = 0; i < (cage.levels ?? 1); i++) {
     source = mesh.faces.flatMap((f, j) => f.map(() => source[j]));
+    if (uv) uv = subdivide(uv.vertices, uv.faces, uv.creases);
     mesh = subdivide(mesh.vertices, mesh.faces, mesh.creases);
   }
+  if (uv) uv = splitNormals(uv, cage.levels === 0);
   mesh = splitNormals(mesh, cage.levels === 0);
   const index = [],
     owners = [];
@@ -319,7 +324,7 @@ export function cageGeometry(cage) {
   geometry.setAttribute(
     "uv",
     new Float32BufferAttribute(
-      mesh.vertices.flatMap((v) => [v.x + 0.5, v.y + 0.5]),
+      uv ? uv.vertices.flatMap(v => [v.x,v.y]) : mesh.vertices.flatMap((v) => [v.x + 0.5, v.y + 0.5]),
       2,
     ),
   );

@@ -1,4 +1,7 @@
-import { Euler, Matrix4, Quaternion, Vector3 } from "three";
+import { validSectionProfile } from "./section-profile.js";
+import { Vector3 } from "three";
+import { eyeDefaults } from "./ocular.js";
+import { restingWrist } from "./resting-wrist.js";
 import { bindParts } from "./rig.js";
 
 // A measured two-arm human built from editable sweeps. Each limb segment
@@ -16,6 +19,40 @@ const number = (v, a, b, fallback) =>
   Number.isFinite(v) ? clamp(v, a, b) : fallback;
 const pick = (v, options) => (options.includes(v) ? v : options[0]);
 
+// Starting proportions are independent of height, face, grooming and wardrobe.
+export const figureArchetypes = {
+  neutral: {
+    shoulders: 1,
+    chest: 1,
+    waist: 1,
+    hips: 1,
+    limbs: 1,
+    neck: 1,
+    hands: 1,
+    pectoral: 0.014,
+  },
+  male: {
+    shoulders: 1.07,
+    chest: 1.045,
+    waist: 1.035,
+    hips: 0.97,
+    limbs: 1.045,
+    neck: 1.06,
+    hands: 1.035,
+    pectoral: 0.01,
+  },
+  female: {
+    shoulders: 0.94,
+    chest: 0.97,
+    waist: 0.96,
+    hips: 1.09,
+    limbs: 0.955,
+    neck: 0.95,
+    hands: 0.965,
+    pectoral: 0.025,
+  },
+};
+
 export const figureTops = ["shirt", "tee", "jacket", "hoodie", "none"];
 export const figureSleeves = ["long", "rolled", "short", "none"];
 export const figureBottoms = ["trousers", "shorts", "none"];
@@ -31,19 +68,35 @@ export function readFigure(raw = {}) {
     bottom = f.bottom ?? {},
     shoes = f.shoes ?? {},
     stance = f.stance ?? {};
+  const archetype = Object.hasOwn(figureArchetypes, f.archetype)
+    ? f.archetype
+    : "neutral";
+  const base = figureArchetypes[archetype];
   return {
+    archetype,
+    ...(validSectionProfile(f.sectionProfile)
+      ? { sectionProfile: structuredClone(f.sectionProfile) }
+      : {}),
     height: number(f.height, 1.2, 2.2, 1.72),
     heads: number(f.heads, 6, 8.4, 7.4),
-    shoulders: number(f.shoulders, 0.7, 1.4, 1),
-    chest: number(f.chest, 0.7, 1.5, 1),
-    waist: number(f.waist, 0.7, 1.8, 1),
-    hips: number(f.hips, 0.7, 1.5, 1),
+    shoulderRise: number(f.shoulderRise, -.04, .065, 0),
+    shoulders: number(f.shoulders, 0.7, 1.4, base.shoulders),
+    chest: number(f.chest, 0.7, 1.95, base.chest),
+    waist: number(f.waist, 0.7, 2.05, base.waist),
+    hips: number(f.hips, 0.7, 1.85, base.hips),
     belly: number(f.belly, 0, 1, 0),
-    limbs: number(f.limbs, 0.7, 1.6, 1),
+    chestFullness: number(f.chestFullness, 0, 1, 0),
+    lowerAbdomen: number(f.lowerAbdomen, 0, 1, 0),
+    muscleRelief: number(f.muscleRelief, 0, 1, 0),
+    ribDepth: number(f.ribDepth, 0.65, 1.9, 1),
+    pelvisDepth: number(f.pelvisDepth, 0.65, 1.9, 1),
+    legBuild: number(f.legBuild, 0.65, 1.65, 1),
+    abdomenDepth: number(f.abdomenDepth, 0.65, 1.9, 1),
+    limbs: number(f.limbs, 0.7, 1.6, base.limbs),
     legs: number(f.legs, 0.9, 1.1, 1),
     arms: number(f.arms, 0.88, 1.12, 1),
-    neck: number(f.neck, 0.75, 1.35, 1),
-    hands: number(f.hands, 0.85, 1.2, 1),
+    neck: number(f.neck, 0.75, 1.35, base.neck),
+    hands: number(f.hands, 0.85, 1.2, base.hands),
     skin: hex(f.skin, "#b98566"),
     face: Number.isInteger(f.face) ? clamp(f.face, 0, 3) : 0,
     hair: pick(f.hair, figureHair),
@@ -66,6 +119,7 @@ export function readFigure(raw = {}) {
         : null,
     stance: {
       arms: number(stance.arms, 4, 75, 13),
+      ...(Number.isFinite(stance.forearmSpread) ? {forearmSpread:number(stance.forearmSpread, 0, 85, 0)} : {}),
       elbows: number(stance.elbows, 0, 80, 14),
       feet: number(stance.feet, 0.5, 2, 1),
       curl: number(stance.curl, 0, 1, 0.34),
@@ -93,14 +147,6 @@ export function readFigure(raw = {}) {
       sole: hex(shoes.sole, "#f2efe6"),
     },
   };
-}
-
-function eulerFromBasis(x, y, z) {
-  const q = new Quaternion().setFromRotationMatrix(
-    new Matrix4().makeBasis(x, y, z),
-  );
-  const e = new Euler().setFromQuaternion(q);
-  return [e.x, e.y, e.z].map((v) => v / rad || 0);
 }
 
 // Stations are [t, halfWidth, halfDepth, sideOffset, forwardOffset]. Both
@@ -159,7 +205,11 @@ export function buildFigure(raw = {}) {
     motionRole: "rigid",
     visibleIn: work,
   });
-  const body = (role) => ({ outfitRole: role, bare: true });
+  const body = (role) => ({
+    outfitRole: role,
+    bare: true,
+    ...(role === "foot" ? {} : { seamGroup: "figure" }),
+  });
   // Vertical rings are authored in standing space: [y, halfWidth, halfDepth, z].
   const rings = (origin, rows) =>
     rows.map(([y, w, d, z = 0, x = 0]) => [
@@ -172,7 +222,7 @@ export function buildFigure(raw = {}) {
 
   const headHeight = H / f.heads;
   const chin = H - headHeight,
-    neckBase = chin - 0.05 * k * f.neck - 0.012 * k,
+    neckBase = chin - 0.05 * k * f.neck - 0.012 * k + f.shoulderRise*k,
     shoulderY = neckBase - 0.036 * k,
     crotch = 0.468 * H * f.legs,
     hipY = crotch + 0.088 * k,
@@ -180,14 +230,15 @@ export function buildFigure(raw = {}) {
     chestY = lerp(hipY, shoulderY, 0.72),
     kneeY = crotch * 0.585 + 0.012 * k,
     ankleY = 0.078 * k;
-  const sw = 0.192 * k * f.shoulders,
+  const sw = 0.194 * k * f.shoulders,
     chestW = 0.158 * k * f.chest,
     waistW = 0.134 * k * f.waist,
     hipW = 0.168 * k * f.hips,
     bellyOut = f.belly * 0.11 * k;
-  const chestD = 0.108 * k * lerp(1, f.chest, 0.7),
-    waistD = 0.094 * k * lerp(1, f.waist, 0.8) + bellyOut * 0.5,
-    hipD = 0.106 * k * lerp(1, f.hips, 0.6);
+  const chestD = 0.105 * k * lerp(1, f.chest, 0.7) * f.ribDepth,
+    waistD =
+      0.094 * k * lerp(1, f.waist, 0.8) * f.abdomenDepth + bellyOut * 0.5,
+    hipD = 0.106 * k * lerp(1, f.hips, 0.6) * f.pelvisDepth;
   const torsoRows = [
     [crotch - 0.018 * k, 0.062 * k * f.hips, 0.062 * k, -0.004 * k],
     [crotch + 0.022 * k, 0.128 * k * f.hips, 0.099 * k, -0.004 * k],
@@ -198,23 +249,24 @@ export function buildFigure(raw = {}) {
       lerp(hipD, waistD, 0.6) + bellyOut * 0.35,
       -0.003 * k + bellyOut * 0.48,
     ],
-    [waistY, waistW + bellyOut * 0.22, waistD, 0.002 * k + bellyOut * 0.44],
+    [waistY, waistW + bellyOut * 0.22, waistD, 0.012 * k + bellyOut * 0.44],
     [
       lerp(waistY, chestY, 0.55),
       lerp(waistW, chestW, 0.6) + bellyOut * 0.1,
       lerp(waistD, chestD, 0.7) + bellyOut * 0.12,
-      0.005 * k + bellyOut * 0.2,
+      -0.003 * k + bellyOut * 0.2,
     ],
-    [chestY, chestW, chestD, 0.008 * k],
+    [chestY, chestW, chestD, -0.013 * k],
     [
-      lerp(chestY, shoulderY, 0.62),
-      lerp(chestW, sw, 0.55),
-      chestD * 0.95,
-      0.002 * k,
+      lerp(chestY, shoulderY, 0.39),
+      lerp(chestW, sw, 0.45),
+      chestD * 0.98,
+      -0.022 * k,
     ],
-    [shoulderY - 0.03 * k, sw * 0.97, 0.09 * k, -0.006 * k],
-    [shoulderY - 0.008 * k, sw * 0.84, 0.082 * k, -0.009 * k],
-    [lerp(shoulderY, neckBase, 0.55), sw * 0.5, 0.072 * k, -0.013 * k],
+    [shoulderY - 0.037 * k, sw * 0.965, chestD * 0.88, -0.026 * k],
+    [shoulderY - 0.008 * k, sw * 0.875, chestD * 0.79, -0.024 * k],
+    [lerp(shoulderY, neckBase, 0.28), sw * 0.68, 0.084 * k, -0.022 * k],
+    [lerp(shoulderY, neckBase, 0.65), sw * 0.44, 0.073 * k, -0.016 * k],
     [neckBase, 0.062 * k * f.neck, 0.064 * k * f.neck, -0.014 * k],
     [neckBase + 0.03 * k, 0.05 * k * f.neck, 0.054 * k * f.neck, -0.01 * k],
   ];
@@ -227,17 +279,56 @@ export function buildFigure(raw = {}) {
     body("torso"),
   );
 
-  // The built-in head is authored around a 0.25 m skull above a 1.42 m pivot.
-  const headScale = headHeight / 0.262;
+  // The procedural skull runs from 1.466 to 1.760 above a 1.420 pivot.
+  const headScale = headHeight / 0.294;
+  const neckOrigin = new Vector3(0, neckBase, -0.012 * k);
+  // The nape rises behind the jaw. The throat narrows and comes forward
+  // toward the chin while the lower neck flares across the shoulder girdle.
+  const neckRows = [
+    [neckBase - 0.031 * k, 0.093, 0.073, -0.019],
+    [neckBase - 0.006 * k, 0.068, 0.065, -0.016],
+    [neckBase + 0.019 * k, 0.056, 0.057, -0.011],
+    [lerp(neckBase, chin, 0.74), 0.05, 0.055, -0.011],
+    [chin + 0.006 * k, 0.049, 0.053, -0.008],
+    [chin + 0.04 * k, 0.054, 0.058, -0.004],
+    [chin + 0.071 * k, 0.056, 0.064, -0.005],
+    [chin + 0.099 * k, 0.049, 0.06, -0.007],
+    [chin + 0.12 * k, 0.037, 0.047, -0.002],
+  ].map(([y, w, d, z]) => [y, w * k * f.neck, d * k * f.neck, z * k]);
+  const neckPulls = [0.24, 0.52, 0.79].map((t) => ({
+    at: [
+      (0.018 + 0.029 * t) * k,
+      (chin - neckBase + 0.045 * k) * t,
+      (0.053 - 0.028 * t) * k,
+    ],
+    reach: [0.014 * k, 0.032 * k, 0.032 * k],
+    offset: [0.002 * k, 0, 0.0035 * k],
+    mirrorX: 0,
+  }));
+  sweep(
+    "neck",
+    neckOrigin,
+    rings(neckOrigin, neckRows),
+    f.skin,
+    {
+      anatomy: "neck",
+      motionRole: "rigid",
+      seamGroup: "figure",
+      pulls: neckPulls,
+    },
+    "body",
+  );
   parts.push({
     id: "head",
     shape: "head",
-    position: [0, chin - 0.085 * headScale, -0.012 * k],
+    cranialProfile: "adult",
+    eyesRig: { ...eyeDefaults },
+    position: [0, chin - 0.046 * headScale, 0.014 * k],
     size: [headScale, headScale, headScale],
     rotation: [0, 0, 0],
   });
   if (f.groom) parts.at(-1).groom = { ...f.groom, color: f.hairColor };
-  links.head = "body";
+  links.head = "neck";
 
   const armLength = f.arms * H;
   for (const side of [1, -1]) {
@@ -249,40 +340,57 @@ export function buildFigure(raw = {}) {
     const armRadius = 0.046 * k * m;
     const shoulder = new Vector3(
       side * (sw + 0.024 * k - armRadius),
-      shoulderY - 0.006 * k - armRadius,
-      -0.01 * k,
+      shoulderY + 0.007 * k - armRadius,
+      -0.018 * k,
     );
     const upperDir = new Vector3(
       side * Math.sin(spread),
       -Math.cos(spread),
-      -0.03,
+      -0.105,
     ).normalize();
-    const lowerSpread = spread * 0.72;
+    const lowerSpread = f.stance.forearmSpread === undefined ? spread*.72 : f.stance.forearmSpread*rad;
     const lowerDir = new Vector3(
       side * Math.sin(lowerSpread) * Math.cos(bend),
       -Math.cos(lowerSpread) * Math.cos(bend),
       Math.sin(bend),
     ).normalize();
-    const upperLength = 0.172 * armLength,
-      lowerLength = 0.146 * armLength;
+    const upperLength = 0.169 * armLength,
+      lowerLength = 0.14 * armLength;
     const elbow = shoulder.clone().addScaledVector(upperDir, upperLength),
       wrist = elbow.clone().addScaledVector(lowerDir, lowerLength);
     const a = (v) => v * k * m;
     const upperStations = [
       [0, a(0.046), a(0.052)],
-      [0.16, a(0.052), a(0.057), side * 0.004 * k],
-      [0.36, a(0.046), a(0.052)],
-      [0.6, a(0.042), a(0.049), 0, 0.003 * k],
-      [0.84, a(0.038), a(0.043)],
+      [0.13, a(0.054), a(0.06), side * 0.006 * k],
+      [0.27, a(0.05), a(0.055), side * 0.005 * k, -0.002 * k],
+      [0.4, a(0.044), a(0.051), -side * 0.001 * k, 0.002 * k],
+      [0.57, a(0.046), a(0.054), -side * 0.003 * k, 0.005 * k],
+      [0.83, a(0.035), a(0.039), -side * 0.002 * k, -0.007 * k],
       [1, a(0.036), a(0.039)],
     ];
     const lowerStations = [
       [0, a(0.036), a(0.039)],
-      [0.2, a(0.039), a(0.043)],
-      [0.45, a(0.035), a(0.039)],
-      [0.75, a(0.027), a(0.032)],
-      [1, a(0.0215), a(0.028)],
+      [0.2, a(0.042), a(0.044), side * 0.005 * k, -0.005 * k],
+      [0.45, a(0.037), a(0.037), side * 0.003 * k, -0.002 * k],
+      [0.76, a(0.029), a(0.026)],
+      [1, a(0.022), a(0.024)],
     ];
+    // The deltoid and biceps peak at different distances along the arm.
+    // A fuller forearm still tapers onto the comparatively bony wrist.
+    for (const station of upperStations) {
+      const t = station[0];
+      const peak = Math.sin(Math.PI * t);
+      station[3] = (station[3] ?? 0) + side * k * f.muscleRelief * 0.006 * peak;
+      station[4] = (station[4] ?? 0) + k * f.muscleRelief * 0.008 * peak;
+      station[2] *= 1 + f.muscleRelief * 0.14 * peak;
+    }
+    for (const station of lowerStations) {
+      const t = station[0];
+      const wrist = f.lowerAbdomen * Math.max(0, m - 1) * t * t;
+      station[1] *= 1 - 0.5 * wrist;
+      station[2] *=
+        1 + 0.1 * f.muscleRelief * Math.sin(Math.PI * t) - 0.45 * wrist;
+    }
     sweep(
       name + "upper arm",
       shoulder,
@@ -301,28 +409,24 @@ export function buildFigure(raw = {}) {
     );
     // The palm faces the thigh and turns a little to the rear, as a relaxed
     // hand does. Local -Y runs along the forearm; local +Z is the palm.
-    const down = lowerDir.clone().negate();
-    const palm = new Vector3(-side, 0, -0.42)
-      .addScaledVector(down, -new Vector3(-side, 0, -0.42).dot(down))
-      .normalize();
-    const across = new Vector3().crossVectors(down, palm).normalize();
     const handSize = [0.082, 0.182, 0.04].map((v) => v * k * f.hands);
     parts.push({
       id: name + "hand",
       shape: "hand",
       position: wrist
         .clone()
-        .addScaledVector(lowerDir, 0.004 * k)
+        .addScaledVector(lowerDir, -0.004 * k)
         .toArray(),
       size: handSize,
       frameSize: [...handSize],
-      rotation: eulerFromBasis(across, down, palm),
+      rotation: restingWrist(lowerDir, new Vector3(-side, 0, -0.2)),
       color: f.skin,
       outfitRole: "hand",
       motionRole: "hand",
       grip: {
         side: -side,
         fingers: 4,
+        relaxed: true,
         curl: f.stance.curl,
         spread: 0.18,
       },
@@ -440,30 +544,48 @@ export function buildFigure(raw = {}) {
       -0.004 * k,
     );
     const foot = side * 0.098 * k * f.stance.feet;
-    const knee = new Vector3(lerp(hipJoint.x, foot, 0.56), kneeY, 0.012 * k),
-      ankle = new Vector3(foot, ankleY, -0.012 * k);
+    const knee = new Vector3(lerp(hipJoint.x, foot, 0.56), kneeY, 0.026 * k),
+      ankle = new Vector3(foot, ankleY, -0.038 * k);
     const thighDir = knee.clone().sub(hipJoint),
       thighLength = thighDir.length();
     thighDir.normalize();
     const shinDir = ankle.clone().sub(knee),
       shinLength = shinDir.length();
     shinDir.normalize();
-    const l = (v) => v * k * lerp(1, m, 0.85) * lerp(1, f.hips, 0.3);
+    const l = (v) =>
+      v * k * lerp(1, m, 0.85) * lerp(1, f.hips, 0.3) * f.legBuild;
     const thighStations = [
-      [0, l(0.08), l(0.082), 0, -0.01 * k],
-      [0.2, l(0.083), l(0.089), 0, -0.007 * k],
-      [0.5, l(0.071), l(0.08)],
-      [0.8, l(0.057), l(0.063)],
+      [0, l(0.08), l(0.088), 0, -0.017 * k],
+      [0.2, l(0.085), l(0.097), side * 0.003 * k, -0.009 * k],
+      [0.5, l(0.074), l(0.083), side * 0.003 * k, 0.007 * k],
+      [0.8, l(0.057), l(0.062), -side * 0.004 * k, 0.005 * k],
       [1, l(0.051), l(0.055)],
     ];
     const shinStations = [
       [0, l(0.051), l(0.055)],
-      [0.14, l(0.049), l(0.054), 0, -0.003 * k],
-      [0.33, l(0.05), l(0.058), side * 0.003 * k, -0.013 * k],
-      [0.62, l(0.039), l(0.044), 0, -0.007 * k],
-      [0.88, l(0.03), l(0.035)],
+      [0.14, l(0.045), l(0.048), 0, -0.004 * k],
+      [0.32, l(0.052), l(0.061), side * 0.004 * k, -0.014 * k],
+      [0.6, l(0.04), l(0.045), -side * 0.002 * k, -0.007 * k],
+      [0.84, l(0.0275), l(0.032), 0, -0.003 * k],
       [1, l(0.03), l(0.036)],
     ];
+    // Build the lateral quadriceps higher than the medial mass, then narrow
+    // both into the knee. Clothing is cut from the resulting stations below.
+    for (const station of thighStations) {
+      const t = station[0],
+        arc = Math.sin(Math.PI * t);
+      station[1] *= 1 + 0.13 * f.muscleRelief * arc;
+      station[2] *= 1 + 0.1 * f.muscleRelief * arc;
+      station[3] =
+        (station[3] ?? 0) +
+        side * 0.012 * k * f.muscleRelief * Math.sin(2 * Math.PI * t);
+    }
+    for (const station of shinStations) {
+      const t = station[0],
+        arc = Math.sin(Math.PI * t);
+      station[2] *= 1 + 0.13 * f.muscleRelief * arc;
+      station[4] = (station[4] ?? 0) - 0.008 * k * f.muscleRelief * arc;
+    }
     sweep(
       name + "thigh",
       hipJoint,
@@ -480,66 +602,125 @@ export function buildFigure(raw = {}) {
       body("shin"),
       name + "thigh",
     );
-    const toe = side * 0.13; // outward turn in radians
-    const footPath = (rows, lift = 0) =>
-      rows.map(([z, y, w, d]) => [
-        Math.sin(toe) * z * k,
-        y * k + lift - ankleY,
-        Math.cos(toe) * z * k + 0.012 * k,
-        w * k,
-        d * k,
-      ]);
+    const toe = side * 0.105; // outward turn in radians
+    const footPath = (rows) =>
+      rows.map(([z, y, w, d, across = 0]) => {
+        // Ball of the foot lies slightly medial to the heel. Keep the toes
+        // and all shoe panels aligned to this same oblique long axis.
+        const medial =
+          side * (across - 0.012 * clamp((z - 0.055) / 0.125, 0, 1));
+        return [
+          (Math.sin(toe) * z + Math.cos(toe) * medial) * k,
+          y * k - ankleY,
+          (Math.cos(toe) * z - Math.sin(toe) * medial) * k + 0.012 * k,
+          w * k,
+          d * k,
+        ];
+      });
     sweep(
       name + "foot",
       ankle,
       footPath([
         [-0.062, 0.03, 0.012, 0.012],
         [-0.054, 0.033, 0.027, 0.028],
-        [-0.02, 0.043, 0.033, 0.042],
-        [0.03, 0.04, 0.038, 0.039],
-        [0.085, 0.03, 0.045, 0.028],
+        [-0.02, 0.044, 0.031, 0.042],
+        [0.03, 0.044, 0.034, 0.039],
+        [0.085, 0.033, 0.042, 0.028],
         [0.135, 0.022, 0.046, 0.02],
-        [0.172, 0.017, 0.037, 0.015],
+        [0.17, 0.017, 0.034, 0.012],
         [0.19, 0.015, 0.018, 0.009],
       ]),
       f.skin,
-      body("foot"),
+      {
+        ...body("foot"),
+        footSection: "bare",
+        seamGroup: name + "foot",
+      },
       name + "shin",
     );
+    {
+      // The toes continue the metatarsal fan. The medial toe is thicker
+      // and the lateral four recede along an oblique line.
+      const digits = {
+        motionRole: "rigid",
+        visibleIn:
+          f.shoes.kind === "none" ? ["Work clothes", "Anatomy"] : ["Anatomy"],
+        seamGroup: name + "foot",
+      };
+      sweep(
+        name + "heel",
+        ankle,
+        [
+          [0, -0.047 * k, 0, 0.029 * k, 0.033 * k],
+          [0, -0.025 * k, -0.004 * k, 0.032 * k, 0.037 * k],
+          [0, 0, -0.002 * k, 0.03 * k, 0.035 * k],
+          [0, 0.022 * k, 0, 0.025 * k, 0.029 * k],
+          [0, 0.046 * k, 0.002 * k, 0.014 * k, 0.018 * k],
+        ],
+        f.skin,
+        digits,
+        name + "foot",
+      );
+      const toes = [
+        [-0.031, 0.198, 0.013],
+        [-0.01, 0.193, 0.0095],
+        [0.0075, 0.182, 0.0087],
+        [0.023, 0.168, 0.0077],
+        [0.036, 0.151, 0.007],
+      ];
+      toes.forEach(([x, tip, r], i) => {
+        const root = 0.123 - i * 0.003;
+        sweep(
+          name + "toe " + (i + 1),
+          ankle,
+          footPath([
+            [root, 0.018, r * 1.13, r * 1.13, x * 0.8],
+            [lerp(root, tip, 0.4), 0.016, r, r, x * 0.94],
+            [lerp(root, tip, 0.75), 0.013, r * 0.89, r * 0.86, x],
+            [tip, 0.012, r * 0.55, r * 0.61, x],
+          ]),
+          f.skin,
+          digits,
+          name + "foot",
+        );
+      });
+    }
     if (f.shoes.kind !== "none") {
       const boot = f.shoes.kind === "boots";
       sweep(
         name + "shoe",
         ankle,
         footPath([
-          [-0.08, 0.042, 0.015, 0.02],
-          [-0.073, 0.045, 0.037, 0.042],
-          [-0.035, 0.051, 0.044, 0.049],
-          [0.025, 0.051, 0.048, 0.047],
-          [0.08, 0.044, 0.053, 0.039],
-          [0.135, 0.035, 0.055, 0.03],
-          [0.185, 0.029, 0.049, 0.024],
-          [0.212, 0.026, 0.026, 0.016],
+          [-0.07, 0.043, 0.015, 0.022],
+          [-0.062, 0.047, 0.033, 0.039],
+          [-0.032, 0.054, 0.041, 0.048],
+          [0.017, 0.054, 0.043, 0.048],
+          [0.067, 0.042, 0.044, 0.036],
+          [0.116, 0.032, 0.053, 0.026],
+          [0.162, 0.027, 0.048, 0.021],
+          [0.191, 0.026, 0.036, 0.017],
+          [0.202, 0.028, 0.015, 0.012],
         ]),
         f.shoes.color,
-        garment("leather"),
+        { ...garment("leather"), footSection: "upper" },
         name + "foot",
       );
       sweep(
         name + "sole",
         ankle,
         footPath([
-          [-0.086, 0.018, 0.021, 0.015],
-          [-0.076, 0.018, 0.04, 0.018],
-          [-0.02, 0.017, 0.047, 0.017],
-          [0.01, 0.016, 0.05, 0.016],
-          [0.07, 0.016, 0.056, 0.016],
-          [0.15, 0.016, 0.059, 0.016],
-          [0.2, 0.016, 0.048, 0.015],
-          [0.22, 0.016, 0.024, 0.012],
+          [-0.074, 0.013, 0.019, 0.009],
+          [-0.064, 0.011, 0.036, 0.011],
+          [-0.028, 0.011, 0.042, 0.011],
+          [0.015, 0.014, 0.04, 0.009],
+          [0.072, 0.012, 0.045, 0.009],
+          [0.124, 0.01, 0.054, 0.01],
+          [0.174, 0.011, 0.046, 0.01],
+          [0.198, 0.015, 0.03, 0.009],
+          [0.205, 0.019, 0.015, 0.007],
         ]),
         f.shoes.sole,
-        garment("leather"),
+        { ...garment("leather"), footSection: "sole" },
         name + "foot",
       );
       // A tongue and four laces over the instep make the upper read as a
@@ -549,9 +730,9 @@ export function buildFigure(raw = {}) {
         ankle,
         footPath([
           [0, 0.099, 0.016, 0.008],
-          [0.04, 0.095, 0.018, 0.008],
-          [0.09, 0.081, 0.019, 0.007],
-          [0.128, 0.068, 0.016, 0.006],
+          [0.04, 0.089, 0.018, 0.008],
+          [0.09, 0.072, 0.019, 0.007],
+          [0.128, 0.056, 0.016, 0.006],
         ]),
         f.shoes.color,
         garment("leather"),
@@ -566,9 +747,9 @@ export function buildFigure(raw = {}) {
       ];
       [
         [0.03, 0.105, 0.021],
-        [0.06, 0.096, 0.023],
-        [0.09, 0.087, 0.024],
-        [0.118, 0.077, 0.023],
+        [0.06, 0.086, 0.023],
+        [0.09, 0.074, 0.024],
+        [0.118, 0.065, 0.023],
       ].forEach(([z, y, a], i) =>
         sweep(
           `${name}lace ${i + 1}`,
@@ -652,7 +833,7 @@ export function buildFigure(raw = {}) {
             -0.01 * k,
           ],
           [0.62, lerp(kneeW, hemW, 0.7), lerp(kneeD, hemD, 0.7), 0, -0.006 * k],
-          [f.shoes.kind === "boots" ? 0.8 : 0.93, hemW, hemD, 0, 0.002 * k],
+          [f.shoes.kind === "boots" ? 0.86 : 0.93, hemW, hemD, 0, 0.002 * k],
         ];
         if (bottom.cuffs) {
           // A turn-up is a short band outside the hem.
@@ -743,7 +924,7 @@ export function buildFigure(raw = {}) {
     // The seat keeps its full width down to the crotch seam and loses depth
     // on the way. Both legs come forward of it there, so the front closes in
     // a crease between them instead of a panel.
-    const legScale = k * lerp(1, m, 0.85) * lerp(1, f.hips, 0.3);
+    const legScale = k * lerp(1, m, 0.85) * lerp(1, f.hips, 0.3) * f.legBuild;
     const legEase = f.bottom.ease * 0.01 * k + 0.003 * k;
     const seamW = 0.086 * k * lerp(1, f.hips, 0.7) + 0.083 * legScale + legEase;
     const seamD = 0.089 * legScale + 0.007 * k + legEase;
@@ -872,8 +1053,8 @@ export function buildFigure(raw = {}) {
           ]
         : top.kind === "tee"
           ? [
-              [cy - 0.01 * k, cw + 0.006 * k, cd + 0.006 * k, cz],
-              [cy + 0.006 * k, cw + 0.003 * k, cd + 0.004 * k, cz],
+              [cy - 0.009 * k, cw + 0.004 * k, cd + 0.004 * k, cz],
+              [cy - 0.001 * k, cw + 0.001 * k, cd + 0.001 * k, cz],
             ]
           : [
               [cy - 0.012 * k, cw + 0.007 * k, cd + 0.007 * k, cz],
@@ -930,8 +1111,391 @@ export function buildFigure(raw = {}) {
       }
     }
   }
+  // The same landmarks follow the skin and its fitted garment. All strokes
+  // are in the receiving part's metric frame, scaled by the figure measurements.
+  const paired = (x, y, z, rx, ry, rz, dx, dy, dz) => ({
+    at: [x, y - hipY, z],
+    reach: [rx, ry, rz],
+    offset: [dx, dy, dz],
+    mirrorX: 0,
+  });
+  for (const part of parts) {
+    const id = part.id;
+    if (id === "shirt body" || / (?:cuff sleeve|sleeve)$/.test(id))
+      part.seamGroup = "top";
+    if (
+      id === "trouser seat" ||
+      / (?:short leg|trouser thigh|trouser shin)$/.test(id)
+    )
+      part.seamGroup = "bottom";
+    const side = id.startsWith("left ") ? 1 : -1;
+    // The back of a human elbow has a bony point, while the muscle bellies
+    // sit higher than the joint and taper on different sides of the arm.
+    if (/ (upper arm|forearm|sleeve|cuff sleeve)$/.test(id) && part.knots) {
+      const upper =
+        id.endsWith("upper arm") ||
+        id === (side > 0 ? "left sleeve" : "right sleeve");
+      const under = parts.find(
+        (p) =>
+          p.id ===
+          (side > 0 ? "left " : "right ") + (upper ? "upper arm" : "forearm"),
+      );
+      const stations = under.knots.slice(3, -3);
+      const landmark = (station, face, reach, offset) => {
+        const [x, y, z, w, d] = stations[station];
+        return {
+          at: [x + face[0] * w, y, z + face[1] * d],
+          reach: reach.map((v) => v * k),
+          offset: offset.map((v) => v * k),
+        };
+      };
+      part.pulls = upper
+        ? [
+            landmark(
+              2,
+              [side * 0.76, -0.56],
+              [0.052, 0.086, 0.052],
+              [side * 0.004, 0.003, -0.009],
+            ),
+            landmark(
+              4,
+              [-side * 0.28, 0.9],
+              [0.048, 0.066, 0.043],
+              [-side * 0.004, 0.003, 0.007],
+            ),
+            landmark(6, [0, -1], [0.033, 0.039, 0.038], [0, -0.004, -0.009]),
+          ]
+        : [
+            landmark(0, [0, -1], [0.033, 0.039, 0.038], [0, -0.004, -0.009]),
+            landmark(
+              1,
+              [side * 0.8, 0.24],
+              [0.04, 0.067, 0.048],
+              [side * 0.006, 0.003, 0.003],
+            ),
+            landmark(
+              3,
+              [-side * 0.65, -0.5],
+              [0.031, 0.054, 0.032],
+              [-side * 0.002, 0, -0.003],
+            ),
+          ];
+    }
+    if (id.endsWith(" shin") && part.bare) {
+      const stations = part.knots.slice(3, -3);
+      const stroke = (index, x, z, reach, offset) => {
+        const knot = stations[index];
+        return {
+          at: [knot[0] + side * x * knot[3], knot[1], knot[2] + z * knot[4]],
+          reach: reach.map((v) => v * k),
+          offset: [side * offset[0] * k, offset[1] * k, offset[2] * k],
+        };
+      };
+      part.pulls = [
+        stroke(0, 0, 0.84, [0.036, 0.05, 0.034], [0, 0.001, 0.012]),
+        stroke(1, -0.2, 0.88, [0.024, 0.074, 0.033], [0, 0, 0.006]),
+        stroke(2, -0.63, -0.7, [0.042, 0.074, 0.043], [-0.007, -0.014, -0.006]),
+        stroke(2, 0.66, -0.62, [0.038, 0.064, 0.047], [0.005, 0.013, -0.005]),
+        stroke(5, 0.88, 0.05, [0.025, 0.035, 0.033], [0.006, -0.004, 0]),
+      ];
+    }
+    if (id === "body" || id === "shirt body") {
+      part.pulls = [
+        paired(
+          0.48 * chestW,
+          chestY - 0.008 * k,
+          0.78 * chestD - 0.013 * k,
+          0.7 * chestW,
+          0.102 * k,
+          0.094 * k,
+          0.005 * k,
+          -0.005 * k,
+          figureArchetypes[f.archetype].pectoral * k,
+        ),
+        // The outer edge of the pectoral sweeps up to the arm; the chest
+        // has a shallow lower plane and a softer transition toward the sternum.
+        paired(
+          0.65 * chestW,
+          chestY - 0.03 * k,
+          0.65 * chestD - 0.013 * k,
+          0.073 * k,
+          0.048 * k,
+          0.082 * k,
+          0.003 * k,
+          -0.003 * k,
+          0.01 * k,
+        ),
+        paired(
+          0.5 * chestW,
+          chestY - 0.073 * k,
+          0.86 * chestD - 0.012 * k,
+          0.085 * k,
+          0.032 * k,
+          0.066 * k,
+          0,
+          0,
+          -0.008 * k,
+        ),
+        paired(
+          0.74 * sw,
+          shoulderY - 0.025 * k,
+          0.029 * k,
+          0.078 * k,
+          0.029 * k,
+          0.063 * k,
+          0,
+          0.005 * k,
+          0.006 * k,
+        ),
+        paired(
+          0.59 * waistW,
+          waistY - 0.033 * k,
+          0.76 * waistD,
+          0.062 * k,
+          0.079 * k,
+          0.067 * k,
+          -0.002 * k,
+          0,
+          0.006 * k,
+        ),
+        paired(
+          0,
+          lerp(hipY, waistY, 0.61),
+          -waistD,
+          0.036 * k,
+          0.115 * k,
+          0.063 * k,
+          0,
+          0,
+          0.008 * k,
+        ),
+        // A broad costal margin turns into the abdomen on each side.
+        paired(
+          0.58 * chestW,
+          lerp(waistY, chestY, 0.43),
+          0.068 * k,
+          0.071 * k,
+          0.057 * k,
+          0.073 * k,
+          0.003 * k,
+          0,
+          -0.01 * k,
+        ),
+        // Leave a suprasternal notch between the two clavicles.
+        paired(
+          0,
+          shoulderY + 0.004 * k,
+          0.053 * k,
+          0.037 * k,
+          0.041 * k,
+          0.053 * k,
+          0,
+          -0.003 * k,
+          -0.008 * k,
+        ),
+        paired(
+          0.43 * sw,
+          shoulderY - 0.009 * k,
+          0.074 * k,
+          0.073 * k,
+          0.026 * k,
+          0.055 * k,
+          0,
+          0.003 * k,
+          0.007 * k,
+        ),
+        paired(
+          0,
+          chestY + 0.025 * k,
+          chestD,
+          0.028 * k,
+          0.103 * k,
+          0.067 * k,
+          0,
+          0,
+          -0.006 * k,
+        ),
+        paired(
+          0.38 * waistW,
+          waistY + 0.03 * k,
+          waistD,
+          0.094 * k,
+          0.12 * k,
+          0.08 * k,
+          0,
+          0,
+          0.009 * k,
+        ),
+        paired(
+          0.53 * chestW,
+          chestY + 0.015 * k,
+          -0.076 * k,
+          0.082 * k,
+          0.105 * k,
+          0.066 * k,
+          0.003 * k,
+          0,
+          -0.022 * k,
+        ),
+        paired(
+          0.68 * hipW,
+          hipY + 0.055 * k,
+          0.045 * k,
+          0.064 * k,
+          0.066 * k,
+          0.094 * k,
+          0.011 * k,
+          0.005 * k,
+          0.004 * k,
+        ),
+      ];
+    }
+    if (f.top.kind === "tee" && (id === "shirt body" || id === "collar")) {
+      // A crew neckline dips into the hollow between the clavicles.
+      part.pulls ??= [];
+      part.pulls.push(
+        paired(
+          0,
+          neckBase,
+          0.056 * k,
+          0.11 * k,
+          0.04 * k,
+          0.072 * k,
+          0,
+          -0.028 * k,
+          0.003 * k,
+        ),
+      );
+    }
+    // Locate the sculpt on this figure's own elliptical rib and pelvic rings.
+    // A fixed world-space brush misses the skin on deeper or wider bodies.
+    if (id === "body" || id === "shirt body") {
+      const relief = (across, y, rx, ry, rz, dy, dz, back = false) => {
+        const hi = torsoRows.findIndex((row) => row[0] >= y);
+        if (hi < 1) return;
+        const lo = torsoRows[hi - 1],
+          topRow = torsoRows[hi];
+        const t = (y - lo[0]) / (topRow[0] - lo[0]);
+        const w = lerp(lo[1], topRow[1], t),
+          d = lerp(lo[2], topRow[2], t);
+        const z =
+          lerp(lo[3], topRow[3], t) +
+          (back ? -1 : 1) * d * Math.sqrt(1 - across * across);
+        (part.pulls ??= []).push(
+          paired(across * w, y, z, rx * w, ry * k, rz * d, 0, dy * k, dz * k),
+        );
+      };
+      if (f.chestFullness) {
+        const fullness = f.chestFullness;
+        const level = chestY - fullness * 0.042 * k;
+        relief(
+          0.47,
+          level,
+          0.6,
+          0.112,
+          0.95,
+          -0.049 * fullness,
+          0.094 * fullness,
+        );
+        relief(
+          0.49,
+          level - 0.082 * k,
+          0.52,
+          0.032,
+          0.8,
+          0.006 * fullness,
+          -0.019 * fullness,
+        );
+      }
+      if (f.lowerAbdomen) {
+        const weight = f.lowerAbdomen;
+        relief(
+          0.25,
+          hipY + 0.067 * k,
+          0.9,
+          0.117,
+          1,
+          -0.031 * weight,
+          0.069 * weight,
+        );
+        relief(0.25, hipY + 0.158 * k, 0.91, 0.048, 0.82, 0, -0.019 * weight);
+        relief(
+          0.48,
+          hipY + 0.002 * k,
+          0.69,
+          0.104,
+          0.84,
+          -0.013 * weight,
+          -0.026 * weight,
+          true,
+        );
+      }
+      if (f.muscleRelief) {
+        const strength = f.muscleRelief;
+        relief(
+          0.45,
+          chestY + 0.016 * k,
+          0.62,
+          0.078,
+          0.75,
+          0,
+          0.053 * strength,
+        );
+        relief(0.3, waistY + 0.102 * k, 0.33, 0.047, 0.72, 0, 0.014 * strength);
+        relief(
+          0.29,
+          waistY + 0.039 * k,
+          0.32,
+          0.041,
+          0.72,
+          0,
+          0.011 * strength,
+        );
+        relief(
+          0.62,
+          chestY + 0.042 * k,
+          0.54,
+          0.117,
+          0.76,
+          0,
+          -0.032 * strength,
+          true,
+        );
+      }
+    }
+    if (id === "body" || id === "trouser seat") {
+      part.pulls ??= [];
+      part.pulls.push(
+        paired(
+          0.53 * hipW,
+          hipY - 0.012 * k,
+          -hipD * 0.84,
+          0.121 * k,
+          0.141 * k,
+          0.105 * k,
+          0.006 * k,
+          0.002 * k,
+          -0.048 * k,
+        ),
+        paired(
+          0,
+          hipY - 0.025 * k,
+          -hipD,
+          0.031 * k,
+          0.07 * k,
+          0.055 * k,
+          0,
+          0,
+          0.012 * k,
+        ),
+      );
+    }
+  }
   return {
-    outfit: "Work clothes",
+    ...(f.sectionProfile
+      ? { sectionProfile: { ...f.sectionProfile, height: H } }
+      : {}),
+    outfit: "Anatomy",
     appearance: {
       palette: "Tide",
       face: f.face,
@@ -945,7 +1509,7 @@ export function buildFigure(raw = {}) {
 }
 
 // A real random draw inside ordinary adult ranges.
-export function randomFigure(draw) {
+export function randomFigure(draw, preferredArchetype = "any") {
   const between = (a, b) => a + (b - a) * draw(),
     choose = (items) => items[Math.floor(draw() * items.length)];
   const heavy = draw() < 0.3 ? between(0.15, 0.7) : 0;
@@ -1000,5 +1564,12 @@ export function randomFigure(draw) {
   };
   // Drawn last, so earlier seeds keep the rest of their figure.
   figure.bottom.pockets = draw() < 0.25 ? "cargo" : "none";
+  const archetype = Object.hasOwn(figureArchetypes, preferredArchetype)
+    ? preferredArchetype
+    : choose(Object.keys(figureArchetypes));
+  const base = figureArchetypes[archetype];
+  figure.archetype = archetype;
+  for (const key of ["shoulders", "chest", "waist", "hips", "limbs"])
+    figure[key] *= base[key];
   return figure;
 }

@@ -4,6 +4,14 @@ import { TransformControls } from "three/addons/controls/TransformControls.js";
 import { wristReach } from "./wrist-reach.js";
 import { skinCharacter } from "./skin.js";
 import { applyJointPose, captureJoints, validPoses } from "./poses.js";
+import {
+  carry,
+  followers,
+  plantFeet,
+  poseLimbs,
+  spread,
+  tipReach,
+} from "./limb-pose.js";
 const $ = (id) => document.getElementById(id);
 export function poseEditor(current, save) {
   const dialog = $("pose-room"),
@@ -31,6 +39,83 @@ export function poseEditor(current, save) {
   scene.add(wristTarget);
   let reach,
     pickingSurface = false;
+  // Limbs that are posed together, the feet held in place meanwhile and the
+  // selected joint as it was before its latest change.
+  let limbs = [],
+    following = [],
+    planted = null,
+    tips = null,
+    last = null;
+  function track() {
+    last = selected && {
+      turn: selected.bone.quaternion.clone(),
+      place: selected.bone.position.clone(),
+    };
+  }
+  function follow() {
+    if (!selected || !last) return;
+    if (selected.limb) spread(rig.bindings, selected, last, following);
+    track();
+    planted?.hold();
+  }
+  function guideTip() {
+    if (!tips) return;
+    const offset = wristTarget.position.clone().sub(tips[0].initial);
+    let miss = tips[0].solve(wristTarget.position);
+    for (const tip of tips.slice(1))
+      miss = Math.max(
+        miss,
+        tip.solve(
+          tip.initial
+            .clone()
+            .add(carry(selected.limb, tip.limb).move(offset)),
+        ),
+      );
+    planted?.hold();
+    note(
+      miss > 0.001
+        ? "At full reach, " + (miss * 100).toFixed(1) + " cm from the target."
+        : tips.length > 1
+          ? tips.length + " limb tips moved together."
+          : "The limb tip reached the target.",
+    );
+    render();
+  }
+  function chooseLimbs() {
+    const limb = selected.limb,
+      scope = $("pose-scope"),
+      kin = limb ? limbs.filter((l) => l.kind === limb.kind) : [];
+    const plural = {
+      leg: "legs",
+      arm: "arms",
+      wing: "wings",
+      fin: "fins",
+      tail: "tails",
+    };
+    const wanted = scope.value;
+    scope.replaceChildren(
+      new Option("This joint only", "one"),
+      ...(limb?.twin ? [new Option("Left and right together", "pair")] : []),
+      ...(kin.length > (limb?.twin ? 2 : 1)
+        ? [new Option("All " + kin.length + " " + plural[limb.kind], "kind")]
+        : []),
+    );
+    scope.value = [...scope.options].some((o) => o.value === wanted)
+      ? wanted
+      : "one";
+    scope.disabled = scope.options.length < 2;
+    following = followers(limbs, limb, scope.value);
+    const posed = limb ? [limb, ...following] : [];
+    planted = $("pose-plant").checked ? plantFeet(limbs, posed) : null;
+    $("pose-tip-mode").disabled = !limb?.chain;
+    if (!limb?.chain && $("pose-mode").value === "tip")
+      $("pose-mode").value = "rotate";
+    tips =
+      $("pose-mode").value === "tip"
+        ? posed.map((l) => tipReach(l)).filter(Boolean)
+        : null;
+    track();
+  }
   const markerMat = new T.PointsMaterial({
     color: 0x387c6f,
     size: 7,
@@ -92,8 +177,10 @@ export function poseEditor(current, save) {
     $("pose-reach-mode").disabled = !reach;
     if (!reach && $("pose-mode").value === "reach")
       $("pose-mode").value = "rotate";
+    chooseLimbs();
     const mode = $("pose-mode").value,
-      guiding = mode === "reach";
+      guiding = mode === "reach",
+      tipping = mode === "tip" && Boolean(tips?.length);
     $("pose-reach-controls").hidden = !guiding;
     $("pose-elbow-direction").value = "original";
     $("pose-elbow-turn").value = 0;
@@ -110,10 +197,11 @@ export function poseEditor(current, save) {
       );
     }
     tool.setMode(mode === "rotate" ? "rotate" : "translate");
-    tool.setSpace(guiding ? "world" : "local");
+    tool.setSpace(guiding || tipping ? "world" : "local");
     if (guiding) wristTarget.position.copy(reach.initial);
+    if (tipping) wristTarget.position.copy(tips[0].initial);
     if ($("pose-dots").checked)
-      tool.attach(guiding ? wristTarget : selected.bone);
+      tool.attach(guiding || tipping ? wristTarget : selected.bone);
     else tool.detach();
     render();
   }
@@ -218,6 +306,8 @@ export function poseEditor(current, save) {
     tool.addEventListener("change", render);
     tool.addEventListener("objectChange", () => {
       if ($("pose-mode").value === "reach") guideWrist();
+      else if ($("pose-mode").value === "tip") guideTip();
+      else follow();
     });
     tool.addEventListener("dragging-changed", (e) => {
       orbit.enabled = !e.value;
@@ -266,6 +356,9 @@ export function poseEditor(current, save) {
     }
     selected = null;
     reach = null;
+    limbs = [];
+    following = [];
+    planted = tips = last = null;
     pickingSurface = false;
     history = [];
     entries = [];
@@ -290,6 +383,10 @@ export function poseEditor(current, save) {
       span = Math.max(0.1, size.x, size.y, size.z);
       applyJointPose(rig.bindings, start.joints);
       entries = [...rig.bindings];
+      limbs = poseLimbs(rig.regions, rig.bindings);
+      const standing = limbs.some((l) => l.kind === "leg" && l.chain);
+      $("pose-plant").checked = standing && Boolean(base.origin?.plan);
+      $("pose-plant").disabled = !standing;
       history = [];
       dragStart = null;
       $("pose-joint").replaceChildren(
@@ -341,6 +438,8 @@ export function poseEditor(current, save) {
   $("pose-joint").onchange = (e) => choose(e.target.value);
   $("pose-dots").onchange = () => choose($("pose-joint").value);
   $("pose-mode").onchange = () => choose($("pose-joint").value);
+  $("pose-scope").onchange = () => choose($("pose-joint").value);
+  $("pose-plant").onchange = () => choose($("pose-joint").value);
   $("pose-reach-surface").onclick = () => {
     pickingSurface = !pickingSurface;
     $("pose-reach-surface").setAttribute(
@@ -376,9 +475,15 @@ export function poseEditor(current, save) {
         if ($("pose-mode").value === "reach") {
           wristTarget.position.addScaledVector(axis, amount);
           guideWrist();
-        } else if (tool.getMode() === "rotate")
-          selected.bone.rotateOnAxis(axis, T.MathUtils.degToRad(amount));
-        else selected.bone.translateOnAxis(axis, amount);
+        } else if ($("pose-mode").value === "tip") {
+          wristTarget.position.addScaledVector(axis, amount);
+          guideTip();
+        } else {
+          if (tool.getMode() === "rotate")
+            selected.bone.rotateOnAxis(axis, T.MathUtils.degToRad(amount));
+          else selected.bone.translateOnAxis(axis, amount);
+          follow();
+        }
       });
     };
   }
@@ -386,6 +491,7 @@ export function poseEditor(current, save) {
     edit(() => {
       selected.bone.position.copy(selected.position);
       selected.bone.quaternion.copy(selected.rotation);
+      follow();
     });
     choose($("pose-joint").value);
   };

@@ -7,6 +7,8 @@ import {
   Group,
   AnimationMixer,
   Vector3,
+  Euler,
+  MathUtils,
 } from "three";
 import { generateForm } from "./generator.js";
 import { validateForm, startingForm } from "./recipe.js";
@@ -16,7 +18,12 @@ import {
   checkPreserved,
 } from "./variations.js";
 import { bindParts } from "./rig.js";
-import { cutGarment, extractComponent, placeComponent } from "./graft.js";
+import {
+  fitHand,
+  cutGarment,
+  extractComponent,
+  placeComponent,
+} from "./graft.js";
 import { skinCharacter } from "./skin.js";
 import { studies } from "../examples/studies.js";
 
@@ -293,4 +300,50 @@ test("rigged hems gather through a crouch and sampled soles remain grounded", ()
     ),
   );
   rig.dispose();
+});
+
+test("a fitted hand follows its cuff with its palm inward and thumb forward on either side", () => {
+  for (const side of [-1, 1]) {
+    const forearm = {
+      id: "sleeve",
+      shape: "sweep",
+      outfitRole: "forearm",
+      rotation: [12, side * 30, side * 18],
+      position: [side * 0.26, 1.1, 0],
+      size: [1, 1, 1],
+      color: "#dddddd",
+      knots: [
+        [0, 0, 0, 0.04, 0.04],
+        [0, -0.24, 0, 0.025, 0.027],
+      ],
+    };
+    const trace = {
+      ...forearm,
+      id: "hand",
+      parent: forearm.id,
+      outfitRole: "hand",
+      position: [0.009, -0.23, 0.004],
+      rotation: [0, 0, 0],
+      knots: [
+        [0, -0.14, 0.03, 0.02, 0.03],
+        [0, 0, 0, 0.02, 0.02],
+      ],
+    };
+    const fitted = fitHand(
+      { parts: [forearm, trace], appearance: { skin: "#aa8877" } },
+      "hand",
+    );
+    const hand = fitted.parts[1];
+    const euler = (p) => new Euler(...p.rotation.map(MathUtils.degToRad));
+    const world = (axis) =>
+      axis.applyEuler(euler(hand)).applyEuler(euler(forearm));
+    const down = new Vector3(0, -1, 0);
+    assert.ok(world(down.clone()).dot(down.applyEuler(euler(forearm))) > 0.999);
+    assert.ok(world(new Vector3(0, 0, 1)).x * side < -0.75);
+    assert.ok(world(new Vector3(-hand.grip.side, 0, 0)).z > 0.7);
+    assert.ok(
+      new Vector3(...hand.position).distanceTo(new Vector3(0, -0.24, 0)) <
+        0.005,
+    );
+  }
 });

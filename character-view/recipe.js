@@ -1,8 +1,18 @@
+import {validHuman, validHumanFit, validHumanDetail,humanBoneNames,humanAxes,humanRange} from "./human-surface.js";
+import {adultStyleProblems,adultStyles,validAdultStyle} from "./human-wardrobe.js";
+import {armourInstructions} from "./human-armour.js";
+import {complexionNames} from "./human-complexion.js";
+import {validFaceMarks,faceMarkInstructions} from "./human-face-marks.js";
+import {eyeColorNames} from "./human-face.js";
+import { validRadialFit } from "./radial-fit.js";
+import { validSectionProfile } from "./section-profile.js";
+import { validWing } from "./wing-surface.js";
 import { acceptsFibres, validFibres } from "./guide-fibres.js";
 import { validFrontFit } from "./front-fit.js";
 import { validProfile } from "./profile-fit.js";
 import { validSurfaceJoin } from "./surface-join.js";
 import { validPoses } from "./poses.js";
+import { validPosture } from "./human-posture.js";
 import { validEyes } from "./ocular.js";
 import { checkCage } from "./control-cage.js";
 import { validDepth, acceptsDepth } from "./portrait-depth.js";
@@ -12,6 +22,11 @@ import { validHairCap } from "./portrait-hair.js";
 import { validCut } from "./mantle.js";
 import { validLayerStyles, validOutfitSets } from "./outfit-sets.js";
 import { validMarkings, acceptsMarkings } from "./markings.js";
+import {
+  creatureOptions,
+  creaturePlanInstructions,
+  creaturePresets,
+} from "./creature-plan.js";
 import {
   validPlateGrowth,
   validPlateGrowthRest,
@@ -23,7 +38,7 @@ import {
   drawVariation,
   checkPreserved,
 } from "./variations.js";
-import { buildAxes } from "./body-sculpt.js";
+export const buildAxes = ["mass", "shoulders", "waist", "belly", "hips"];
 export const motionRoles = [
   "rigid",
   "torso",
@@ -43,7 +58,12 @@ export const motionRoles = [
 import { outfitRoles } from "./wardrobe.js";
 import { facialAxes, isFace } from "./facial-sculpt.js";
 import { bindHumanoid } from "./rig.js";
-export const outfits = ["Base layer", "Work clothes", "Pressure suit"];
+export const outfits = [
+  "Anatomy",
+  "Base layer",
+  "Work clothes",
+  "Pressure suit",
+];
 export const anchors = {
   torso: [0, 0.86, 0],
   head: [0, 1.42, 0],
@@ -54,6 +74,7 @@ export const anchors = {
 };
 export const shapes = [
   ...Object.keys(anchors),
+  "human region",
   "ellipsoid",
   "box",
   "cone",
@@ -64,6 +85,7 @@ export const shapes = [
   "volume",
   "mantle",
   "cage",
+  "wing",
 ];
 const choose = (items, draw) => items[Math.floor(draw() * items.length)];
 export const entropy = () =>
@@ -343,8 +365,37 @@ function validBinding(p) {
 }
 export function validateForm(form) {
   requireThat(simpleObject(form), "Choose a character form.");
+  if(form.referenceRigs!==undefined) requireThat(Array.isArray(form.referenceRigs) && form.referenceRigs.length<=8 &&
+    form.referenceRigs.every(id=>typeof id==="string" && (id==="lee-perry-smith" || /^mhr-(?:rest|[fm][123])$/.test(id))),"Unknown 3D practice reference.");
+  if (form.human !== undefined) requireThat(validHuman(form.human),"Invalid adult shape parameters.");
+  if (form.humanFit!==undefined) requireThat(form.human && validHumanFit(form.humanFit),"Invalid human surface fit.");
+  if (form.humanDetail!==undefined) requireThat(form.human && validHumanDetail(form.humanDetail),"Invalid fine head layer.");
+  if(form.humanSources!==undefined){
+    requireThat(simpleObject(form.humanSources) && Object.keys(form.humanSources).length<=32,"Keep at most 32 donor surfaces.");
+    for(const [key,source] of Object.entries(form.humanSources)){
+      requireThat(/^surface-[0-9a-f]{1,8}$/.test(key)&&source&&validHuman(source.human)&&outfits.includes(source.outfit)
+        && (source.humanFit===undefined||validHumanFit(source.humanFit)) && (source.humanDetail===undefined||validHumanDetail(source.humanDetail)) && (source.humanStyle===undefined||validAdultStyle(source.humanStyle))
+        && (source.eyeColor===undefined||eyeColorNames.includes(source.eyeColor))
+        && (source.complexion===undefined||complexionNames.includes(source.complexion))
+        && (source.faceMarks===undefined||validFaceMarks(source.faceMarks))
+        && (source.origin?.seed===undefined||Number.isInteger(source.origin.seed) && source.origin.seed>=0 && source.origin.seed<=0xffffffff),"Invalid donor surface.");
+      validateAppearance(source.appearance);
+    }
+  }
+  if (form.humanStyle !== undefined) {
+    requireThat(form.human, "Choose an editable adult before styling.");
+    const problems = adultStyleProblems(form.humanStyle);
+    requireThat(!problems.length, problems.join(" "));
+  }
+  if (form.eyeColor !== undefined) requireThat(eyeColorNames.includes(form.eyeColor),"Unknown iris colour.");
+  if (form.complexion!==undefined) requireThat(complexionNames.includes(form.complexion),"Unknown facial detail.");
+  if (form.faceMarks!==undefined) requireThat(validFaceMarks(form.faceMarks),"Invalid face marks.");
+  if (form.sectionProfile !== undefined)
+    requireThat(validSectionProfile(form.sectionProfile), "Invalid body section profile.");
   if (form.poses !== undefined)
     requireThat(validPoses(form.poses), "Invalid saved joint poses.");
+  if (form.posture !== undefined)
+    requireThat(form.human && validPosture(form.posture), "Invalid standing posture.");
   if (form.layerStyles !== undefined)
     requireThat(validLayerStyles(form.layerStyles), "Invalid garment layers.");
   if (form.outfitSets !== undefined)
@@ -361,11 +412,22 @@ export function validateForm(form) {
     );
   if (form.skinTint !== undefined)
     requireThat(hex(form.skinTint), "Invalid shared skin color.");
-  if (Array.isArray(form.parts))
+  if (form.skinSurface !== undefined)
+    requireThat(
+      ["plain", "scales"].includes(form.skinSurface),
+      "Invalid shared skin surface.",
+    );
+  if (Array.isArray(form.parts)) {
+    for (const group of ["figure", "top", "bottom", "left foot", "right foot"])
+      requireThat(
+        form.parts.filter((p) => p?.seamGroup === group).length <= 48,
+        "Join at most 48 figure regions per layer.",
+      );
     requireThat(
       form.parts.filter((p) => p?.blendSkin).length <= 48,
       "Join at most 48 regions at once.",
     );
+  }
   if (form.occluders !== undefined)
     requireThat(
       Array.isArray(form.occluders) &&
@@ -395,7 +457,7 @@ export function validateForm(form) {
     let bytes = 0;
     for (const [key, value] of Object.entries(form.artwork)) {
       requireThat(
-        /^(art|side|face)-[a-f0-9]{64}$/.test(key) &&
+        /^(art|side|face|nativeportrait)-[a-f0-9]{64}$/.test(key) &&
           typeof value === "string" &&
           value.startsWith("data:image/webp;base64,") &&
           value.length <= 3_250_000,
@@ -432,6 +494,8 @@ export function validateForm(form) {
       Object.hasOwn(anchors, part.shape) || hex(part.color),
       "Choose a hex color for " + part.id + ".",
     );
+    if (part.shape === "human region") requireThat((part.humanSource ? Object.hasOwn(form.humanSources??{},part.humanSource):form.human)
+      && humanBoneNames.includes(part.humanBone) && (!part.humanBounds || (Array.isArray(part.humanBounds) && part.humanBounds.length===2 && part.humanBounds.every(v=>vec(v,-5,5)))),"Invalid human region.");
     if (part.shape === "cage" || part.cage !== undefined) {
       requireThat(
         part.shape === "cage",
@@ -459,6 +523,19 @@ export function validateForm(form) {
           validProfile(part.profileFit),
         "Invalid side-profile fit. A face needs 4–96 descending points from brow to chin.",
       );
+    if (part.scapulaMount !== undefined)
+      requireThat(
+        part.shape === "sweep" && part.motionRole === "wing" &&
+        [-1, 1].includes(part.scapulaMount),
+        "Invalid shoulder-blade wing attachment.",
+      );
+    if (part.nativePortrait !== undefined)
+      requireThat(
+        part.shape === "human region" && part.humanBone === "head" &&
+        /^nativeportrait-[a-f0-9]{64}$/.test(part.nativePortrait) &&
+        (form.artwork === undefined || Object.hasOwn(form.artwork, part.nativePortrait)),
+        "Invalid native human portrait.",
+      );
     if (part.surfaceJoin !== undefined)
       requireThat(
         validSurfaceJoin(part),
@@ -473,6 +550,11 @@ export function validateForm(form) {
       requireThat(
         part.shape === "volume" && validHull(part.hull),
         "Invalid silhouette volume.",
+      );
+    if (part.shape === "wing" || part.wing !== undefined)
+      requireThat(
+        part.shape === "wing" && validWing(part.wing),
+        "Invalid wing surface.",
       );
     if (part.shape === "sweep") {
       requireThat(
@@ -504,10 +586,17 @@ export function validateForm(form) {
       );
     if (part.headLayer !== undefined)
       requireThat(part.headLayer === "hair", "Unknown head layer.");
+    if (part.coatZone !== undefined)
+      requireThat(["body","end"].includes(part.coatZone), "Invalid creature coat zone.");
     if (part.markings !== undefined)
       requireThat(
         acceptsMarkings(part) && validMarkings(part.markings),
         "Invalid surface markings.",
+      );
+    if (part.undercoat !== undefined)
+      requireThat(
+        acceptsMarkings(part) && validMarkings(part.undercoat),
+        "Invalid undercoat.",
       );
     if (part.hairCap !== undefined)
       requireThat(
@@ -616,7 +705,10 @@ export function validateForm(form) {
         "A region accepts up to 64 bounded surface pulls.",
       );
     if (part.holdArmPose !== undefined)
-      requireThat(typeof part.holdArmPose === "boolean", "Invalid carrying pose setting.");
+      requireThat(
+        typeof part.holdArmPose === "boolean",
+        "Invalid carrying pose setting.",
+      );
     if (part.motionRole !== undefined)
       requireThat(
         motionRoles.includes(part.motionRole),
@@ -639,6 +731,9 @@ export function validateForm(form) {
       requireThat(
         part.shape === "hand" &&
           simpleObject(g) &&
+          (g.pad === undefined || ["hand","paw","talon"].includes(g.pad)) &&
+          (g.relaxed === undefined || typeof g.relaxed === "boolean") &&
+          (g.cylindrical === undefined || typeof g.cylindrical === "boolean") &&
           Number.isInteger(g.fingers) &&
           g.fingers >= 1 &&
           g.fingers <= 7 &&
@@ -683,6 +778,14 @@ export function validateForm(form) {
           vec(part.mount.rotation, -360, 360),
         "Invalid scute mounting pose.",
       );
+    if (part.seamGroup !== undefined)
+      requireThat(
+        part.shape === "sweep" &&
+          ["figure", "top", "bottom", "left foot", "right foot"].includes(
+            part.seamGroup,
+          ),
+        "Unknown figure seam group.",
+      );
     if (part.blendSkin !== undefined)
       requireThat(
         typeof part.blendSkin === "boolean",
@@ -703,11 +806,35 @@ export function validateForm(form) {
         part.bare === true && outfitRoles.includes(part.outfitRole),
         "Only a clothing region can be marked as bare skin.",
       );
+    if (part.cranialProfile !== undefined)
+      requireThat(
+        part.shape === "head" && part.cranialProfile === "adult",
+        "Invalid cranial profile.",
+      );
+    if (part.footSection !== undefined)
+      requireThat(
+        part.shape === "sweep" &&
+          ["bare", "upper", "sole"].includes(part.footSection) &&
+          (part.footSection !== "bare" || part.knots?.length >= 4),
+        "Unknown foot section.",
+      );
+    if (part.shellFinish !== undefined)
+      requireThat(part.shape === "cage" && Number.isInteger(part.shellFinish?.ribs) && part.shellFinish.ribs>=1 && part.shellFinish.ribs<=12 && Number.isInteger(part.shellFinish.seed), "Invalid shell growth rings.");
+    if (part.nasalWing !== undefined)
+      requireThat(part.nasalWing === true && part.shape === "cage", "Invalid nostril.");
+    if (part.pinna !== undefined)
+      requireThat(part.pinna === true && part.shape === "cage", "Invalid folded ear.");
+    if (part.eyeSurface !== undefined)
+      requireThat(part.shape === "cage" && part.cage?.vertices?.length >= 16 && ["compound","white","iris","pupil"].includes(part.eyeSurface), "Invalid eye surface.");
+    if (part.suckerRows !== undefined)
+      requireThat(part.shape === "sweep" && [0, 1, 2].includes(part.suckerRows), "Invalid number of sucker rows.");
     if (part.anatomy !== undefined)
       requireThat(
-        part.anatomy === "face" && part.shape === "sweep",
-        "Invalid facial region.",
+        ["face", "neck"].includes(part.anatomy) && part.shape === "sweep",
+        "Invalid anatomical region.",
       );
+    if (part.radialFit !== undefined)
+      requireThat(part.shape === "sweep" && validRadialFit(part.radialFit), "Invalid radial surface fit.");
     if (part.sculpt !== undefined)
       requireThat(
         isFace(part) &&
@@ -738,6 +865,7 @@ export function validateForm(form) {
           "metal",
           "scales",
           "horn",
+          "fur",
           "jacket",
         ].includes(part.surface),
         "Unknown surface.",
@@ -814,6 +942,21 @@ export function makeBrief(
     },
     current: withoutArtwork(form),
     preview: withoutArtwork(preview),
+    humanShapeInstructions: "For a new ordinary adult use buildHuman with archetype male, female, neutral or any. With an archetype, colourRange can be Natural, Mixed or Fantasy. The editor samples a distinct identity from its variation seed, then applies optional parameters. On the current adult, use nudgeHuman with deltas for relative changes, shapeHuman with parameters for exact values, or rerollHuman with axes (a list of measurement names) and amount (0 to 1). The editor supplies the reroll seed. Combine a reroll of selected features with directed edits to others in the same proposal. Height is in metres. Bust controls chest volume independently of frame and clothing. The unclothed base uses smooth understated anatomy.",
+    humanShapeRanges: Object.fromEntries(humanAxes.map(key => [key, humanRange(key).slice(0,2)])),
+    creaturePlanInstructions,
+    ...(form.human ? {
+      humanAttachmentInstructions: 'On this editable adult, {op:"attachCreatureLimbs",wing:{structure:"feather",length:.86,chord:.31,rise:18,sweep:36},skin:{base:"#665745",accent:"#537d81",pale:"#d5c3a0"}} grows paired articulated wings at the shoulder blades without replacing their body or wardrobe. Bat and insect structures also work. Use an ordinary branch graft or a marked socket for a different attachment.',
+      humanPortraitInstructions: 'The artist can load, mark and bake matching front/profile images using Paint from front and profile. With an existing native portrait asset, setPart on the editable native head with set.nativePortrait equal to its content ID to use the baked skin layer. This does not change any shape or eye controls.',
+      humanPortraitLayers: Object.keys(form.artwork ?? {}).filter(id => id.startsWith("nativeportrait-")),
+    } : {}),
+    creaturePlanOptions: {
+      ...creatureOptions,
+      preset: Object.keys(creaturePresets),
+    },
+    humanFaceMarkInstructions:faceMarkInstructions,
+    humanArmourInstructions:armourInstructions,
+    humanAppearanceInstructions:{armInk:adultStyles.armInk,makeup:adultStyles.makeup,hair:adultStyles.hair,fringe:adultStyles.fringe,facialHair:adultStyles.facialHair,eyewear:adultStyles.eyewear,earrings:adultStyles.earrings,necklace:adultStyles.necklace,waistBag:adultStyles.waistBag,handProp:adultStyles.handProp,outfit:adultStyles.outfit,clothDesign:adultStyles.clothDesign,secondDesign:adultStyles.secondDesign,palette:"A preset outfit takes every tone from clothColor. To art-direct it, name tones outright (#rrggbb): clothSecond is the lower piece (trousers, tights, sash), clothLight the pale piece next to the skin (undershirt, trainers, fur trim, the shirt of the suit), accentColor the small piece (scarf, cloak, skirt of Sweater and skirt, backpack, tie), leatherColor shoes, boots, belts and hide armour, soleColor the soles and metalColor buckles and metal buttons. Keep the two large pieces clearly apart in lightness and give the accent to one small piece. secondDesign puts a design on the outfit's other large piece (trousers, skirt, scarf, tunic). The library outfits (Tailored suit, Striped blouse and skirt, Field jacket and denim, Workshop overalls) are dyed in these tones once any of them is named; with clothColor alone they keep a light tint.",usage:"setForm.set.humanStyle accepts armInk, makeup, hair, fringe, facialHair, eyewear, earrings, necklace, waistBag, handProp, outfit, hairColor, clothColor, clothDesign and optional clothAccent (#rrggbb). fringe combs hair off the eyes on styles that have hair over the forehead (Bob, Rounded bob, Crown braid, Swept crop); left and right are the wearer's own, and As cut leaves the style as it was made. Tapered crop and Close crop are short strand cuts grown on the figure's own head, and fringe sets the way they are combed. facialHair grows stubble, a moustache or a beard in the hair colour on any adult; None removes it. Outfit swatch selects the procedural outfit's fabric and print. Choose Plain cloth to restore its former solid material. Swatches apply to procedural preset clothes. Select Work clothes at form.outfit to show garments, Anatomy to show the smooth base."},
     replyFormat: {
       format: "irudd.form-proposal.v1",
       requestId: "copy requestId",
@@ -825,7 +968,7 @@ export function makeBrief(
         "ordered edits against preview. Omit unchanged fields and parts. setPart: {op,id,set}, addPart: {op,part}, removePart: {op,id}, setForm: {op,set}. placeBranch: {op,id,parent,fromWorld:[point on source branch, optional; defaults to its pivot],toWorld:[destination point on parent],copy:true|false,scale:1,turn:[world X,Y,Z degrees]}. Match the chosen point on an existing branch to a point on the new parent, carrying attached regions and paint. Copies get the suffix ‘ copy’. For artist-marked locations use {op:placeAtMark,id,mark:exact mark name,copy:true|false,scale:1,turn:[x,y,z],depth:.008}. The mark supplies the destination parent and position. Omit fromWorld to seat the source pivot. Carry every attached part with it. placeComponent: {op,asset,id:target,mode:replace|replaceBranch|attach,fit:true|false,socket:above|below|front|back|left|right}. Use the library for high-detail painted features; replace preserves children. Use null to remove an optional field in setPart.",
     },
     modeling:
-      'Follow the written instructions first. The variation seed and cues were drawn by the editor from a real random source. The operator authored any drawnChoices as groups of alternatives. Honor the single drawn value in each group where consistent with their instructions. Use the cues to resolve freedom left by the user. Preserve listed part geometry. Return compact operations against the nudged preview and omit unchanged geometry. Global build has optional mass, shoulders, waist, belly and hips multipliers (.4 to 2.4). Units are metres; +Y up, +Z forward and +X character left. The floor is y=0. Preserve appearance and wardrobe unless steered otherwise. You can add, remove, duplicate or replace any parts. Built-in shapes: torso, head, left arm, right arm, left leg, right leg. Their position is an anatomical pivot; size is a local XYZ scale. Custom shapes: box, ellipsoid, cylinder, cone (tip +Y), scute (a shield-shaped convex armor plate, tip -Y, outer ridge +Z). For freeform topology use shape cage, with cage:{vertices:[[x,y,z],...],faces:[[vertexIndex,...],...],levels:0|1|2,creases?:[[a,b],...]}. For an ordinary two-armed person, start with {op:"buildFigure",figure:{height:1.72,heads:7.4,shoulders:1,chest:1,waist:1,hips:1,belly:0,limbs:1,legs:1,arms:1,neck:1,skin:"#b98566",face:0,hair:"Crop",hairColor:"#3a2e28",groom:{pattern:"Locks|Side part|Coils|Braids|Locs",length:.3,curl:.4,volume:.4,sweep:.2,nape:0,seed:1},stance:{arms:13,elbows:14,feet:1,curl:.34},top:{kind:"shirt|tee|jacket|hoodie|none",sleeves:"long|rolled|short|none",color:"#5d7d86",trim:"#e8e2d2",ease:.35,length:.45},bottom:{kind:"trousers|shorts|none",color:"#3c4656",ease:.4,belt:"#4a3a2c",rise:.45,cuffs:false,pockets:"none|cargo"},shoes:{kind:"sneakers|boots|none",color:"#d8d4c8",sole:"#f2efe6"}}}. Height is metres, heads is stature in head heights, widths are multipliers of an average adult, belly is 0 to 1, ease, length and waistband rise are 0 to 1, groom is optional rooted hair with length in head heights and nape (0 to 1) carrying a short cut down the back of the head, the four built-in faces are 0 a middle-aged man, 1 an older man, 2 an older weathered face and 3 a younger woman, stance angles are degrees from a hanging arm. It replaces every part with a body that has shoulder, elbow, wrist, hip and knee joints, fingered hands and separate clothes. The regions are named body, head, left/right upper arm, forearm, hand, thigh, shin and foot. Garments are children named shirt body, collar, left/right sleeve, cuff sleeve, cuff, trouser seat, trouser thigh, trouser shin, belt, cargo pocket, shoe, shoe tongue, lace 1 to 4 and sole. Follow it with setPart or addPart for hair, face sculpt and anything the figure does not cover. To keep a grasp during generated movements, set holdArmPose:true on each supporting upper arm. Its shoulder, elbow, wrist and fingers follow the body in their authored rest pose. Named poses remain editable. Do not model human arms from freehand sweeps. Replace stretched sleeve paint with solid cloth and recut a segmented swept arm from shoulder to wrist with {op:"recutArmSleeves",id:"upper arm",color:"#214d47"}. Bend or straighten one segmented arm relative to its current pose with {op:"bendElbow",id:"forearm",degrees:15}. The wrist and carried objects follow the elbow. A negative angle opens the joint. To equip rows of overlapping plates on a sweep in the current outfit, use {op:"equipPlates",id:"body",name:"chest scale",face:"Front",count:3,columns:3,width:.12,length:.16,depth:.038,start:.3,end:.85,color:"#d2c0a0"}. Width, length and depth are metres in the carrier frame. Rows follow the path from start to end (0–1), columns wrap around its face (Front, Back, Left, Right, Top). Each plate gets its own shape and its upper inside patch seats on the carrier. To reuse an existing turnaround on other regions with matching image framing, use {op:"reuseTurnaround",id:"source part",regions:["first sleeve","second sleeve"]}. The receiving regions must share their old sheet. Use consistently outward winding, 3–8 corners per face. For easy construction, add a cage part without cage data to start from a cube: front/back/left/right/top/bottom face indices are 0,1,2,3,4,5. Apply {op:"editCage",id,kind:"tunnel",face:0,to:1,inset:.34} to make a real opening, "extrude" or "inset" with face and amount, or "crease" on a face. Smaller tunnel inset gives a larger opening. Shape and tilt individual vertices by setting the complete updated cage. A hand shape has a wrist pivot and extends down local Y. Its optional grip has fingers (1-7, plus thumb), curl and spread (0-1), and side (1 or -1). Other primitive positions are their centers; size is full local XYZ dimensions in metres. The organic sweep shape uses knots, each [x,y,z,radiusWidth,radiusDepth] in local metres, two to 48 distinct centreline points, smoothly joined. For sweeps size is local scale. Use this for organic limbs, spines, horns, hair or garment shapes. To bend an existing sweep and carry all of its attached regions use {op:"reshapeSpine",id,knots:[...]}. Appearance.face (0 to 3) selects original face paint and head parts can hold independent sculpt multipliers (.35 to 2) for jaw, nose, brow, cheek, eyes (spacing), eye size, mouth (width), lips (fullness), chin and smile. For a human face made of a sweep, anatomy may be face. Preserve original paint bindings for retained surface artwork. All rotations are Euler XYZ degrees. Custom shapes require color as #rrggbb. Optional parent is a part ID. A child uses local position/size/rotation and follows parent edits. Newly added or replaced primitives receive a metre-based attachment frame automatically: author a child using metre offsets from its parent centre, independent of primitive dimensions. Previously retained primitives without frameSize use scaled local coordinates. Avoid cycles. Optional surface: canvas, leather, metal, scales, plain. Leave outfitRole unassigned for permanent anatomy such as bony sails, ears and horns. The accessory and skirt roles hide regions in Base layer and Pressure suit. Set outfitRole to torso, upper arm, forearm, hand, thigh, shin, foot, head, skirt, accessory or tail when a custom region should accept clothing. A custom mesh may carry markings {kind: Bands, Spots, Rosettes or Countershade, color:#rrggbb, spacing:.06..0.8 metres, coverage:.1..0.9, angle:-180..180 degrees, seed:unsigned integer}. Share one set on organic regions for continuous body markings. Unpainted sweep and ellipsoid regions may set blendSkin:true to join them into one smooth skin with shared joint weights. A sweep can carry drape {folds:2..32,depth:0..0.3,twist:-2..2,slit:0..0.35,slitHeight:0.05..1}. Slits open front and rear panels upwards from the hem. A region also accepts up to 64 local surface pulls: {at:[x,y,z],reach:[rx,ry,rz],offset:[dx,dy,dz],mirrorX?:number}. A smooth radial displacement permits local asymmetry, bulges, dimples and folds in the 3D surface. Keep existing pulls when modifying other fields. For a reusable posed stance, setForm.poses is an array of {name,joints:[{part,station,turn?,shift?}]}. Preserve other named poses when adding one. Each joint is identified by part ID and zero-based station from its attachment toward its tip. A rigid region has station 0. A turn is a unit local XYZW quaternion relative to bind. A shift is a local XYZ translation in metres relative to bind. The whole skeleton uses part "" and station 0. Poses export as named clips and preserve the editable rest shape. Optional motionRole (rigid, torso, head, upper arm, forearm, hand, thigh, shin, foot, wing, fin, axial spine, tail, skirt) controls skinning and animation independently of clothing. Use axial spine for a flexible sweeping trunk, ordering its points from head to tail. This supports swimming and slithering. Frontal geometry edits use frontFits, up to six successive passes {pins:[{at:[x,y,z],shift:[dx,dy]},...],radius:.10.. .65,amount:0..1}. Coordinates use head-height units centered on the current face bounds, +X towards character left, +Y up, +Z forward. Each pass interpolates 3–32 paired surface landmarks including fixed points. Optional view:{yaw,pitch,mode:"plane" or "depth"} uses a head-centred orthographic orbit in degrees: positive yaw towards +X, positive pitch upwards. For an angled pass at and shift use camera right, up and toward-camera coordinates. Depth mode adjusts only anatomical Z and requires at least a 20 degree angle away from the frontal axis. In depth mode symmetric:true inside view mirrors the scalar correction across anatomical X. An optional frontFits overlay holds a content-hashed UV paint layer. Preserve these on unrelated edits. Head accessories can share rigidFaceAnchor:[x,y,z] in normalized anatomical head coordinates; they follow that point rigidly through each face fit. Set faceClearance in metres (.001 to .025) on the rigid front pieces; supporting pieces sharing the same anchor can extend from their rear attachment. A head or registered portrait may use profileFit:{curve:[[t,forward],...],amount:0..1}. Trace 4–96 rows from the brow at [0,0] to the lower chin at t=1, using forward depth relative to the brow in units of brow-to-chin height. Increasing t descends the face. Preserve the curve unless directed to change its side contour. Optional profileFit.stage=\"finish\" makes the side contour the final depth constraint and optional relief from 0 to 1 rebuilds nose and cheek depth against that contour. Preserve a profileFit.paint registration and its side portrait ID on unrelated edits. A head or registered portrait may carry eyesRig {color:#rrggbb,opening:.42..1.8,width:.62..1.6,spacing:.7..1.3,lift:-.10.. .10,iris:.55..1.45}. Preserve measured offsets when revising a fit. The iris supports four independent gaze morphs. An unpainted, unjoined sweep can grow individually rooted fibres along its knots using fibres:{count:4..96,wave:0..1,fall:0..1,grey:0..1,rooted:true|false,seed:unsigned integer}. Use fall for trailing length relative to guide length. Preserve seeds and root attachment on unrelated edits. A head may carry a procedural hair groom with optional pattern (Locks, Side part, Coils, Braids or Locs), part position (-1 to 1), length (0-2 head heights), curl, gather, volume (0-1), sweep (-1 to 1), color (#rrggbb) and an unsigned integer seed. Existing separate hair meshes can have headLayer:"hair" and a head as parent so applying a groom replaces them visually. Attach a cage root to the actual parent surface using surfaceJoin:{faces:[cageFaceIndices],depth:.008} or a sweep end with surfaceJoin:{end:"first", "last" or "along",depth:.008}. The selected patch sits inside the carrier and shares its joint weights. A waist-fitted skirt uses shape mantle, wearFit:true, motionRole skirt, cut:{kind:"Skirt",width,depth,drop,flare,folds,outline:[[0,1],...,[1,hemWidth]],bias:-1..1,gather:0..0.3,tiers:0..6,train:0..2}. Width, depth, drop and rear train use metres. Outline points descend from waist to hem with radius relative to the waist. Bias slopes raised folds across the front. Use surface "satin" for smooth cloth or "canvas" for coarse weave. A mantle is a fitted cut fabric panel. Its cut.armAccess can be Covered, Open sides or Armholes independently of the garment cut. Arm areas follow the nearest arm while the neckline stays attached. Keep the other cut fields on changes. Use optional visibleIn (wardrobe names) for outfit-specific additions. appearance.tones accepts cloth, trim, panel, pants, boots as hex colours. Use unique readable IDs. Use at most 128 parts, each size .005 to 12 and position -12 to 12. Return only proposal JSON. Keep adult humanoid clothing practical and nonsexualized.',
+      'Follow the written instructions first. The variation seed and cues were drawn by the editor from a real random source. The operator authored any drawnChoices as groups of alternatives. Honor the single drawn value in each group where consistent with their instructions. Use the cues to resolve freedom left by the user. Preserve listed part geometry. Return compact operations against the nudged preview and omit unchanged geometry. Global build has optional mass, shoulders, waist, belly and hips multipliers (.4 to 2.4). Units are metres; +Y up, +Z forward and +X character left. The floor is y=0. Preserve appearance and wardrobe unless steered otherwise. You can add, remove, duplicate or replace any parts. Built-in shapes: torso, head, left arm, right arm, left leg, right leg. Their position is an anatomical pivot; size is a local XYZ scale. Custom shapes: box, ellipsoid, cylinder, cone (tip +Y), scute (a shield-shaped convex armor plate, tip -Y, outer ridge +Z). For freeform topology use shape cage, with cage:{vertices:[[x,y,z],...],faces:[[vertexIndex,...],...],levels:0|1|2,creases?:[[a,b],...]}. The older segmented figure studies support a separate construction operation. When explicitly asked for that jointed modular construction, use {op:"buildFigure",figure:{archetype:"neutral",height:1.72,heads:7.4,shoulders:1,chest:1,waist:1,hips:1,belly:0,chestFullness:0,lowerAbdomen:0,muscleRelief:0,ribDepth:1,abdomenDepth:1,pelvisDepth:1,legBuild:1,limbs:1,legs:1,arms:1,neck:1,skin:"#b98566",face:0,hair:"Crop",hairColor:"#3a2e28",groom:{pattern:"Locks|Side part|Coils|Braids|Locs",length:.3,curl:.4,volume:.4,sweep:.2,nape:0,seed:1},stance:{arms:13,elbows:14,feet:1,curl:.34},top:{kind:"shirt|tee|jacket|hoodie|none",sleeves:"long|rolled|short|none",color:"#5d7d86",trim:"#e8e2d2",ease:.35,length:.45},bottom:{kind:"trousers|shorts|none",color:"#3c4656",ease:.4,belt:"#4a3a2c",rise:.45,cuffs:false,pockets:"none|cargo"},shoes:{kind:"sneakers|boots|none",color:"#d8d4c8",sole:"#f2efe6"}}}. Anatomy shows the unclothed simplified body. Garments are retained and become visible in Work clothes. A buildFigure operation preserves the current outfit. Use setForm with outfit to change it explicitly. The male, female and neutral archetypes supply editable starting proportions. Explicit measurements override them. ribDepth, abdomenDepth, pelvisDepth and legBuild independently change depth or girth, while chestFullness, lowerAbdomen and muscleRelief range from 0 to 1. Height is metres, heads is stature in head heights, widths are multipliers of an average adult, belly is 0 to 1, ease, length and waistband rise are 0 to 1, groom is optional rooted hair with length in head heights and nape (0 to 1) carrying a short cut down the back of the head, the four built-in faces are 0 a middle-aged man, 1 an older man, 2 an older weathered face and 3 a younger woman, stance angles are degrees from a hanging arm. It replaces every part with a body that has shoulder, elbow, wrist, hip and knee joints, fingered hands and separate clothes. The regions are named body, head, left/right upper arm, forearm, hand, thigh, shin and foot. Garments are children named shirt body, collar, left/right sleeve, cuff sleeve, cuff, trouser seat, trouser thigh, trouser shin, belt, cargo pocket, shoe, shoe tongue, lace 1 to 4 and sole. Follow it with setPart or addPart for hair, face sculpt and anything the figure does not cover. To keep a grasp during generated movements, set holdArmPose:true on each supporting upper arm. Its shoulder, elbow, wrist and fingers follow the body in their authored rest pose. Named poses remain editable. Do not model human arms from freehand sweeps. Replace stretched sleeve paint with solid cloth and recut a segmented swept arm from shoulder to wrist with {op:"recutArmSleeves",id:"upper arm",color:"#214d47"}. Bend or straighten one segmented arm relative to its current pose with {op:"bendElbow",id:"forearm",degrees:15}. The wrist and carried objects follow the elbow. A negative angle opens the joint. To equip rows of overlapping plates on a sweep in the current outfit, use {op:"equipPlates",id:"body",name:"chest scale",face:"Front",count:3,columns:3,width:.12,length:.16,depth:.038,start:.3,end:.85,color:"#d2c0a0"}. Width, length and depth are metres in the carrier frame. Rows follow the path from start to end (0–1), columns wrap around its face (Front, Back, Left, Right, Top). Each plate gets its own shape and its upper inside patch seats on the carrier. To reuse an existing turnaround on other regions with matching image framing, use {op:"reuseTurnaround",id:"source part",regions:["first sleeve","second sleeve"]}. The receiving regions must share their old sheet. Use consistently outward winding, 3–8 corners per face. For easy construction, add a cage part without cage data to start from a cube: front/back/left/right/top/bottom face indices are 0,1,2,3,4,5. Apply {op:"editCage",id,kind:"tunnel",face:0,to:1,inset:.34} to make a real opening, "extrude" or "inset" with face and amount, or "crease" on a face. Smaller tunnel inset gives a larger opening. Shape and tilt individual vertices by setting the complete updated cage. A hand shape has a wrist pivot and extends down local Y. Its optional grip has fingers (1-7, plus thumb), curl and spread (0-1), and side (1 or -1). Other primitive positions are their centers; size is full local XYZ dimensions in metres. The organic sweep shape uses knots, each [x,y,z,radiusWidth,radiusDepth] in local metres, two to 48 distinct centreline points, smoothly joined. For sweeps size is local scale. Use this for organic limbs, spines, horns, hair or garment shapes. To bend an existing sweep and carry all of its attached regions use {op:"reshapeSpine",id,knots:[...]}. Appearance.face (0 to 3) selects original face paint and head parts can hold independent sculpt multipliers (.35 to 2) for jaw, nose, brow, cheek, eyes (spacing), eye size, mouth (width), lips (fullness), chin and smile. For a human face made of a sweep, anatomy may be face. Preserve original paint bindings for retained surface artwork. All rotations are Euler XYZ degrees. Custom shapes require color as #rrggbb. Optional parent is a part ID. A child uses local position/size/rotation and follows parent edits. Newly added or replaced primitives receive a metre-based attachment frame automatically: author a child using metre offsets from its parent centre, independent of primitive dimensions. Previously retained primitives without frameSize use scaled local coordinates. Avoid cycles. Optional surface: canvas, leather, metal, scales, plain. Leave outfitRole unassigned for permanent anatomy such as bony sails, ears and horns. The accessory and skirt roles hide regions in Base layer and Pressure suit. Set outfitRole to torso, upper arm, forearm, hand, thigh, shin, foot, head, skirt, accessory or tail when a custom region should accept clothing. A custom mesh may carry markings {kind: Bands, Spots, Rosettes, Countershade, Reticulated or Marbled, color:#rrggbb, spacing:.06..0.8 metres, coverage:.1..0.9, angle:-180..180 degrees, seed:unsigned integer}. Share one set on organic regions for continuous body markings. Unpainted sweep and ellipsoid regions may set blendSkin:true to join them into one smooth skin with shared joint weights. A sweep can carry drape {folds:2..32,depth:0..0.3,twist:-2..2,slit:0..0.35,slitHeight:0.05..1}. Slits open front and rear panels upwards from the hem. A region also accepts up to 64 local surface pulls: {at:[x,y,z],reach:[rx,ry,rz],offset:[dx,dy,dz],mirrorX?:number}. A smooth radial displacement permits local asymmetry, bulges, dimples and folds in the 3D surface. Keep existing pulls when modifying other fields. For a reusable posed stance, setForm.poses is an array of {name,joints:[{part,station,turn?,shift?}]}. Preserve other named poses when adding one. Each joint is identified by part ID and zero-based station from its attachment toward its tip. A rigid region has station 0. A turn is a unit local XYZW quaternion relative to bind. A shift is a local XYZ translation in metres relative to bind. The whole skeleton uses part "" and station 0. Poses export as named clips and preserve the editable rest shape. Optional motionRole (rigid, torso, head, upper arm, forearm, hand, thigh, shin, foot, wing, fin, axial spine, tail, skirt) controls skinning and animation independently of clothing. Use axial spine for a flexible sweeping trunk, ordering its points from head to tail. This supports swimming and slithering. Frontal geometry edits use frontFits, up to six successive passes {pins:[{at:[x,y,z],shift:[dx,dy]},...],radius:.10.. .65,amount:0..1}. Coordinates use head-height units centered on the current face bounds, +X towards character left, +Y up, +Z forward. Each pass interpolates 3–32 paired surface landmarks including fixed points. Optional view:{yaw,pitch,mode:"plane" or "depth"} uses a head-centred orthographic orbit in degrees: positive yaw towards +X, positive pitch upwards. For an angled pass at and shift use camera right, up and toward-camera coordinates. Depth mode adjusts only anatomical Z and requires at least a 20 degree angle away from the frontal axis. In depth mode symmetric:true inside view mirrors the scalar correction across anatomical X. An optional frontFits overlay holds a content-hashed UV paint layer. Preserve these on unrelated edits. Head accessories can share rigidFaceAnchor:[x,y,z] in normalized anatomical head coordinates; they follow that point rigidly through each face fit. Set faceClearance in metres (.001 to .025) on the rigid front pieces; supporting pieces sharing the same anchor can extend from their rear attachment. A head or registered portrait may use profileFit:{curve:[[t,forward],...],amount:0..1}. Trace 4–96 rows from the brow at [0,0] to the lower chin at t=1, using forward depth relative to the brow in units of brow-to-chin height. Increasing t descends the face. Preserve the curve unless directed to change its side contour. Optional profileFit.stage=\"finish\" makes the side contour the final depth constraint and optional relief from 0 to 1 rebuilds nose and cheek depth against that contour. Preserve a profileFit.paint registration and its side portrait ID on unrelated edits. A head or registered portrait may carry eyesRig {color:#rrggbb,opening:.42..1.8,width:.62..1.6,spacing:.7..1.3,lift:-.10.. .10,iris:.55..1.45}. Preserve measured offsets when revising a fit. The iris supports four independent gaze morphs. An unpainted, unjoined sweep can grow individually rooted fibres along its knots using fibres:{count:4..96,wave:0..1,fall:0..1,grey:0..1,rooted:true|false,seed:unsigned integer}. Use fall for trailing length relative to guide length. Preserve seeds and root attachment on unrelated edits. A head may carry a procedural hair groom with optional pattern (Locks, Side part, Coils, Braids or Locs), part position (-1 to 1), length (0-2 head heights), curl, gather, volume (0-1), sweep (-1 to 1), color (#rrggbb) and an unsigned integer seed. Existing separate hair meshes can have headLayer:"hair" and a head as parent so applying a groom replaces them visually. Attach a cage root to the actual parent surface using surfaceJoin:{faces:[cageFaceIndices],depth:.008} or a sweep end with surfaceJoin:{end:"first", "last" or "along",depth:.008}. The selected patch sits inside the carrier and shares its joint weights. A waist-fitted skirt uses shape mantle, wearFit:true, motionRole skirt, cut:{kind:"Skirt",width,depth,drop,flare,folds,outline:[[0,1],...,[1,hemWidth]],bias:-1..1,gather:0..0.3,tiers:0..6,train:0..2}. Width, depth, drop and rear train use metres. Outline points descend from waist to hem with radius relative to the waist. Bias slopes raised folds across the front. Use surface "satin" for smooth cloth or "canvas" for coarse weave. A mantle is a fitted cut fabric panel. Its cut.armAccess can be Covered, Open sides or Armholes independently of the garment cut. Arm areas follow the nearest arm while the neckline stays attached. Keep the other cut fields on changes. Use optional visibleIn (wardrobe names) for outfit-specific additions. appearance.tones accepts cloth, trim, panel, pants, boots as hex colours. Use unique readable IDs. Use at most 128 parts, each size .005 to 12 and position -12 to 12. Return only proposal JSON. Keep adult humanoid clothing practical and nonsexualized.',
   };
 }
 export function readProposal(raw, request, revision) {
@@ -851,8 +994,15 @@ export function readProposal(raw, request, revision) {
       request.library,
       request.attachmentFrames === "metres",
       request.surfaceMarks,
+      request.variation?.seed,
     );
   validateForm(form);
+  requireThat(
+    form.parts.every(p => !p.nativePortrait ||
+      Object.hasOwn(form.artwork ?? {}, p.nativePortrait) ||
+      request.humanPortraitLayers?.includes(p.nativePortrait)),
+    "Choose a prepared native portrait from this form.",
+  );
   checkPreserved(request.preview, form, request.preserve);
   return raw.form ? raw : { ...raw, form };
 }

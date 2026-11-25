@@ -1,2 +1,23 @@
 node_modules/
 dist/
+.reference-cache/
+__pycache__/
+character-view/_*.tmp.mjs
+
+# Private comparison material. Scripts and source URLs may be shared.
+examples/mhr-reference.glb
+examples/mhr-fit.json
+examples/reference-fits.json
+examples/workshop-body-fits.json
+scripts/human-benchmark/target-identities.json
+examples/*-targets/
+examples/*-targets-fits/
+docs/media/*-benchmark/
+docs/media/head-study/
+docs/media/rocketbox*/
+docs/media/scan-study-*
+docs/media/workshop-body-fits.*
+docs/media/humanoid-reference-profiles.*
+docs/media/*reference-comparison*
+docs/media/*rocketbox*
+docs/media/*scan-comparison*

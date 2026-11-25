@@ -1,0 +1,11 @@
+{
+  "credit": "HSRD-100: 100 High-Quality 3D Human Scans Dataset, DigitalRealityLab / HumanScanRepository",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "source": "https://huggingface.co/datasets/digitalrealitylab/HSRD-100",
+  "revision": "9cc5e9c138dd310dc88c95c80e5db0a3ecb7971a",
+  "changes": "Hair surface and its photograph cut from the scan, simplified, fitted to an editable adult's head and re-dyed.",
+  "sources": {
+    "HSR0023": { "pose": "HSR0023-Body-017", "lod": "LOD1" },
+    "HSR0112": { "pose": "HSR0112-Body-018", "lod": "LOD1" }
+  }
+}

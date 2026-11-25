@@ -1,4 +1,10 @@
-import { creatureClips, standardMoves } from "./creature-motion.js";
+import {
+  creatureClips,
+  standardMoves,
+  spatialLeg,
+  placeFootInSpace,
+  floorSwing,
+} from "./creature-motion.js";
 import {
   AnimationClip,
   QuaternionKeyframeTrack,
@@ -25,8 +31,9 @@ function legChains(regions) {
     const knee = shin ? shin.points[0] : s.points[1],
       ankle = shin ? shin.points.at(-1) : s.points[2],
       hip = s.points[0];
-    const upper = length(hip, knee),
-      lower = length(knee, ankle);
+    const spatial = spatialLeg(hip, knee, ankle);
+    const upper = spatial ? hip.distanceTo(knee) : length(hip, knee),
+      lower = spatial ? knee.distanceTo(ankle) : length(knee, ankle);
     if (upper < 0.01 || lower < 0.01) continue;
     result.push({
       hip,
@@ -34,6 +41,9 @@ function legChains(regions) {
       ankle,
       upper,
       lower,
+      spatial,
+      // A raised knee folds the leg, so stride from the hip-to-foot span.
+      span: spatial ? hip.distanceTo(ankle) : upper + lower,
       a: s.bones[0],
       b: shin ? shin.bones[0] : s.bones[1],
       c: shin ? shin.bones.at(-1) : s.bones[2],
@@ -226,7 +236,7 @@ export function buildClips(root, regions) {
     const parent = regions.get(region.part.parent);
     const upper =
       parent?.role === "forearm" ? regions.get(parent.part.parent) : parent;
-    if (upper?.role === "upper arm" && upper.part.holdArmPose)
+    if (region.part.grip?.cylindrical || (upper?.role === "upper arm" && upper.part.holdArmPose))
       heldHands.add(region);
   }
   const openHands = [...armMovement.values()].some((m) => m.natural);
@@ -272,13 +282,26 @@ export function buildClips(root, regions) {
   const reachingHeads = new Set([...regions.values()].filter(startsHeadChain));
   const size = bounds.getSize(new Vector3()),
     limb = legs.length
-      ? Math.min(...legs.map((l) => l.upper + l.lower))
+      ? Math.min(...legs.map((l) => l.span))
       : size.y * 0.42;
   const duration = clamp(
     1.24 * Math.sqrt(Math.max(0.1, limb) / 0.8),
     0.72,
     2.2,
   );
+  const creatureBody = regions.get("body");
+  const planAnimal = creatureBody?.part.shape === "sweep";
+  const neckMotion = new Map();
+  if (planAnimal && legs.length) {
+    for (const region of regions.values()) {
+      if (region.role !== "head") continue;
+      const parent = regions.get(region.part.parent);
+      const neck = parent?.role === "head" ? parent : region;
+      const length = neck.points[0].distanceTo(neck.points.at(-1));
+      const reach = Math.min(1, length / Math.max(.08, size.y*.40));
+      neckMotion.set(region, { reach, skull: parent?.role === "head" });
+    }
+  }
   const clips = [];
   for (const name of standardMoves([...regions.values()].map((s) => s.role))) {
     const period = name === "Walk" ? duration : name === "Idle" ? 3.2 : 2.6;
@@ -323,7 +346,8 @@ export function buildClips(root, regions) {
             name === "Walk" && step >= stance
               ? limb * 0.16 * Math.sin(Math.PI * swing) ** 1.5
               : 0;
-          placeFoot(leg, dz, lift, drop, add);
+          if (leg.spatial) placeFootInSpace(leg, dz, lift, drop, rotation);
+          else placeFoot(leg, dz, lift, drop, add);
         }
       for (const s of regions.values()) {
         if (
@@ -406,7 +430,18 @@ export function buildClips(root, regions) {
             const stride = motion
               ? motion.swing * Math.sin(t * tau + motion.phase)
               : sin;
-            add(s.bones[0], side * 0.37 * stride, 0, side * 0.035);
+            const [least, most] = floorSwing(
+              s.points[0],
+              elbows.get(s)?.hand,
+              bounds.min.y,
+              limb * 0.082,
+            );
+            add(
+              s.bones[0],
+              clamp(side * 0.37 * stride, least, most),
+              0,
+              side * 0.035,
+            );
           } else if (name === "Reach") {
             const lift = wave * (motion?.reach ?? 1);
             if (motion?.natural)
@@ -436,6 +471,15 @@ export function buildClips(root, regions) {
             add(s.bones[0], 0.015 * sin, 0, side * 0.009 * sin);
           else if (name === "Crouch")
             add(s.bones[0], -0.32 * wave, 0, side * 0.09 * wave);
+        } else if (name === "Walk" && neckMotion.has(s)) {
+          // With each footfall a short-necked animal nods, while a long neck
+          // carries the skull forward. The head joint counter-rotates to keep
+          // the gaze steadier than the neck, including across the loop seam.
+          const { reach, skull } = neckMotion.get(s);
+          const footfall = Math.sin(2*t*tau - .45);
+          const pitch = (.075 + .12*reach)*footfall;
+          const yaw = (.035 + .07*reach)*sin;
+          add(s.bones[0], skull ? -.55*pitch : pitch, skull ? -.33*yaw : yaw, .022*sin);
         } else if (s.role === "head" && name === "Idle")
           add(s.bones[0], 0.019 * sin, 0.048 * sin, 0);
         else if (name === "Reach" && reachingHeads.has(s))

@@ -1,3 +1,4 @@
+import { restingWrist } from "./resting-wrist.js";
 import { copyBranch } from "./parts.js";
 import { skirtOutline } from "./skirt-pattern.js";
 import { sweepGeometry } from "./surface.js";
@@ -7,6 +8,8 @@ import { Box3, Vector3, Matrix4, Euler, Quaternion, MathUtils } from "three";
 import { paintSources, retainPaintSources } from "./paint-sources.js";
 import { mantleGeometry, garmentCuts } from "./mantle.js";
 import { volumeBounds } from "./volume.js";
+import { evaluateHuman } from "./human-surface.js";
+import { scapulaSocket } from "./human-sockets.js";
 const anatomyBoxes = {
   head: [
     [-0.12, -0.05, -0.12],
@@ -254,7 +257,7 @@ function bounds(parts, world) {
       }
     } else {
       const [a, b] =
-        (p.hull ? volumeBounds(p.hull) : anatomyBoxes[p.shape]) ??
+        (p.shape==="human region" ? p.humanBounds : p.hull ? volumeBounds(p.hull) : anatomyBoxes[p.shape]) ??
         (p.shape === "hand"
           ? [
               [-0.62, -1, -0.6],
@@ -394,8 +397,20 @@ export function extractComponent(form, id, includeChildren = true) {
   const source = form.parts.filter((p) => ids.has(p.id)),
     box = bounds(source, g.world),
     pose = fields(g.world(id));
+  const humanSources={};
+  const nativeSource={human:form.human,humanFit:form.humanFit,humanDetail:form.humanDetail,appearance:form.appearance,humanStyle:form.humanStyle,
+    complexion:form.complexion,faceMarks:form.faceMarks,eyeColor:form.eyeColor,outfit:form.outfit,origin:{seed:form.origin?.seed??0}};
+  const sourceKey=snapshot=>{
+    let hash=2166136261;
+    for(const ch of JSON.stringify(snapshot))hash=Math.imul(hash^ch.charCodeAt(0),16777619)>>>0;
+    return "surface-"+hash.toString(16);
+  };
   const partList = source.map((p) => {
     const q = structuredClone(p);
+    if(p.shape==="human region"){
+      const snapshot=p.humanSource ? form.humanSources[p.humanSource] : nativeSource;
+      q.humanSource=sourceKey(snapshot);humanSources[q.humanSource]=structuredClone(snapshot);
+    }
     if (Object.hasOwn(anatomyBoxes, p.shape))
       q.look = structuredClone(p.look ?? form.appearance);
     if (q.id === id) {
@@ -420,6 +435,7 @@ export function extractComponent(form, id, includeChildren = true) {
       p.paint?.atlas,
       p.hull?.atlas,
       p.profileFit?.paint?.atlas,
+      p.nativePortrait,
       ...(p.frontFits ?? []).map((pass) => pass.overlay),
     ]) {
       if (id && form.artwork?.[id]) artwork[id] = form.artwork[id];
@@ -452,6 +468,8 @@ export function extractComponent(form, id, includeChildren = true) {
     root: id,
     ...(pattern ? { pattern } : {}),
     parts: partList,
+      ...(Object.keys(humanSources).length?{humanSources}:{}),
+      ...(form.referenceRigs?.length?{referenceRigs:[...form.referenceRigs]}:{}),
     ...(sources ? { occluders: sources } : {}),
     bounds: [box.min.toArray(), box.max.toArray()],
     ...(Object.keys(artwork).length ? { artwork } : {}),
@@ -464,7 +482,7 @@ export function placeComponent(
     target,
     mode = "replace",
     fit = true,
-    socket = "above",
+    socket,
     sourceBounds = component?.bounds,
     destinationBounds,
   } = {},
@@ -496,6 +514,8 @@ export function placeComponent(
     throw new Error("Choose a component.");
   const root = component.parts.find((p) => p.id === component.root);
   if (!root) throw new Error("Component root is missing.");
+  const shoulderBlade = mode === "attach" && (socket === undefined || socket === "back") && form.human &&
+    root.scapulaMount && selected.humanBone === "spine_03" && !selected.humanSource;
   const remove =
     mode === "replaceBranch"
       ? g.descendants(target)
@@ -519,7 +539,7 @@ export function placeComponent(
       : bounds([selected], g.world);
   const extent = src.getSize(new Vector3()),
     targetExtent = dest.getSize(new Vector3());
-  const ratio = fit
+  const ratio = fit && !shoulderBlade
     ? MathUtils.clamp(targetExtent.y / Math.max(0.005, extent.y), 0.075, 10)
     : 1;
   const scale = new Vector3(ratio, ratio, ratio);
@@ -535,7 +555,7 @@ export function placeComponent(
   }
   const to = dest.getCenter(new Vector3()),
     from = src.getCenter(new Vector3()).multiply(scale);
-  if (mode === "attach") {
+  if (mode === "attach" && !shoulderBlade) {
     const direction = {
       above: [0, 1, 0],
       below: [0, -1, 0],
@@ -543,7 +563,7 @@ export function placeComponent(
       back: [0, 0, -1],
       left: [1, 0, 0],
       right: [-1, 0, 0],
-    }[socket];
+    }[socket ?? "above"];
     if (!direction) throw new Error("Choose an attachment side.");
     to.add(
       targetExtent
@@ -559,6 +579,10 @@ export function placeComponent(
   world.multiply(local(root));
   const parent = attach ? target : selected.parent;
   const pose = fields(g.mount(parent).invert().multiply(world));
+  if (shoulderBlade) {
+    const surface = evaluateHuman(form.human, form.humanFit, form.humanDetail);
+    pose.position = scapulaSocket(surface, root.scapulaMount);
+  }
   const childWorld = world.clone();
   if (root.frameSize) childWorld.scale(v(root.frameSize.map((x) => 1 / x)));
   const preserved = retained.map((p) => {
@@ -592,6 +616,8 @@ export function placeComponent(
       {
         ...form,
         parts: [...preserved, ...incoming],
+        ...(component.humanSources?{humanSources:{...form.humanSources,...component.humanSources}}:{}),
+        ...(component.referenceRigs?.length?{referenceRigs:[...new Set([...(form.referenceRigs??[]),...component.referenceRigs])]}:{}),
         ...(component.artwork
           ? { artwork: { ...form.artwork, ...component.artwork } }
           : {}),
@@ -836,26 +862,36 @@ export function fitHand(form, id, color = form.appearance.skin) {
     side = wrist.clone().applyMatrix4(parentFrame).x >= 0 ? 1 : -1;
   const h = p.paint?.height ?? Math.max(0.1, towards.length() * 10);
   const span = MathUtils.clamp(towards.length() * 1.08, 0.076 * h, 0.125 * h);
-  const q = new Quaternion().setFromUnitVectors(
-    new Vector3(0, -1, 0),
-    towards.normalize(),
+  // A painted hand can stop short of the cuff or point across the arm.
+  // Seat the new wrist on the sleeve opening and follow its centreline.
+  if (parent?.shape === "sweep" && parent.outfitRole === "forearm") {
+    const toParent = parentFrame.clone().invert().multiply(g.world(parent.id));
+    const ends = [parent.knots[0], parent.knots.at(-1)].map((k) =>
+      v(k.slice(0, 3)).applyMatrix4(toParent),
+    );
+    if (ends[1].distanceToSquared(wrist) < ends[0].distanceToSquared(wrist))
+      ends.reverse();
+    const axis = ends[0].clone().sub(ends[1]);
+    if (axis.lengthSq() > 1e-8) {
+      towards.copy(axis).normalize();
+      wrist.copy(ends[0]).addScaledVector(towards, -0.02 * span);
+    }
+  }
+  const medial = new Vector3(-side, 0, -0.42).transformDirection(
+    parentFrame.clone().invert(),
   );
-  q.multiply(
-    new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), side * 0.82),
-  );
-  const e = new Euler().setFromQuaternion(q),
-    size = [span * 0.46, span, span * 0.225];
+  const size = [span * 0.46, span, span * 0.225];
   const hand = {
     id,
     shape: "hand",
     position: wrist.toArray(),
-    rotation: [e.x, e.y, e.z].map(MathUtils.radToDeg),
+    rotation: restingWrist(towards, medial),
     size,
     frameSize: [...size],
     color,
     outfitRole: "hand",
     motionRole: "hand",
-    grip: { fingers: 4, side, curl: 0.18, spread: 0.27 },
+    grip: { fingers: 4, side: -side, relaxed: true, curl: 0.32, spread: 0.18 },
   };
   if (p.parent) hand.parent = p.parent;
   if (p.visibleIn) hand.visibleIn = [...p.visibleIn];
