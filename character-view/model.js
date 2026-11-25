@@ -551,7 +551,7 @@ export function createCharacter(
   const owners = garmentOwners(form);
   const eyeMaterials = new Map(), liveryMaterials = new Map();
   let plumageMaterial;
-  const buildHuman=(source)=>humanRegions(source,material,plainView,s=>dressedHuman(s,source,material,plainView,fibreBudget));
+  const buildHuman=(source)=>humanRegions(source,material,plainView,s=>dressedHuman(s,source,material,plainView,fibreBudget),fibreBudget>0);
   const humans = new Map();
   const objects = new Map(),
     localLooks = new Map();

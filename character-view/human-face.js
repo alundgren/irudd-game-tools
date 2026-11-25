@@ -184,7 +184,7 @@ function strandMesh(sink,material,plain){
   const mesh=new T.Mesh(geometry,m);mesh.name="brows-and-lashes";mesh.updateMorphTargets();
   return mesh;
 }
-export function humanFace(group,s,origin,material,plain,form) {
+export function humanFace(group,s,origin,material,plain,form,game=false) {
   const idMap=new Map(Array.from(s.ids,(v,i)=>[v,i]));
   const skin=group.children.find(mesh=>mesh.userData.faceSurface);
   // A point inside the head behind the eyes, for the way brow strands are lit.
@@ -194,7 +194,7 @@ export function humanFace(group,s,origin,material,plain,form) {
   const sink=strandSink(),browVertices=browsAndLashes(sink,s,idMap,origin,form,inside,plain);
   // Facial hair reads the head's own texture coordinates, so it is grown before the face
   // paint refits them to the face rectangle.
-  const beard=skin?facialHair(skin,form,material,plain,sink,hairColours(form),{s,idMap,origin}):null;
+  const beard=skin?facialHair(skin,form,material,plain,sink,hairColours(form),{s,idMap,origin},game):null;
   const teeth=skin?mouthInterior(skin,form,material,plain):null;
   if(skin?.material.userData.faceLayout)fitFaceLayout(skin.geometry,mouthLining(skin.geometry));
   group.add(humanEyes(skin,eyeBalls(s,origin),material,plain,form,(form.human.height??1.72)/1.72));

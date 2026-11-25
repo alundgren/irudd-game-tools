@@ -36,7 +36,7 @@ export function beardStrandMap() {
   ));
 }
 
-function beardTexture(data, width, height, name, colourSpace) {
+export function beardTexture(data, width, height, name, colourSpace) {
   let texture;
   if (typeof document !== "undefined") {
     const canvas = document.createElement("canvas");
@@ -126,4 +126,41 @@ export function beardRootTone(faceX, faceY) {
   return rootTone[
     data[4 * (Math.round(bedRow(faceX)) * width + Math.round(bedColumn(faceY)))]
   ];
+}
+
+// Skin paint under a short beard. The growth value rises slowly from bare skin, so the paint
+// tapers into the cheek, and is nearly solid in the core where the roots shade each other.
+const ease = (v, a, b) => {
+  const t = clamp((v - a) / (b - a));
+  return t * t * (3 - 2 * t);
+};
+export const shortBeardCover = (growth) => 0.94 * ease(growth, 0.05, 0.62);
+const lattice = (i, j) => ((Math.imul(i + 911, 374761393) ^ Math.imul(j + 7, 668265263) ^ Math.imul(i * j + 13, 2246822519)) >>> 0) / 4294967296;
+function valueNoise(x, y) {
+  const i = Math.floor(x), j = Math.floor(y), a = x - i, b = y - j, u = a * a * (3 - 2 * a), v = b * b * (3 - 2 * b);
+  return (lattice(i, j) * (1 - u) + lattice(i + 1, j) * u) * (1 - v) + (lattice(i, j + 1) * (1 - u) + lattice(i + 1, j + 1) * u) * v;
+}
+/**
+ * Shade of the roots at a point of the face chart: dark undergrowth with lighter streaks that
+ * run the way the hair grows. The chart lies on its side, so growth runs along x.
+ */
+export function shortBeardRoot(faceX, faceY, moustache = 0, deepen = 0.22) {
+  // Over the lip the hair runs out from the middle, which is across the chart.
+  const down = valueNoise(faceX * 70, faceY * 260), out = valueNoise(faceX * 250, faceY * 80);
+  return (0.34 + 0.46 * (down + (out - down) * clamp(moustache * 1.6)) + 0.12 * valueNoise(faceX * 9, faceY * 40)) * (1 - deepen * clamp(moustache * 1.6));
+}
+/**
+ * How much short-beard hair grows at a point of the face chart, from the moustache, chin and side
+ * growth there: 0 bare, 1 full. The skin paint and the hair cards both read this, so no card
+ * grows where the skin is bare. The cheek thins over a wide band, a thin strip of stubble joins
+ * the cheek to the hair in front of the ear, and the moustache parts under the nose.
+ */
+export function shortBeardGrowth(faceX, faceY, growth) {
+  const lateral = Math.abs(faceY - 0.5) * 2;
+  const line = 0.635 - 0.085 * ease(lateral, 0.28, 0.74);
+  const wobble = (valueNoise(faceX * 23 + 3, faceY * 23) - 0.5) * 0.05 + (valueNoise(faceX * 61, faceY * 61 + 9) - 0.5) * 0.024;
+  const cheek = ease(faceX + wobble, line - 0.085, line + 0.085);
+  const link = 0.32 * ease(lateral, 0.74, 0.83) * (1 - ease(lateral, 0.86, 0.92)) * ease(faceX, 0.4, 0.45) * (1 - ease(faceX, 0.56, 0.62));
+  const philtrum = 1 - 0.75 * Math.exp(-(((faceY - 0.5) / 0.009) ** 2));
+  return Math.max(growth[0] * philtrum, growth[1], growth[2] * cheek, link);
 }

@@ -2,6 +2,7 @@ import {wornHandProp} from "./human-hand-fan.js";
 import {humanBinding} from "./human-mesh.js";
 import { addSkirtCage, weightSkirt, animateSkirts } from "./skirt-rig.js";
 import { addDrapeJoints, animateDrapes } from "./human-drape-rig.js";
+import { addTailJoints, animateTails } from "./human-tail-rig.js";
 import { dispatchActionClip } from "./dispatch-pose.js";
 import { authoredClips, bindPoseJoints } from "./poses.js";
 import { bindMantleArms } from "./mantle-rig.js";
@@ -411,6 +412,7 @@ export function skinCharacter(form, model, { coverage = false } = {}) {
   }
   // Long cloth on an adult hangs from a few joints of its own.
   const drapes = addDrapeJoints(regions, bones, index);
+  const tails = addTailJoints(regions, bones, index);
   actor.updateMatrixWorld(true);
   const skeleton = new T.Skeleton(bones),
     point = new T.Vector3();
@@ -440,7 +442,7 @@ export function skinCharacter(form, model, { coverage = false } = {}) {
       const carried = arm?.role === "wing" && arm.points.length > 1 ? arm : s;
       const authored = source.humanWeights;
       const humanBones = authored && humanBinding(s,regions,index,authored.names);
-      const hung = authored?.clothJoints ? drapes.weigh(authored.clothJoints) : null;
+      const hung = authored?.clothJoints ? drapes.weigh(authored.clothJoints) : authored?.hairJoints ? tails.weigh(authored.hairJoints) : null;
       for (let i = 0; i < pos.count; i++) {
         point.fromBufferAttribute(pos, i);
         if (authored) {
@@ -595,6 +597,7 @@ export function skinCharacter(form, model, { coverage = false } = {}) {
       rest = standingClip(posed);
     if (skirtCages.length) animateSkirts(actor, skinned, regions, skirtCages, [rest]);
     animateDrapes(actor, drapes, [rest]);
+    animateTails(actor, tails, [rest]);
     alignGroundContacts(actor, skinned, root, [rest]);
     for (const track of rest.tracks) {
       const at = track.name.lastIndexOf("."),
@@ -622,6 +625,7 @@ export function skinCharacter(form, model, { coverage = false } = {}) {
   if (skinned && skirtCages.length)
     animateSkirts(actor, skinned, regions, skirtCages, [...clips, ...poses]);
   if (skinned) animateDrapes(actor, drapes, [...clips, ...poses]);
+  if (skinned) animateTails(actor, tails, [...clips, ...poses]);
   if (skinned) {
     const supported = [...regions.values()].some((r) =>
       ["thigh", "foot", "skirt", "axial spine"].includes(r.role),

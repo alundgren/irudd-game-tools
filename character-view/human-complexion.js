@@ -2,7 +2,7 @@ import { capturedSkinNames, capturedSkin } from "./human-captured-portraits.js";
 import beardScan from "./human-clipped-beard-data.json" with {type:"json"};
 import castSkin from "./human-cast-skin-data.json" with {type:"json"};
 import shavedScan from "./human-shaved-scan-data.json" with {type:"json"};
-import {beardRootTone} from "./human-beard-texture.js";
+import {beardRootTone,shortBeardCover,shortBeardRoot,shortBeardGrowth} from "./human-beard-texture.js";
 import { fittedBrow } from "./human-brow-styles.js";
 import * as T from "three";
 import {unzlibSync} from "three/addons/libs/fflate.module.js";
@@ -289,7 +289,7 @@ function poreReliefTile(seed,size=96){
  */
 export function beardRoot(skin,hair,facial){
   if(!facial||facial==="None"||facial==="Stubble")return null;
-  const tone=hair.clone().multiplyScalar(.66).lerp(skin,.12);
+  const tone=hair.clone().multiplyScalar(facial==="Short beard"?.8:.66).lerp(skin,.12);
   const gain=clamp(1.04*Math.max(tone.r/Math.max(skin.r,.004),tone.g/Math.max(skin.g,.004),tone.b/Math.max(skin.b,.004)),headGain,6);
   return {tone,gain};
 }
@@ -341,6 +341,17 @@ export function finishTint(r,g,b,chroma=1,weight=1){
   return [Math.exp(weight*(l+chroma*(lr-l))),Math.exp(weight*(l+chroma*(lg-l))),Math.exp(weight*(l+chroma*(lb-l)))];
 }
 
+/**
+ * The open planes of the cheeks in the face page, 0 to 1: beside the nose, below the folded skin under the eye and
+ * above the jaw. The page lies on its side, so x runs from brow to chin and y from ear to ear.
+ */
+export function cheekPlane(fx,fy){
+  const side=Math.abs(fy-.5);
+  return smooth(fx,.44,.50)*(1-smooth(fx,.66,.74))*smooth(side,.075,.125)*(1-smooth(side,.36,.44));
+}
+// Weathered scars keeps its red and brown wash whole on the nose, lids, brow and jaw. On the open cheek planes the wash
+// and a projected portrait layer keep these shares, so the cheeks read as skin beside the scar.
+export const weatheredCheek={wash:.35,layer:.45};
 function paint(look){
   const {choice,skin,hair,age,frame,seed,brow}=look,facial=facialHairStyle(look.facial);
   const grows=facial&&growthPixels(),dense=tintOn(skin,hair.clone().lerp(skin,.22)).map(v=>v/255);
@@ -383,6 +394,8 @@ function paint(look){
   const trimmed = look.facial === "Clipped beard";
   const clipped = trimmed || look.facial === "Stubble" ? sources.clippedBeard : null;
   const standingBeard = look.facial==="Short beard" || look.facial==="Full beard";
+  // Pale hair needs darker roots over the lip to stand out from the skin; dark hair already does.
+  const mousDeepen=.22+.3*smooth(.2126*hair.r+.7152*hair.g+.0722*hair.b,.12,.4);
   const bareLinear=neutral.map(b=>srgbDecode[b]);
   const rootLinear=root&&[root.tone.r/headBase[0],root.tone.g/headBase[1],root.tone.b/headBase[2]];
   const isV2Pigment=registeredPigment.encoding==="local-pigment-v2";
@@ -405,7 +418,7 @@ function paint(look){
       const cheekFade=standingBeard?smooth(fx,(.635-.085*smooth(Math.abs(fy-.5)*2,.28,.74))-.095,(.635-.085*smooth(Math.abs(fy-.5)*2,.28,.74))+.105):1;
       for(let k=0;k<3;k++)cover=Math.max(cover,facial.cover[k]*grows[k][pixel]*(k===2?cheekFade:1));
       cover=standingBeard
-        ? (smooth(cover,.08,.86)**1.2)*(look.facial==="Short beard"?.74:facial.paint)
+        ? (look.facial==="Short beard" ? shortBeardCover(shortBeardGrowth(fx,fy,[grows[0][pixel],grows[1][pixel],grows[2][pixel]])) : (smooth(cover,.08,.86)**1.2)*facial.paint)
         : smooth(cover,.06,.7)*facial.paint;
       if (clipped) {
         const density = clipped[i] / 255 * mask * (1 - lips);
@@ -413,7 +426,7 @@ function paint(look){
       }
       hairy.data[i+3]=Math.round(255*cover);
     }
-    const rootGrain = clipped ? .26+.70*clipped[i+1]/128 : standingBeard && cover>0 ? beardRootTone(fx,fy) : 1;
+    const rootGrain = clipped ? .26+.70*clipped[i+1]/128 : standingBeard && cover>0 ? (look.facial==="Short beard" ? shortBeardRoot(fx,fy,grows[0][pixel],mousDeepen) : beardRootTone(fx,fy)) : 1;
     const under=eyes[i]/255*(.14+.42*age),socket=eyes[i+1]/255;
     // Signed zero-mean CC0 channels: R=fine pores, G=wrinkles/mid-structure, B=organic chroma.
     const pore=detail?(detail[i]-128)/96:0;
@@ -508,9 +521,11 @@ function paint(look){
       // Keep the source paint's registration across cheeks and brow. Reduce
       // the donor's flush on bare skin and preserve the hue of fantasy skin.
       const luminance=.25*weathering[i]+.5*weathering[i+1]+.25*weathering[i+2]-128;
+      const cheek = cheekPlane(fx,fy) * (1-eyes[i]/255);
+      const wash = .0055 * (1-(1-weatheredCheek.wash)*cheek) * mask * (1-cover);
       for (let channel=0; channel<3; channel++) {
         const chroma=weathering[i+channel]-128-luminance;
-        pigLinear[channel]*=Math.exp(.0055*mask*(1-cover)*(luminance+.60*profile.naturalHue*chroma));
+        pigLinear[channel]*=Math.exp(wash*(luminance+.60*profile.naturalHue*chroma));
       }
     }
     for(let k=0;k<3;k++){
@@ -726,6 +741,6 @@ export function faceMaterial(base,form){
   material.color.setRGB(...headBase);
   Object.assign(material,{map,roughnessMap,metalnessMap:roughnessMap,metalness:0,aoMap:roughnessMap,aoMapIntensity:.72,bumpMap,bumpScale:capturedSkin(look.choice) ? .0016 : finished?finishRead.bumpScale:.00125,roughness:.8});
   // A game export gives a face more of its shared texture page.
-  material.userData={...material.userData,portrait:true,faceLayout:true,skinColor,paintedLips:finished && look.makeup==="None"};
+  material.userData={...material.userData,portrait:true,faceLayout:true,quietCheeks:look.choice==="Weathered scars",skinColor,paintedLips:finished && look.makeup==="None"};
   return material;
 }

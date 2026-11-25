@@ -34,7 +34,8 @@ test("every facial hair style builds on slight and broad frames, in colour and c
         for (const mesh of [beard, strands].filter(Boolean)) {
           for (const value of mesh.geometry.attributes.position.array) assert.ok(Number.isFinite(value));
           assert.equal(Boolean(mesh.geometry.attributes.color), !plain);
-          assert.deepEqual(Object.keys(mesh.morphTargetDictionary), ["Blink", "Smile", "BrowLift"]);
+          // The lashes share the strand mesh and also carry the lids' part of a look up or down.
+          assert.deepEqual(Object.keys(mesh.morphTargetDictionary).slice(0, 3), ["Blink", "Smile", "BrowLift"]);
         }
       }
     }
@@ -172,7 +173,8 @@ test("in colour a moustache is an authored CC0 groom and beards use the original
       assert.equal(beard.userData.authoredGroom, undefined, name + " does not use community Sigmund groom");
       assert.ok(m.map && m.alphaTest > 0 && !m.alphaToCoverage, name + " keeps the fine strands as a clean cutout");
       const triangles = g.index.count / 3;
-      assert.ok(triangles >= 900 && triangles <= 3400, `${name}: ${triangles} triangles`);
+      // The rooted short beard spends more on separate hairs than the lock grooms do.
+      assert.ok(triangles >= 900 && triangles <= (name === "Short beard" ? 6000 : 3400), `${name}: ${triangles} triangles`);
     } else {
       const spec = authoredFacialHair[name];
       assert.equal(beard.userData.authoredGroom, spec.groom, name);

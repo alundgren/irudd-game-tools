@@ -85,7 +85,7 @@ test("nostrils and the line between the lips are shaded on the coloured head and
   assert.ok(darkN > 20 && dark / darkN < 0.75 * (plain / plainN), "nostril vertices are darker");
   assert.equal(skinOf(head(form, true)).geometry.attributes.color, undefined);
   // Expressions are still the full targets on the refined head.
-  assert.deepEqual(Object.keys(skin.morphTargetDictionary), ["Blink", "Smile", "BrowLift"]);
+  assert.deepEqual(Object.keys(skin.morphTargetDictionary), ["Blink", "Smile", "BrowLift", "LookUp", "LookDown"]);
 });
 
 test("a smile brings the lower lip up toward the upper teeth and still parts the lips", () => {

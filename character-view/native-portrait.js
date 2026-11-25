@@ -1,6 +1,7 @@
 import { CanvasTexture, Color, MathUtils, SRGBColorSpace, Vector3 } from "three";
 import { backdropOpacity, photoRegistration, rasterTriangles } from "./portrait-plate.js";
 import { mouthLining } from "./human-mouth.js";
+import { cheekPlane, weatheredCheek } from "./human-complexion.js";
 
 export const nativeHead = form => form.parts.find(p => p.humanBone === "head" && !p.humanSource);
 
@@ -226,8 +227,11 @@ export function applyNativePortrait(mesh, image) {
     tint.set([255 * rgb.r, 255 * rgb.g, 255 * rgb.b], value * 3);
   }
   const exposure = .56 + .36 * Math.sqrt(tint[255 * 3 + 1] / 255);
-  for (let p = 0; p < paint.data.length; p += 4) {
-    const alpha = overlay.data[p + 3] / 255;
+  // A Weathered scars face keeps a lower share of the layer on its open cheek planes.
+  const quiet = material.userData.quietCheeks ? 1 - weatheredCheek.layer : 0;
+  for (let p = 0, i = 0; p < paint.data.length; p += 4, i++) {
+    let alpha = overlay.data[p + 3] / 255;
+    if (quiet) alpha *= 1 - quiet * cheekPlane((i % canvas.width + .5) / canvas.width, (Math.floor(i / canvas.width) + .5) / canvas.height);
     for (let c = 0; c < 3; c++) {
       const original = tint[paint.data[p + c] * 3 + c];
       paint.data[p + c] = original + alpha * (overlay.data[p + c] - 128) * exposure;

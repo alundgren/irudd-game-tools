@@ -189,7 +189,33 @@ function gaze() {
     Number($("look-y").value) / 100,
   );
 }
-$("look-x").oninput = $("look-y").oninput = () => { gaze(); requestFrame(); };
+// An exported clip animates every morph weight of a mesh together, so its blink also writes
+// the gaze weights. While a look control is off centre the user's gaze is put back after each
+// sample. At centre the weights are the clip's, so authored eye movement plays untouched.
+let held = false;
+function holdGaze() {
+  if (held) gaze();
+}
+function releaseGaze() {
+  held = false;
+  // Stopping hands the weights back; playing from the same time makes the clip write them again.
+  const time = action?.time;
+  action?.stop();
+  setGaze(model, 0, 0);
+  if (action) {
+    action.play().time = time;
+    mixer.update(0);
+    if ($("expression").value) expression($("expression").value);
+  }
+}
+$("look-x").oninput = $("look-y").oninput = () => {
+  if (Number($("look-x").value) || Number($("look-y").value)) {
+    held = true;
+    gaze();
+  } else if (held && !locked) releaseGaze();
+  // A release during the motion check waits for the check to put its clip back.
+  requestFrame();
+};
 $("expression").onchange = () => { expression($("expression").value); requestFrame(); };
 function pose() {
   model.updateMatrixWorld(true);
@@ -212,9 +238,12 @@ function pose() {
 function selectClip() {
   mixer.stopAllAction();
   action = null;
+  // The clip starts from weights without the user's gaze, so a later release finds them clean.
+  if (held) setGaze(model, 0, 0);
   const clip = clips.find((c) => c.name === $("clip").value);
   if (clip) action = mixer.clipAction(clip).reset().play();
   mixer.update(0);
+  holdGaze();
   $("time").value = 0;
   requestFrame();
 }
@@ -249,6 +278,7 @@ function showScene(index, view, initialClip, preserve = false) {
   const poses = targets.filter((k) => !gazeNames.includes(k));
   $("look-fields").hidden = !targets.includes("LookLeft");
   if (!preserve) $("look-x").value = $("look-y").value = 0;
+  held = Boolean(Number($("look-x").value) || Number($("look-y").value));
   $("expression-field").hidden = !poses.length;
   $("expression").replaceChildren(
     new Option("Rest", ""),
@@ -337,7 +367,7 @@ function showScene(index, view, initialClip, preserve = false) {
       $("expression").value = oldExpression;
       expression(oldExpression);
     }
-    gaze();
+    holdGaze();
   }
 }
 async function load(file, view, initialClip, initialOutfit) {
@@ -418,6 +448,7 @@ $("time").oninput = () => {
     $("playing").checked = false;
     action.time = Number($("time").value) * action.getClip().duration;
     mixer.update(0);
+    holdGaze();
     requestFrame();
   }
 };
@@ -471,10 +502,13 @@ $("check").onclick = async () => {
       if (action) {
         action.time = oldTime;
         mixer.update(0);
+        holdGaze();
         $("time").value = oldTime / action.getClip().duration;
       }
     }
     locked = false;
+    if (held && !Number($("look-x").value) && !Number($("look-y").value))
+      releaseGaze();
     $("wardrobe-look").disabled = false;
     $("check").disabled = !clips.length;
   }
@@ -497,6 +531,7 @@ function drawFrame(t) {
   if (playing) {
     mixer.update(previous === null ? 0 : Math.min((t - previous) / 1000, 0.08));
     if ($("expression").value) expression($("expression").value);
+    holdGaze();
     $("time").value = action.time / action.getClip().duration;
   }
   previous = playing ? t : null;

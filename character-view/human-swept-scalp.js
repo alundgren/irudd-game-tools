@@ -11,12 +11,17 @@ let tones;
 /** Fit the combed hair painting to the wearer's crown, ears and nape. The mesh
  * UVs follow the actual hairline. Undo that warp before sampling the painting
  * so a high ear shortens the strands without bending them over the temple. */
-export function sweptScalpTexture(lines, skin, hair, reversed) {
+export function sweptScalpTexture(lines, skin, hair, reversed, roots = null) {
   const boundary = Array.from({length: samples}, (_, i) => {
     const angle = i * 360 / samples - 180;
     return lines[angle > 0 ? 0 : 1](Math.abs(angle));
   });
-  const key = [skin.getHexString(), hair.getHexString(), reversed, ...boundary.map(a => Math.round(a * 8))].join(",");
+  // Under rooted locks the painting is the hair beneath them: `roots` is the line they grow from, by side.
+  const rootEdge = roots && Array.from({length: samples}, (_, i) => {
+    const angle = i * 360 / samples - 180;
+    return roots[angle > 0 ? 0 : 1](Math.abs(angle));
+  });
+  const key = [skin.getHexString(), hair.getHexString(), reversed, roots ? "rooted" : "", ...boundary.map(a => Math.round(a * 8)), ...(rootEdge ?? []).map(a => Math.round(a * 8))].join(",");
   if (charts.has(key)) return charts.get(key);
 
   tones ??= unzlibSync(Uint8Array.from(atob(paint.tone), c => c.charCodeAt(0)));
@@ -40,12 +45,21 @@ export function sweptScalpTexture(lines, skin, hair, reversed) {
       const tone = tones[v * size + u];
       const margin = elevation - edge + .85 * Math.sin(43 * angle) + .55 * Math.sin(127 * angle) + 1.9 * (tone / 255 - .70);
       const density = T.MathUtils.smoothstep(margin, -1.6, 4.8);
-      dye.copy(hair).multiplyScalar(linear[tone]).lerp(skin, 1 - density).convertLinearToSRGB();
+      let shade = linear[tone], clear = 1;
+      if (rootEdge) {
+        const inside = elevation - T.MathUtils.lerp(rootEdge[index % samples], rootEdge[(index + 1) % samples], t - index);
+        // Across the forehead and the temples the locks themselves are the hairline: the painting ends under them.
+        // Round the sideburns and the nape it still carries the short hair that fades into the skin.
+        const frontal = T.MathUtils.smoothstep(Math.abs(angle) * degrees, 96, 62);
+        clear = T.MathUtils.lerp(1, T.MathUtils.smoothstep(inside, 2.5, 4.5), frontal);
+        shade *= T.MathUtils.lerp(.8, .5, T.MathUtils.smoothstep(inside, -1, 5));
+      }
+      dye.copy(hair).multiplyScalar(shade).lerp(skin, 1 - density).convertLinearToSRGB();
       const i = 4 * (y * size + x);
       pixels[i] = Math.round(dye.r * 255);
       pixels[i + 1] = Math.round(dye.g * 255);
       pixels[i + 2] = Math.round(dye.b * 255);
-      pixels[i + 3] = Math.round(255 * T.MathUtils.smoothstep(margin, -2.6, 1));
+      pixels[i + 3] = Math.round(255 * clear * T.MathUtils.smoothstep(margin, -2.6, 1));
     }
   }
 

@@ -14,6 +14,7 @@ import { landmarks } from "./human-style-cloth.js";
 import { lengthCards } from "./human-groom-lengths.js";
 import { haloGather, haloTubes, lockCards, lockParting, sweptTail } from "./human-groom-locks.js";
 import { clumpMaps, clumpVolume } from "./human-hair-clumps.js";
+import { lockTiles, sweptLockSheet, sweptLocks, sweptVolume, scalpShare } from "./human-swept-locks.js";
 
 const DEG = Math.PI / 180, TAU = Math.PI * 2;
 
@@ -54,7 +55,9 @@ const GROWN = {
   "Braid": { top: 56, front: 0, side: 46, edge: 12, fade: 6, lay: .06, burn: .35, fringe: 1, lengths: true, swept: { gather: [0, -.3, -1] } },
   // Drawn back under a plait that is laid round the head.
   "Crown braid": { top: 56, front: 0, side: 46, edge: 12, fade: 6, lay: .06, burn: .35, fringe: 1, swept: { gather: haloGather, halo: true } },
-  "Low ponytail": { top: 56, front: 0, side: 46, edge: 12, fade: 6, lay: .06, burn: .35, fringe: 1, swept: { gather: [0, -.2, -1], tail: { long: .2, thick: .03 } } },
+  // `rooted` grows the drawn-back hair as locks from the hairline to the tie (see human-swept-locks.js): `volume` is how
+  // far they stand off the scalp over the forehead, in millimetres, and `strays` how many strands may hang loose at a temple.
+  "Low ponytail": { top: 56, front: 0, side: 46, edge: 12, fade: 6, lay: .06, burn: .35, fringe: 1, swept: { gather: [0, -.2, -1], tail: { long: .2, thick: .03 }, rooted: { volume: 9.5, strays: 3 } } },
 };
 // Curls are a volume: the hair stands off the head by its depth, and the surface of that volume is the clumps themselves.
 // `curl` is the clump the volume is made of: domes of coils or hanging ringlets (see human-hair-clumps.js): `clump` is
@@ -153,6 +156,23 @@ function sideLine(ear, spec) {
     [F - 3.5, burn + (spec.swept ? 9 : 4)], [F - 1, top + 3.5], [B + 1, top + 3.5], [B + 6, top - 2], [B + 13, mix(top, low, .5)], [B + 24, low + 3],
     [Math.max(B + 34, 147), -47], [165, -52], [180, -50],
   ]);
+}
+
+/**
+ * The line the outer locks of drawn-back hair grow from: the hairline across the forehead, the temple and the nape,
+ * and a line from the temple over the ear where the hairline itself drops into the sideburn. Hair below that
+ * line is short and stays on the skin.
+ */
+function rootLine(ear, spec) {
+  const F = clamp(ear.front / DEG, 76, 96), B = clamp(ear.back / DEG, F + 12, 118), top = ear.top / DEG, low = ear.low / DEG, line = sideLine(ear, spec);
+  const over = curve([[F - 26, 29], [F - 14, mix(29, top + 6.5, .55)], [F - 1, top + 6.5], [B + 2, top + 6.5], [B + 9, top], [B + 14, mix(top, low, .5) + 1]]);
+  return at => at > F - 26 && at < B + 14 ? Math.max(line(at), over(at)) : line(at);
+}
+
+/** Where the sideburn of `sideLine` is: its middle and half its width as directions and the elevation of its tip, in degrees. */
+function sideburn(ear, spec) {
+  const F = clamp(ear.front / DEG, 76, 96);
+  return { at: F - 10.5, wide: 5.5, low: mix(ear.top, ear.low, spec.burn) / DEG + 1 };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -388,6 +408,8 @@ export function groomGeometry(surface, style, { skin = "#96735d", budget = 0, tu
   if (!spec) return null;
   const body = surfaceBody(surface), f = surfaceFrame(surface), k = f.k, mm = k / 1000, ears = measureEars(body, f), lines = ears.sides.map(e => sideLine(e, spec));
   const lengths = spec.lengths ? hairLengths(body, landmarks(body), style.hair, style) : null;
+  // Under a helmet drawn-back hair is pressed to the painted scalp.
+  const rooted = !tucked && spec.swept?.rooted ? { ...spec.swept.rooted, lines: ears.sides.map(e => rootLine(e, spec)) } : null, standing = rooted && sweptVolume(rooted, k, spec.swept.gather ?? lengths.gather);
   // Hair cut all round falls from its crown. Longer hair parts along a line from the forehead over the top of the head.
   const pole = lengths?.pole && unit(lengths.pole), parting = spec.locks ? lockParting(spec.locks, style.fringe) : !pole ? null : lengths.sheets[0].around ? [pole] : [aimAt(Math.atan2(pole[0], pole[2]) * .6, 30 * DEG), pole, unit([pole[0] * .5, .8, -.58])];
   const look = spec.comb ?? (COMBS[style.fringe] ? style.fringe : "As cut"), flow = combing(look, { parting, gather: lengths?.gather ?? spec.swept?.gather }), scalp = scalpMap(body, f, ears);
@@ -467,10 +489,13 @@ export function groomGeometry(surface, style, { skin = "#96735d", budget = 0, tu
     }
     s = cut(s, i => s.f.line[i]);
     s = connected(s, [0, f.top, f.centre[2]]);
-    s = subdivide(s);
+    // A game model spends its triangles on the locks over this layer.
+    if (!(rooted && budget > 0)) s = subdivide(s);
     for (let i = 0; i < s.count; i++) {
       const a = s.anchor(i), at = f.aim(a), far = Math.max(0, margin(at.phi, at.eps)), here = cutAt(at.q, at.phi, far), n = s.normal(i);
-      const p = add(add(a, n, here.under + (spec.swept ? mm * (1.2 + 2.2 * smooth(0, 12, far)) : 0)), unit(sub(a, f.centre)), volume(at, far));
+      // Under rooted locks the painted scalp is the hair further down: it rises with them and stays beneath them.
+      const lifted = rooted ? mm * 1.2 + scalpShare(budget > 0) * standing(at.q) * smooth(2, 15, far) : here.under + (spec.swept ? mm * (1.2 + 2.2 * smooth(0, 12, far)) : 0);
+      const p = add(add(a, n, lifted), unit(sub(a, f.centre)), volume(at, far));
       roots.position.push(p[0], p[1], p[2]); roots.normal.push(n[0], n[1], n[2]);
       // Streaks along the combing direction, darker where the hair is deep.
       // Under locks the roots are as dark as the strand picture makes the locks, so where a lock begins does not show.
@@ -513,10 +538,16 @@ export function groomGeometry(surface, style, { skin = "#96735d", budget = 0, tu
   // Hair that leaves the head is built first, so a game model can give the scalp what is left of its allowance.
   // Under a helmet it is tucked away and only the scalp shows.
   const hung = { position: [], normal: [], color: [], uv: [], index: [], bones: [], weights: [] };
+  let swung = null;
   if (spec.swept?.tail) {
     const m = landmarks(body);
-    sweptTail(hung, { gather: spec.swept.gather ?? lengths.gather, tail: spec.swept.tail, f, k, m, body, seat, skinOf: hairLengths(body, m, "Long").skin, tiles: TILES, hair, game, tucked });
+    const tie = sweptTail(hung, { gather: spec.swept.gather ?? lengths.gather, tail: spec.swept.tail, f, k, m, body, seat, skinOf: hairLengths(body, m, "Long").skin, tiles: rooted ? lockTiles(game) : TILES, hair, game, tucked });
+    if (rooted && tie) {
+      // Only these vertices hang from the tie. The scalp locks appended below stay on the head.
+      swung = { count: hung.position.length / 3, tie, long: spec.swept.tail.long * k, head: body.joint("head") };
+    }
   }
+  if (rooted) sweptLocks(hung, { rooted, to: spec.swept.gather ?? lengths.gather, f, k, seat, skinOf: at => body.skinOf(at.v >= 0 ? at.v : body.nearest(at.p, 8)), rootLine: rooted.lines, burns: ears.sides.map(e => sideburn(e, spec)), hair, game, fringe: style.fringe });
   if (spec.swept?.halo) lengthCards(hung, { sheets: [], tubes: haloTubes(seat, k, game), skin: body.rigid("head") }, { tiles: TILES.long, solid: TILES.solid, hair, k, centre: f.centre, game });
   if (spec.locks) {
     const m = landmarks(body);
@@ -599,7 +630,7 @@ export function groomGeometry(surface, style, { skin = "#96735d", budget = 0, tu
   const shift = cards.position.length / 3;
   for (const key of ["position", "normal", "color", "uv", "bones", "weights"]) for (const x of hung[key]) cards[key].push(x);
   for (const i of hung.index) cards.index.push(i + shift);
-  return { roots, cards, look, swept: spec.swept ? lines : null, ties: lengths && !tucked ? lengths.ties : [] };
+  return { roots, cards, look, swept: spec.swept ? lines : null, rooted: rooted && { ...rooted, game }, tail: swung && { ...swung, from: shift }, ties: lengths && !tucked ? lengths.ties : [] };
 }
 
 function meshOf(part, material, name, uv = false) {
@@ -642,12 +673,19 @@ export function strandGroom(surface, style, material, plain, skinColor, gameBudg
       under.userData = { ...under.userData, hairCards: true, portrait: true, fibreLOD: true };
     }
     if (groom.swept) {
-      under.map = sweptScalpTexture(groom.swept, new T.Color(skinColor), new T.Color(style.hairColor ?? "#48372e"), style.fringe === "Swept left");
+      under.map = sweptScalpTexture(groom.swept, new T.Color(skinColor), new T.Color(style.hairColor ?? "#48372e"), style.fringe === "Swept left", groom.rooted?.lines);
       under.alphaTest = .36;
       under.roughness = .70;
-      under.userData = { ...under.userData, portrait: true, hairCards: true };
+      // Under rooted locks little of the painting shows, so it takes an ordinary share of a game model's atlas.
+      under.userData = { ...under.userData, portrait: !groom.rooted, hairCards: true };
     }
-    if (!groom.curls) over.map = tuftMap();
+    if (groom.rooted) {
+      // Locks and the tail read one picture with its own relief and sheen.
+      const drawn = sweptLockSheet(groom.rooted.game);
+      over.map = drawn.map; over.normalMap = drawn.normalMap; over.roughnessMap = drawn.roughnessMap;
+      over.normalScale = new T.Vector2(.9, .9); over.roughness = 1;
+      over.userData = { ...over.userData, portrait: true };
+    } else if (!groom.curls) over.map = tuftMap();
     // A plain cutout, as in an exported file. Alpha to coverage breaks strands this fine into pale speckles
     // in the workshop view.
     over.alphaTest = .4;
@@ -663,6 +701,7 @@ export function strandGroom(surface, style, material, plain, skinColor, gameBudg
     return [roots];
   }
   const cards = meshOf(groom.cards, over, style.hair, true);
+  if (groom.tail) cards.humanWeights.hairJoints = { ...groom.tail, names: ["head", "neck_01", "spine_03"] };
   cards.userData.strandGroom = true;
   // The roots cast the shadow of the hair. The strands lie a few millimetres over them and add nothing
   // to it that shows, so they are left out of the shadow pass.

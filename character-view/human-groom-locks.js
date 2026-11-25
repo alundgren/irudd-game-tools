@@ -206,7 +206,7 @@ export function lockCards(cards, { locks, fringe, f, k, m, body, seat, skinOf, t
 /** Hang a layered tail from the measured gathering point at the back of the head. */
 export function sweptTail(cards, { gather, tail = null, f, k, m, body, seat, skinOf, tiles, hair, game, tucked = false }) {
   if (!tail || tucked) return;
-  const mm = k / 1000, to = unit(gather), light = clamp(.2126 * hair.r + .7152 * hair.g + .0722 * hair.b), depth = mix(.13, .24, smooth(.05, .6, light));
+  const mm = k / 1000, to = unit(gather), size = tiles.size ?? 256, light = clamp(.2126 * hair.r + .7152 * hair.g + .0722 * hair.b), depth = mix(.13, .24, smooth(.05, .6, light));
   const push = (p, n, tone, uv, dye = hair) => {
     const [bones, weights] = skinOf(p);
     cards.position.push(p[0], p[1], p[2]); cards.normal.push(n[0], n[1], n[2]);
@@ -214,8 +214,8 @@ export function sweptTail(cards, { gather, tail = null, f, k, m, body, seat, ski
     cards.uv.push(uv[0], uv[1]); cards.bones.push(...bones); cards.weights.push(...weights);
   };
   // Hair drawn back is full from the hairline to the tie: the picture is read where its strands are unbroken.
-  const picture = (tile, x, row) => [(tile[0] + 2.5 + (tile[2] - 5) * x) / 256, 1 - (tile[1] + 1.5 + (tile[3] - 3) * (1 - row)) / 256];
-  const solidAt = (x, y) => [(tiles.solid[0] + 2 + (tiles.solid[2] - 4) * x) / 256, 1 - (tiles.solid[1] + 2 + (tiles.solid[3] - 4) * y) / 256];
+  const picture = (tile, x, row) => [(tile[0] + 2.5 + (tile[2] - 5) * x) / size, 1 - (tile[1] + 1.5 + (tile[3] - 3) * (1 - row)) / size];
+  const solidAt = (x, y) => [(tiles.solid[0] + 2 + (tiles.solid[2] - 4) * x) / size, 1 - (tiles.solid[1] + 2 + (tiles.solid[3] - 4) * y) / size];
   /** A ribbon through `stations`, as wide as the room between `left` and `right`. `rows` are the picture rows at its two ends. */
   const ribbon = (stations, left, right, { tone, tile, flip, rows, widest, widen = 1.4, least = 4, taper = 0, roll = 0, narrow = 1 }) => {
     const first = cards.position.length / 3, n = stations.length;
@@ -275,6 +275,7 @@ export function sweptTail(cards, { gather, tail = null, f, k, m, body, seat, ski
     }
     for (let i = 0; i < sides; i++) { const a = first + i, b = a + sides + 1; cards.index.push(a, b, a + 1, a + 1, b, b + 1); }
   }
+  return tie.p;
 }
 
 /** Where a braid worn round the head lies: the elevation of its middle line at a bearing, both in radians. */

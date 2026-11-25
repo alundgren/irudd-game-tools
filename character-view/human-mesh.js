@@ -11,6 +11,7 @@ import { stageMakeupFace } from "./human-makeup.js";
 import { applyFacePlanes } from "./human-face-planes.js";
 import { applyNativePortrait } from "./native-portrait.js";
 import { portraitImage } from "./portrait-images.js";
+import { followGaze } from "./human-lid-follow.js";
 import { faceAnatomyFields, facialMorphNormals, refineExpressions, refineFaceForm, shadeFaceForm } from "./human-face-anatomy.js";
 import {
   evaluateHuman,
@@ -99,7 +100,7 @@ function geometry(surface, corners, normals, origin, tinted, shade, joined, char
   };
 }
 
-export function humanRegions(form, material, plain, styleMeshes) {
+export function humanRegions(form, material, plain, styleMeshes, game = false) {
   const cage = evaluateHuman(form.human, form.humanFit, form.humanDetail),
     s = refineFaceForm(smoothHumanSurface(cage)),
     bins = s.names.map(() => []);
@@ -229,9 +230,11 @@ export function humanRegions(form, material, plain, styleMeshes) {
     if (part.humanBone === "head") {
       const positions = cage.positions.slice();
       positions.set(s.positions.subarray(0, cage.bodyVertices * 3));
-      humanFace(group, { ...cage, positions }, origin, material, plain, form);
+      humanFace(group, { ...cage, positions }, origin, material, plain, form, game);
       if (!plain && part.nativePortrait)
         applyNativePortrait(group.children.find(mesh => mesh.userData.faceSurface), portraitImage(part.nativePortrait));
+      // The lids travel with a look up or down.
+      followGaze(group, s.height / 1.72);
     }
     for (const source of styled.filter(
       (m) => m.userData.styleRegion === part.humanBone,

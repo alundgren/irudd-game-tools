@@ -57,13 +57,13 @@ function noise(x,y,seed){
  * follows the jaw, lips and cheeks.
  * Call this while the head still has the texture coordinates of the skin layout.
  */
-export function facialHair(skin,form,material,plain,sink,colours,fit=null){
+export function facialHair(skin,form,material,plain,sink,colours,fit=null,game=false){
   const style=styles[form.humanStyle?.facialHair];
   if(!style||!style.thick.some(Boolean))return null;
   // Short and full beards use the original anatomical lock-and-hair groom in colour.
   // Moustache keeps its credited CC0 strand groom; clay keeps the sculpted mass below.
   if(fit&&!plain){
-    const grown=beardGroom(skin,form,material,colours,fit);
+    const grown=beardGroom(skin,form,material,colours,fit,game);
     if(grown)return grown;
   }
   const worn=fit&&!plain?authoredFacialHair[form.humanStyle.facialHair]:null;

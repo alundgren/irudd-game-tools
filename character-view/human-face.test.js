@@ -16,13 +16,13 @@ test("eyes, brows and lashes keep the head's expression and gaze targets", () =>
   for (const plain of [false, true]) {
     const group = head(adult({ frame: 0.9, age: 0.4 }), plain);
     const [skin, eyes, hair] = group.children;
-    assert.deepEqual(Object.keys(skin.morphTargetDictionary), ["Blink", "Smile", "BrowLift"]);
+    assert.deepEqual(Object.keys(skin.morphTargetDictionary), ["Blink", "Smile", "BrowLift", "LookUp", "LookDown"]);
     assert.equal(eyes.userData.eyePiece, "Iris");
     assert.deepEqual(
       eyes.geometry.morphAttributes.position.map((a) => a.name),
       ["LookLeft", "LookRight", "LookUp", "LookDown"],
     );
-    assert.deepEqual(Object.keys(hair.morphTargetDictionary), ["Blink", "Smile", "BrowLift"]);
+    assert.deepEqual(Object.keys(hair.morphTargetDictionary), ["Blink", "Smile", "BrowLift", "LookUp", "LookDown"]);
     assert.equal(hair.material.userData.fibreLOD, true);
     assert.equal(Boolean(hair.geometry.attributes.color), !plain);
     for (const mesh of [eyes, hair])

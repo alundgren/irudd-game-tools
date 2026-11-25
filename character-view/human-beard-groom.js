@@ -5,10 +5,12 @@
 //   beardStrandPixels() -> { width, height, data }
 //   beardStrandMap() -> THREE.Texture
 import * as T from "three";
-import { bedColumn, bedRow, beardStrandMap, beardSurfaceMaps } from "./human-beard-texture.js";
+import { bedColumn, bedRow, beardStrandMap, beardSurfaceMaps, shortBeardCover, shortBeardGrowth } from "./human-beard-texture.js";
 export { beardStrandMap, beardStrandPixels } from "./human-beard-texture.js";
 import { randomStream } from "./random.js";
 import { facePoint, growthAt } from "./human-face-hair.js";
+import { bristleMaps } from "./human-beard-bristles.js";
+import { rootedBeard } from "./human-beard-rooted.js";
 
 const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 const mix = (a, b, t) => a + (b - a) * t;
@@ -156,16 +158,39 @@ const STYLE_CONFIG = {
   },
   "Short beard": {
     full: false,
-    // Sleek, close-lying combed locks (sculpted chin volume, trim jaw & feathered cheek graduation)
-    standOut: { mous: 1.4, chin: 3.1, jaw: 2.1, cheek: 0.95, sideburn: 0.95 },
-    lockLen: { mous: 5.8, chin: 12.2, jaw: 11.4, cheek: 10.0, sideburn: 9.8 },
-    lockWid: { mous: 3.8, chin: 8.6, jaw: 8.4, cheek: 7.6, sideburn: 6.2 },
-    outerSpacing: 6.2,
-    mousSpacing: 4.1,
-    borderSpacing: 5.2,
-    whiskerSpacing: 15.5,
-    hangDrop: 0,
-    hangOut: 0,
+    // Rooted hair: lengths, tip lift and fringe height in millimetres for each part of the face.
+    rooted: {
+      paintFloor: 0.5, paintFull: 0.86, mousWidth: [1.7, 2.5],
+      length: { mous: 4.6, chin: 9.0, jaw: 8.4, cheek: 7.0, sideburn: 6.0 },
+      lift: { mous: 0.45, chin: 1.6, jaw: 1.3, cheek: 0.75, sideburn: 0.65 },
+      fringeHeight: { mous: 2.0, chin: 5.2, jaw: 4.6, cheek: 2.7, sideburn: 2.4 },
+      // The share of fringe sites that grow one: most along the jaw and chin, few on the cheek.
+      fringeShare: { mous: 0.25, chin: 1, jaw: 1, cheek: 0.5, sideburn: 0.5 },
+      coatSpacing: 3.8,
+      mousSpacing: 1.7,
+      fringeSpacing: 5.0,
+      straySpacing: 9,
+      featherSpacing: 4.6,
+      thatchSpacing: 4.2,
+      // Clumps: their width in millimetres, how far each turns from the growth around it and
+      // gathers to a point, how much its tone differs from the next, and how far the outer hair
+      // opens along the partings between clumps.
+      clumpSize: 5.5,
+      clumpStretch: 2.4,
+      clumpTurn: 0.6,
+      clumpGather: 0.7,
+      clumpTone: 0.5,
+      parting: 0.42,
+      partingShade: 0.2,
+      // Shade of the undergrowth and of the root of each hair against its tip.
+      underShade: 0.56,
+      rootShade: 0.66,
+      tipLight: 1.08,
+      gain: 1.26,
+      skinWarmth: 0.1, thinWarmth: 0.12,
+      // A game model carries fewer, larger cards and leaves out the single hairs.
+      compact: { coatSpacing: 4.7, thatchSpacing: 5.2, mousSpacing: 2.2, fringeSpacing: 6.4, straySpacing: 0, featherSpacing: 6.5, cardScale: 1.22 },
+    },
   },
   "Full beard": {
     full: true,
@@ -188,7 +213,7 @@ export const beardGroomStyles = Object.keys(STYLE_CONFIG);
  * Every vertex inherits barycentric expression morph targets (Blink, Smile, BrowLift)
  * from its anchor skin triangle so the beard moves seamlessly with smiles and jaw shapes.
  */
-export function beardGroom(skin, form, material, colours, fit = null) {
+export function beardGroom(skin, form, material, colours, fit = null, compact = false) {
   const styleName = form.humanStyle?.facialHair;
   const cfg = STYLE_CONFIG[styleName];
   if (!cfg || !skin?.geometry) return null;
@@ -309,12 +334,19 @@ export function beardGroom(skin, form, material, colours, fit = null) {
     const upperLipClear = inLipOval ? 0 : smooth(py, uArch, uArch + 2.6 * mm);
     const lowerLipClear = inLipOval ? 0 : smooth(lArch - py, 0, 3.6 * mm) + smooth(ax, 20 * mm, 29 * mm);
 
-    const m = smooth(w[0], 0.14, 0.58) * rim * upperLipClear;
-    const c = smooth(w[1], 0.10, 0.56) * rim * neckTrim * clamp(lowerLipClear);
-    const s = Math.max(
+    let m = smooth(w[0], 0.14, 0.58) * rim * upperLipClear;
+    let c = smooth(w[1], 0.10, 0.56) * rim * neckTrim * clamp(lowerLipClear);
+    let s = Math.max(
       smooth(w[2], 0.08, 0.56) * cheekMask * rim * neckTrim * (inLipOval ? 0 : 1),
       preEarSideburn * 0.84
     );
+    if (cfg.rooted) {
+      // Cards grow only where the skin paint is already well covered, so thin growth is paint alone.
+      const hairs = smooth(shortBeardCover(shortBeardGrowth(fx, fy, w)), cfg.rooted.paintFloor, cfg.rooted.paintFull);
+      m *= smooth(shortBeardCover(shortBeardGrowth(fx, fy, w)), 0.22, 0.6);
+      c *= hairs;
+      s = smooth(w[2], 0.08, 0.56) * rim * neckTrim * (inLipOval ? 0 : 1) * hairs;
+    }
 
     wMous[i] = m;
     wChin[i] = c;
@@ -427,6 +459,29 @@ export function beardGroom(skin, form, material, colours, fit = null) {
       samples.push({ tri: chosen, weights: [1 - u - v, u, v] });
     }
     return samples;
+  }
+
+  if (cfg.rooted) {
+    const inLips = (p, margin = 0) => {
+      const ax = Math.abs(p.x);
+      return ax < 24 * mm + margin && p.y < upperLipArchY(ax) + margin && p.y > lowerLipArchY(ax) - margin;
+    };
+    const noseBaseY = Number.isFinite(mousCenterHighY) ? mousCenterHighY + 3 * mm : mouthY + 22 * mm;
+    const onUpperLip = (p) => Math.abs(p.x) < 26 * mm && p.y > upperLipArchY(Math.abs(p.x)) && p.y < noseBaseY;
+    const eyeFloor = (p) => Math.abs(p.x) < eyeHalfX + 2.5 * mm && p.y > eyeMinY - 2.5 * mm;
+    const colour = (out, opts) => lockVertexColour(out, hair, skinTone, hairCls, opts);
+    const grown = rootedBeard(
+      { pos, nor, moves, skinTone, dens, borderFactor, wMous, wChin, mm, mouthY, inside, sample: sampleStratified, inLips, onUpperLip, eyeFloor,
+        skinWeights: skin.humanWeights?.weights ? skin.humanWeights : null },
+      // Pale hair is lifted to stay silver among its own shadows. Dark hair keeps its depth.
+      // Dark hair takes less of the colour of the skin, which would turn it purple.
+      { ...cfg.rooted, ...(compact ? cfg.rooted.compact : null), gain: mix(1, cfg.rooted.gain, smooth(hairCls.luma, 0.12, 0.4)), mousRootShade: mix(cfg.rooted.rootShade, 0.44, smooth(hairCls.luma, 0.12, 0.4)), warmth: mix(0.35, 1, smooth(hairCls.luma, 0.03, 0.2)) }, colour, (x, y, z) => noise3(x, y, z, (seed ^ 0x5c31) & 0xffff), randomStream(seed ^ 0x62ea4d06), seed ^ 0x3c6e);
+    if (!grown.index.length) return null;
+    const mesh = beardMesh(grown.position, grown.normal, grown.colour, grown.uv, grown.index, grown.moves, moves, material, bristleMaps(), styleName);
+    mesh.material.alphaTest = 0.5;
+    if (grown.bones.length)
+      mesh.humanWeights = { boneIndices: Uint8Array.from(grown.bones), weights: Float32Array.from(grown.blend), names: skin.humanWeights.names };
+    return mesh;
   }
 
   const outPos = [];
@@ -759,6 +814,10 @@ export function beardGroom(skin, form, material, colours, fit = null) {
 
   if (!outIdx.length) return null;
 
+  return beardMesh(outPos, outNor, outCol, outUv, outIdx, outMoves, moves, material, { map: beardStrandMap(), ...beardSurfaceMaps() }, styleName);
+}
+
+function beardMesh(outPos, outNor, outCol, outUv, outIdx, outMoves, moves, material, maps, styleName) {
   const geometry = new T.BufferGeometry();
   geometry.setAttribute("position", new T.Float32BufferAttribute(outPos, 3));
   geometry.setAttribute("normal", new T.Float32BufferAttribute(outNor, 3));
@@ -777,8 +836,7 @@ export function beardGroom(skin, form, material, colours, fit = null) {
   const m = material("#ffffff").clone();
   m.vertexColors = true;
   m.roughness = 1;
-  Object.assign(m,beardSurfaceMaps());
-  m.map = beardStrandMap();
+  Object.assign(m, maps);
   m.alphaTest = 0.32;
   m.alphaToCoverage = false;
   m.side = T.DoubleSide;

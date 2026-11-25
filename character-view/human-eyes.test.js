@@ -87,6 +87,11 @@ test("only the front of the eye turns with the gaze, about the ball's centre, an
     for (let i = 0; i < p.count; i++) {
       d.fromBufferAttribute(shift, i);
       if (!moving[i]) {
+        // The wet line goes up and down with the lower lid. The rest of the white stays put.
+        if (e > 1 && Math.abs(g.attributes.uv.getY(i) - 0.94) < 1e-4) {
+          assert.ok(d.x === 0 && Math.abs(d.y) < 2.001 * mm(adult()), "the wet line follows its lid");
+          continue;
+        }
         assert.equal(d.length(), 0, "the socket's white stays in the socket");
         assert.equal(v.fromBufferAttribute(lean, i).length(), 0);
         continue;
@@ -248,7 +253,7 @@ test("the cornea's normals put a high light's reflection in the upper iris, clea
   }
 });
 
-test("each eye includes a stationary fitted lower tear meniscus with upward wet-edge normals", () => {
+test("each eye includes a fitted lower tear meniscus with upward wet-edge normals that only moves with its lid", () => {
   for (const form of [adult(), generatedHuman(8736)]) {
     const eyes = eyesOf(head(form)), g = eyes.geometry;
     const uv = g.attributes.uv, n = g.attributes.normal;
@@ -258,9 +263,11 @@ test("each eye includes a stationary fitted lower tear meniscus with upward wet-
         meniscusVerts++;
         assert.ok(n.getY(i) > 0.15, "meniscus normal tilts upward: " + n.getY(i));
         for (const shift of g.morphAttributes.position) {
+          // A look across leaves it alone. A look up or down takes it with the lower lid.
+          const vertical = shift.name === "LookUp" || shift.name === "LookDown";
           assert.equal(shift.getX(i), 0);
-          assert.equal(shift.getY(i), 0);
-          assert.equal(shift.getZ(i), 0);
+          assert.ok(Math.abs(shift.getY(i)) <= (vertical ? 2.001 * mm(form) : 0));
+          assert.ok(Math.abs(shift.getZ(i)) <= (vertical ? 2.001 * mm(form) : 0));
         }
       }
     }
