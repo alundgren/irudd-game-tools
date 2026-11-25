@@ -1,8 +1,25 @@
 # Character creator quality handoff
 
-25 November 2026, after the round 15 export audit. **The last independently scored creator is round 14: 60.6/100 for visual finish and 81.1/100 for visible diversity.** The target is 80 on each axis. Creatures reached 80.1 for finish against Spore. Adults reached 45.1 against Dragon's Dogma 2 and 56.7 against The Sims 4. At that creature score the two adult scores need to average about 80, roughly 29 points above their round 14 average.
+The round 18 Game exports scored **65.6/100 for finish and 77.8/100 for visible diversity** against a target of 80 on each axis. Adult finish is the largest gap, at 55.7 against Dragon's Dogma 2 and 66.0 against The Sims 4. Creature finish is 75.3 against Spore. One independent reviewer scored 68 exported characters across 60 sheets. Their estimated uncertainty is about six points on overall finish.
 
-## Try the reviewed build
+## What changed through round 18
+
+| Area | Result | Engineering decision |
+| --- | --- | --- |
+| Ordinary adult hair | On held-out portraits, reducing contrast in curly hair erased much of the shape that lets a viewer recognize coils. Adding twisted groups produced strips sticking above the silhouette. Independent reviewers preferred the existing groom in every clear decision on the first test and in five of eight comparisons on the second, with three ties. | Keep the existing curly styles. A future treatment needs readable groups inside the hair and a soft outline through a turn. |
+| Warden hair, beard and eyes | Rooted swept locks give the hairline depth. Gaze-following lids keep pupils readable as the eyes move. The player reapplies user gaze after sampling animation. Skin-rooted beard clumps follow the jaw and expressions. Short moustache cards still break into flakes beneath the nostrils. | Keep the rooted warden hair and gaze changes. A Vibe Human-inspired comb shared by skin paint and cards produced mixed blind rankings. The lip clearance rule removed 34 of 40 eligible cards nearest the warden's lip in Neutral. Allowing the tips 1.5 mm past the clearance line filled the stripe in the warden's tested neutral and Smile views. The angular cards remained, a regional density test failed and the assessor crop was inconclusive. Keep the trial private. |
+| Skin | The weathered warden's red cheek streaks came from layered colour. On ordinary cast faces, a broad area with low roughness produced the waxy highlight under direct light. Lifting only the glossiest skin texels reduced the highlight on two heads. The smooth cheek colour remained visible in unlit renders. Fine roughness grain added to the lift made no visible difference on either head under two lights. | Treat weathering, fine skin variation and highlight shape separately. Compare both cheeks at matched pupil spacing against the photographed face and DD2 Geralt under recorded lighting. |
+| Creature coats | Thinning the original fur left about a third of its strands as isolated wires. At the same triangle allowance, wider guard clumps over short undercoat tufts read as fur in blind review on two subjects. The difference was small at 180 px. | Retain the Game pelt. Feather-normal tilts added little structure, and painting overlap shadow at only three vertices across a vane darkened too much of it. |
+| Export cost | In six adult comparisons, doubling both the Game triangle allowance and atlas width bought little at whole-figure size. The larger atlas quadrupled decoded texture memory. Restoring original coil tubes at 24k displaced enough face geometry to break three faces. | Keep the compact default. Test any larger preset on a named feature with face, hair and clothing budgets measured separately. |
+| Cast variety | In 61 of 333 consecutive six-person groups, two adults wore the same cast identity and fitted clothes. Five of the eight cast members can wear only their original outfit. Skin and body edits can still distinguish the pair. | Count visible outfits on the rendered cast when measuring diversity. Native hair and wardrobe choices stored underneath a cast figure can exaggerate the range. |
+
+Round 18 includes the Game pelt on the local warden worktree. The source passed 629 tests with one skip and built the workshop and player. On 16 of the 36 fixed and curated sheets the pixels were identical to round 16. One identical adult group's DD2 finish moved from 48 to 55 between reviewers. Use matched blind pairs to attribute improvements to code changes.
+
+Round 18 evidence is local to `warden-features16/.reference-cache`. Start with `round18/jury/REPORT.md` for the score, `quality-session18/DECISIONS.md` for the experiment comparisons and `quality-session18/jaw-review/skin-finish-anchor-board.jpg` for the photo, Geralt and cast portraits.
+
+To try the reviewed coat, open `round18/build/play-model.html` in that evidence directory and load `round18/creatures-14116/creature-14118.glb`. The matching `.form.json` opens in `round18/build/character-view.html` for editing. The game model, form and frozen player used by the reviewer are kept together.
+
+## Reproduce the round 15 checkpoint
 
 The local evidence is under `.reference-cache` in the `shape-first` worktree. The frozen HTML files open directly in a desktop browser. Saved forms are editable workshop inputs. GLBs open in the player. The evidence and third-party comparison art are kept out of Git.
 
@@ -26,7 +43,9 @@ Each game carries one third of the overall score. Within a game the weights are 
 | 12 | 66.8 | 84.8 |
 | 13 | 60.1 | 78.4 |
 | 14 | 60.6 | 81.1 |
-| 15 | Independent score pending | Independent score pending |
+| 15 | 72.7 | 89.1 |
+| 16 | 63.1 | 85.8 |
+| 18 | 65.6 | 77.8 |
 
 Several small improvements are real at the level of an individual character. Absolute scores fluctuate across jurors and fresh draws. Between rounds 12 and 13 all eight curated-adult sheets were byte-identical. Different ratings of those pictures alone account for 3.07 points of the decrease in overall finish. In a separate source study, the same Gardener GLB scored 60 and 80 against DD2 in different panels. For attributing a visual improvement, the strongest evidence is a blind comparison of the same person in the same views within one review. [Early rounds and protocol](creator-benchmarks.md), round 13 audit (`.reference-cache/quality-80/round13-direction.md`), round 14 review (`.reference-cache/quality-80/jury-round14/REPORT.md`), repeated source controls (`.reference-cache/quality-80/approach-comparison15/RESULT.md`).
 
@@ -55,5 +74,5 @@ Several small improvements are real at the level of an individual character. Abs
 
 - Native identity and shape start in [human-form.js](../character-view/human-form.js) and [human-surface.js](../character-view/human-surface.js). [human-wardrobe.js](../character-view/human-wardrobe.js) dresses a draw. [human-mesh.js](../character-view/human-mesh.js) assembles it.
 - The complete-character alternative starts in [human-cast-looks.js](../character-view/human-cast-looks.js) for selection, [human-cast.js](../character-view/human-cast.js) for rendering and [human-cast-wardrobe.js](../character-view/human-cast-wardrobe.js) for fitted outfits. [game-export.js](../character-view/game-export.js) applies the budget. [export-form.js](../character-view/export-form.js) writes the GLB.
-- Round 15 includes greave fit, upper-lid colour and the photographed-figure surface-map fallback. **614 tests passed. All 68 GLBs and 60 review sheets passed the export audit.** Of 44 recurring characters, 40 have equivalent normalized game exports. Four fixed adults changed. The four curated adults and all recurring creatures are equivalent to round 14. The independent review stopped after its rubric, before a score. Freeze and test log (`.reference-cache/quality-80/round15-changes.md`), export audit (`.reference-cache/quality-80/round15-integrity.json`).
+- Round 15 includes greave fit, upper-lid colour and the photographed-figure surface-map fallback. **614 tests passed. All 68 GLBs and 60 review sheets passed the export audit.** Of 44 recurring characters, 40 have equivalent normalized game exports. Four fixed adults changed. The four curated adults and all recurring creatures are equivalent to round 14. The subsequent independent review scored finish at 72.68 and diversity at 89.07. Its report is in `.reference-cache/quality-80/jury-round15/REPORT.md`. Freeze and test log (`.reference-cache/quality-80/round15-changes.md`), export audit (`.reference-cache/quality-80/round15-integrity.json`).
 - The broader cast comparison is parked, with all twelve ordinary subjects and 27 distinct recipes saved across the three treatments. Its two blocks use ordinary draws, native-only versions and whole-cast assignments without repeating an identity within a block. Only partial captures exist. There is no population result or basis here for changing the default draw rate. Registration (`.reference-cache/cast-population16/DECLARED.md`) and saved selections (`.reference-cache/cast-population16/recipes.json`).

@@ -7,6 +7,13 @@ import {
 } from "three";
 import { randomStream } from "./random.js";
 import { surfaceIndex } from "./surface-join.js";
+import {
+  appendTufts,
+  clumpTriangles,
+  peltGameDetail,
+  peltGuideIds,
+  undercoatTufts,
+} from "./creature-pelt.js";
 
 const tau = 2 * Math.PI;
 export const fibreDefaults = {
@@ -47,7 +54,7 @@ export function validFibres(s) {
 
 // Read the rings after surface fitting and sculpting. A moved guide, resized
 // body or bent spine changes the fibres without baking a second editable mesh.
-function readGuide(g) {
+export function readGuide(g) {
   const p = g.attributes.position,
     uv = g.attributes.uv;
   let stride = 1;
@@ -150,7 +157,8 @@ export function fibreGeometry(mesh, settings, color, rootAt, lod) {
       finish = 0.77 + 0.23 * random(),
       fall = length * settings.fall * (0.28 + 0.75 * random()),
       lights =
-        random() < settings.grey ? 0.13 + 0.53 * random() : 0.012 * random(),
+        (random() < settings.grey ? 0.13 + 0.53 * random() : 0.012 * random()) *
+        (lod?.clump ? 0.35 : 1),
       shade = dark
         .clone()
         .lerp(grey, lights)
@@ -165,7 +173,10 @@ export function fibreGeometry(mesh, settings, color, rootAt, lod) {
       continue;
     const line = [],
       radii = [],
-      bindings = [];
+      bindings = [],
+      dirs = [],
+      ramp = [];
+    const clump = lod?.clump;
     for (let j = 0; j <= steps; j++) {
       const t = j / steps,
         walk = fall > 0 ? Math.min(1, t / 0.84) : t,
@@ -200,13 +211,22 @@ export function fibreGeometry(mesh, settings, color, rootAt, lod) {
         );
       }
       line.push(v);
-      const root = 0.44 + 0.56 * Math.min(1, t / 0.1),
-        tip = 0.055 + 0.945 * (1 - t ** 2) ** 0.76;
+      if (clump) {
+        dirs.push(edge.clone().normalize());
+        ramp.push(MathUtils.smoothstep(t, 0, 0.55));
+      }
+      const root = clump
+          ? 0.78 + 0.22 * Math.min(1, t / 0.12)
+          : 0.44 + 0.56 * Math.min(1, t / 0.1),
+        tip = clump
+          ? Math.max(0.02, (1 - t) ** 0.8)
+          : 0.055 + 0.945 * (1 - t ** 2) ** 0.76;
       radii.push(
         Math.max(
           length * 0.00045,
           ((radius * thickness) / Math.sqrt(settings.count)) * 0.69,
         ) *
+          (clump ?? 1) *
           root *
           tip,
       );
@@ -243,15 +263,24 @@ export function fibreGeometry(mesh, settings, color, rootAt, lod) {
           Math.abs(along.y) < 0.8 ? 0 : 1,
         );
       u.addScaledVector(along, -u.dot(along)).normalize();
+      // A clump lies flat on the lock: wide across it, thin along its radius.
+      if (clump) {
+        const across = new Vector3().crossVectors(along, dirs[j]);
+        if (across.lengthSq() > 1e-10) u.copy(across.normalize());
+      }
       const v = new Vector3().crossVectors(along, u).normalize();
+      const [wide, thin] = clump ? [1.05, 0.62] : [1, 0.69];
+      const tone = clump
+        ? shade.clone().multiplyScalar(MathUtils.lerp(0.6, 1.08, ramp[j]))
+        : shade;
       for (let k = 0; k <= sides; k++) {
         const a = (tau * k) / sides,
           point = line[j]
             .clone()
-            .addScaledVector(u, radii[j] * Math.cos(a))
-            .addScaledVector(v, 0.69 * radii[j] * Math.sin(a));
+            .addScaledVector(u, wide * radii[j] * Math.cos(a))
+            .addScaledVector(v, thin * radii[j] * Math.sin(a));
         pos.push(point.x, point.y, point.z);
-        colors.push(shade.r, shade.g, shade.b);
+        colors.push(tone.r, tone.g, tone.b);
         uv.push(k / sides, j / steps);
         sources.push(bindings[j]);
         if (ring < stations.length - 1 && k < sides) {
@@ -310,6 +339,21 @@ export function growGuideFibres(
     );
   });
   const details = gameBudget ? gameFibreDetail(guides, gameBudget) : null;
+  // Pelt locks spend the triangles their strands were given on clumps and
+  // undercoat tufts instead.
+  const pelt = details ? peltGuideIds(form, guides) : new Set();
+  let tuftCount = 0;
+  if (pelt.size) {
+    const peltGuides = guides.filter((p) => pelt.has(p.id));
+    const triangles = peltGuides.reduce(
+      (n, p) => n + details.get(p.id).count * clumpTriangles(details.get(p.id).spans),
+      0,
+    );
+    const plan = peltGameDetail(peltGuides, triangles);
+    for (const [id, d] of plan.detail) details.set(id, d);
+    tuftCount = plan.tufts;
+  }
+  const peltLocks = new Map();
   // Freeze the carrier surfaces before replacing any parent that is also a guide.
   const surfaces = new Map();
   for (const part of guides) {
@@ -325,6 +369,20 @@ export function growGuideFibres(
       ? surfaces.get(objects.get(part.parent))
       : undefined;
     const color = plainView ? part.color : mesh.material.color;
+    if (pelt.has(part.id)) {
+      const { rows } = readGuide(mesh.geometry);
+      const root = rows[0].center.clone().applyMatrix4(mesh.matrixWorld),
+        end = rows.at(-1).center.clone().applyMatrix4(mesh.matrixWorld);
+      const list = peltLocks.get(part.parent) ?? [];
+      list.push({
+        mesh,
+        root,
+        flow: end.clone().sub(root).normalize(),
+        length: root.distanceTo(end),
+        colour: new Color(color),
+      });
+      peltLocks.set(part.parent, list);
+    }
     const { geometry, owners } = fibreGeometry(
       mesh,
       part.fibres,
@@ -341,4 +399,29 @@ export function growGuideFibres(
       if (details) mesh.material.userData.fibreLOD = true;
     }
   }
+  const coats = [...peltLocks.keys()];
+  coats.forEach((coatId, c) => {
+    const undercoat = objects.get(coatId),
+      locks = peltLocks.get(coatId),
+      share = Math.floor(tuftCount / coats.length);
+    const coatColour = plainView
+      ? form.parts.find((p) => p.id === coatId).color
+      : undercoat.material.color;
+    const tufts = undercoatTufts(
+      undercoat,
+      locks,
+      share,
+      (form.parts.find((p) => p.id === coatId).fibres?.seed ?? 0x5eed) + c,
+      coatColour,
+    );
+    for (const lock of locks) {
+      const { geometry, owners } = appendTufts(
+        lock.mesh.geometry,
+        lock.mesh.blendOwners,
+        tufts.get(lock.mesh),
+      );
+      lock.mesh.geometry = geometry;
+      lock.mesh.blendOwners = owners;
+    }
+  });
 }
