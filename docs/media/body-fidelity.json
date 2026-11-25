@@ -1,0 +1,440 @@
+{
+  "f01": {
+    "separatedArmsFront": 0.8383,
+    "default": {
+      "front": 0.6664,
+      "side": 0.7702,
+      "back": 0.6662
+    },
+    "coarse": {
+      "front": 0.7907,
+      "side": 0.7835,
+      "back": 0.7903
+    },
+    "fit": {
+      "front": 0.9188,
+      "side": 0.9068,
+      "back": 0.9178
+    },
+    "sideByRegion": {
+      "feet": 0.8182,
+      "legs": 0.9187,
+      "trunk": 0.9324,
+      "neckAndHead": 0.8692
+    },
+    "oblique": {
+      "nominal": 0.8641,
+      "at30": 0.7979,
+      "at60": 0.7484,
+      "coarse": 0.7855,
+      "default": 0.7859,
+      "boundary95Stature": 0.0219
+    },
+    "boundaries": {
+      "front": {
+        "medianStature": 0.0021,
+        "p95Stature": 0.0333
+      },
+      "side": {
+        "medianStature": 0.0029,
+        "p95Stature": 0.0106
+      },
+      "back": {
+        "medianStature": 0.0029,
+        "p95Stature": 0.0333
+      },
+      "oblique": {
+        "medianStature": 0.0062,
+        "p95Stature": 0.0219
+      }
+    },
+    "referenceSHA256": {
+      "front": "ab8339cf1d77a6954b2577561ddcf784a5de60b61db66e2cfb3d2303d3f6ba7a",
+      "side": "99b531c580ebc688b4a50c3fcf8c775b2e94b1c94e4e122ce8af94f8b7c56906",
+      "back": "668b50f98005e6c24a2df4e8945a55193a800c78f7e5750ec264eca7922334fa",
+      "oblique": "38298289c91c49e3ac15862f91d1d0d1cabc8b3d3924c011947d4c60fb9dc822"
+    },
+    "flattenedTrunkSide": 0.7678,
+    "obliqueAgainstAll": {
+      "f01": 0.8641,
+      "f03": 0.7122,
+      "f08": 0.6488,
+      "m04": 0.7249,
+      "m08": 0.7593,
+      "m09": 0.7613
+    },
+    "rearAgainstAll": {
+      "f01": 0.9178,
+      "f03": 0.7498,
+      "f08": 0.6481,
+      "m04": 0.8207,
+      "m08": 0.6978,
+      "m09": 0.7149
+    }
+  },
+  "f03": {
+    "separatedArmsFront": 0.6537,
+    "default": {
+      "front": 0.7996,
+      "side": 0.7278,
+      "back": 0.7977
+    },
+    "coarse": {
+      "front": 0.8353,
+      "side": 0.74,
+      "back": 0.8335
+    },
+    "fit": {
+      "front": 0.8772,
+      "side": 0.8982,
+      "back": 0.8754
+    },
+    "sideByRegion": {
+      "feet": 0.8864,
+      "legs": 0.9369,
+      "trunk": 0.899,
+      "neckAndHead": 0.8446
+    },
+    "oblique": {
+      "nominal": 0.7832,
+      "at30": 0.722,
+      "at60": 0.8367,
+      "coarse": 0.7342,
+      "default": 0.7741,
+      "boundary95Stature": 0.0251
+    },
+    "boundaries": {
+      "front": {
+        "medianStature": 0.0042,
+        "p95Stature": 0.0112
+      },
+      "side": {
+        "medianStature": 0.0021,
+        "p95Stature": 0.0168
+      },
+      "back": {
+        "medianStature": 0.0042,
+        "p95Stature": 0.0112
+      },
+      "oblique": {
+        "medianStature": 0.0083,
+        "p95Stature": 0.0251
+      }
+    },
+    "referenceSHA256": {
+      "front": "e4191ae7011e127dca984d1dd0cfb1cbd285537e4f0fe557dc27b095fa14a25e",
+      "side": "0137fe103bce85b5fa8050e3b689d07e3bfe5e80c081d558b495a7bbaef2a24d",
+      "back": "309472754ec7afe79e51fc35fa426be70d9c7d7da78c401a0112e22056d04b3c",
+      "oblique": "ee6a5204c05372d997fcb4876d72255d58d9d8f4429f1fd6bcbae5b4ec5210fa"
+    },
+    "flattenedTrunkSide": 0.7847,
+    "obliqueAgainstAll": {
+      "f01": 0.7816,
+      "f03": 0.7832,
+      "f08": 0.6376,
+      "m04": 0.6525,
+      "m08": 0.6968,
+      "m09": 0.7333
+    },
+    "rearAgainstAll": {
+      "f01": 0.7648,
+      "f03": 0.8754,
+      "f08": 0.5753,
+      "m04": 0.7401,
+      "m08": 0.5972,
+      "m09": 0.6378
+    }
+  },
+  "f08": {
+    "separatedArmsFront": 0.6406,
+    "default": {
+      "front": 0.5545,
+      "side": 0.5443,
+      "back": 0.5548
+    },
+    "coarse": {
+      "front": 0.7572,
+      "side": 0.802,
+      "back": 0.7576
+    },
+    "fit": {
+      "front": 0.8919,
+      "side": 0.9174,
+      "back": 0.8926
+    },
+    "sideByRegion": {
+      "feet": 0.905,
+      "legs": 0.9099,
+      "trunk": 0.9271,
+      "neckAndHead": 0.8997
+    },
+    "oblique": {
+      "nominal": 0.8565,
+      "at30": 0.7905,
+      "at60": 0.8398,
+      "coarse": 0.792,
+      "default": 0.6327,
+      "boundary95Stature": 0.0347
+    },
+    "boundaries": {
+      "front": {
+        "medianStature": 0.0062,
+        "p95Stature": 0.0373
+      },
+      "side": {
+        "medianStature": 0.0042,
+        "p95Stature": 0.0168
+      },
+      "back": {
+        "medianStature": 0.0062,
+        "p95Stature": 0.0373
+      },
+      "oblique": {
+        "medianStature": 0.0104,
+        "p95Stature": 0.0347
+      }
+    },
+    "referenceSHA256": {
+      "front": "1a4bd41338814b5156d3ac78d7b8137bdb1c619f9f9240288b220200b45c3b48",
+      "side": "efa95956f9fa674b3f0e853d5beed4a433de7e8795018f04673541cee34bb457",
+      "back": "652caac743d980fad84bed5ffa3f40c7b577649169eacdd27204171106ae6512",
+      "oblique": "948cc096420ddd1a473fbf3f1e554291fbbb460db5018d88ee561cc6c37d3f62"
+    },
+    "flattenedTrunkSide": 0.6796,
+    "obliqueAgainstAll": {
+      "f01": 0.6583,
+      "f03": 0.5881,
+      "f08": 0.8565,
+      "m04": 0.5729,
+      "m08": 0.6881,
+      "m09": 0.6596
+    },
+    "rearAgainstAll": {
+      "f01": 0.6434,
+      "f03": 0.5877,
+      "f08": 0.8926,
+      "m04": 0.6578,
+      "m08": 0.6608,
+      "m09": 0.6739
+    }
+  },
+  "m04": {
+    "separatedArmsFront": 0.711,
+    "default": {
+      "front": 0.6663,
+      "side": 0.7176,
+      "back": 0.6663
+    },
+    "coarse": {
+      "front": 0.8076,
+      "side": 0.7363,
+      "back": 0.8077
+    },
+    "fit": {
+      "front": 0.8632,
+      "side": 0.9288,
+      "back": 0.8636
+    },
+    "sideByRegion": {
+      "feet": 0.893,
+      "legs": 0.909,
+      "trunk": 0.959,
+      "neckAndHead": 0.8971
+    },
+    "oblique": {
+      "nominal": 0.7945,
+      "at30": 0.6595,
+      "at60": 0.8672,
+      "coarse": 0.683,
+      "default": 0.6397,
+      "boundary95Stature": 0.0292
+    },
+    "boundaries": {
+      "front": {
+        "medianStature": 0.0059,
+        "p95Stature": 0.0147
+      },
+      "side": {
+        "medianStature": 0.0021,
+        "p95Stature": 0.0083
+      },
+      "back": {
+        "medianStature": 0.0047,
+        "p95Stature": 0.0147
+      },
+      "oblique": {
+        "medianStature": 0.0104,
+        "p95Stature": 0.0292
+      }
+    },
+    "referenceSHA256": {
+      "front": "854a79b88dded5854bd2b00272364184a7cffb8e9417175c6c7873e5680b149d",
+      "side": "48086d5886e905d4e0a322d125f1da1cf1fbae9ff1c90440a087ef1cec42162c",
+      "back": "a72c4627fa54556f167b54832f959b99817c1c9d0b65205fdaaf39ee4cf79279",
+      "oblique": "71130e7a70e28234bf08431161f2e7629dc77204bcae85d14ddd3869f7831277"
+    },
+    "flattenedTrunkSide": 0.7803,
+    "obliqueAgainstAll": {
+      "f01": 0.8556,
+      "f03": 0.7253,
+      "f08": 0.6788,
+      "m04": 0.7945,
+      "m08": 0.7529,
+      "m09": 0.8278
+    },
+    "rearAgainstAll": {
+      "f01": 0.8498,
+      "f03": 0.7536,
+      "f08": 0.6658,
+      "m04": 0.8636,
+      "m08": 0.6813,
+      "m09": 0.7429
+    }
+  },
+  "m08": {
+    "separatedArmsFront": 0.7314,
+    "default": {
+      "front": 0.6362,
+      "side": 0.733,
+      "back": 0.6369
+    },
+    "coarse": {
+      "front": 0.7271,
+      "side": 0.7518,
+      "back": 0.728
+    },
+    "fit": {
+      "front": 0.8645,
+      "side": 0.9294,
+      "back": 0.8653
+    },
+    "sideByRegion": {
+      "feet": 0.8858,
+      "legs": 0.913,
+      "trunk": 0.9465,
+      "neckAndHead": 0.9239
+    },
+    "oblique": {
+      "nominal": 0.7356,
+      "at30": 0.7321,
+      "at60": 0.6968,
+      "coarse": 0.6712,
+      "default": 0.6598,
+      "boundary95Stature": 0.0377
+    },
+    "boundaries": {
+      "front": {
+        "medianStature": 0.0042,
+        "p95Stature": 0.017
+      },
+      "side": {
+        "medianStature": 0.0021,
+        "p95Stature": 0.0086
+      },
+      "back": {
+        "medianStature": 0.0042,
+        "p95Stature": 0.0185
+      },
+      "oblique": {
+        "medianStature": 0.0106,
+        "p95Stature": 0.0377
+      }
+    },
+    "referenceSHA256": {
+      "front": "f455db973c6b545dec6a9f2ca83ffaef4e6ecd1e086c4b039fa653f095071419",
+      "side": "f866c73748185cc5c6d4527a85db671c2467580fb7a4112501b30f8dac5112c7",
+      "back": "e40f9afe3de51a4e77ba70ec16f3f47e552ff7f23443bc9a09d6b3135e156ee3",
+      "oblique": "05c21836880a11d14800f27d9050721a19261e1528ee0db8aba92367fd3980c6"
+    },
+    "flattenedTrunkSide": 0.7596,
+    "obliqueAgainstAll": {
+      "f01": 0.735,
+      "f03": 0.6666,
+      "f08": 0.771,
+      "m04": 0.6155,
+      "m08": 0.7356,
+      "m09": 0.7643
+    },
+    "rearAgainstAll": {
+      "f01": 0.6839,
+      "f03": 0.6066,
+      "f08": 0.6512,
+      "m04": 0.7106,
+      "m08": 0.8653,
+      "m09": 0.7839
+    }
+  },
+  "m09": {
+    "separatedArmsFront": 0.7014,
+    "default": {
+      "front": 0.6773,
+      "side": 0.6614,
+      "back": 0.6774
+    },
+    "coarse": {
+      "front": 0.752,
+      "side": 0.6986,
+      "back": 0.7522
+    },
+    "fit": {
+      "front": 0.8146,
+      "side": 0.9096,
+      "back": 0.8143
+    },
+    "sideByRegion": {
+      "feet": 0.8685,
+      "legs": 0.9,
+      "trunk": 0.9297,
+      "neckAndHead": 0.8881
+    },
+    "oblique": {
+      "nominal": 0.8301,
+      "at30": 0.7109,
+      "at60": 0.7713,
+      "coarse": 0.7556,
+      "default": 0.7507,
+      "boundary95Stature": 0.031
+    },
+    "boundaries": {
+      "front": {
+        "medianStature": 0.0062,
+        "p95Stature": 0.0208
+      },
+      "side": {
+        "medianStature": 0.0029,
+        "p95Stature": 0.0127
+      },
+      "back": {
+        "medianStature": 0.0062,
+        "p95Stature": 0.0229
+      },
+      "oblique": {
+        "medianStature": 0.0062,
+        "p95Stature": 0.031
+      }
+    },
+    "referenceSHA256": {
+      "front": "4956d5dbca834c71153f3403b67e9636c3916ce32f2a372f436187fc3d5332d1",
+      "side": "6c32c61ea556607dd9b34cbafe31c0444110138b8c11f4881ba0faa290aeaeca",
+      "back": "d9dbb6dd43574289a026739e832082d0b54664a1c4795e1fad3d651fd4e72d9f",
+      "oblique": "7ae464624da6390edf0f83c8736fd5cc39bc1df2c924a120d12c2a1cc4465e8e"
+    },
+    "flattenedTrunkSide": 0.7728,
+    "obliqueAgainstAll": {
+      "f01": 0.7796,
+      "f03": 0.6735,
+      "f08": 0.7277,
+      "m04": 0.7346,
+      "m08": 0.7219,
+      "m09": 0.8301
+    },
+    "rearAgainstAll": {
+      "f01": 0.6812,
+      "f03": 0.6449,
+      "f08": 0.6463,
+      "m04": 0.7218,
+      "m08": 0.7568,
+      "m09": 0.8143
+    }
+  }
+}

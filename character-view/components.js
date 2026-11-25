@@ -1,11 +1,12 @@
+import {generatedHuman} from "./human-form.js";
 import { buildFigure, randomFigure } from "./figure.js";
 import { bodyRegion } from "./blended-skin.js";
 import { markingKinds } from "./markings.js";
-import { palmColor } from "./turnaround.js";
-import { extractComponent, placeComponent, fitHand } from "./graft.js";
+import { extractComponent, placeComponent } from "./graft.js";
 import { paintedStudies } from "../examples/painted-studies.js";
 import { studies } from "../examples/studies.js";
 import { generateForm, randomStream } from "./generator.js";
+import { buildCreature, randomCreaturePlan } from "./creature-plan.js";
 
 const gallery = [...studies, ...paintedStudies];
 const entries = [
@@ -34,7 +35,7 @@ const entries = [
   [
     "coast-face",
     "Weathered human head",
-    "painted-ranger",
+    "traced-coast-body",
     "head and neck",
     false,
   ],
@@ -51,7 +52,7 @@ const entries = [
   [
     "cartographer-sleeve",
     "Field sleeve and hand",
-    "painted-ranger",
+    "traced-coast-body",
     "left upper sleeve",
     true,
   ],
@@ -86,67 +87,32 @@ export function componentShelf() {
 export function generateWorkshopForm(
   kind = "any",
   seed = crypto.getRandomValues(new Uint32Array(1))[0],
+  archetype = "any",
+  colourRange = "Mixed",
 ) {
   const draw = randomStream(seed),
     pick = (arr) => arr[Math.floor(draw() * arr.length)];
+  if (kind === "adult") return generatedHuman(seed,archetype,colourRange);
+  if (kind === "plan") return buildCreature(randomCreaturePlan(seed));
   const anatomy =
     kind === "any" ? pick(["human", "human", "creature", "hybrid"]) : kind;
-  const shelf = componentShelf();
   let form;
-  if (anatomy === "figure") {
-    form = buildFigure(randomFigure(draw));
-    if (draw() < 0.8)
-      form = placeComponent(
-        form,
-        shelf[
-          pick(["coast-face", "conductor-face", "foreman-face", "relay-face"])
-        ],
-        { target: "head" },
-      ).form;
-    // A painted head brings its own complexion in its artwork, not in its
-    // part colour. Sample the face and carry that tone to the bare body.
-    const head = form.parts.find((p) => p.id === "head"),
-      tone = head?.paint ? palmColor(head, null) : null;
-    if (/^#[0-9a-f]{6}$/i.test(tone ?? "")) {
-      form.parts = form.parts.map((p) =>
-        p.bare || p.shape === "hand" ? { ...p, color: tone } : p,
-      );
-      form.appearance = { ...form.appearance, skin: tone };
+  if (anatomy === "figure" || anatomy === "human") {
+    form = buildFigure(randomFigure(draw, archetype));
+    const face = form.parts.find((p) => p.shape === "head");
+    if (anatomy === "figure") {
+      face.sculpt = {
+        jaw: 0.75 + draw() * 0.52,
+        cheek: 0.77 + draw() * 0.5,
+        nose: 0.8 + draw() * 0.42,
+        chin: 0.83 + draw() * 0.35,
+      };
+      form.origin = { ...form.origin, seed };
+      return form;
     }
-    form.origin = { ...form.origin, seed };
-    return form;
-  }
-  if (anatomy === "human") {
-    const body = pick([
-      "painted-ranger",
-      "painted-elder",
-      "painted-surveyor",
-      "painted-courier",
-      "modular",
-      "modular",
-    ]);
-    form =
-      body === "modular"
-        ? generateForm("human", seed)
-        : paintedStudies.find((s) => s.id === body).make();
-    const target = form.parts.find(
-      (p) => p.shape === "head" || p.anatomy === "face",
-    ).id;
-    if (draw() < 0.78)
-      form = placeComponent(
-        form,
-        shelf[
-          pick(["coast-face", "conductor-face", "foreman-face", "relay-face"])
-        ],
-        { target },
-      ).form;
-    form.outfit = pick([
-      "Work clothes",
-      "Work clothes",
-      "Base layer",
-      "Pressure suit",
-    ]);
-    const face = form.parts.find((p) => p.id === target);
+    // Older human seeds used this draw for their outfit before drawing the
+    // face and build. Keep those choices reproducible in the anatomy view.
+    draw();
     face.sculpt = {
       ...face.sculpt,
       jaw: 0.66 + draw() * 0.84,
@@ -164,6 +130,7 @@ export function generateWorkshopForm(
   } else {
     form = generateForm("creature", seed);
     if (anatomy === "hybrid") {
+      const shelf = componentShelf();
       const component =
         shelf[
           pick([
@@ -189,11 +156,6 @@ export function generateWorkshopForm(
         }).form;
     }
   }
-  if (anatomy === "human")
-    for (const hand of form.parts.filter(
-      (p) => p.outfitRole === "hand" && p.shape === "sweep",
-    ))
-      form = fitHand(form, hand.id, palmColor(hand, form.appearance.skin));
   if (anatomy !== "human" && draw() < 0.72) {
     const markings = {
       kind: pick(markingKinds),
@@ -207,6 +169,6 @@ export function generateWorkshopForm(
       bodyRegion(p) ? { ...p, markings } : p,
     );
   }
-  form.origin = { generator: 4, seed, kind: anatomy };
+  form.origin = { ...form.origin, generator: anatomy === "human" ? 7 : 6, seed, kind: anatomy };
   return form;
 }

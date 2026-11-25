@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Torso surface study</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #edf0ed;
+        color: #203329;
+        font:
+          16px/1.45 system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 1400px;
+        margin: auto;
+        padding: 18px;
+      }
+      h1 {
+        font:
+          normal 2rem Georgia,
+          serif;
+        margin: 0;
+      }
+      p {
+        max-width: 84ch;
+      }
+      .controls,
+      .labels,
+      .legend {
+        display: flex;
+        gap: 0.6rem;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .labels {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        text-align: center;
+        gap: 0;
+        font-weight: 600;
+        margin-top: 1rem;
+      }
+      button {
+        font: inherit;
+        background: white;
+        color: inherit;
+        border: 1px solid #889c90;
+        border-radius: 4px;
+        padding: 0.25rem 0.65rem;
+        cursor: pointer;
+      }
+      button[aria-pressed="true"] {
+        background: #284739;
+        color: white;
+      }
+      #stage {
+        width: 100%;
+        height: clamp(240px, 45vw, 570px);
+        touch-action: none;
+        background: #d5dad4;
+      }
+      canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      figure {
+        margin: 1em 0;
+        display: flex;
+        gap: 1.5rem;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      svg {
+        width: min(100%, 370px);
+        height: 195px;
+        background: white;
+        border: 1px solid #b6c3ba;
+      }
+      path {
+        fill: none;
+        stroke-width: 2;
+      }
+      label {
+        display: block;
+      }
+      input {
+        max-width: 100%;
+      }
+      a {
+        color: #245b45;
+      }
+      .legend span {
+        border-left: 5px solid;
+        padding-left: 0.4em;
+      }
+      .hint {
+        font-size: 0.9rem;
+      }
+      #status:empty {
+        display: none;
+      }
+      @media (max-width: 500px) {
+        main {
+          padding: 10px;
+        }
+        .labels {
+          font-size: 0.78rem;
+        }
+        #stage {
+          height: 245px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Torso surface study</h1>
+      <p>
+        Orbit all three bodies together. The editor figures share a skeleton and
+        starting recipe. Only the torso surface changes in the fitted figure.
+      </p>
+      <div class="controls">
+        <button id="front">Front</button><button id="side">Profile</button
+        ><button id="oblique">Three-quarter</button
+        ><button id="focus" aria-pressed="true">Torso close-up</button>
+      </div>
+      <div class="labels">
+        <span>Meta MHR reference</span><span>Editor starting figure</span
+        ><span>Editor fitted torso</span>
+      </div>
+      <div id="stage"></div>
+      <p id="status" role="status">Loading body geometry…</p>
+      <figure>
+        <svg
+          id="cut"
+          viewBox="-240 -120 480 270"
+          role="img"
+          aria-label="Horizontal body cross-section viewed from above"
+        >
+          <path stroke="#a25728" stroke-dasharray="5 3"></path>
+          <path stroke="#007a80" stroke-width="3"></path>
+          <path stroke="#252e28" stroke-dasharray="2 3"></path>
+        </svg>
+        <figcaption>
+          <label
+            >Section above floor <output id="height"></output><br /><input
+              id="slice"
+              type="range"
+              min="940"
+              max="1380"
+              value="1120"
+              step="2"
+          /></label>
+          <div class="legend">
+            <span style="border-color: #252e28">Reference</span
+            ><span style="border-color: #a25728">Starting figure</span
+            ><span style="border-color: #007a80">Fit</span>
+          </div>
+          <p id="error"></p>
+        </figcaption>
+      </figure>
+      <p id="result"></p>
+      <p>
+        Measurements cover one torso in its rest pose. The arms, legs and head
+        are visible for context.
+        <a id="editor" href="character-view.html#study=mhr-torso"
+          >Open the editable fit</a
+        >
+        ·
+        <a href="https://github.com/facebookresearch/MHR"
+          >Reference rig and license</a
+        >
+      </p>
+    </main>
+    <!-- APP -->
+  </body>
+</html>

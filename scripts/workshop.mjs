@@ -49,7 +49,7 @@ export function workshopServer(
     };
     if (req.headers.host !== new URL(url).host)
       return json(403, { error: "Use the local workshop address." });
-    if (req.method === "GET" && req.url === "/") {
+    if (req.method === "GET" && ["/","/dist/character-view.html"].includes(req.url)) {
       let html = page;
       if (html === undefined) {
         try {
@@ -74,9 +74,11 @@ export function workshopServer(
     }
     if (req.method === "GET") {
       const file =
-        req.url === "/play-model.html"
+        ["/play-model.html","/dist/play-model.html"].includes(req.url)
           ? "dist/play-model.html"
-          : /^\/(?:docs\/(?:workshop-results\.html|character-creator\.html|creator-benchmarks\.md|media\/[a-z0-9-]+\.(?:webp|json))|examples\/[a-z0-9-]+(?:\.form\.json|\.glb)|README\.md|LICENSE)$/.test(
+          : /^\/examples\/human-targets\/mhr-[fm][123]\.glb$/.test(req.url)
+            ? req.url.slice(1)
+          : /^\/(?:docs\/(?:[a-z0-9-]+\.(?:html|md)|licenses\/[a-z0-9-]+\.(?:md|txt)|media\/(?:[a-z0-9-]+\/)?[a-z0-9-]+\.(?:webp|png|json))|examples\/[a-z0-9-]+(?:\.form\.json|\.glb)|README\.md|LICENSE)$/.test(
                 req.url,
               )
             ? req.url.slice(1)
@@ -87,6 +89,7 @@ export function workshopServer(
           const types = {
             html: "text/html; charset=utf-8",
             webp: "image/webp",
+            png: "image/png",
             json: "application/json",
             glb: "model/gltf-binary",
           };

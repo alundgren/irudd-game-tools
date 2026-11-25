@@ -1,0 +1,30 @@
+{
+  "title": "Native portrait projection study",
+  "provenance": "Original fictional adult generated with OpenAI ImageGen, then registered using the Character Workshop landmark controls. The editable form contains only the baked face detail. Native adult and apparel use the project assets, including CC0 MakeHuman-derived geometry.",
+  "validation": "Hardware Chrome editor and standalone player, ANGLE D3D11 on NVIDIA GeForce RTX 5070 Ti",
+  "workflow": [
+    "Choose front and profile images",
+    "Mark five points in each view and adjust an existing mark",
+    "Bake and save",
+    "Reload the editor and open the saved form",
+    "Export Game GLB",
+    "Open the GLB in the separate player and inspect front, three-quarter, profile and Smile"
+  ],
+  "paintSeconds": 2.054,
+  "bakedFormBytes": 564925,
+  "exportBytes": 3787908,
+  "exportSha256": "719198183f2e52e279d4290589917cc48099694e9bac6c626da983efecaafa79",
+  "baselineBytes": 3638692,
+  "browserPageErrors": 0,
+  "identicalGeometrySkinAndMorphAccessors": 48,
+  "khronos": {
+    "errors": 0,
+    "warnings": 5,
+    "baselineWarnings": 5
+  },
+  "reopenEditorPixelCheck": {
+    "sampleMatchesExactly": true,
+    "meanAbsoluteRgbDifference": 0.0
+  },
+  "limitations": "Projection affects skin appearance. The example retains the native head shape and uses the 1024-pixel Game atlas. Residual texture near the temple is faint in the tightest crop."
+}

@@ -1,6 +1,8 @@
 import * as T from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { garmentCoverage, compareCoverage } from "./coverage-review.js";
+import { garmentCoverage, compareCoverage, exposedSkinPixels } from "./coverage-review.js";
+import { createCharacter, disposeCharacter } from "./model.js";
+import { skinCharacter } from "./skin.js";
 import { exportForm } from "./export-form.js";
 import { releaseGLTFScenes } from "./release-gltf.js";
 
@@ -66,16 +68,27 @@ export async function inspectGameExport(form, renderer, previous) {
     game: true,
     motion: true,
     wardrobe: false,
+    coverage: Boolean(form.human),
   });
   const gltf = await new GLTFLoader().parseAsync(bytes, "");
   const model = gltf.scene,
     mixer = new T.AnimationMixer(model);
   const previousFrame = previous?.detail.cameraFrame;
+  let fullSource, fullRig, fullMixer, fullMask;
+  const reduction = [];
   const coverage = garmentCoverage(form, model),
     masks = [];
   const scene = new T.Scene(),
     clay = new T.MeshStandardMaterial({ color: 0xb3b2ac, roughness: 0.9 });
   try {
+    if (coverage && form.human && form.outfit !== "Anatomy") {
+      fullSource = createCharacter(form, false, false);
+      fullRig = skinCharacter(form, fullSource, { coverage: true });
+      fullMixer = new T.AnimationMixer(fullRig.actor);
+      fullMask = garmentCoverage(form, fullRig.actor);
+      fullRig.actor.visible = false;
+      scene.add(fullRig.actor);
+    }
     scene.background = new T.Color("#e5e8e5");
     scene.add(model, new T.HemisphereLight(0xffffff, 0xa5a6a8, 1.65));
     const light = new T.DirectionalLight(0xfff7e9, 2.2);
@@ -98,7 +111,13 @@ export async function inspectGameExport(form, renderer, previous) {
       : 0;
     function pose(moving) {
       mixer.stopAllAction();
+      fullMixer?.stopAllAction();
       if (moving && clip) {
+        const fullClip = fullRig?.clips.find(c => c.name === clip.name);
+        if (fullClip) {
+          fullMixer.clipAction(fullClip).reset().play();
+          fullMixer.setTime(sample);
+        }
         mixer.clipAction(clip).reset().play();
         mixer.setTime(sample);
       }
@@ -183,7 +202,18 @@ export async function inspectGameExport(form, renderer, previous) {
         );
         ctx.fillStyle = "white";
         ctx.font = "16px sans-serif";
-        if (coverage) masks.push(coverage.capture(renderer, scene, cam, span));
+        if (coverage) {
+          const reduced = coverage.capture(renderer, scene, cam, span);
+          masks.push(reduced);
+          if (fullMask) {
+            model.visible = false;
+            fullRig.actor.visible = true;
+            const original = fullMask.capture(renderer, scene, cam, span);
+            reduction.push({ view: angle.name, frame, ...exposedSkinPixels(original, reduced, fullMask.resolution, fullMask.labels, coverage.labels) });
+            fullRig.actor.visible = false;
+            model.visible = true;
+          }
+        }
         ctx.fillText(frame + " | " + angle.name, col * tile + 8, tile + 20);
       }
       views.push({
@@ -220,6 +250,7 @@ export async function inspectGameExport(form, renderer, previous) {
       coverageData,
       detail: {
         ...(check ? { coverage: check } : {}),
+        ...(reduction.length ? { detailCoverage: reduction } : {}),
         source: "Reimported game GLB",
         triangles,
         restHeightMetres: height,
@@ -233,6 +264,11 @@ export async function inspectGameExport(form, renderer, previous) {
   } finally {
     mixer.stopAllAction();
     mixer.uncacheRoot(model);
+    fullMixer?.stopAllAction();
+    if (fullRig) fullMixer?.uncacheRoot(fullRig.actor);
+    fullMask?.dispose();
+    fullRig?.dispose();
+    if (fullSource) disposeCharacter(fullSource);
     coverage?.dispose();
     clay.dispose();
     releaseGLTFScenes(gltf.scenes);

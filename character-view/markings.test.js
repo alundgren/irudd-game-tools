@@ -1,13 +1,30 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { Mesh, SphereGeometry, MeshStandardMaterial, Vector3 } from "three";
+import { BufferGeometry, Float32BufferAttribute, Mesh, SphereGeometry, MeshStandardMaterial, Vector3 } from "three";
 import {
   validMarkings,
   markingKinds,
   markingField,
   paintMarkings,
+  paintJoinedCoat,
 } from "./markings.js";
 import { applyOperations } from "./variations.js";
+
+test("upper and lower limb patches share pigment at a welded boundary", () => {
+  const coat = {kind:"Countershade", color:"#000000", spacing:0.2, coverage:0.9, angle:0, seed:7};
+  const parts = new Map([["thigh",{}], ["shin",{undercoat:coat}]]);
+  function samples(ids) {
+    const geo = new BufferGeometry();
+    geo.setAttribute("position", new Float32BufferAttribute(Array(9).fill(0),3));
+    geo.setAttribute("normal",new Float32BufferAttribute([0,-1,0,0,-1,0,0,-1,0],3));
+    const mesh = new Mesh(geo,new MeshStandardMaterial({color:0xffffff}));
+    mesh.blendOwners = {ids,first:[0,0,1],second:[1,1,0],weight:[1,0.5,1]};
+    paintJoinedCoat(mesh,parts);
+    return [0,1,2].map(i=>geo.attributes.color.getX(i));
+  }
+  assert.deepEqual(samples(["thigh","shin"]),[1,0.5,0]);
+  assert.deepEqual(samples(["shin","thigh"]),[0,0.5,1]);
+});
 
 test("surface markings replay in metres and an agent can change them without moving the body", () => {
   const part = {

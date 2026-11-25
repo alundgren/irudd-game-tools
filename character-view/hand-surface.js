@@ -42,9 +42,9 @@ function palmDistance(palm, x, y, z) {
 }
 // A rounded palm and tapered phalanges share one surface at the webbing.
 // Sample in metres so long, slim or curled fingers keep their cross sections.
-export function handSurface(palm, digits, dimensions) {
-  const n = 50,
-    chains = digits.map((d) => segments(d.rows));
+export function handSurface(palm, digits, dimensions, game = false) {
+  const n = game ? 26 : 50;
+  const chains = digits.map((d) => segments(d.rows));
   const lo = [Infinity, Infinity, Infinity],
     hi = [-Infinity, -Infinity, -Infinity];
   for (const [i, rows] of [palm, ...digits.map((d) => d.rows)].entries())
@@ -59,6 +59,15 @@ export function handSurface(palm, digits, dimensions) {
         hi[k] = Math.max(hi[k], a[k] + extent[k]);
       }
     }
+  // MarchingCubes leaves boundary cells unused. At game density a fingertip
+  // or the wrist can reach that boundary despite the margin measured in metres.
+  if (game) {
+    for (let axis = 0; axis < 3; axis++) {
+      const margin = 2 * (hi[axis] - lo[axis]) / (n - 4);
+      lo[axis] -= margin;
+      hi[axis] += margin;
+    }
+  }
   const span = hi.map((v, i) => v - lo[i]),
     step = span.map((v) => v / n);
   let owner = -1,

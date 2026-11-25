@@ -1,0 +1,37 @@
+// Draws a study's adult and its outfit for a close look, with inside faces in red. It draws on the graphics card
+// when there is one and prints which renderer drew.
+//   node scripts/rocketbox-study/tailor-check.mjs <study id> out.png [--views 0,45,90,180] [--frame body|torso|legs|head]
+import * as T from "three";
+import { evaluateHuman } from "../../character-view/human-surface.js";
+import { styleHuman } from "../../character-view/human-style.js";
+import { tailorHuman } from "../../character-view/human-tailor.js";
+import { sheet, writePng } from "../human-style-raster.mjs";
+import { openRenderer } from "../human-style-render.mjs";
+import { loadStudies } from "./local.mjs";
+
+const rocketboxStudies = await loadStudies();
+
+const [id, out = ".reference-cache/tailor-check.png", ...rest] = process.argv.slice(2);
+const option = (name, fallback) => (rest.includes("--" + name) ? rest[rest.indexOf("--" + name) + 1] : fallback);
+const study = rocketboxStudies.find((s) => s.id.endsWith(id));
+const form = (study.stages[option("stage", "final")] ?? study.make)(), surface = evaluateHuman(form.human, form.humanFit);
+const rgb = (hex) => { const c = new T.Color(hex).convertLinearToSRGB(); return [c.r, c.g, c.b]; };
+const material = (color) => new T.MeshStandardMaterial({ color });
+const started = performance.now();
+const style = form.humanStyle ?? {};
+// --layers 0,2 keeps only those tailor layers, to look at one piece at a time.
+if (style.tailor && option("layers", "")) style.tailor = { layers: option("layers").split(",").map((i) => style.tailor.layers[+i]) };
+const meshes = [...(style.tailor ? tailorHuman(surface, style.tailor, material) : []), ...styleHuman(surface, { ...style, outfit: style.tailor ? "None" : style.outfit }, material)];
+console.log(meshes.length + " meshes in " + (performance.now() - started).toFixed(0) + " ms", meshes.map((m) => m.name).join(", "));
+const list = meshes.map((mesh) => ({ positions: mesh.geometry.attributes.position.array, indices: mesh.geometry.index.array, normals: mesh.geometry.attributes.normal.array, color: rgb(mesh.material.color) }));
+list.unshift({ positions: surface.positions, indices: surface.indices, color: rgb(form.appearance.skin) });
+const frames = { body: [0.5, 1.12, 0], neck: [0.84, 0.24, 0], head: [0.93, 0.2, 0], torso: [0.68, 0.5, 0], legs: [0.25, 0.6, 0] };
+const [at, span, forward] = frames[option("frame", "body")], tall = form.human.height;
+const [width, height] = option("size", "360x720").split("x").map(Number);
+const draw = await openRenderer();
+console.log("Drawn by: " + draw.name);
+const images = [];
+for (const yaw of option("views", "0,45,90,180").split(",").map(Number)) images.push(await draw.render(list, { yaw: (yaw * Math.PI) / 180, center: [0, tall * at, forward], span: tall * span, width, height }));
+await draw.close();
+writePng(out, sheet(images, images.length));
+console.log("Wrote " + out);

@@ -68,7 +68,7 @@ def capture():
     lineup = []
     readings = {}
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(channel="chrome", args=["--use-angle=swiftshader","--enable-unsafe-swiftshader"])
+        browser = pw.chromium.launch(channel="chrome")
         page = browser.new_page(viewport={"width":1280,"height":860})
         errors = []
         page.on("pageerror",lambda e:errors.append(str(e)))

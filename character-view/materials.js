@@ -1,9 +1,51 @@
 import * as T from "three";
+import { randomStream } from "./random.js";
+import { setArmourDeviceArtwork } from "./human-armour-surface.js";
+import armourDevicesUrl from "./armour-devices.webp";
 import jacketUrl from "./work-jacket.webp";
 import hornUrl from "./horn-growth.atlas.webp";
 import swatchesUrl from "./surfaces.atlas.webp";
 
 const surfaces = new Map();
+const surfaceRoughness = new Map();
+
+// Short, overlapping filaments remain visible between the collar's long
+// geometric guard hairs. Draw pigment only, so lighting follows the mesh.
+function shortFur() {
+  const size = 384, canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#b4b4b4";
+  ctx.fillRect(0, 0, size, size);
+  const draw = randomStream(0x7b19037a);
+  for (let i = 0; i < 14500; i++) {
+    const x = draw() * size, y = draw() * size;
+    const sweep = Math.sin((x / size * 4 + y / size) * Math.PI * 2);
+    const dx = sweep * 4.2 + (draw() - 0.5) * 8;
+    const dy = 4 + 13 * draw(), radius = 0.3 + draw() * 0.8;
+    const value = Math.round(136 + draw() * 105);
+    ctx.fillStyle = `rgb(${value},${value},${value})`;
+    // Wrap only the strokes that meet the boundary.
+    const xs = [x];
+    if (Math.min(x, x + dx) - radius < 0) xs.push(x + size);
+    if (Math.max(x, x + dx) + radius > size) xs.push(x - size);
+    const ys = y + dy > size ? [y, y - size] : [y];
+    for (const px of xs)
+      for (const py of ys) {
+        ctx.beginPath();
+        ctx.moveTo(px-radius,py);
+        ctx.quadraticCurveTo(px+dx*0.35-radius,py+dy*0.7,px+dx,py+dy);
+        ctx.quadraticCurveTo(px+dx*0.55+radius,py+dy*0.55,px+radius,py);
+        ctx.closePath();
+        ctx.fill();
+      }
+  }
+  const map = new T.CanvasTexture(canvas);
+  map.colorSpace = T.SRGBColorSpace;
+  map.anisotropy = 4;
+  return map;
+}
+
 export async function loadSurfaces() {
   for (const [key, frequency] of [
     ["strands", 11],
@@ -40,10 +82,11 @@ export async function loadSurfaces() {
     t.anisotropy = 4;
     surfaces.set(key, t);
   }
-  const [image, jacket, horn] = await Promise.all(
-    [swatchesUrl, jacketUrl, hornUrl].map((url) => new T.ImageLoader().loadAsync(url)),
+  const [image, jacket, horn, devices] = await Promise.all(
+    [swatchesUrl, jacketUrl, hornUrl, armourDevicesUrl].map((url) => new T.ImageLoader().loadAsync(url)),
   );
   // Keep the intrinsic value variation while allowing every site to be tinted.
+  setArmourDeviceArtwork(devices);
   const hornCanvas = document.createElement("canvas");
   hornCanvas.width = horn.width;
   hornCanvas.height = horn.height;
@@ -82,12 +125,29 @@ export async function loadSurfaces() {
       256,
     );
     const data = ctx.getImageData(0, 0, 256, 256);
+    const roughCanvas = name === "leather" ? document.createElement("canvas") : null;
+    if (roughCanvas) {
+      roughCanvas.width = 256;
+      roughCanvas.height = 256;
+    }
+    const roughCtx = roughCanvas?.getContext("2d");
+    const roughData = roughCtx?.createImageData(256, 256);
     // Retain grain as a neutral value map so the artist controls the dye colour.
     for (let i = 0; i < data.data.length; i += 4) {
       const l =
         0.21 * data.data[i] + 0.72 * data.data[i + 1] + 0.07 * data.data[i + 2];
       const value = Math.min(255, Math.max(138, 211 + (l - 136) * 0.58));
       data.data[i] = data.data[i + 1] = data.data[i + 2] = value;
+      if (roughData) {
+        // Satin-oiled grain crowns (lower roughness ~0.36) vs deeper leather pores (~0.56).
+        const norm = (value - 138) / (255 - 138);
+        const r = i === 0 ? 0.79 : Math.max(0.64, Math.min(0.98, 0.96 - 0.30 * norm));
+        const g = Math.round(255 * r);
+        roughData.data[i] = 255;
+        roughData.data[i + 1] = g;
+        roughData.data[i + 2] = 0;
+        roughData.data[i + 3] = 255;
+      }
     }
     ctx.putImageData(data, 0, 0);
     const texture = new T.CanvasTexture(canvas);
@@ -96,6 +156,14 @@ export async function loadSurfaces() {
     texture.repeat.set(2, 1);
     texture.anisotropy = 4;
     surfaces.set(name, texture);
+    if (roughData) {
+      roughCtx.putImageData(roughData, 0, 0);
+      const roughTex = new T.CanvasTexture(roughCanvas);
+      roughTex.wrapS = roughTex.wrapT = T.RepeatWrapping;
+      roughTex.repeat.set(2, 1);
+      roughTex.anisotropy = 4;
+      surfaceRoughness.set(name, roughTex);
+    }
   }
   // Unwrap the front panel around a vertical garment loft. Back and side
   // samples use a plain area of the same cloth with the sewing details omitted.
@@ -144,7 +212,10 @@ export async function loadSurfaces() {
   surfaces.set("jacket", texture);
 }
 export function surfaceMaterial(color, kind = "plain") {
+  if (kind === "fur" && !surfaces.has(kind) && typeof document !== "undefined")
+    surfaces.set(kind, shortFur());
   const texture = surfaces.get(kind);
+  const roughMap = surfaceRoughness.get(kind);
   return new T.MeshStandardMaterial({
     color,
     map: texture ?? null,
@@ -154,13 +225,24 @@ export function surfaceMaterial(color, kind = "plain") {
         : kind === "metal"
           ? 0.47
           : kind === "leather"
-            ? 0.66
+            ? (roughMap ? 0.56 : 0.44)
             : ["strands", "scalp"].includes(kind)
               ? 0.64
               : 0.88,
     metalness: kind === "metal" ? 0.38 : 0,
+    ...(roughMap ? { roughnessMap: roughMap } : {}),
     ...(texture
-      ? { bumpMap: texture, bumpScale: kind === "scales" ? 0.003 : 0.0007 }
+      ? {
+          bumpMap: texture,
+          bumpScale:
+            kind === "scales"
+              ? 0.003
+              : kind === "leather"
+                ? 0.0026
+                : kind === "canvas"
+                  ? 0.0022
+                  : 0.0007,
+        }
       : {}),
   });
 }

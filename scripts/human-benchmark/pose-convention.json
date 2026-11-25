@@ -1,0 +1,23 @@
+{
+ "note": "Left-side joint centres in metres of the neutral editable human (MPFB game-engine rig, CC0), read from evaluateHuman({}). Targets are posed so that their limb segments point the same way. Only directions are used; segment lengths and joint positions stay those of the target identity.",
+ "joints": {"ball_l":[0.1929,0.0093,0.1446],"calf_l":[0.1477,0.4921,0.0387],"foot_l":[0.1872,0.0717,0.0235],"hand_l":[0.4699,1.0522,0.19],"index_01_l":[0.4987,1.0101,0.2878],"index_02_l":[0.5021,0.9945,0.3093],"index_03_l":[0.5016,0.9776,0.3262],"lowerarm_l":[0.3435,1.1809,0.0209],"middle_01_l":[0.5155,0.9988,0.2693],"middle_02_l":[0.523,0.9719,0.2906],"middle_03_l":[0.5258,0.9496,0.3083],"pinky_01_l":[0.5249,0.9819,0.2316],"pinky_02_l":[0.531,0.9621,0.2393],"pinky_03_l":[0.5328,0.9472,0.2452],"ring_01_l":[0.5233,0.9909,0.2516],"ring_02_l":[0.5329,0.9655,0.2662],"ring_03_l":[0.5373,0.9437,0.2792],"thigh_l":[0.1051,0.8973,0.0051],"thumb_01_l":[0.471,1.0444,0.2355],"thumb_02_l":[0.4493,1.0353,0.2572],"thumb_03_l":[0.4365,1.0209,0.2894],"upperarm_l":[0.1762,1.3681,0.02]},
+ "segments": [
+  ["upperarm_l","lowerarm_l","l_uparm","l_lowarm",4],
+  ["lowerarm_l","hand_l","l_lowarm","l_wrist",4],
+  ["hand_l","middle_01_l","l_wrist","l_middle1",2],
+  ["pinky_01_l","index_01_l","l_pinky1","l_index1",2],
+  ["thigh_l","calf_l","l_upleg","l_lowleg",4],
+  ["calf_l","foot_l","l_lowleg","l_foot",4],
+  ["foot_l","ball_l","l_foot","l_ball",2],
+  ["index_01_l","index_02_l","l_index1","l_index2",0.5],
+  ["index_02_l","index_03_l","l_index2","l_index3",0.5],
+  ["middle_01_l","middle_02_l","l_middle1","l_middle2",0.5],
+  ["middle_02_l","middle_03_l","l_middle2","l_middle3",0.5],
+  ["ring_01_l","ring_02_l","l_ring1","l_ring2",0.5],
+  ["ring_02_l","ring_03_l","l_ring2","l_ring3",0.5],
+  ["pinky_01_l","pinky_02_l","l_pinky1","l_pinky2",0.5],
+  ["pinky_02_l","pinky_03_l","l_pinky2","l_pinky3",0.5],
+  ["thumb_01_l","thumb_02_l","l_thumb1","l_thumb2",0.5],
+  ["thumb_02_l","thumb_03_l","l_thumb2","l_thumb3",0.5]
+ ]
+}

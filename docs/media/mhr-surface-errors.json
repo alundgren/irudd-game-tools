@@ -1,0 +1,22 @@
+{
+  "floorFrame": "metres, y up, z forward; no scale fitting",
+  "bottomMetres": 0.852,
+  "topMetres": 1.4409999999999998,
+  "levels": 32,
+  "angularSamples": 32,
+  "validation": "Interleaved heights and azimuths inside the fitted band, same subject and pose",
+  "before": {
+    "rays": 928,
+    "meanMm": 17.284680090251346,
+    "p95Mm": 43.93489319637797,
+    "normalSamples": 864,
+    "meanNormalDegrees": 13.77492599951962
+  },
+  "after": {
+    "rays": 928,
+    "meanMm": 3.95964446287866,
+    "p95Mm": 20.160166007160445,
+    "normalSamples": 864,
+    "meanNormalDegrees": 5.1656119008140955
+  }
+}

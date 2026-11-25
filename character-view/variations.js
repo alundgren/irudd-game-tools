@@ -1,4 +1,14 @@
+import {evaluateHuman} from "./human-surface.js";
+import {tintHumanSkin,changeHuman,humanForm,nudgeHuman,rerollHuman,generatedHuman} from "./human-form.js";
+import {chooseAdultStyle} from "./human-wardrobe.js";
+import { attachCreatureLimbs } from "./human-creature-mount.js";
 import { buildFigure } from "./figure.js";
+import {
+  buildCreature,
+  creaturePresets,
+  rebuildCreature,
+  steerCreaturePlan,
+} from "./creature-plan.js";
 import { growPlateField } from "./plate-growth.js";
 import { equipPlateRows } from "./scutes.js";
 import { cubeCage, editCage } from "./control-cage.js";
@@ -158,6 +168,7 @@ function withMetricFrame(part, enabled) {
 }
 const allowedPartKeys = new Set([
   "frontFits",
+  "nativePortrait",
   "profileFit",
   "surfaceJoin",
   "eyesRig",
@@ -176,6 +187,8 @@ const allowedPartKeys = new Set([
   "mount",
   "sculpt",
   "drape",
+  "footSection",
+  "cranialProfile",
   "cut",
   "blendSkin",
   "grip",
@@ -183,25 +196,34 @@ const allowedPartKeys = new Set([
   "fibres",
   "hideSourceHair",
   "markings",
+  "undercoat",
   "headLayer",
   "rigidFaceAnchor",
   "faceClearance",
   "visibleIn",
   "outfitRole",
   "pulls",
+  "radialFit",
   "motionRole",
   "holdArmPose",
   "look",
   "frameSize",
   "bare",
+  "wing",
 ]);
 const allowedFormKeys = new Set([
+  "sectionProfile",
   "poses",
   "outfit",
   "appearance",
   "build",
   "skinTint",
+  "skinSurface",
   "skinSoftness",
+  "eyeColor",
+  "complexion",
+  "faceMarks",
+  "humanStyle",
 ]);
 function updateRecord(record, values, permitted) {
   if (!values || typeof values !== "object" || Array.isArray(values))
@@ -221,6 +243,7 @@ export function applyOperations(
   library = {},
   metric = false,
   marks = [],
+  variationSeed,
 ) {
   if (!Array.isArray(ops) || ops.length > 256)
     throw new Error("Use an array of up to 256 edit operations.");
@@ -238,6 +261,9 @@ export function applyOperations(
       }
       case "reshapeSpine":
         form = reshapeSpine(form, id, action.knots);
+        break;
+      case "attachCreatureLimbs":
+        form = attachCreatureLimbs(form, action);
         break;
       case "placeAtMark": {
         if (!validWorldMarks(marks))
@@ -294,7 +320,56 @@ export function applyOperations(
         }).form;
         break;
       }
+      case "shapeHuman":
+        form = changeHuman(form,action.parameters);
+        break;
+      case "rerollHuman":
+        form = rerollHuman(form, action.axes, variationSeed, action.amount);
+        break;
+      case "nudgeHuman":
+        form = nudgeHuman(form, action.deltas);
+        break;
+      case "buildHuman":
+        if (action.archetype !== undefined) {
+          if (!["male", "female", "neutral", "any"].includes(action.archetype) ||
+              !Number.isInteger(variationSeed))
+            throw new Error("Choose an adult frame and provide an editor variation seed.");
+          form = generatedHuman(variationSeed, action.archetype, action.colourRange ?? "Natural");
+          if (action.parameters) form = changeHuman(form, action.parameters);
+        } else {
+          form = humanForm(action.parameters ?? {}, form.origin?.seed ?? 0);
+        }
+        break;
+      case "buildCreature": {
+        // Replace the whole form with a creature built from a body plan.
+        if (
+          action.preset !== undefined &&
+          !Object.hasOwn(creaturePresets, action.preset)
+        )
+          throw new Error("Unknown creature preset: " + action.preset + ".");
+        form = buildCreature(
+          steerCreaturePlan(
+            action.preset ? creaturePresets[action.preset] : {},
+            action.plan ?? {},
+          ),
+        );
+        break;
+      }
+      case "steerCreature":
+        if (!form.origin?.plan)
+          throw new Error(
+            "steerCreature changes a creature built from a body plan. Start one with buildCreature.",
+          );
+        form = rebuildCreature(
+          form,
+          steerCreaturePlan(form.origin.plan, action.set ?? {}),
+        );
+        break;
       case "buildFigure": {
+        delete form.human;
+        delete form.humanStyle;
+        delete form.humanFit;
+        delete form.humanDetail;
         // Replace the anatomy with a measured, jointed two-arm figure. Later
         // operations in the same proposal can dress or reshape its parts.
         const built = buildFigure(action.figure);
@@ -303,8 +378,9 @@ export function applyOperations(
           parts: built.parts,
           origin: built.origin,
           appearance: { ...form.appearance, ...built.appearance },
-          outfit: built.outfit,
         };
+        if (built.sectionProfile) form.sectionProfile = built.sectionProfile;
+        else delete form.sectionProfile;
         delete form.build;
         break;
       }
@@ -356,8 +432,11 @@ export function applyOperations(
         {
           const previous = form;
           form = updateRecord(previous, set, allowedFormKeys);
+          if (set.humanStyle) form.humanStyle=chooseAdultStyle(previous.humanStyle,set.humanStyle);
           if (set.appearance)
             form.appearance = { ...previous.appearance, ...set.appearance };
+          if (form.human && set.appearance?.skin)
+            form = tintHumanSkin(form,set.appearance.skin,previous.appearance.skin);
         }
         break;
       default:
@@ -450,9 +529,28 @@ function geometryFingerprint(part) {
   return JSON.stringify(canonical(shape));
 }
 export function checkPreserved(preview, proposed, ids = []) {
+  const surfaceCache = new Map();
+  function sourceFor(form, part) {
+    return part?.humanBone ? (part.humanSource ? form.humanSources?.[part.humanSource] : form) : null;
+  }
+  function surface(source) {
+    if (!surfaceCache.has(source)) surfaceCache.set(source,evaluateHuman(source.human,source.humanFit,source.humanDetail));
+    return surfaceCache.get(source);
+  }
   for (const id of ids) {
     const old = preview.parts.find((p) => p.id === id),
       next = proposed.parts.find((p) => p.id === id);
+    const a=sourceFor(preview,old), b=sourceFor(proposed,next);
+    if (a && b && (JSON.stringify(a.human)!==JSON.stringify(b.human) || JSON.stringify(a.humanFit)!==JSON.stringify(b.humanFit) || JSON.stringify(a.humanDetail)!==JSON.stringify(b.humanDetail))) {
+      const before=surface(a), after=surface(b);
+      const joint=before.names.indexOf(old.humanBone);
+      for (let i=0;i<before.bodyVertices;i++) {
+        if (before.boneIndices[i*4]!==joint) continue;
+        const v=i*3;
+        if (Math.hypot(...[0,1,2].map(k=>before.positions[v+k]-after.positions[v+k]))>.00005)
+          throw new Error("The proposal changed protected geometry: "+id+".");
+      }
+    }
     if (!old || !next || geometryFingerprint(old) !== geometryFingerprint(next))
       throw new Error("The proposal changed protected geometry: " + id + ".");
   }

@@ -1,3 +1,13 @@
+import {humanEditor} from "./human-editor.js";
+import { dressHuman } from "./human-wardrobe.js";
+import {tailorEditor} from "./human-tailor-editor.js";
+
+import {loadHumanLibraryMaps} from "./human-library.js";
+import {loadComplexions} from "./human-complexion.js";
+import { creatureEditor } from "./creature-plan-editor.js";
+import { creatureHandleOverlay } from "./creature-handle-overlay.js";
+import { creatureWarp } from "./creature-warp.js";
+import {humanStudies} from "../examples/human-studies.js";
 import { surfaceMarkEditor, validSurfaceMarks } from "./surface-marks.js";
 import { branchPlacement } from "./branch-placement.js";
 import { fitEyeSettings } from "./ocular.js";
@@ -34,6 +44,7 @@ import { canBlend, bodyRegion } from "./blended-skin.js";
 import { drawTool } from "./draw-tool.js";
 import { drawBranch, branchTypes } from "./branch-stroke.js";
 import { pullTool } from "./pull-tool.js";
+import { humanBrush } from "./human-brush.js";
 import { readSession, saveSession } from "./session.js";
 import { motionPreview } from "./motion-preview.js";
 import {
@@ -44,6 +55,7 @@ import {
   replayDirection,
 } from "./variations.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { manipulator, findPart } from "./manipulator.js";
 import { appendPart, copyBranch, removePart } from "./parts.js";
 import { componentShelf, generateWorkshopForm } from "./components.js";
@@ -54,6 +66,9 @@ import tidebellMap from "../examples/tidebell.trace.json";
 import glider from "../examples/estuary-glider.form.json";
 import beetle from "../examples/accepted-beetle.form.json";
 import { studies as proceduralStudies } from "../examples/studies.js";
+import { creatureStudies } from "../examples/creature-studies.js";
+import { mhrStudies } from "../examples/mhr-study.js";
+import { referenceStudies } from "../examples/reference-studies.js";
 import { paintedStudies } from "../examples/painted-studies.js";
 import { equipPlateRows, repeatOnSpine } from "./scutes.js";
 import { outfitRoles } from "./wardrobe.js";
@@ -65,8 +80,12 @@ import { isFace } from "./facial-sculpt.js";
 import { bindTraceEditor } from "./trace-editor.js";
 import { loadTurnarounds, restoreArtwork } from "./turnaround.js";
 const studies = [
+  ...humanStudies,
+  ...creatureStudies,
   ...proceduralStudies,
   ...paintedStudies,
+  ...referenceStudies,
+  ...mhrStudies,
   {
     id: "tidebell",
     title: "Tidebell · open carapace",
@@ -194,7 +213,7 @@ let exportReview = null,
 let reviewHistory = [],
   refineRequest = null,
   restoredReviewAtLink = false;
-let clay = false,
+let clay = true,
   worldScale = false,
   silhouette = false,
   proposal = null,
@@ -223,12 +242,15 @@ let operation = "shape",
   pulling = false,
   drawing = false;
 let renderer,
+  studioKey,
   controls,
   gizmo,
   placeHandles,
   placement,
   placeSpine,
   spinePreview,
+  creatureDrag,
+  planPreview,
   playback,
   direct = false,
   cageFace = 0,
@@ -297,6 +319,7 @@ function commit(next, message, keepKnot = false) {
     const keep = new Set(
       next.parts.flatMap((p) => [
         p.profileFit?.paint?.atlas,
+        p.nativePortrait,
         ...(p.frontFits ?? []).map((f) => f.overlay),
       ]),
     );
@@ -424,6 +447,8 @@ function switchTab(name) {
     panel.hidden = panel.dataset.panel !== name;
   markTool?.sync();
   markTool?.draw();
+  // The creature handles belong to the sculpt panel.
+  creatureDrag?.place();
 }
 function focusFace() {
   if (!isFace(form.parts.find((p) => p.id === target)))
@@ -933,8 +958,9 @@ function bindControls() {
     );
   };
   $("#focus").onclick = () => {
-    const object = findPart(figure, target) ?? figure,
-      bounds = visibleBounds(object);
+    const object = findPart(figure, target) ?? figure;
+    const facialSurface = object.children.find(mesh => mesh.userData.faceSurface);
+    const bounds = visibleBounds(facialSurface ?? object);
     const size = bounds.getSize(new T.Vector3());
     const offset = camera.position.clone().sub(controls.target);
     bounds.getCenter(controls.target);
@@ -1431,19 +1457,16 @@ function bindControls() {
   $("#studies").replaceChildren(
     ...studies.map((s) => new Option(s.title + " · " + s.game, s.id)),
   );
-  $("#study").onclick = () => {
-    const study = studies.find((s) => s.id === $("#studies").value);
-    let next;
-    try {
-      next = study.make();
-    } catch (e) {
-      status(e.message);
-      return;
-    }
-    commit(next, "Loaded " + study.title + ".");
-    switchTab("sculpt");
-    chooseAngle("3/4", true);
+  const updateStudySource = () => {
+    const source = studies.find((s) => s.id === $("#studies").value)?.source;
+    const link = $("#study-source");
+    link.hidden = !source;
+    if (source) link.href = source;
+    else link.removeAttribute("href");
   };
+  $("#studies").onchange = updateStudySource;
+  updateStudySource();
+  $("#study").onclick = () => openStudy($("#studies").value);
   $("#save").onclick = () =>
     download(
       new Blob([JSON.stringify({ format: "irudd.form.v1", form }, null, 2)], {
@@ -1462,6 +1485,61 @@ function bindControls() {
       status(e.message);
     }
   };
+  $("#file-game-run").onclick = async () => {
+    const current = form, button = $("#file-game-run"), reading = $("#file-game-reading");
+    button.disabled = true;
+    reading.replaceChildren();
+    delete reading.dataset.result;
+    reading.dataset.revision = String(revision);
+    reading.textContent = "Rendering the game mesh at rest and in motion…";
+    try {
+      const {detail, views} = await inspectGameExport(current, renderer);
+      if (current !== form) return;
+      reading.dataset.result = JSON.stringify(detail);
+      const heading = document.createElement("p");
+      heading.textContent = detail.triangles.toLocaleString() + " triangles. " +
+        (detail.clip ? "Motion sample from " + detail.clip + "." : "Rest pose.");
+      reading.replaceChildren(heading);
+      if (detail.detailCoverage?.length) {
+        const note = document.createElement("p");
+        const worst = detail.detailCoverage.reduce((a,b) => a.exposedSkinPixels > b.exposedSkinPixels ? a : b);
+        note.textContent = worst.exposedSkinPixels
+          ? "Most newly exposed skin appears in " + worst.frame + ", " + worst.view + ". " +
+            worst.exposedSkinPixels + " of " + worst.interiorClothingPixels + " interior garment pixels show skin after reduction."
+          : detail.detailCoverage.some(row => row.interiorClothingPixels) ? "No newly exposed skin in the sampled garment interiors." : "These views contain no measurable garment interior.";
+        reading.append(note);
+        const patches = detail.detailCoverage.flatMap(row =>
+          row.gameSkinPatches.map(patch => ({ ...patch, frame: row.frame, view: row.view })));
+        const largest = patches.sort((a,b) => b.pixels - a.pixels)[0];
+        if (largest) {
+          const label = document.createElement("p");
+          label.textContent = "Check the opening bordered by " + largest.borderingPieces.join(", ") +
+            " in " + largest.frame + ", " + largest.view + " (" + largest.pixels + " skin pixels).";
+          reading.append(label);
+        }
+        const swaps = detail.detailCoverage.flatMap(r => r.layers.map(layer => ({...layer, view:r.view, frame:r.frame})));
+        const main = swaps.sort((a,b) => b.pixels-a.pixels)[0];
+        if (main?.pixels >= 4) {
+          const layer = document.createElement("p");
+          layer.textContent = main.gamePiece + " replaces " + main.fullPiece + " in " + main.pixels +
+            " interior pixels at " + main.frame + ", " + main.view + ".";
+          reading.append(layer);
+        }
+      }
+      for (const view of views) {
+        const img = new Image();
+        img.src = "data:image/jpeg;base64," + view.jpeg;
+        img.alt = view.name;
+        img.style.width = "100%";
+        reading.append(img);
+      }
+    } catch (error) {
+      if (current === form) reading.textContent = error.message;
+    } finally {
+      button.disabled = false;
+      render();
+    }
+  };
   $("#glb").onclick = async () => {
     const wardrobe =
       $("#all-outfits").checked && Boolean(form.outfitSets?.length);
@@ -1469,7 +1547,8 @@ function bindControls() {
     try {
       const result = await exportForm(form, {
         motion: $("#with-motion").checked,
-        game: $("#export-detail").value !== "full",
+        clay: $("#export-detail").value === "clay",
+        game: ["game", "portrait"].includes($("#export-detail").value),
         atlasSize: $("#export-detail").value === "portrait" ? 2048 : 1024,
         wardrobe,
         progress: async (name, index, count) => {
@@ -1546,12 +1625,24 @@ function bindControls() {
       status(e.message);
     }
   };
+  $("#body-plan").onchange = () => {
+    $("#adult-colours-field").hidden = $("#body-plan").value !== "adult";
+    $("#figure-archetype-field").hidden = ["plan", "creature", "hybrid"].includes(
+      $("#body-plan").value,
+    );
+  };
   $("#fresh").onclick = () => {
     target = null;
     commit(
-      generateWorkshopForm($("#body-plan").value),
+      generateWorkshopForm(
+        $("#body-plan").value,
+        undefined,
+        $("#figure-archetype").value,
+        $("#adult-colours").value,
+      ),
       "Generated a new starting form.",
     );
+    playback?.stand();
     chooseAngle("3/4", true);
     switchTab("sculpt");
   };
@@ -1982,6 +2073,12 @@ async function generate(kind) {
   }
 }
 function update() {
+  const fileReading = $("#file-game-reading");
+  if (fileReading.dataset.revision && Number(fileReading.dataset.revision) !== revision) {
+    fileReading.replaceChildren();
+    delete fileReading.dataset.revision;
+    delete fileReading.dataset.result;
+  }
   if (markOwner !== (proposal ?? form)) {
     markOwner = proposal ?? form;
     surfaceMarks = [];
@@ -1989,6 +2086,7 @@ function update() {
   }
   markTool?.sync();
   const preview =
+    planPreview ??
     spinePreview ??
     (proposal
       ? showCurrent
@@ -1999,6 +2097,7 @@ function update() {
   const shader = silhouette ? "Silhouette" : clay ? "Clay" : "Color";
   if (displayedForm !== preview || displayedInk !== shader) {
     if (figure) {
+      liveWarp.release();
       scene.remove(figure);
       disposeCharacter(figure);
     }
@@ -2014,6 +2113,8 @@ function update() {
     locked = busy || Boolean(proposal);
   $("#export-outfit-field").hidden = !form.outfitSets?.length;
   $("#pose-open").disabled = locked;
+  updateHuman?.(preview,locked);
+  updateCreature?.(form, locked);
   $("#revision").textContent = proposal
     ? showCurrent
       ? "Current form"
@@ -2049,6 +2150,14 @@ function update() {
         (compareExport ? "Earlier proposal. " : "This proposal. ") +
         shown.detail.triangles.toLocaleString() +
         " triangles. Refinements use this proposal's own export.";
+    const exposures = shown?.detail.detailCoverage;
+    if (exposures?.length) {
+      const worst = exposures.reduce((a,b) => a.exposedSkinPixels > b.exposedSkinPixels ? a : b);
+      if (worst.exposedSkinPixels)
+        $("#export-review-caption").textContent += " In " + worst.frame + ", " + worst.view +
+          ", the game export exposes skin in " + worst.exposedSkinPixels + " of " +
+          worst.interiorClothingPixels + " sampled pixels inside the full-detail garment.";
+    }
     const change = shown?.detail.coverage?.changes[0];
     if (change)
       $("#export-review-caption").textContent +=
@@ -2491,13 +2600,17 @@ function update() {
     knot,
     cageFace,
   );
-  const hasBody = preview.parts.some(
+  const hasBody = preview.human || preview.parts.some(
     (p) => Object.hasOwn(anchors, p.shape) || p.outfitRole || p.visibleIn,
   );
   updateReusePaint?.(form, locked);
   updateWardrobe?.(form, target, locked);
   updateFibres?.(form, target, locked);
   for (const el of $("#outfits").children) {
+    el.hidden =
+      el.textContent === "Anatomy" &&
+      preview.outfit !== "Anatomy" &&
+      !preview.parts.some((p) => p.bare && p.outfitRole === "torso");
     pressed(el, hasBody && el.textContent === preview.outfit);
     el.disabled =
       locked ||
@@ -2511,6 +2624,16 @@ function update() {
 }
 function render() {
   if (!renderer) return;
+  if (studioKey && controls) {
+    const target=controls.target, distance=Math.max(.30,(camera.top-camera.bottom)/camera.zoom*.83);
+    const shadow=studioKey.shadow.camera;
+    if (Math.abs(shadow.top-distance)>.001 || studioKey.target.position.distanceToSquared(target)>1e-7) {
+      studioKey.target.position.copy(target);
+      studioKey.position.copy(target).add(studioDirection);
+      Object.assign(shadow,{left:-distance,right:distance,top:distance,bottom:-distance});
+      shadow.updateProjectionMatrix();
+    }
+  }
   renderer.render(scene, camera);
   markTool?.draw();
   if (placeSpine) {
@@ -2529,6 +2652,7 @@ function render() {
         !playback?.active,
     );
   }
+  creatureDrag?.place();
   if (placeHandles) {
     const part = form.parts.find((p) => p.id === target);
     placeHandles(
@@ -2565,7 +2689,61 @@ function resize() {
   renderer.setSize(width, height, false);
   render();
 }
+const studioDirection=new T.Vector3(-3.2,5,4.5);
+const liveWarp = creatureWarp();
+let updateHuman, updateCreature;
 function setup() {
+  const updateAdult = humanEditor(()=>form,commit), updateTailor = tailorEditor(()=>form,commit);
+  updateHuman = (shown,locked)=>{updateAdult(shown,locked);updateTailor(shown,locked);};
+  let openReference;
+  $("#human-fit-open").onclick=async()=>{
+    if(!openReference){
+      const {humanReferenceEditor}=await import("./human-reference-editor.js");
+      openReference=humanReferenceEditor(()=>form,commit,status);
+    }
+    openReference();
+  };
+  // Handles on the creature itself. They rest while another tool owns the
+  // pointer, while a clip or a pose plays and outside the sculpt panel.
+  creatureDrag = creatureHandleOverlay(stage, camera, {
+    read: () => form,
+    idle: () =>
+      !busy &&
+      !proposal &&
+      !direct &&
+      !pulling &&
+      !drawing &&
+      !placement?.active &&
+      !playback?.active &&
+      !$('[data-panel="sculpt"]').hidden,
+    // A held handle warps the meshes on screen, which takes a few
+    // milliseconds, and asks for the exact build when the pointer rests.
+    preview: (next, exact) => {
+      if (!exact && liveWarp.show(figure, displayedForm, next)) {
+        render();
+        return false;
+      }
+      planPreview = next;
+      update();
+      return true;
+    },
+    finish: (next, message) => {
+      planPreview = null;
+      commit(next, message);
+    },
+    cancel: () => {
+      planPreview = null;
+      liveWarp.restore();
+      update();
+    },
+    note: status,
+  });
+  updateCreature = creatureEditor(
+    () => form,
+    commit,
+    () => chooseAngle("3/4", true),
+    creatureDrag,
+  );
   renderer = new T.WebGLRenderer({
     canvas,
     antialias: true,
@@ -2595,7 +2773,12 @@ function setup() {
   rim.rotation.x = -Math.PI / 2;
   rim.position.y = -0.008;
   scene.add(rim);
-  scene.add(new T.HemisphereLight("#f2f6ff", "#a5aaa5", 1.35));
+  const room = new RoomEnvironment(), reflection = new T.PMREMGenerator(renderer);
+  scene.environment = reflection.fromScene(room, .04).texture;
+  scene.environmentIntensity = .27;
+  reflection.dispose();
+  room.dispose();
+  scene.add(new T.HemisphereLight("#f2f6ff", "#a5aaa5", .98));
   const key = new T.DirectionalLight("#fff3dd", 2.8);
   key.position.set(-3.2, 5, 4.5);
   key.castShadow = true;
@@ -2609,9 +2792,11 @@ function setup() {
   });
   key.shadow.camera.updateProjectionMatrix();
   key.shadow.mapSize.set(2048, 2048);
-  key.shadow.normalBias = 0.009;
-  key.shadow.bias = -0.0003;
-  scene.add(key);
+  key.shadow.normalBias = .0015;
+  key.shadow.bias = -.00012;
+  key.shadow.radius = 2;
+  studioKey=key;
+  scene.add(key,key.target);
   const back = new T.DirectionalLight("#d8e9ff", 2.1);
   back.position.set(2.5, 3, -3);
   scene.add(back);
@@ -2792,6 +2977,15 @@ function setup() {
       );
     },
   });
+  humanBrush(canvas, camera, controls, {
+    idle: () => !busy && !proposal && !playback.active,
+    figure: () => figure,
+    form: () => nudge(form, target, amounts),
+    release: () => playback.bind(),
+    commit,
+    status,
+    render,
+  });
   bindControls();
   chooseAngle("3/4");
   resize();
@@ -2810,11 +3004,61 @@ async function openForm(blob, ticket = ++openTicket, fromRevision = revision) {
     return;
   target = null;
   commit(data.form, "Form opened.");
+  playback?.stand();
   switchTab("sculpt");
   chooseAngle("3/4", true);
 }
+function openStudy(id) {
+  const study = studies.find((entry) => entry.id === id);
+  if (!study) return status("Unknown workshop study.");
+  let next;
+  try {
+    next = study.make();
+    validateForm(next);
+  } catch (e) {
+    status(e.message);
+    return;
+  }
+  $("#studies").value = id;
+  $("#studies").onchange();
+  if (study.mode) {
+    clay = study.mode === "Clay";
+    silhouette = study.mode === "Silhouette";
+  }
+  commit(next, "Loaded " + study.title + ".");
+  playback?.stand();
+  switchTab("sculpt");
+  chooseAngle(study.angle ?? "3/4", true);
+  return true;
+}
 async function openExample() {
-  const slug = new URLSearchParams(location.hash.slice(1)).get("form");
+  const params = new URLSearchParams(location.hash.slice(1));
+  if (params.has("study")) {
+    if (!busy && !proposal && openStudy(params.get("study")) &&
+        params.get("compare") === "3d" && form.referenceRigs?.length) {
+      $("#human-fit-open").click();
+    }
+    return;
+  }
+  if (params.has("adult")) {
+    if (busy || proposal) return;
+    const bodySeed = params.get("adult"), lookSeed = params.get("look");
+    const validSeed = s => /^\d{1,10}$/.test(s) && Number(s) <= 0xffffffff;
+    if (!validSeed(bodySeed) || (lookSeed !== null && !validSeed(lookSeed))) {
+      status("Use a whole seed between 0 and 4294967295.");
+      return;
+    }
+    let next = generateWorkshopForm("adult", Number(bodySeed));
+    if (lookSeed !== null) next = dressHuman(next, Number(lookSeed));
+    ++openTicket;
+    clay = lookSeed === null; silhouette = false;
+    commit(next, "Opened adult draw " + bodySeed + ".");
+    playback?.stand();
+    switchTab("sculpt");
+    chooseAngle("3/4", true);
+    return;
+  }
+  const slug = params.get("form");
   if (!slug || !connected) return;
   if (!/^[a-z0-9-]{1,80}$/.test(slug)) {
     status("Unknown workshop example.");
@@ -2835,6 +3079,8 @@ async function startWorkshop() {
     restoreSessionState(await readSession());
     setup();
     Promise.all([
+      loadHumanLibraryMaps(),
+      loadComplexions(),
       loadFacePaint(),
       loadSurfaces(),
       loadTurnarounds(),
@@ -2856,7 +3102,7 @@ async function startWorkshop() {
           !request &&
           !Object.values(amounts).some(Boolean);
         if (initial) {
-          form = generateWorkshopForm("any", form.origin.seed);
+          form = generateWorkshopForm("adult", form.origin.seed);
           validateForm(form);
           persist();
         }

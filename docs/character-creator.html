@@ -38,6 +38,7 @@ code {font-family:var(--font-mono,Consolas,monospace);font-size:.92em;overflow-w
 .walk-window {width:100%;aspect-ratio:860/423;position:relative;overflow:hidden}
 .walk-window img {position:absolute;max-width:none;width:400%;height:400%;left:-300%;top:-200%;margin:0;border:0;border-radius:0}
 .walk-window img[hidden] {display:none}
+[data-local]:not([data-local-found]) { display: none !important; }
 </style>
 </head>
 <body><main>
@@ -68,6 +69,21 @@ code {font-family:var(--font-mono,Consolas,monospace);font-size:.92em;overflow-w
 <h2>Start in the 3D view</h2>
 <p>Work on one evolving form. It starts on a metre grid with an orbit camera and a silhouette view. A nudge acts on the current geometry; the neutral slider position means “no further change.” An agent can replace the anatomy, add parts or reshape a face. Continue editing the accepted form from its new geometry.</p>
 
+<section id="anatomy-study">
+<h2>Can the unclothed figure stand on its own?</h2>
+<p>Open a new humanoid in <strong>Anatomy</strong> and orbit it in clay. The chest has shallow paired volumes, the pelvis is smooth, and the barefoot figure has five toes per foot. The wardrobe retains the same figure&rsquo;s work clothes and pressure suit. Saved forms reopen in the outfit they recorded.</p>
+<figure><a href="media/unclothed-study.webp"><img src="media/unclothed-study.webp" loading="lazy" width="1440" height="497" alt="Clay cartographer at rest from front, three-quarter, side and rear"></a><figcaption>The same procedurally built body and stance in all four views.</figcaption></figure>
+<p>For the jaw and throat, compare the underside of the chin, the point where the jaw turns below the ear, and the curve from the back of the skull into the neck. We inspected the scan-averaged OBJ heads in profile. <a href="https://www.3dscanstore.com/blog/Tutorials/Free-Base-Mesh">3D Scan Store&rsquo;s free average heads</a>.</p>
+<p>The male neutral A-pose shows how the clavicles slope into the shoulders and how the fronts of the knees differ from the calves. The relaxed female A-pose provides a second body type for checking chest, abdomen and hip volumes. The life-model sheets show how posture changes those contours. The full-body sources provide visual references for the procedural meshes. <a href="https://www.3dscanstore.com/blog/male-anatomy-reference-pack">Male 41 neutral scan and poses</a> &middot; <a href="https://www.3dscanstore.com/3d-body-models/shaded-female/shaded-female-08-pose-1">Female 08 relaxed A-pose</a> &middot; <a href="https://anatomy360.info/new-anatomy-360-pack-with-40-poses/">Anatomy 360 pose sheets</a>.</p>
+</section>
+<section id="humanoid-reference">
+<h2>What does the humanoid profile miss?</h2>
+<p>We compared the workshop cartographer with the realistic male and female body meshes in Blender Studio&rsquo;s CC0 Human Base Meshes v1.4.1. The same bundle includes a hand and foot that can be inspected separately. The workshop builds its own geometry in Three.js. <a href="https://download.blender.org/demo/asset-bundles/human-base-meshes/human-base-meshes-bundle-v1.4.1.zip">Download the original Blender reference models</a>. The side-by-side picture shows those meshes and is <a href="local-references.md">local reference material</a>. It appears below in a copy that has the file.</p>
+<figure data-local="media/humanoid-reference-profiles.webp"><a href="media/humanoid-reference-profiles.webp"><img src="media/humanoid-reference-profiles.webp" width="1040" height="545" loading="lazy" alt="The two Blender Studio adult body profiles beside the cartographer before and after the neck, back, seat, arms and foot revisions"></a><figcaption>Orthographic side views, aligned to the ground and scaled to the same height. The cartographer wears work clothes and shoes. The references have their own arm poses.</figcaption></figure>
+<p>At half the standing height, the seat projected behind the lower back by 1.8% of stature in the earlier export and 3.3% in the revision. The two reference values were 2.5% and 4.3%. At 72% of standing height the chest front moved from 14.2% to 12.0% of stature ahead of that same back plane. Both references measured 12.3%. Each measurement intersects the mesh with a horizontal plane, keeps points within 7.3% of stature on either side of the midline, and uses the rearmost point at 60% height as its depth origin. These figures describe the four meshes pictured.</p>
+<p>The ear fold, neck slope and shoulder-to-elbow contour are visible in clay. The shoulders remain round in front view, and the hands still have less knuckle definition than the hand study. Recheck those details close up, in profile and while reaching.</p>
+<figure><a href="media/humanoid-archetypes.webp"><img src="media/humanoid-archetypes.webp" loading="lazy" alt="One seed in the male, neutral and female starting proportions with the same face, outfit and camera"></a><figcaption>Humanoid seed 161 in the base layer. The three starts change shoulder, waist, hip, neck, chest and limb proportions. Each accepts the same edits, clothing and poses.</figcaption></figure>
+</section>
 <h2>Experiments</h2>
 <p class="hint">Start with the interactive 3D view and use it to select bodies and outfits for the rig and export tests. Run the 2D reference-pack study after the 3D characters are approved. All pass marks below are proposed pilot criteria.</p>
 <details><summary>1 · Can one rig wear all three outfits?</summary><div><dl>
@@ -183,6 +199,13 @@ code {font-family:var(--font-mono,Consolas,monospace);font-size:.92em;overflow-w
 <p>One test asked whether an agent could add unfamiliar topology to an existing animal. It built a 48-point control cage around a true opening in a crest. A separate GLB player could see through the centre and intersect both walls at its rim. One clothing assignment needed correction before the crest was visible. <a href="workshop-results.html#control-cage">Inspect the crest and its measurements</a>.</p>
 <p>Use the generator to make two revisions with deliberately different proportions. Inspect each in silhouette and in work clothes, then try a shape the starter body cannot describe. Keep the change if you can orbit it, nudge one new part, and recover it after export and reopen. The later 2D study will use views of an approved 3D form.</p>
 </main><script>
+// Comparison pictures are local reference material (local-references.md).
+// Show a picture, or a block that depends on one, only where its file loads.
+for (const item of document.querySelectorAll("[data-local]")) {
+  const probe = new Image();
+  probe.onload = () => item.setAttribute("data-local-found", "");
+  probe.src = item.dataset.local;
+}
 (() => {
   const mode=document.getElementById("walk-mode"), phase=document.getElementById("walk-phase");
   function renderWalk() {

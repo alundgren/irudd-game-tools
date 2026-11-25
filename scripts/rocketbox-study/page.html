@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rocketbox avatar study</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #edf0ed;
+        color: #203329;
+        font:
+          16px/1.45 system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 1400px;
+        margin: auto;
+        padding: 18px;
+      }
+      h1 {
+        font:
+          normal 2rem Georgia,
+          serif;
+        margin: 0;
+      }
+      p {
+        max-width: 84ch;
+        margin: 0.5rem 0;
+      }
+      .controls {
+        display: flex;
+        gap: 0.6rem;
+        align-items: center;
+        flex-wrap: wrap;
+        margin: 0.8rem 0;
+      }
+      .labels {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        text-align: center;
+        font-weight: 600;
+      }
+      button,
+      select {
+        font: inherit;
+        background: white;
+        color: inherit;
+        border: 1px solid #889c90;
+        border-radius: 4px;
+        padding: 0.25rem 0.65rem;
+      }
+      button {
+        cursor: pointer;
+      }
+      button[aria-pressed="true"] {
+        background: #284739;
+        color: white;
+      }
+      #stage {
+        height: min(78vh, 900px);
+        min-height: 420px;
+        border: 1px solid #b3c0b6;
+        background: #dfe5df;
+      }
+      #stage canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+      }
+      small {
+        display: block;
+        color: #45584c;
+        margin-top: 0.5rem;
+      }
+      code {
+        background: #dfe6df;
+        padding: 0 0.25em;
+        border-radius: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Rocketbox avatar study</h1>
+      <p>
+        The left figure is an avatar authored by the Rocketbox team. The right figure is this
+        workshop's adult, dressed and shaped with its ordinary controls to match. Drag to orbit
+        both. They share one camera and one scale.
+      </p>
+      <div class="controls">
+        <select id="study" aria-label="Avatar"></select>
+        <select id="stages" aria-label="Attempt"></select>
+        <span id="modes">
+          <button data-mode="Colour" aria-pressed="true">Colour</button>
+          <button data-mode="Clay" aria-pressed="false">Clay</button>
+          <button data-mode="Silhouette" aria-pressed="false">Silhouette</button>
+        </span>
+        <select id="frame" aria-label="Framing">
+          <option value="whole">Whole person</option>
+          <option value="torso">Jacket and collar</option>
+          <option value="head">Head</option>
+          <option value="legs">Legs and boots</option>
+        </select>
+        <span id="angles">
+          <button data-angle="0">Front</button>
+          <button data-angle="45">Front left</button>
+          <button data-angle="90">Left</button>
+          <button data-angle="135">Rear left</button>
+          <button data-angle="180">Back</button>
+          <button data-angle="225">Rear right</button>
+          <button data-angle="270">Right</button>
+          <button data-angle="315">Front right</button>
+        </span>
+        <span id="status">Loading…</span>
+      </div>
+      <div class="labels"><span>Rocketbox original</span><span>Editable adult</span></div>
+      <div id="stage"></div>
+      <p id="note"></p>
+      <small>
+        <span id="scale"></span>. The ruler is marked every 10 cm. Editable form:
+        <code id="form"></code>, opened in the workshop with <strong>Forms → Open form</strong>.
+      </small>
+      <small><span id="credit"></span> <a id="source" href="#">Source folder</a></small>
+    </main>
+    <!-- APP -->
+  </body>
+</html>

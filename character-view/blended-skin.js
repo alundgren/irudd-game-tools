@@ -2,9 +2,11 @@ import {
   Box3,
   BufferGeometry,
   Float32BufferAttribute,
+  Uint32BufferAttribute,
   MathUtils,
   MeshBasicMaterial,
   Vector3,
+  Triangle,
 } from "three";
 import { MarchingCubes } from "three/addons/objects/MarchingCubes.js";
 
@@ -13,11 +15,11 @@ const fieldMaterial = new MeshBasicMaterial(),
 export const canBlend = (p) =>
   Boolean(
     p &&
-      ["sweep", "ellipsoid"].includes(p.shape) &&
-      !p.paint &&
-      !p.fibres &&
-      !p.wearFit &&
-      !p.drape,
+    ["sweep", "ellipsoid"].includes(p.shape) &&
+    !p.paint &&
+    !p.fibres &&
+    !p.wearFit &&
+    !p.drape,
   );
 export const bodyRegion = (p) =>
   canBlend(p) &&
@@ -46,7 +48,78 @@ function blur(data, size, axis, sigma) {
   }
   return out;
 }
-function voxelize({ mesh, part }, min, step, n, sigma) {
+// For fitted human surfaces the distance to the original triangles gives
+// the shoulder and hips a smooth contour even when a sleeve spans few cells.
+// Rasterize the sign along Z and measure the distance in a narrow band.
+function figureLayer(points, index, step, size, offset, lines, band) {
+  const [w, h, depth] = size,
+    count = w * h * depth;
+  const inside = new Uint8Array(count);
+  for (let col = 0; col < lines.length; col++) {
+    const crossings = lines[col]
+      .sort((a, b) => a - b)
+      .filter((v, i, row) => i === 0 || v - row[i - 1] > 1e-6);
+    for (let j = 1; j < crossings.length; j += 2)
+      for (
+        let z = Math.max(0, Math.ceil(crossings[j - 1]) - offset[2]);
+        z <= Math.min(depth - 1, Math.floor(crossings[j]) - offset[2]);
+        z++
+      )
+        inside[col + z * w * h] = 1;
+  }
+  const distance = new Float32Array(count).fill(band * band);
+  const triangle = new Triangle(),
+    q = new Vector3(),
+    hit = new Vector3();
+  const scale = step.toArray();
+  const lo = [0, 0, 0],
+    hi = [0, 0, 0];
+  for (let i = 0; i < (index?.count ?? points.length / 3); i += 3) {
+    const { a, b, c } = triangle;
+    a.fromArray(points, 3 * (index ? index.getX(i) : i));
+    b.fromArray(points, 3 * (index ? index.getX(i + 1) : i + 1));
+    c.fromArray(points, 3 * (index ? index.getX(i + 2) : i + 2));
+    for (let axis = 0; axis < 3; axis++) {
+      const av = a.getComponent(axis),
+        bv = b.getComponent(axis),
+        cv = c.getComponent(axis);
+      lo[axis] = Math.max(
+        0,
+        Math.ceil(Math.min(av, bv, cv) - band / scale[axis]) - offset[axis],
+      );
+      hi[axis] = Math.min(
+        size[axis] - 1,
+        Math.floor(Math.max(av, bv, cv) + band / scale[axis]) - offset[axis],
+      );
+    }
+    a.multiply(step);
+    b.multiply(step);
+    c.multiply(step);
+    for (let z = lo[2]; z <= hi[2]; z++)
+      for (let y = lo[1]; y <= hi[1]; y++) {
+        const row = (z * h + y) * w;
+        q.y = (offset[1] + y) * step.y;
+        q.z = (offset[2] + z) * step.z;
+        for (let x = lo[0]; x <= hi[0]; x++) {
+          q.x = (offset[0] + x) * step.x;
+          triangle.closestPointToPoint(q, hit);
+          const squared = hit.distanceToSquared(q);
+          if (squared < distance[row + x]) distance[row + x] = squared;
+        }
+      }
+  }
+  return {
+    offset,
+    size,
+    data: Float32Array.from(
+      distance,
+      (dist, i) =>
+        127.5 *
+        (1 + (inside[i] ? 1 : -1) * Math.min(1, Math.sqrt(dist) / band)),
+    ),
+  };
+}
+function voxelize({ mesh, part }, min, step, n, sigma, band) {
   const p = mesh.geometry.attributes.position,
     idx = mesh.geometry.index,
     points = new Float32Array(p.count * 3),
@@ -65,14 +138,12 @@ function voxelize({ mesh, part }, min, step, n, sigma) {
       high[a] = Math.max(high[a], t);
     }
   }
-  const offset = low.map((x, i) =>
-    Math.max(0, Math.floor(x) - Math.ceil(2 * sigma[i]) - 2),
-  );
+  const margin = step
+    .toArray()
+    .map((s, i) => Math.ceil(band ? band / s : 2 * sigma[i]) + 2);
+  const offset = low.map((x, i) => Math.max(0, Math.floor(x) - margin[i]));
   const size = high.map(
-    (x, i) =>
-      Math.min(n - 1, Math.ceil(x) + Math.ceil(2 * sigma[i]) + 2) -
-      offset[i] +
-      1,
+    (x, i) => Math.min(n - 1, Math.ceil(x) + margin[i]) - offset[i] + 1,
   );
   const [w, h, depth] = size;
   const lines = Array.from({ length: w * h }, () => []);
@@ -106,6 +177,7 @@ function voxelize({ mesh, part }, min, step, n, sigma) {
         );
       }
   }
+  if (band) return figureLayer(points, idx, step, size, offset, lines, band);
   let data = new Float32Array(w * h * depth);
   for (const [col, line] of lines.entries()) {
     line.sort((a, b) => a - b);
@@ -184,9 +256,8 @@ function sample(layer, x, y, z) {
           (k ? dz : 1 - dz);
   return v;
 }
-function triangulate(entries, softness) {
-  const n = 72,
-    box = new Box3();
+function triangulate(entries, softness, band, n) {
+  const box = new Box3();
   for (const { mesh } of entries) {
     mesh.geometry.computeBoundingBox();
     box.union(mesh.geometry.boundingBox.clone().applyMatrix4(mesh.matrixWorld));
@@ -203,11 +274,13 @@ function triangulate(entries, softness) {
   const sigma = step
     .toArray()
     .map((s) => MathUtils.clamp((largest * softness) / s, 0.65, 2.8));
-  const layers = entries.map((entry) => voxelize(entry, min, step, n, sigma));
+  const layers = entries.map((entry) =>
+    voxelize(entry, min, step, n, sigma, band),
+  );
   if (layers.filter(Boolean).length < 2) return [];
   const limit = 22 * n * n,
     mc = new MarchingCubes(n, fieldMaterial, false, false, limit);
-  mc.isolation = 0.47;
+  mc.isolation = band ? 0.5 : 0.47;
   for (const layer of layers) {
     if (!layer) continue;
     const [w, h, d] = layer.size,
@@ -215,8 +288,17 @@ function triangulate(entries, softness) {
     for (let z = 0; z < d; z++)
       for (let y = 0; y < h; y++)
         for (let x = 0; x < w; x++) {
-          mc.field[x + x0 + n * (y + y0 + n * (z + z0))] +=
-            layer.data[x + w * (y + h * z)] / 255;
+          const cell = x + x0 + n * (y + y0 + n * (z + z0));
+          const d = layer.data[x + w * (y + h * z)] / 255;
+          if (!band) {
+            mc.field[cell] += d;
+            continue;
+          }
+          const prev = mc.field[cell];
+          const width = Math.min(0.48, 2 * prev, 2 * d);
+          const overlap =
+            width > 0 ? Math.max(0, 1 - Math.abs(prev - d) / width) : 0;
+          mc.field[cell] = Math.max(prev, d) + 0.25 * width * overlap * overlap;
         }
   }
   mc.update();
@@ -225,7 +307,17 @@ function triangulate(entries, softness) {
     return [];
   }
   const patches = layers.map((l) =>
-    l ? { pos: [], norm: [], uv: [], first: [], second: [], weight: [] } : null,
+    l
+      ? {
+          pos: [],
+          norm: [],
+          uv: [],
+          first: [],
+          second: [],
+          weight: [],
+          ...(band ? { vertices: new Map(), indices: [] } : {}),
+        }
+      : null,
   );
   const verts = new Vector3(),
     normal = new Vector3();
@@ -259,6 +351,25 @@ function triangulate(entries, softness) {
           second = id;
         }
       });
+      if (band) {
+        // Marching cubes emits one crossing per grid edge. Reuse it within
+        // each region so a full-detail export shares its skinned vertices.
+        let ix = Math.round(verts.x),
+          iy = Math.round(verts.y),
+          iz = Math.round(verts.z),
+          axis = 3;
+        if (Math.abs(verts.x - ix) > 1e-5) {
+          ix = Math.floor(verts.x);
+          axis = 0;
+        } else if (Math.abs(verts.y - iy) > 1e-5) {
+          iy = Math.floor(verts.y);
+          axis = 1;
+        } else if (Math.abs(verts.z - iz) > 1e-5) {
+          iz = Math.floor(verts.z);
+          axis = 2;
+        }
+        c.key = ix + n * (iy + n * (iz + n * axis));
+      }
       c.first = first;
       c.second = second;
       c.weight = hi / (hi + lo || 1);
@@ -274,6 +385,16 @@ function triangulate(entries, softness) {
       out = patches[owner];
     if (!out) continue;
     for (const c of corners) {
+      if (band) {
+        const index = out.vertices.get(c.key);
+        if (index !== undefined) {
+          out.indices.push(index);
+          continue;
+        }
+        const next = out.first.length;
+        out.vertices.set(c.key, next);
+        out.indices.push(next);
+      }
       out.pos.push(c.p.x, c.p.y, c.p.z);
       out.norm.push(c.n.x, c.n.y, c.n.z);
       out.uv.push(c.u, c.v);
@@ -286,6 +407,7 @@ function triangulate(entries, softness) {
   return patches.map(
     (p) =>
       p && {
+        indices: p.indices ? Uint32Array.from(p.indices) : null,
         pos: Float32Array.from(p.pos),
         norm: Float32Array.from(p.norm),
         uv: Float32Array.from(p.uv),
@@ -302,33 +424,81 @@ export function blendSkin(form, objects, material) {
         p.blendSkin &&
         !p.surfaceJoin &&
         canBlend(p) &&
-        (!p.outfitRole || form.outfit === "Work clothes"),
+        (!p.outfitRole ||
+          form.outfit === "Work clothes" ||
+          form.outfit === "Anatomy"),
     )
     .map((part) => ({ part, mesh: objects.get(part.id) }))
     .filter((e) => e.mesh?.isMesh && e.mesh.visible);
+  const garmentGroups = new Map();
+  for (const part of form.parts) {
+    const mesh = objects.get(part.id);
+    if (
+      !part.seamGroup ||
+      part.blendSkin ||
+      part.surfaceJoin ||
+      !canBlend(part) ||
+      !mesh?.visible
+    )
+      continue;
+    if (part.seamGroup === "figure" && form.outfit === "Pressure suit")
+      continue;
+    if (!garmentGroups.has(part.seamGroup))
+      garmentGroups.set(part.seamGroup, []);
+    garmentGroups.get(part.seamGroup).push({ part, mesh });
+  }
+  for (const [group, pieces] of garmentGroups) {
+    const toes = group === "left foot" || group === "right foot";
+    joinSurfaces(
+      pieces,
+      toes ? 0.004 : 0.011,
+      null,
+      form.outfit,
+      toes ? 0.009 : 0.035,
+    );
+  }
+  joinSurfaces(
+    entries,
+    form.skinSoftness ?? 0.015,
+    entries.length
+      ? material(
+          form.skinTint ?? entries[0].part.color,
+          form.skinSurface ?? "plain",
+        )
+      : null,
+  );
+}
+
+function joinSurfaces(entries, softness, commonMaterial, outfit, band) {
   if (entries.length < 2) return;
   if (entries.length > 48)
     throw new Error("Join at most 48 skin regions at once.");
   for (const { mesh } of entries) mesh.updateWorldMatrix(true, false);
-  const softness = form.skinSoftness ?? 0.015;
   const key = JSON.stringify([
     softness,
+    outfit,
+    band,
     entries.map(({ part, mesh }) => [
       part.id,
       part.shape,
+      part.outfitRole,
+      part.bare,
+      part.footSection,
       part.knots,
       part.pulls,
+      part.radialFit,
       mesh.matrixWorld.elements,
     ]),
   ]);
   let patches = cache.get(key);
   if (!patches) {
-    patches = triangulate(entries, softness);
-    if (cache.size >= 4) cache.delete(cache.keys().next().value);
+    const detail =
+      outfit === "Anatomy" && entries[0].part.seamGroup === "figure" ? 88 : 72;
+    patches = triangulate(entries, softness, band, detail);
+    if (cache.size >= 6) cache.delete(cache.keys().next().value);
     cache.set(key, patches);
   }
   const ids = entries.map((e) => e.part.id);
-  const skin = material(form.skinTint ?? entries[0].part.color, "plain");
   for (const [i, patch] of patches.entries()) {
     if (!patch) continue;
     const mesh = entries[i].mesh,
@@ -342,11 +512,13 @@ export function blendSkin(form, objects, material) {
       new Float32BufferAttribute(patch.norm.slice(), 3),
     );
     geo.setAttribute("uv", new Float32BufferAttribute(patch.uv, 2));
+    if (patch.indices)
+      geo.setIndex(new Uint32BufferAttribute(patch.indices, 1));
     geo.applyMatrix4(mesh.matrixWorld.clone().invert());
     geo.computeBoundingBox();
     mesh.geometry.dispose();
     mesh.geometry = geo;
-    mesh.material = skin;
+    if (commonMaterial) mesh.material = commonMaterial;
     mesh.blendOwners = {
       ids,
       first: patch.first,

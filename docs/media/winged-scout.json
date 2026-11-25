@@ -1,0 +1,76 @@
+{
+  "renderer": "NVIDIA GeForce RTX 5070 Ti/PCIe/SSE2",
+  "triangles": 24002,
+  "materials": 1,
+  "clips": [
+    "Idle",
+    "Walk",
+    "Crouch",
+    "Reach",
+    "Fly",
+    "Pose · Wrist signal",
+    "Pose · Bank"
+  ],
+  "bankPoseWingChannels": [
+    "J53_left_wing_1",
+    "J58_right_wing_1"
+  ],
+  "bankPoseMaxDisplacementMetres": 0.31771993252406794,
+  "bankPoseMovedVerticesOver1mm": 5224,
+  "source": "Original generated and dressed adults. No externally fitted geometry or imagery.",
+  "export": "Normal workshop Game exporter with a local native Canvas compatibility adapter. Hardware OpenGL rendered the actual exported geometry and vertex-sampled base-colour atlas.",
+  "views": {
+    "azimuthsDegrees": [
+      18,
+      145,
+      90
+    ],
+    "fixedPixelsPerMetre": 215,
+    "frame": [
+      500,
+      510
+    ]
+  },
+  "unchangedExistingParts": 52,
+  "retainedPriorPose": "Wrist signal",
+  "garment": "Chore jacket with procedural swatch",
+  "transferGarment": "Hoodie and joggers with procedural swatch",
+  "socketMotionAfterEditedBuildMm": {
+    "left wing 1": 68.89,
+    "right wing 1": 68.89
+  },
+  "transferLocalSocketsMetres": {
+    "left wing 1": [
+      0.06980529218912125,
+      0.15535526382534992,
+      -0.03231776650845275
+    ],
+    "right wing 1": [
+      -0.06980529218912125,
+      0.15535526382534992,
+      -0.0323173277021761
+    ]
+  },
+  "validation": {
+    "winged-scout.glb": {
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0,
+      "hints": 0
+    },
+    "winged-transfer.glb": {
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0,
+      "hints": 0
+    },
+    "winged-wider.glb": {
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0,
+      "hints": 0
+    }
+  },
+  "limits": "The socket seats within skin and emerges through the current garment. It does not cut an opening. Widened Scout Game export has unrelated small coat intersections. The separate manually marked tail was explored locally and is not part of the example.",
+  "transfer": "The two existing scout branches were extracted and attached to the other adult through the same graft used by the artist panel. No placement values were supplied."
+}

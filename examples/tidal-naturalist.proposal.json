@@ -1,0 +1,1476 @@
+{
+  "instructions": "Turn this field engineer into a nonhuman tide-pool naturalist. Keep the jacket, trousers, feet, identity and current stature. Make a fan of three or more organic tapering, branching external gill fronds on each side of the skull, with distinct smaller side filaments and a muted rust-to-coral palette. Use the actual head pivot in metres; inspect its rest bounds. Add a long flexible tapering tail with a flattened caudal fin, anchored behind the pelvis, sweeping back and clear of the floor in standing pose. Give the ears a finlike profile and a grey-green skin tone. Keep the face visible. Anatomically grounded, readable from behind and from profile; no boxes for major structures, no dress-up badges. Use operations. Do not replace the human base.",
+  "variation": {
+    "strength": "exploratory",
+    "seed": 3997261473,
+    "cues": [
+      "Repeat a feature in graduated sizes",
+      "Low and wide"
+    ],
+    "magnitude": 36
+  },
+  "summary": "Grey-green tide-pool naturalist with graduated branching coral gills, finlike ears and a flexible tail; identity, stature and field clothes retained.",
+  "operations": [
+    {
+      "op": "setForm",
+      "set": {
+        "appearance": {
+          "skin": "#7e9185"
+        }
+      }
+    },
+    {
+      "op": "setPart",
+      "id": "head",
+      "set": {
+        "color": "#7e9185"
+      }
+    },
+    {
+      "op": "setPart",
+      "id": "neck",
+      "set": {
+        "color": "#7e9185"
+      }
+    },
+    {
+      "op": "setPart",
+      "id": "left hand",
+      "set": {
+        "color": "#7e9185"
+      }
+    },
+    {
+      "op": "setPart",
+      "id": "right hand",
+      "set": {
+        "color": "#7e9185"
+      }
+    },
+    {
+      "op": "addPart",
+      "part": {
+        "id": "left upper gill frond",
+        "shape": "sweep",
+        "parent": "head",
+        "position": [
+          0.073,
+          0.047,
+          -0.043
+        ],
+        "size": [
+          1,
+          1,
+          1
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "color": "#985e4c",
+        "surface": "plain",
+        "motionRole": "fin",
+        "surfaceJoin": {
+          "end": "first",
+          "depth": 0.008
+        },
+        "knots": [
+          [
+            0,
+            0,
+            0,
+            0.016,
+            0.013
+          ],
+          [
+            0.047,
+            0.023,
+            -0.018,
+            0.015,
+            0.011
+          ],
+          [
+            0.112,
+            0.06,
+            -0.052,
+            0.011,
+            0.008
+          ],
+          [
+            0.176,
+            0.083,
+            -0.096,
+            0.006,
+            0.004
+          ],
+          [
+            0.218,
+            0.088,
+            -0.131,
+            0.0015,
+            0.0015
+          ]
+        ]
+      }
+    },
+    {
+      "op": "addPart",
+      "part": {
+        "id": "left middle gill frond",
+        "shape": "sweep",
+        "parent": "head",
+        "position": [
+          0.079,
+          0.013,
+          -0.047
+        ],
+        "size": [
+          1,
+          1,
+          1
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "color": "#a76b57",
+        "surface": "plain",
+        "motionRole": "fin",
+        "surfaceJoin": {
+          "end": "first",
+          "depth": 0.008
+        },
+        "knots": [
+          [
+            0,
+            0,
+            0,
+            0.016,
+            0.013
+          ],
+          [
+            0.051,
+            0.004,
+            -0.021,
+            0.014,
+            0.011
+          ],
+          [
+            0.115,
+            0.008,
+            -0.065,
+            0.01,
+            0.007
+          ],
+          [
+            0.172,
+            -0.002,
+            -0.112,
+            0.005,
+            0.0035
+          ],
+          [
+            0.197,
+            -0.017,
+            -0.149,
+            0.0015,
+            0.0015
+          ]
+        ]
+      }
+    },
+    {
+      "op": "addPart",
+      "part": {
+        "id": "left lower gill frond",
+        "shape": "sweep",
+        "parent": "head",
+        "position": [
+          0.071,
+          -0.024,
+          -0.047
+        ],
+        "size": [
+          1,
+          1,
+          1
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "color": "#9e6653",
+        "surface": "plain",
+        "motionRole": "fin",
+        "surfaceJoin": {
+          "end": "first",
+          "depth": 0.008
+        },
+        "knots": [
+          [
+            0,
+            0,
+            0,
+            0.014,
+            0.012
+          ],
+          [
+            0.043,
+            -0.017,
+            -0.023,
+            0.012,
+            0.009
+          ],
+          [
+            0.095,
+            -0.042,
+            -0.06,
+            0.009,
+            0.006
+          ],
+          [
+            0.143,
+            -0.056,
+            -0.105,
+            0.0045,
+            0.003
+          ],
+          [
+            0.165,
+            -0.051,
+            -0.141,
+            0.0015,
+            0.0015
+          ]
+        ]
+      }
+    },
+    {
+      "op": "addPart",
+      "part": {
+        "id": "right upper gill frond",
+        "shape": "sweep",
+        "parent": "head",
+        "position": [
+          -0.073,
+          0.047,
+          -0.043
+        ],
+        "size": [
+          1,
+          1,
+          1
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "color": "#985e4c",
+        "surface": "plain",
+        "motionRole": "fin",
+        "surfaceJoin": {
+          "end": "first",
+          "depth": 0.008
+        },
+        "knots": [
+          [
+            0,
+            0,
+            0,
+            0.016,
+            0.013
+          ],
+          [
+            -0.047,
+            0.023,
+            -0.018,
+            0.015,
+            0.011
+          ],
+          [
+            -0.112,
+            0.06,
+            -0.052,
+            0.011,
+            0.008
+          ],
+          [
+            -0.176,
+            0.083,
+            -0.096,
+            0.006,
+            0.004
+          ],
+          [
+            -0.218,
+            0.088,
+            -0.131,
+            0.0015,
+            0.0015
+          ]
+        ]
+      }
+    },
+    {
+      "op": "addPart",
+      "part": {
+        "id": "right middle gill frond",
+        "shape": "sweep",
+        "parent": "head",
+        "position": [
+          -0.079,
+          0.013,
+          -0.047
+        ],
+        "size": [
+          1,
+          1,
+          1
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "color": "#a76b57",
+        "surface": "plain",
+        "motionRole": "fin",
+        "surfaceJoin": {
+          "end": "first",
+          "depth": 0.008
+        },
+        "knots": [
+          [
+            0,
+            0,
+            0,
+            0.016,
+            0.013
+          ],
+          [
+            -0.051,
+            0.004,
+            -0.021,
+            0.014,
+            0.011
+          ],
+          [
+            -0.115,
+            0.008,
+            -0.065,
+            0.01,
+            0.007
+          ],
+          [
+            -0.172,
+            -0.002,
+            -0.112,
+            0.005,
+            0.0035
+          ],
+          [
+            -0.197,
+            -0.017,
+            -0.149,
+            0.0015,
+            0.0015
+          ]
+        ]
+      }
+    },
+    {
+      "op": "addPart",
+      "part": {
+        "id": "right lower gill frond",
+        "shape": "sweep",
+        "parent": "head",
+        "position": [
+          -0.071,
+          -0.024,
+          -0.047
+        ],
+        "size": [
+          1,
+          1,
+          1
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "color": "#9e6653",
+        "surface": "plain",
+        "motionRole": "fin",
+        "surfaceJoin": {
+          "end": "first",
+          "depth": 0.008
+        },
+        "knots": [
+          [
+            0,
+            0,
+            0,
+            0.014,
+            0.012
+          ],
+          [
+            -0.043,
+            -0.017,
+            -0.023,
+            0.012,
+            0.009
+          ],
+          [
+            -0.095,
+            -0.042,
+            -0.06,
+            0.009,
+            0.006
+          ],
+          [
+            -0.143,
+            -0.056,
+            -0.105,
+            0.0045,
+            0.003
+          ],
+          [
+            -0.165,
+            -0.051,
+            -0.141,
+            0.0015,
+            0.0015
+          ]
+        ]
+      }
+    },
+    {
+      "op": "addPart",
+      "part": {
+        "id": "left upper gill proximal filament",
+        "shape": "sweep",
+        "parent": "left upper gill frond",
+        "position": [
+          0.047,
+          0.023,
+          -0.018
+        ],
+        "size": [
+          1,
+          1,
+          1
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "color": "#be8270",
+        "motionRole": "fin",
+        "surfaceJoin": {
+          "end": "first",
+          "depth": 0.004
+        },
+        "knots": [
+          [
+            0,
+            0,
+            0,
+            0.006,
+            0.0045
+          ],
+          [
+            0.019,
+            0.032,
+            0.006,
+            0.0045,
+            0.003
+          ],
+          [
+            0.047,
+            0.054,
+            0.002,
+            0.001,
+            0.001
+          ]
+        ]
+      }
+    },
+    {
+      "op": "addPart",
+      "part": {
+        "id": "left upper gill distal filament",
+        "shape": "sweep",
+        "parent": "left upper gill frond",
+        "position": [
+          0.112,
+          0.06,
+          -0.052
+        ],
+        "size": [
+          1,
+          1,
+          1
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "color": "#c68b79",
+        "motionRole": "fin",
+        "surfaceJoin": {
+          "end": "first",
+          "depth": 0.004
+        },
+        "knots": [
+          [
+            0,
+            0,
+            0,
+            0.005,
+            0.004
+          ],
+          [
+            0.025,
+            -0.024,
+            -0.021,
+            0.0035,
+            0.0025
+          ],
+          [
+            0.052,
+            -0.033,
+            -0.039,
+            0.001,
+            0.001
+          ]
+        ]
+      }
+    },
+    {
+      "op": "addPart",
+      "part": {
+        "id": "left middle gill proximal filament",
+        "shape": "sweep",
+        "parent": "left middle gill frond",
+        "position": [
+          0.051,
+          0.004,
+          -0.021
+        ],
+        "size": [
+          1,
+          1,
+          1
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "color": "#bd816e",
+        "motionRole": "fin",
+        "surfaceJoin": {
+          "end": "first",
+          "depth": 0.004
+        },
+        "knots": [
+          [
+            0,
+            0,
+            0,
+            0.006,
+            0.0045
+          ],
+          [
+            0.021,
+            0.023,
+            -0.008,
+            0.004,
+            0.003
+          ],
+          [
+            0.052,
+            0.032,
+            -0.027,
+            0.001,
+            0.001
+          ]
+        ]
+      }
+    },
+    {
+      "op": "addPart",
+      "part": {
+        "id": "left middle gill distal filament",
+        "shape": "sweep",
+        "parent": "left middle gill frond",
+        "position": [
+          0.115,
+          0.008,
+          -0.065
+        ],
+        "size": [
+          1,
+          1,
+          1
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "color": "#c88d7b",
+        "motionRole": "fin",
+        "surfaceJoin": {
+          "end": "first",
+          "depth": 0.004
+        },
+        "knots": [
+          [
+            0,
+            0,
+            0,
+            0.005,
+            0.0035
+          ],
+          [
+            0.016,
+            -0.027,
+            0.004,
+            0.003,
+            0.002
+          ],
+          [
+            0.041,
+            -0.044,
+            -0.009,
+            0.001,
+            0.001
+          ]
+        ]
+      }
+    },
+    {
+      "op": "addPart",
+      "part": {
+        "id": "left lower gill proximal filament",
+        "shape": "sweep",
+        "parent": "left lower gill frond",
+        "position": [
+          0.043,
+          -0.017,
+          -0.023
+        ],
+        "size": [
+          1,
+          1,
+          1
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "color": "#b67c68",
+        "motionRole": "fin",
+        "surfaceJoin": {
+          "end": "first",
+          "depth": 0.004
+        },
+        "knots": [
+          [
+            0,
+            0,
+            0,
+            0.0055,
+            0.004
+          ],
+          [
+            0.014,
+            -0.028,
+            0.003,
+            0.0035,
+            0.0025
+          ],
+          [
+            0.038,
+            -0.045,
+            -0.006,
+            0.001,
+            0.001
+          ]
+        ]
+      }
+    },
+    {
+      "op": "addPart",
+      "part": {
+        "id": "left lower gill distal filament",
+        "shape": "sweep",
+        "parent": "left lower gill frond",
+        "position": [
+          0.095,
+          -0.042,
+          -0.06
+        ],
+        "size": [
+          1,
+          1,
+          1
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "color": "#c28a75",
+        "motionRole": "fin",
+        "surfaceJoin": {
+          "end": "first",
+          "depth": 0.004
+        },
+        "knots": [
+          [
+            0,
+            0,
+            0,
+            0.0045,
+            0.0035
+          ],
+          [
+            0.015,
+            0.019,
+            -0.021,
+            0.003,
+            0.002
+          ],
+          [
+            0.037,
+            0.028,
+            -0.038,
+            0.001,
+            0.001
+          ]
+        ]
+      }
+    },
+    {
+      "op": "addPart",
+      "part": {
+        "id": "right upper gill proximal filament",
+        "shape": "sweep",
+        "parent": "right upper gill frond",
+        "position": [
+          -0.047,
+          0.023,
+          -0.018
+        ],
+        "size": [
+          1,
+          1,
+          1
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "color": "#be8270",
+        "motionRole": "fin",
+        "surfaceJoin": {
+          "end": "first",
+          "depth": 0.004
+        },
+        "knots": [
+          [
+            0,
+            0,
+            0,
+            0.006,
+            0.0045
+          ],
+          [
+            -0.019,
+            0.032,
+            0.006,
+            0.0045,
+            0.003
+          ],
+          [
+            -0.047,
+            0.054,
+            0.002,
+            0.001,
+            0.001
+          ]
+        ]
+      }
+    },
+    {
+      "op": "addPart",
+      "part": {
+        "id": "right upper gill distal filament",
+        "shape": "sweep",
+        "parent": "right upper gill frond",
+        "position": [
+          -0.112,
+          0.06,
+          -0.052
+        ],
+        "size": [
+          1,
+          1,
+          1
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "color": "#c68b79",
+        "motionRole": "fin",
+        "surfaceJoin": {
+          "end": "first",
+          "depth": 0.004
+        },
+        "knots": [
+          [
+            0,
+            0,
+            0,
+            0.005,
+            0.004
+          ],
+          [
+            -0.025,
+            -0.024,
+            -0.021,
+            0.0035,
+            0.0025
+          ],
+          [
+            -0.052,
+            -0.033,
+            -0.039,
+            0.001,
+            0.001
+          ]
+        ]
+      }
+    },
+    {
+      "op": "addPart",
+      "part": {
+        "id": "right middle gill proximal filament",
+        "shape": "sweep",
+        "parent": "right middle gill frond",
+        "position": [
+          -0.051,
+          0.004,
+          -0.021
+        ],
+        "size": [
+          1,
+          1,
+          1
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "color": "#bd816e",
+        "motionRole": "fin",
+        "surfaceJoin": {
+          "end": "first",
+          "depth": 0.004
+        },
+        "knots": [
+          [
+            0,
+            0,
+            0,
+            0.006,
+            0.0045
+          ],
+          [
+            -0.021,
+            0.023,
+            -0.008,
+            0.004,
+            0.003
+          ],
+          [
+            -0.052,
+            0.032,
+            -0.027,
+            0.001,
+            0.001
+          ]
+        ]
+      }
+    },
+    {
+      "op": "addPart",
+      "part": {
+        "id": "right middle gill distal filament",
+        "shape": "sweep",
+        "parent": "right middle gill frond",
+        "position": [
+          -0.115,
+          0.008,
+          -0.065
+        ],
+        "size": [
+          1,
+          1,
+          1
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "color": "#c88d7b",
+        "motionRole": "fin",
+        "surfaceJoin": {
+          "end": "first",
+          "depth": 0.004
+        },
+        "knots": [
+          [
+            0,
+            0,
+            0,
+            0.005,
+            0.0035
+          ],
+          [
+            -0.016,
+            -0.027,
+            0.004,
+            0.003,
+            0.002
+          ],
+          [
+            -0.041,
+            -0.044,
+            -0.009,
+            0.001,
+            0.001
+          ]
+        ]
+      }
+    },
+    {
+      "op": "addPart",
+      "part": {
+        "id": "right lower gill proximal filament",
+        "shape": "sweep",
+        "parent": "right lower gill frond",
+        "position": [
+          -0.043,
+          -0.017,
+          -0.023
+        ],
+        "size": [
+          1,
+          1,
+          1
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "color": "#b67c68",
+        "motionRole": "fin",
+        "surfaceJoin": {
+          "end": "first",
+          "depth": 0.004
+        },
+        "knots": [
+          [
+            0,
+            0,
+            0,
+            0.0055,
+            0.004
+          ],
+          [
+            -0.014,
+            -0.028,
+            0.003,
+            0.0035,
+            0.0025
+          ],
+          [
+            -0.038,
+            -0.045,
+            -0.006,
+            0.001,
+            0.001
+          ]
+        ]
+      }
+    },
+    {
+      "op": "addPart",
+      "part": {
+        "id": "right lower gill distal filament",
+        "shape": "sweep",
+        "parent": "right lower gill frond",
+        "position": [
+          -0.095,
+          -0.042,
+          -0.06
+        ],
+        "size": [
+          1,
+          1,
+          1
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "color": "#c28a75",
+        "motionRole": "fin",
+        "surfaceJoin": {
+          "end": "first",
+          "depth": 0.004
+        },
+        "knots": [
+          [
+            0,
+            0,
+            0,
+            0.0045,
+            0.0035
+          ],
+          [
+            -0.015,
+            0.019,
+            -0.021,
+            0.003,
+            0.002
+          ],
+          [
+            -0.037,
+            0.028,
+            -0.038,
+            0.001,
+            0.001
+          ]
+        ]
+      }
+    },
+    {
+      "op": "addPart",
+      "part": {
+        "id": "left auricular fin",
+        "shape": "cage",
+        "parent": "head",
+        "position": [
+          0.078,
+          0.006,
+          0.012
+        ],
+        "size": [
+          1,
+          1,
+          1
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "color": "#7e9185",
+        "surface": "plain",
+        "motionRole": "head",
+        "surfaceJoin": {
+          "faces": [
+            5
+          ],
+          "depth": 0.008
+        },
+        "cage": {
+          "vertices": [
+            [
+              0,
+              -0.026,
+              0.004
+            ],
+            [
+              0.04,
+              -0.019,
+              -0.021
+            ],
+            [
+              0.075,
+              0.025,
+              -0.051
+            ],
+            [
+              0,
+              0.031,
+              0.004
+            ],
+            [
+              0,
+              -0.026,
+              -0.004
+            ],
+            [
+              0.04,
+              -0.019,
+              -0.029
+            ],
+            [
+              0.075,
+              0.025,
+              -0.059
+            ],
+            [
+              0,
+              0.031,
+              -0.004
+            ]
+          ],
+          "faces": [
+            [
+              0,
+              1,
+              2,
+              3
+            ],
+            [
+              7,
+              6,
+              5,
+              4
+            ],
+            [
+              4,
+              5,
+              1,
+              0
+            ],
+            [
+              5,
+              6,
+              2,
+              1
+            ],
+            [
+              6,
+              7,
+              3,
+              2
+            ],
+            [
+              7,
+              4,
+              0,
+              3
+            ]
+          ],
+          "levels": 2
+        }
+      }
+    },
+    {
+      "op": "addPart",
+      "part": {
+        "id": "right auricular fin",
+        "shape": "cage",
+        "parent": "head",
+        "position": [
+          -0.078,
+          0.006,
+          0.012
+        ],
+        "size": [
+          1,
+          1,
+          1
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "color": "#7e9185",
+        "surface": "plain",
+        "motionRole": "head",
+        "surfaceJoin": {
+          "faces": [
+            5
+          ],
+          "depth": 0.008
+        },
+        "cage": {
+          "vertices": [
+            [
+              0,
+              -0.026,
+              0.004
+            ],
+            [
+              -0.04,
+              -0.019,
+              -0.021
+            ],
+            [
+              -0.075,
+              0.025,
+              -0.051
+            ],
+            [
+              0,
+              0.031,
+              0.004
+            ],
+            [
+              0,
+              -0.026,
+              -0.004
+            ],
+            [
+              -0.04,
+              -0.019,
+              -0.029
+            ],
+            [
+              -0.075,
+              0.025,
+              -0.059
+            ],
+            [
+              0,
+              0.031,
+              -0.004
+            ]
+          ],
+          "faces": [
+            [
+              3,
+              2,
+              1,
+              0
+            ],
+            [
+              4,
+              5,
+              6,
+              7
+            ],
+            [
+              0,
+              1,
+              5,
+              4
+            ],
+            [
+              1,
+              2,
+              6,
+              5
+            ],
+            [
+              2,
+              3,
+              7,
+              6
+            ],
+            [
+              3,
+              0,
+              4,
+              7
+            ]
+          ],
+          "levels": 2
+        }
+      }
+    },
+    {
+      "op": "addPart",
+      "part": {
+        "id": "naturalist tail",
+        "shape": "sweep",
+        "parent": "pelvis",
+        "position": [
+          0,
+          0.015,
+          -0.095
+        ],
+        "size": [
+          1,
+          1,
+          1
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "color": "#7e9185",
+        "surface": "plain",
+        "motionRole": "tail",
+        "surfaceJoin": {
+          "end": "first",
+          "depth": 0.014
+        },
+        "knots": [
+          [
+            0,
+            0,
+            0,
+            0.064,
+            0.062
+          ],
+          [
+            0,
+            -0.035,
+            -0.15,
+            0.062,
+            0.057
+          ],
+          [
+            0.012,
+            -0.14,
+            -0.37,
+            0.052,
+            0.049
+          ],
+          [
+            0.042,
+            -0.28,
+            -0.61,
+            0.041,
+            0.038
+          ],
+          [
+            0.09,
+            -0.38,
+            -0.85,
+            0.031,
+            0.029
+          ],
+          [
+            0.145,
+            -0.39,
+            -1.05,
+            0.022,
+            0.023
+          ],
+          [
+            0.17,
+            -0.345,
+            -1.21,
+            0.015,
+            0.018
+          ],
+          [
+            0.16,
+            -0.3,
+            -1.32,
+            0.009,
+            0.013
+          ]
+        ]
+      }
+    },
+    {
+      "op": "addPart",
+      "part": {
+        "id": "flattened caudal fin",
+        "shape": "sweep",
+        "parent": "naturalist tail",
+        "position": [
+          0.16,
+          -0.3,
+          -1.32
+        ],
+        "size": [
+          1,
+          1,
+          1
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ],
+        "color": "#9b7d6b",
+        "surface": "plain",
+        "motionRole": "fin",
+        "surfaceJoin": {
+          "end": "first",
+          "depth": 0.006
+        },
+        "knots": [
+          [
+            0,
+            0,
+            0,
+            0.01,
+            0.013
+          ],
+          [
+            0,
+            0.012,
+            -0.055,
+            0.074,
+            0.012
+          ],
+          [
+            -0.005,
+            0.027,
+            -0.115,
+            0.165,
+            0.01
+          ],
+          [
+            -0.012,
+            0.046,
+            -0.19,
+            0.205,
+            0.008
+          ],
+          [
+            -0.018,
+            0.063,
+            -0.25,
+            0.15,
+            0.005
+          ],
+          [
+            -0.021,
+            0.072,
+            -0.285,
+            0.045,
+            0.003
+          ],
+          [
+            -0.022,
+            0.075,
+            -0.295,
+            0.002,
+            0.0015
+          ]
+        ]
+      }
+    }
+  ]
+}
