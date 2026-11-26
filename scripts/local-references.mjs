@@ -51,7 +51,7 @@ export const referenceSets = [
       ...six("examples/human-targets-fits/mhr-", ".json"),
       "docs/media/human-benchmark/results.json",
     ],
-    enables: "the result tables and comparison sheets described in docs/human-benchmark.md",
+    enables: "benchmark result tables and comparison sheets",
     rebuild: [
       "python scripts/human-benchmark/run.py .reference-cache/human-benchmark",
       "python scripts/human-benchmark/report.py .reference-cache/human-benchmark",
@@ -62,7 +62,7 @@ export const referenceSets = [
     name: "Workshop fits to the six bodies",
     source: "measured from the six benchmark bodies in the running workshop",
     files: ["examples/workshop-body-fits.json", "docs/media/workshop-body-fits.webp"],
-    enables: "the six editable-fit studies and the comparison sheet in docs/adult-surface.md",
+    enables: "six editable fits and their comparison sheet",
     rebuild: [
       "npm start",
       "python scripts/check-workshop-fits.py .reference-cache/ui-fit --workshop http://127.0.0.1:4179",
@@ -77,7 +77,7 @@ export const referenceSets = [
         (id) => "docs/media/scan-study-" + id + ".webp",
       ),
     ],
-    enables: "the six body scan studies and the figures in docs/body-scan-studies.html",
+    enables: "six body scan studies",
     rebuild: [
       "python scripts/body-fidelity.py .reference-cache/body-scans --fit",
       "copy .reference-cache/body-scans/reference-fits.json to examples/reference-fits.json",
@@ -97,7 +97,7 @@ export const referenceSets = [
     name: "Rocketbox dressed avatars",
     source: "https://github.com/microsoft/Microsoft-Rocketbox (MIT)",
     files: [".reference-cache/rocketbox/studies.js", ".reference-cache/rocketbox/LICENSE-rocketbox.txt"],
-    enables: "the separate comparison page dist/rocketbox-study.html (docs/rocketbox-study.md)",
+    enables: "the separate comparison page dist/rocketbox-study.html",
     rebuild: [
       "node scripts/rocketbox-study/fetch.mjs",
       "run the two Blender lines it prints (scripts/rocketbox-study/convert-fbx.py)",

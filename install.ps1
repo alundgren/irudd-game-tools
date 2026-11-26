@@ -1,4 +1,4 @@
-param([ValidatePattern('^[0-9a-f]{40}$')][string]$Prepare)
+param([string]$Prepare)
 
 function Install-IruddWorkshop {
     $ErrorActionPreference = 'Stop'
@@ -7,6 +7,7 @@ function Install-IruddWorkshop {
     if ([Environment]::OSVersion.Platform -ne 'Win32NT' -or [Environment]::OSVersion.Version.Build -lt 22000 -or [Runtime.InteropServices.RuntimeInformation]::OSArchitecture -ne 'X64' -or -not [Environment]::Is64BitProcess) {
         throw 'Irudd Workshop requires Windows 11 x64. Run this installer in a 64-bit PowerShell terminal.'
     }
+    if ($Prepare -and $Prepare -cnotmatch '^[0-9a-f]{40}$') { throw 'Prepare requires a full Git commit ID.' }
     $Commit = $Prepare
     $repository = if ($env:IRUDD_REPOSITORY) { $env:IRUDD_REPOSITORY } else { 'https://github.com/alundgren/irudd-game-tools.git' }
     $branch = if ($env:IRUDD_BRANCH) { $env:IRUDD_BRANCH } else { 'main' }

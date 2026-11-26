@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { builtinModules } from "node:module";
 import {
+  chmodSync,
   copyFileSync,
   cpSync,
   existsSync,
@@ -26,8 +27,9 @@ const { values } = parseArgs({
   args: process.argv.slice(2).filter((arg) => arg !== "--"),
 });
 if (!values.out) throw new Error("Give the output directory with --out <dir>.");
-if (process.platform !== "win32" || process.arch !== "x64")
-  throw new Error("Package on Windows x64.");
+const mac = process.platform === "darwin";
+if (!mac && (process.platform !== "win32" || process.arch !== "x64"))
+  throw new Error("Package on Windows x64 or macOS.");
 const out = resolve(values.out);
 const started = performance.now();
 const timings: Record<string, number> = {};
@@ -46,16 +48,17 @@ const git = (...args: string[]): string =>
   execFileSync("git", args, { cwd: repository, encoding: "utf8" }).trim();
 
 const env = process.env;
-const managed = env["IRUDD_INSTALL_ROOT"]
-  ? {
-      activationVersion: 1,
-      root: resolve(env["IRUDD_INSTALL_ROOT"]),
-      commit: git("rev-parse", "HEAD"),
-      branch: env["IRUDD_BRANCH"] ?? "main",
-      origin: env["IRUDD_REPOSITORY"] ?? git("remote", "get-url", "origin"),
-      vp: resolve(env["IRUDD_VP"] ?? ""),
-    }
-  : undefined;
+const managed =
+  !mac && env["IRUDD_INSTALL_ROOT"]
+    ? {
+        activationVersion: 1,
+        root: resolve(env["IRUDD_INSTALL_ROOT"]),
+        commit: git("rev-parse", "HEAD"),
+        branch: env["IRUDD_BRANCH"] ?? "main",
+        origin: env["IRUDD_REPOSITORY"] ?? git("remote", "get-url", "origin"),
+        vp: resolve(env["IRUDD_VP"] ?? ""),
+      }
+    : undefined;
 if (managed) {
   if (git("status", "--porcelain")) throw new Error("Install builds come from a clean checkout.");
   if (!env["IRUDD_VP"]) throw new Error("IRUDD_VP must name the Vite+ executable.");
@@ -124,15 +127,27 @@ const buildId =
 if (managed && buildId !== managed.commit)
   throw new Error(`The desktop build is ${buildId}, not the checked-out ${managed.commit}.`);
 
-const bundle = join(out, appName);
-const resources = join(bundle, "resources", "app");
+const bundle = join(out, mac ? appName + ".app" : appName);
+const resourcesDir = mac ? join(bundle, "Contents", "Resources") : join(bundle, "resources");
+const resources = join(resourcesDir, "app");
 time("assemble", () => {
   rmSync(bundle, { recursive: true, force: true });
   mkdirSync(out, { recursive: true });
   const runtime = resolve(electronExecutable(), "..");
-  cpSync(runtime, bundle, { recursive: true });
-  renameSync(join(bundle, "electron.exe"), join(bundle, `${appName}.exe`));
-  rmSync(join(bundle, "resources", "default_app.asar"), { force: true });
+  if (mac) {
+    execFileSync("/usr/bin/ditto", [resolve(runtime, "../.."), bundle]);
+    const plist = join(bundle, "Contents", "Info.plist");
+    for (const [key, value] of Object.entries({
+      CFBundleName: appName,
+      CFBundleDisplayName: appName,
+      CFBundleIdentifier: "com.irudd.workshop",
+    }))
+      execFileSync("/usr/bin/plutil", ["-replace", key, "-string", value, plist]);
+  } else {
+    cpSync(runtime, bundle, { recursive: true });
+    renameSync(join(bundle, "electron.exe"), join(bundle, `${appName}.exe`));
+  }
+  rmSync(join(resourcesDir, "default_app.asar"), { force: true });
   mkdirSync(resources, { recursive: true });
   cpSync(dist, join(resources, "dist"), {
     recursive: true,
@@ -140,7 +155,7 @@ time("assemble", () => {
   });
   mkdirSync(join(resources, "player"));
   copyFileSync(playerPage, join(resources, "player", "player.html"));
-  copyFileSync(join(repository, "install.ps1"), join(resources, "install.ps1"));
+  if (!mac) copyFileSync(join(repository, "install.ps1"), join(resources, "install.ps1"));
   copyFileSync(join(repository, "LICENSE"), join(resources, "LICENSE"));
   copyFileSync(join(appDir, "installer", "icon.ico"), join(resources, "icon.ico"));
   const desktop: unknown = JSON.parse(readFileSync(join(appDir, "package.json"), "utf8"));
@@ -167,6 +182,14 @@ time("assemble", () => {
 });
 
 time("launchers", () => {
+  if (mac) {
+    const launcher = join(bundle, "Contents", "MacOS", "irudd");
+    copyFileSync(join(appDir, "installer", "irudd.sh"), launcher);
+    chmodSync(launcher, 0o755);
+    execFileSync("/usr/bin/codesign", ["--force", "--sign", "-", bundle]);
+    execFileSync("/usr/bin/codesign", ["--verify", "--deep", "--strict", bundle]);
+    return;
+  }
   const bin = join(resources, "bin");
   mkdirSync(bin);
   const compiler = join(
@@ -227,7 +250,9 @@ const problems = files.filter(
 if (problems.length > 0)
   throw new Error(`Unexpected files in the package: ${problems.map((p) => p.path).join(", ")}`);
 
-const executable = join(bundle, `${appName}.exe`);
+const executable = mac
+  ? join(bundle, "Contents", "MacOS", "Electron")
+  : join(bundle, `${appName}.exe`);
 const asNode = (args: string[]): string =>
   execFileSync(executable, ["--no-warnings=ExperimentalWarning", ...args], {
     cwd: resources,

@@ -10,7 +10,7 @@ export const targets = [
 export function need(...files) {
   for (const file of files.length ? files : [""]) {
     if (existsSync(local + file)) continue;
-    console.error("Missing " + local + file + " (local Rocketbox practice material; see docs/rocketbox-study.md).");
+    console.error("Missing " + local + file + " (local Rocketbox practice material; see docs/local-references.md).");
     process.exit(1);
   }
 }

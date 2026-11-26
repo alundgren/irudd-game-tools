@@ -39,7 +39,10 @@ export class Updater {
         }
       : {
           phase: "unmanaged",
-          message: "Development build: no automatic updates. The installed app updates itself.",
+          message:
+            process.platform === "darwin"
+              ? "Run the macOS install command again to update."
+              : "Automatic updates are available in an installed build.",
         };
   }
 

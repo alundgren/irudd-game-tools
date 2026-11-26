@@ -105,7 +105,7 @@ def _local_residual(c_pts, t_pts, candidate, target, iterations=8):
 
 
 def compare(candidate, target, aligned=True, local=True):
-    """All surface metrics for one candidate and one target. See docs/human-benchmark.md."""
+    """All surface metrics for one candidate and one target. See docs/local-references.md."""
     rotation, translation = align(candidate, target) if aligned else (np.eye(3), np.zeros(3))
     moved = candidate.transformed(rotation, translation)
     d_ct, face_ct, angle_ct, signed_ct = _direction(moved.points, moved.normals, target.surface)
