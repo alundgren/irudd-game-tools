@@ -1,3 +1,4 @@
+import { formGenerator, creatureGenerator } from "@irudd/character/creature";
 import {
   assetResolver,
   exportPaintSheets,
@@ -56,7 +57,7 @@ async function loadAdult(): Promise<{ readonly body: HumanBody; readonly registr
     body,
     registry: createRegistry({
       features: familyFeatures,
-      generators: [frameCreature, humanAdultGenerator(body)],
+      generators: [frameCreature, formGenerator, creatureGenerator, humanAdultGenerator(body)],
     }),
   };
 }

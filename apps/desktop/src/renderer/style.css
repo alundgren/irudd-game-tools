@@ -101,6 +101,26 @@ h2 {
   color: #1b1408;
   font-weight: 650;
 }
+#random-creature {
+  top: calc(43% + 44px);
+}
+.creature-handle {
+  position: absolute;
+  z-index: 2;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: #08786e;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  touch-action: none;
+}
+.creature-handle.limb {
+  background: #aa5629;
+  border-radius: 3px;
+}
 .workspace {
   display: grid;
   grid-template-columns: 240px 1fr 340px;
@@ -511,7 +531,7 @@ h2 {
 #wardrobe details > div,
 #wardrobe form,
 #human-editor details > div,
-#human-start form {
+:is(#human-start, #creature-start) form {
   display: grid;
   gap: 6px;
   padding: 8px 0;
@@ -524,7 +544,7 @@ h2 {
 #surface-editor label,
 #wardrobe label,
 #human-editor label,
-#human-start label {
+:is(#human-start, #creature-start) label {
   display: grid;
   grid-template-columns: 1fr minmax(0, 1.25fr);
   align-items: center;
@@ -540,14 +560,14 @@ h2 {
   width: 100%;
   min-width: 0;
 }
-#human-start {
+:is(#human-start, #creature-start) {
   color: var(--text);
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 6px;
   min-width: 280px;
 }
-#human-start::backdrop {
+:is(#human-start, #creature-start)::backdrop {
   background: rgb(0 0 0 / 45%);
 }
 

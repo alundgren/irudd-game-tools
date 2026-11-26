@@ -334,7 +334,7 @@ export const packagedBundleProbes = [
     output: "apps/desktop/dist/clients/irudd-host.mjs",
     entry: "apps/desktop/src/main/headless.ts",
     allowedSource:
-      /^(?:packages\/(?:document|workshop|hosts)\/src\/|packages\/character\/src\/(?:human\/|(?:assets|paint\/(?:repaint|art-fit|panel|trace-build|trace))\.ts$)|apps\/desktop\/src\/main\/(?:headless|human|art)\.ts$)/,
+      /^(?:packages\/(?:document|workshop|hosts)\/src\/|packages\/character\/src\/(?:human\/|creature\/(?:generator|index|draw|body|forms)\.ts$|library\/anchors\.ts$|random\.ts$|(?:assets|paint\/(?:repaint|art-fit|panel|trace-build|trace))\.ts$)|apps\/desktop\/src\/main\/(?:headless|human|art)\.ts$)/,
   },
   {
     name: "activate",

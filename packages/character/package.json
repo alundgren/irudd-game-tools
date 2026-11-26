@@ -6,6 +6,7 @@
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
+    "./creature": "./src/creature/index.ts",
     "./human": "./src/human/index.ts",
     "./human/paint": "./src/human/paint.ts",
     "./human/dress": "./src/human/dress/index.ts",

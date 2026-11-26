@@ -49,6 +49,29 @@
       <section class="viewport-wrap">
         <div id="viewport" class="viewport" tabindex="0" aria-label="Character viewport"></div>
         <button id="random-human" class="quick-start" hidden>New random human</button>
+        <button id="random-creature" class="quick-start" hidden>New random creature</button>
+        <dialog id="creature-start">
+          <form method="dialog">
+            <h2 id="creature-start-title">New random creature</h2>
+            <label>Starting form<select id="creature-form"></select></label>
+            <label>Archetype<select id="form-frame"></select></label>
+            <label>Family<select id="creature-family"></select></label>
+            <label>Colour range<select id="creature-colours"></select></label>
+            <label
+              >Seed (optional)<input
+                type="number"
+                min="0"
+                max="4294967295"
+                step="1"
+                id="creature-seed"
+                placeholder="Random"
+            /></label>
+            <div class="display-controls">
+              <button type="button" id="creature-cancel">Cancel</button
+              ><button type="submit" id="create-form">Create creature</button>
+            </div>
+          </form>
+        </dialog>
         <dialog id="human-start">
           <form method="dialog">
             <h2>New random human</h2>
@@ -165,6 +188,10 @@
             </div>
           </details>
         </section>
+        <details id="creature-editor" hidden>
+          <summary>Creature workshop</summary>
+          <div></div>
+        </details>
         <section id="human-editor" hidden>
           <h2>Adult human</h2>
           <details id="human-anatomy" open>

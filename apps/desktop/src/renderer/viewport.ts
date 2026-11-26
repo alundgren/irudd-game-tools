@@ -498,6 +498,12 @@ export class EditorViewport {
     return done;
   }
 
+  onFrame: (() => void) | undefined;
+  project(point: readonly [number, number, number]): readonly [number, number] {
+    const v = new T.Vector3(...point).project(this.camera);
+    return [((v.x + 1) * this.host.clientWidth) / 2, ((1 - v.y) * this.host.clientHeight) / 2];
+  }
+
   request(): void {
     if (this.pending === null) this.pending = requestAnimationFrame(() => this.draw());
   }
@@ -506,6 +512,7 @@ export class EditorViewport {
     this.pending = null;
     const moved = this.orbit.update();
     this.renderer.render(this.scene, this.camera);
+    this.onFrame?.();
     if (moved) this.request();
   }
 }

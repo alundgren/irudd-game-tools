@@ -11,14 +11,8 @@ import { faceTexture, type FacePaint } from "../paint/faces.js";
 import { earGeometry, faceCell, faceGeometry, shapeNeck } from "../surfaces/head.js";
 import { sweepGeometry } from "../surfaces/sweep.js";
 
-export const pieceAnchors: Readonly<Record<PieceName, readonly [number, number, number]>> = {
-  torso: [0, 0.86, 0],
-  head: [0, 1.42, 0],
-  "left arm": [0.2, 1.32, 0],
-  "right arm": [-0.2, 1.32, 0],
-  "left leg": [0.104, 0.85, 0],
-  "right leg": [-0.104, 0.85, 0],
-};
+import { pieceAnchors } from "./anchors.js";
+export { pieceAnchors } from "./anchors.js";
 
 const palettes = {
   Tide: ["#38685f", "#e49a55", "#bcccb7"],

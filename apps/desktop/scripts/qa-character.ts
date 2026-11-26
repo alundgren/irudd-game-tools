@@ -13,6 +13,7 @@ import {
   readZipEntry,
   writeZip,
 } from "../../../packages/workshop/src/service/zip.js";
+import { verifyCreatures } from "./creature-check.js";
 import { verifySurface } from "./surface-check.js";
 import { verifyDisplay } from "./display-check.js";
 import { appDir, appEnvironment } from "./electron.js";
@@ -350,6 +351,8 @@ try {
         return sample(array);
       };
     });
+    await page.getByRole("button", { name: "New random creature", exact: true }).click();
+    await page.click("#creature-cancel");
     await page.getByRole("button", { name: "New random human", exact: true }).click();
     await page.getByRole("button", { name: "Create human", exact: true }).click();
     await waitRevision(page, 1);
@@ -380,6 +383,9 @@ try {
     await waitStatus(page, new RegExp("as " + name));
     studies.push({ id, file, revision, document });
   }
+  await step("generate, sculpt and coat creatures and mount adult wings", () =>
+    verifyCreatures(page, resolve(appDir, "../../.reference-cache/phase6"), saveStudy),
+  );
   const details = await step("paint, fit and shape surfaces in the workshop", () =>
     verifySurface(page, resolve(appDir, "../../.reference-cache/phase5"), (revision) =>
       saveStudy("Face marks", revision),
@@ -615,31 +621,34 @@ try {
     assert.ok(existsSync(cliSaved));
     return run.out.split("\n")[0] ?? "";
   });
-  await step("open the saved surface study and verify every edited part", async () => {
-    for (const study of studies) {
-      await app?.answerDialogs({ open: study.file });
-      await page.click("#character-open");
-      await page.waitForFunction(
-        (id) => document.querySelector<HTMLSelectElement>("#document")?.value === id,
-        study.id,
-      );
-      await waitRevision(page, study.revision);
-      const restored: unknown = Reflect.get(
-        Object(await call(page, "current", { documentId: study.id })),
-        "document",
-      );
-      assert.ok(isJson(restored) && isJson(study.document));
-      assert.ok(jsonEqual(restored, study.document), "All saved surface edits survived reopening.");
-    }
-    await page.locator('#outliner [data-part="' + details.hand + '"]').click();
-    const surface = page.locator("#surface-editor");
-    await surface.locator(":scope > summary").click();
-    await surface
-      .locator("summary")
-      .filter({ hasText: /^Hand$/ })
-      .click();
-    assert.equal(await surface.getByLabel("Fingers", { exact: true }).inputValue(), "3");
-  });
+  await step(
+    "reopen the saved wing, creature and surface studies and verify every edit",
+    async () => {
+      for (const study of studies) {
+        await app?.answerDialogs({ open: study.file });
+        await page.click("#character-open");
+        await page.waitForFunction(
+          (id) => document.querySelector<HTMLSelectElement>("#document")?.value === id,
+          study.id,
+        );
+        await waitRevision(page, study.revision);
+        const restored: unknown = Reflect.get(
+          Object(await call(page, "current", { documentId: study.id })),
+          "document",
+        );
+        assert.ok(isJson(restored) && isJson(study.document));
+        assert.ok(jsonEqual(restored, study.document), "Every saved edit survived reopening.");
+      }
+      await page.locator('#outliner [data-part="' + details.hand + '"]').click();
+      const surface = page.locator("#surface-editor");
+      await surface.locator(":scope > summary").click();
+      await surface
+        .locator("summary")
+        .filter({ hasText: /^Hand$/ })
+        .click();
+      assert.equal(await surface.getByLabel("Fingers", { exact: true }).inputValue(), "3");
+    },
+  );
   await step("quit project B", async () => {
     await app?.close();
     app = undefined;

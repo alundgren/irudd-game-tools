@@ -61,7 +61,7 @@ function materialise(slot: BaseSlot, id: PartId, parent: PartId | null): Part {
     color: slot.color,
     sculpt: [],
     slot: slot.slot,
-    features: {},
+    features: slot.features ?? {},
   };
 }
 
@@ -330,8 +330,31 @@ export function regenerate(
         ? c.position
         : transportOffset(c.position, b, n);
 
+    const features = { ...c.features };
+    for (const key of new Set([
+      ...Object.keys(b.features ?? {}),
+      ...Object.keys(n.features ?? {}),
+    ])) {
+      const previousValue = b.features?.[key];
+      const nextValue = n.features?.[key];
+      if (jsonEqual(previousValue, nextValue)) continue;
+      if (!jsonEqual(previousValue, c.features[key]) && !jsonEqual(nextValue, c.features[key])) {
+        conflicts.push(
+          conflictDiagnostic(
+            {
+              path: [...here("features"), key],
+              reason: "both-changed",
+              message: `${c.label} changed ${key} by hand and in the generator.`,
+            },
+            n.slot,
+          ),
+        );
+      } else if (nextValue === undefined) delete features[key];
+      else features[key] = nextValue;
+    }
     parts.set(c.id, {
       ...c,
+      features,
       label: c.label === b.label ? n.label : c.label,
       parent,
       shape,

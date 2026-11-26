@@ -1,3 +1,4 @@
+import { currentCreature } from "./creature/generator.js";
 import { wornOutfit } from "./wardrobe.js";
 import {
   characterAppearance,
@@ -23,7 +24,6 @@ import {
   outfitLayers,
   creatureBlend,
   creatureSkin,
-  creaturePlan,
   creatureCoatZone,
   creatureEyeSurface,
   creatureLimbChain,
@@ -405,7 +405,7 @@ export function buildView(doc: CharacterDocument): BuildView {
     outfit,
     appearance: characterAppearance.read(doc.features),
     skin: creatureSkin.read(doc.features) ?? {},
-    plan: creaturePlan.read(doc.features),
+    plan: currentCreature(doc),
     build: figureBuild.read(doc.features),
     poses,
     offer,
