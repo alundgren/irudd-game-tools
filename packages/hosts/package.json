@@ -1,0 +1,15 @@
+{
+  "name": "@irudd/hosts",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "node --import ../document/test/support/register.ts --test \"test/**/*.test.ts\"",
+    "gate:t3": "node --import ../document/test/support/register.ts --test test/t3.gate.ts"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:"
+  }
+}

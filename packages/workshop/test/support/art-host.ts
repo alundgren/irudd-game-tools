@@ -12,6 +12,7 @@ await startHost({
   stateDir: String(Reflect.get(raw, "stateDir")),
   human: person,
   durability: "full",
+  transports: [],
   artCut: (at) => {
     if (at !== point) return;
     say({ event: "cut", point: at });

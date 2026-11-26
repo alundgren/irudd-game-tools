@@ -175,7 +175,19 @@ export const projects: readonly ProjectPolicy[] = [
       { tsconfig: "tsconfig.json", lib: esOnly, types: ["node"], ambient: "node" },
       testProgram,
     ],
-    dependencies: ["@irudd/document", "effect", "@effect/sql-sqlite-node"],
+    dependencies: ["@irudd/document", "@irudd/hosts", "effect", "@effect/sql-sqlite-node"],
+    devDependencies: ["@types/node"],
+  },
+  {
+    dir: "packages/hosts",
+    name: "@irudd/hosts",
+    role: "hosts",
+    status: "planned",
+    programs: [
+      { tsconfig: "tsconfig.json", lib: esOnly, types: ["node"], ambient: "node" },
+      testProgram,
+    ],
+    dependencies: [],
     devDependencies: ["@types/node"],
   },
   {
@@ -274,6 +286,10 @@ export const privilegedAdapters: readonly { readonly path: string; readonly reas
   },
   { path: "^tools/", reason: "Local tooling starts compilers and linters." },
   { path: "^verification/", reason: "Gates start local processes." },
+  {
+    path: "^packages/hosts/src/process/",
+    reason: "Invoke supported host CLIs with typed verbs and arguments.",
+  },
   { path: "^apps/desktop/src/main/update/", reason: "Stage and activate managed source updates." },
 ];
 
@@ -316,7 +332,7 @@ export const packagedBundleProbes = [
     output: "apps/desktop/dist/clients/irudd.mjs",
     entry: "apps/cli/src/main.ts",
     allowedSource:
-      /^(apps\/cli\/src|packages\/document\/src|packages\/workshop\/src\/(client|contract|wire))\//,
+      /^(apps\/cli\/src|packages\/document\/src|packages\/workshop\/src\/(client|contract|wire))\/|^packages\/hosts\/src\/t3-mcp\.ts$/,
   },
   {
     name: "irudd-mcp",

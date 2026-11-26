@@ -31,7 +31,14 @@ import {
 } from "@irudd/document";
 import { createProject, openProject, restoreProject } from "@irudd/workshop";
 import { ArtBrief as ArtBriefSchema, ArtReply, type artParams } from "@irudd/workshop/wire";
-import type { ArtBrief, MethodResults, RecipientRoute } from "@irudd/workshop/wire";
+import type {
+  ArtBrief,
+  DeliveryOutcome,
+  DeliveryRequest,
+  MethodResults,
+  RecipientRoute,
+  SteeringTransport,
+} from "@irudd/workshop/wire";
 import { docId, generate, rename, request, requestId, tempDir } from "./support/fixtures.js";
 import { png } from "./support/png.js";
 
@@ -54,23 +61,43 @@ type ArtBriefInput = (typeof artParams)["art.request"]["Encoded"]["brief"];
 type ArtReplyInput = (typeof artParams)["art.submit"]["Encoded"]["reply"];
 
 const person = { kind: "human", id: "tester", name: "Tester" } as const;
-const route = {
-  transport: "claude-channel",
-  host: "claude-code",
+const route: RecipientRoute = {
+  transport: "t3-thread",
+  host: "t3",
   environment: "local",
-  server: "irudd",
-  instance: "chn-000000000000000000000001",
-} as const satisfies RecipientRoute;
+  conversation: "thread:art-fixture-0001",
+};
 
-interface ChannelLog {
-  readonly sent: { prompt: string }[];
+class FakeT3 implements SteeringTransport {
+  readonly transport = "t3-thread" as const;
+  readonly sent: DeliveryRequest[] = [];
+  check() {
+    return Promise.resolve({
+      state: "ready" as const,
+      push: true,
+      summary: "fake",
+      conversation: null,
+    });
+  }
+  deliver(request: DeliveryRequest): Promise<DeliveryOutcome> {
+    this.sent.push(request);
+    return Promise.resolve({
+      kind: "accepted",
+      receipt: {
+        transport: "t3-thread",
+        hostMessageId: `fake-${this.sent.length}`,
+        delivery: "queued",
+        at: Date.now(),
+      },
+    });
+  }
 }
 
 interface Rig {
   readonly root: string;
   readonly project: string;
   readonly stateDir: string;
-  readonly fake: ChannelLog;
+  readonly fake: FakeT3;
   readonly host: RunningHost;
   readonly human: WorkshopClient;
   readonly agent: WorkshopClient;
@@ -88,13 +115,14 @@ interface RigOptions {
 async function openRig(root: string, o: RigOptions = {}, earlier?: Rig): Promise<Rig> {
   const project = path.join(root, "project");
   const stateDir = path.join(root, "state");
-  const fake: ChannelLog = { sent: [] };
+  const fake = new FakeT3();
   const options: HostOptions = {
     path: project,
     stateDir,
     create: { label: "Art test" },
     human: person,
     durability: "normal",
+    transports: [fake],
     artTranslators: o.translators ?? [],
     ...(o.cut ? { artCut: o.cut } : {}),
     ...(o.shipped ? { shippedArtwork: o.shipped } : {}),
@@ -107,22 +135,11 @@ async function openRig(root: string, o: RigOptions = {}, earlier?: Rig): Promise
   if (!earlier) {
     await human.call("apply", { request: generate() });
     const pair = await human.call("pair.agent", { agent: "claude", name: "Claude" });
+    await human.call("recipient.bind", { agent: "claude", route });
     credentialFile = pair.credentialFile;
     pairingId = pair.pairingId;
   }
   const agent = await connect({ credential: { role: "agent", file: credentialFile }, stateDir });
-  await agent.call("inbox.watch", {
-    push: "claude-channel",
-    instance: route.instance,
-    server: route.server,
-  });
-  agent.onEvent((event) => {
-    if (event.event === "inbox") {
-      fake.sent.push({ prompt: event.prompt });
-      void agent.call("inbox.pushed", { messageId: event.messageId }).catch(() => undefined);
-    }
-  });
-  if (!earlier) await human.call("recipient.bind", { agent: "claude", route });
   return {
     root,
     project,
@@ -265,6 +282,7 @@ test("a brief with attachments reaches the bound conversation and the reply is t
       "delivery",
     );
     assert.equal(fake.sent.length, 1);
+    assert.deepEqual(fake.sent[0]?.route, route);
     const prompt = fake.sent[0]?.prompt ?? "";
     assert.match(prompt, new RegExp(`art show ${requested.artId} --out`));
     assert.match(prompt, new RegExp(`art submit ${requested.artId} --ops`));
@@ -806,11 +824,6 @@ test("a trace brief's intent picks its translator; a brief without one fits as b
       });
       assert.equal(built.brief.intent, "build");
       assert.equal(built.apply.translator, "fixture-build");
-      await until(
-        () => human.call("steer.get", { messageId: built.messageId }),
-        (m) => m.status === "host-accepted",
-        "build instructions",
-      );
       const prompt = rig.fake.sent.at(-1)?.prompt ?? "";
       assert.match(prompt, /Intent: build/);
       assert.match(prompt, /Build guidance\./);
@@ -823,11 +836,6 @@ test("a trace brief's intent picks its translator; a brief without one fits as b
       });
       assert.equal("intent" in fitted.brief, false);
       assert.equal(fitted.apply.translator, "fixture-fit");
-      await until(
-        () => human.call("steer.get", { messageId: fitted.messageId }),
-        (m) => m.status === "host-accepted",
-        "fit instructions",
-      );
       assert.match(rig.fake.sent.at(-1)?.prompt ?? "", /Fit guidance\./);
       assert.doesNotMatch(rig.fake.sent.at(-1)?.prompt ?? "", /Intent: build/);
 
@@ -1187,7 +1195,7 @@ test("accepted artwork carries its credits through backup, restore and a portabl
     for (const secret of [
       rig.pairingId,
       byAgent.messageId,
-      route.instance,
+      route.conversation,
       rig.credentialFile,
       "heron",
     ])

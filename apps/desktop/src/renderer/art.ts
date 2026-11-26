@@ -99,7 +99,7 @@ function parseJson(bytes: Uint8Array): unknown {
 export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
   const { host, failure } = options;
   let capabilities: ArtCapabilities | undefined;
-  let paired: MethodResults["recipient.list"] = [];
+  let paired: MethodResults["pair.list"] = [];
   let requests: ReadonlyArray<ArtRequestView> = [];
   let refreshId = 0;
   let lastSnapshot = "";
@@ -213,14 +213,8 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
     agentSelect.value = agent;
     agentSelect.onchange = () => {
       agent = agentSelect.value;
-      render();
     };
 
-    const connected = paired.some(
-      (p) =>
-        p.agent === agent &&
-        (p.availability.state === "ready" || p.availability.state === "inbox-only"),
-    );
     const kindSelect = el("select");
     kindSelect.setAttribute("aria-label", "Kind of artwork");
     for (const k of artKindsShown) kindSelect.append(new Option(k.label, k.kind));
@@ -242,7 +236,7 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
     text.value = direction;
     text.oninput = () => {
       direction = text.value;
-      send.disabled = !connected || !direction.trim() || needs.length > 0;
+      send.disabled = !agent || !direction.trim() || needs.length > 0;
     };
 
     const offered = capabilities?.kinds.find((k) => k.kind === kind);
@@ -437,17 +431,15 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
     const send = button("Send brief", () => {
       void sendBrief(now.documentId, now.revision, sheet);
     });
-    send.disabled = !connected || !direction.trim() || needs.length > 0;
+    send.disabled = !agent || !direction.trim() || needs.length > 0;
     box.append(
       el("p", {
         className: "muted",
         text: !paired.length
           ? "Pair an agent under Agents first."
-          : !connected
-            ? "Connect the agent and bind its inbox or channel under Agents."
-            : needs.length
-              ? `Still needed: ${needs.join(", ")}.`
-              : `For revision ${now.revision}${sheet ? `, with the current sheet ${sheet.slice(0, 19)}…` : ""}.`,
+          : needs.length
+            ? `Still needed: ${needs.join(", ")}.`
+            : `For revision ${now.revision}${sheet ? `, with the current sheet ${sheet.slice(0, 19)}…` : ""}.`,
       }),
       el("div", { className: "row-actions" }, send),
     );
@@ -760,13 +752,7 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
         () => void resend(r),
         "Send this saved brief to the agent's conversation as the same request",
       );
-      send.disabled =
-        sending ||
-        !paired.some(
-          (p) =>
-            p.agent === r.agent &&
-            (p.availability.state === "ready" || p.availability.state === "inbox-only"),
-        );
+      send.disabled = sending;
       actions.append(send);
     }
     if (r.state !== "cancelled") {
@@ -806,17 +792,13 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
         : { all: true };
       const snapshot = await Promise.all([
         capabilities ? Promise.resolve(capabilities) : host.call("art.capabilities", {}),
-        host.call("recipient.list", {}),
+        host.call("pair.list", {}),
         host.call("art.list", list).then((l) => l.requests),
       ]);
       if (id !== refreshId || now?.documentId !== options.current()?.documentId) return;
       [capabilities, paired, requests] = snapshot;
       for (const r of requests) known.add(r.messageId);
-      const encoded = JSON.stringify([
-        capabilities,
-        paired.map((p) => [p.agent, p.name, p.pairingId, p.availability.state]),
-        requests,
-      ]);
+      const encoded = JSON.stringify(snapshot);
       if (encoded !== lastSnapshot) render();
       lastSnapshot = encoded;
     } catch (error) {
@@ -826,16 +808,14 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
     }
     clearTimeout(poll);
     const recent = Date.now() - activeMs;
-    poll =
-      paired.length ||
-      requests.some(
-        (r) =>
-          r.state === "open" ||
-          (r.state === "answered" &&
-            Math.max(r.createdAt, ...r.submissions.map((x) => x.at)) > recent),
-      )
-        ? setTimeout(() => void refresh(), pollMs)
-        : undefined;
+    poll = requests.some(
+      (r) =>
+        r.state === "open" ||
+        (r.state === "answered" &&
+          Math.max(r.createdAt, ...r.submissions.map((x) => x.at)) > recent),
+    )
+      ? setTimeout(() => void refresh(), pollMs)
+      : undefined;
   }
 
   return {

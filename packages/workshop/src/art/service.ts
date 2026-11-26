@@ -610,7 +610,6 @@ export class Art {
         throw new ArtError("AgentNotPaired", `Agent ${p.agent} is not paired with this project.`, {
           agent: p.agent,
         });
-      this.options.steering.requireConnected(p.agent);
       const stored = store.insertRequest({
         artId,
         agent: p.agent,

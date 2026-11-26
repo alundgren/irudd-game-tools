@@ -14,12 +14,14 @@ import {
   type RecipientRoute,
   type RecipientView,
   type RouteAvailability,
+  type RouteCheck,
   type SteerEvent,
   type SteeringList,
   type SteeringApplied,
   type SteeringMessage,
   type SteeringReport,
   type SteeringTransport,
+  type SteeringTransportName,
 } from "../wire/steering.js";
 import type { SteeringStore } from "./store.js";
 
@@ -54,6 +56,7 @@ export interface SteeringOptions {
   readonly store: SteeringStore;
   readonly project: Project;
   readonly pairings: PairingSource;
+  readonly transports: ReadonlyArray<SteeringTransport>;
   readonly emit: (event: SteerEvent) => void;
   readonly agentCommand: string;
   readonly credentialFile: (agent: string) => string;
@@ -96,8 +99,12 @@ function sameRoute(a: RecipientRoute, b: RecipientRoute): boolean {
 
 function describeRoute(route: RecipientRoute): string {
   switch (route.transport) {
+    case "t3-thread":
+      return `T3 Code thread ${route.conversation} (${route.environment})`;
     case "claude-channel":
       return `Claude Code session${route.conversation ? ` ${route.conversation}` : ""} through MCP server ${route.server} (${route.instance})`;
+    case "codex-queue":
+      return `Codex session ${route.conversation}`;
     case "inbox":
       return `${route.host} conversation${route.conversation ? ` ${route.conversation}` : ""}, inbox only`;
   }
@@ -127,8 +134,7 @@ export class Steering {
   private readonly options: SteeringOptions;
   private readonly store: SteeringStore;
   private readonly now: () => number;
-  private readonly channel = this.channelTransport();
-  private readonly connections = new Map<string, AgentLink>();
+  private readonly transports = new Map<SteeringTransportName, SteeringTransport>();
   private readonly watchers = new Map<string, Watcher>();
   private readonly pushWaits = new Map<
     string,
@@ -144,6 +150,8 @@ export class Steering {
     this.options = options;
     this.store = options.store;
     this.now = options.now ?? Date.now;
+    for (const transport of options.transports) this.transports.set(transport.transport, transport);
+    this.transports.set("claude-channel", this.channelTransport());
   }
 
   start(): void {
@@ -230,7 +238,7 @@ export class Steering {
   }
 
   recipients(): ReadonlyArray<RecipientView> {
-    return this.options.pairings.list().map((pairing) => this.view(pairing));
+    return this.options.pairings.list().map((pairing) => this.view(pairing, undefined));
   }
 
   async check(agent: string): Promise<RecipientView> {
@@ -239,10 +247,20 @@ export class Steering {
       throw new SteeringError("AgentNotPaired", `Agent ${agent} is not paired with this project.`, {
         agent,
       });
-    return this.view(pairing);
+    const recipient = this.current(agent);
+    if (!recipient) return this.view(pairing, undefined);
+    const availability =
+      recipient.route.transport === "claude-channel"
+        ? this.channelAvailability(agent, recipient.route)
+        : await this.probe(recipient.route);
+    this.store.setAvailability(agent, availability);
+    return this.view(pairing, availability);
   }
 
-  private view(pairing: ReturnType<PairingSource["list"]>[number]): RecipientView {
+  private view(
+    pairing: ReturnType<PairingSource["list"]>[number],
+    fresh: RouteAvailability | undefined,
+  ): RecipientView {
     const recipient = this.current(pairing.agent) ?? null;
     const channels = [...this.watchers.values()]
       .filter(
@@ -262,7 +280,18 @@ export class Steering {
         checkedAt: this.now(),
         conversation: null,
       };
-    else availability = this.liveAvailability(recipient);
+    else if (recipient.route.transport === "inbox") availability = this.inboxOnly(recipient.route);
+    else if (recipient.route.transport === "claude-channel")
+      availability = this.channelAvailability(pairing.agent, recipient.route);
+    else
+      availability = fresh ??
+        this.store.availability(pairing.agent) ?? {
+          state: "unchecked",
+          push: false,
+          summary: `${describeRoute(recipient.route)}: not checked yet.`,
+          checkedAt: this.now(),
+          conversation: null,
+        };
     return {
       agent: pairing.agent,
       name: pairing.name,
@@ -280,32 +309,6 @@ export class Steering {
     return recipient.pairingId === this.options.pairings.pairingId(agent) ? recipient : undefined;
   }
 
-  private liveAvailability(recipient: Recipient): RouteAvailability {
-    if (recipient.route.transport === "claude-channel")
-      return this.channelAvailability(recipient.agent, recipient.route);
-    if (
-      [...this.connections.values()].some(
-        (link) => link.pairingId === recipient.pairingId && link.agent === recipient.agent,
-      )
-    )
-      return this.inboxOnly(recipient.route);
-    return {
-      state: "offline",
-      push: false,
-      summary: "Connect the paired agent to this workshop first.",
-      checkedAt: this.now(),
-      conversation: null,
-    };
-  }
-
-  requireConnected(agent: string): void {
-    const recipient = this.current(agent);
-    if (recipient && this.liveAvailability(recipient).state === "offline")
-      throw new SteeringError("RouteUnproven", "Connect the paired agent to this workshop first.", {
-        agent,
-      });
-  }
-
   private inboxOnly(route: RecipientRoute): RouteAvailability {
     return {
       state: "inbox-only",
@@ -314,6 +317,35 @@ export class Steering {
       checkedAt: this.now(),
       conversation: null,
     };
+  }
+
+  private async probe(route: RecipientRoute): Promise<RouteAvailability> {
+    if (route.transport === "inbox") return this.inboxOnly(route);
+    const transport = this.transports.get(route.transport);
+    if (!transport)
+      return {
+        state: "offline",
+        push: false,
+        summary: `This host has no ${route.transport} adapter; messages wait in the inbox.`,
+        checkedAt: this.now(),
+        conversation: null,
+      };
+    const checked = await withTimeout<RouteCheck>(
+      transport.check(route).catch((error: unknown): RouteCheck => ({
+        state: "offline",
+        push: false,
+        summary: `Checking failed: ${error instanceof Error ? error.message : String(error)}`,
+        conversation: null,
+      })),
+      this.options.checkTimeoutMs ?? 15_000,
+      () => ({
+        state: "offline",
+        push: false,
+        summary: "The host did not answer in time.",
+        conversation: null,
+      }),
+    );
+    return { ...checked, checkedAt: this.now() };
   }
 
   async send(
@@ -373,7 +405,6 @@ export class Steering {
     } else
       for (const summary of await Effect.runPromise(this.options.project.documents))
         baseline[summary.documentId] = summary.journal.sequence;
-    this.requireConnected(params.agent);
     const message = this.store.insert({
       messageId: steeringMessageId(
         this.options.project.info.projectId,
@@ -447,7 +478,6 @@ export class Steering {
 
   retry(messageId: string): SteeringMessage {
     const message = this.get(messageId);
-    this.requireConnected(message.agent);
     if (message.closed || message.acknowledged)
       throw new SteeringError("SteeringSettled", `${messageId} is ${message.status}.`, {
         messageId,
@@ -784,12 +814,7 @@ export class Steering {
     return message;
   }
 
-  connected(link: AgentLink): void {
-    this.connections.set(link.id, link);
-  }
-
   disconnected(linkId: string): void {
-    this.connections.delete(linkId);
     this.watchers.delete(linkId);
     for (const [messageId, wait] of this.pushWaits)
       if (wait.link === linkId) {
@@ -940,9 +965,26 @@ export class Steering {
       );
       return;
     }
-    if (message.route.transport !== "claude-channel") return;
-    const transport = this.channel;
+    const transport = this.transports.get(message.route.transport);
     const attempts = message.delivery.attempts + 1;
+    if (!transport) {
+      this.announce(
+        this.store.update(
+          message.messageId,
+          {
+            delivery: {
+              state: "pending",
+              attempts,
+              lastAttemptAt: this.now(),
+              nextAttemptAt: this.now() + 60_000,
+              detail: `This host has no ${message.route.transport} adapter. The agent can read it from its inbox.`,
+            },
+          },
+          "no adapter",
+        ),
+      );
+      return;
+    }
     this.announce(
       this.store.update(
         message.messageId,

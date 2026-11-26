@@ -4,6 +4,7 @@ import { parseArgs } from "node:util";
 import { WorkshopError } from "@irudd/workshop/client";
 import { AgentCredential, readJsonFile } from "@irudd/workshop/endpoint";
 import { exit, UsageError, verbs as projectVerbs, type Context, type Verb } from "./commands.js";
+import { runT3 } from "./t3.js";
 import { buildId } from "./build.js";
 import { steeringVerbs } from "./steering.js";
 import { reviewVerbs } from "./review.js";
@@ -65,6 +66,7 @@ function mainHelp(): string {
     "Running a project:",
     `  ${"host <dir> [--create]".padEnd(width)}  Own a project headlessly and serve it (see "irudd host --help")`,
     `  ${"mcp --credential <file>".padEnd(width)}  Run the MCP server for a paired agent, on stdio`,
+    `  ${"t3 <connect|status|disconnect>".padEnd(width)}  Let steering reach a running T3 Code turn (see "irudd t3 --help")`,
     `  ${"version [--json]".padEnd(width)}  Print the build this CLI belongs to`,
     "",
     "Commands:",
@@ -123,6 +125,7 @@ async function run(
     out(topic ? verbHelp(topic) : mainHelp());
     return exit.ok;
   }
+  if (name === "t3") return runT3(rest, out, err);
   if (name === "version") {
     const build = buildId();
     out(
