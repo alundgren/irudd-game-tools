@@ -1,17 +1,3 @@
-// Short hair as a groom: a thin layer of roots that fades into the skin,
-// covered by cards of strands that follow a combing direction over the
-// measured skull (strandGroom and groomGeometry in
-// character-view/human-groom.js at 2761eb1). Everything is placed from the
-// adult it is built on: the hairline is drawn round that adult's own ears,
-// and every card is seated on that adult's own scalp. Arithmetic runs in G0's
-// order, through the same single-precision tables, so every card matches.
-//
-// The cuts grown here are G0's three fitted crops and the earlier styles that
-// keep their names and grow without hanging lengths: Buzz cut, Crop, Side
-// part and Swept back, the buzz cut clipped and painted at the textured
-// presets. Hair that hangs, locks, curls and coils are G0's too
-// but are not grown by this port yet.
-
 import * as T from "three";
 import { context2d, type Raster } from "../../raster.js";
 import type { HumanBody } from "../body.js";
@@ -51,17 +37,6 @@ import { grownHairStyles, type GrownHairStyle } from "./styles.js";
 const DEG = Math.PI / 180,
   TAU = Math.PI * 2;
 
-/**
- * How a cut is grown. Lengths are millimetres on the reference adult and
- * angles degrees from the hairline.
- *   top, side         hair length on top and round the sides; `front` adds to the top towards the forehead
- *   edge, fade        length at the hairline, and the distance over which it reaches the full length
- *   lay               how much of its length a card stands off the skin
- *   burn              how far the sideburn reaches from the top of the ear to the lobe, 0 to 1
- *   fringe            how far past the hairline cards over the forehead may hang, in degrees
- *   openCrown         an open, receding crown above a temporal fringe
- *   comb              the way the top is combed whatever the fringe
- */
 interface Spec {
   readonly top: number;
   readonly front: number;
@@ -74,13 +49,10 @@ interface Spec {
   readonly openCrown?: boolean;
   readonly comb?: Comb;
   readonly scalp?: number;
-  /** The style has hair that leaves the head: tails, knots and plaits from hair-lengths.ts. */
   readonly lengths?: boolean;
-  /** The hair is drawn back to where it is tied; `gather` is that direction when the lengths do not give one. */
   readonly swept?: { readonly gather?: Vec };
 }
 
-// The drawn-back scalp under tied hair.
 const TIED_SCALP = {
   top: 56,
   front: 0,
@@ -125,7 +97,6 @@ const SPECS: Readonly<Record<GrownHairStyle, Spec>> = {
     burn: 0.3,
     fringe: 2,
   },
-  // Styles that keep the names they have always had and are grown as strands on the scalp of the adult who wears them.
   "Buzz cut": { top: 5, front: 0, side: 3.6, edge: 1.5, fade: 9, lay: 0.55, burn: 0.25, fringe: 1 },
   Crop: { top: 21, front: 0.3, side: 10, edge: 3, fade: 13, lay: 0.3, burn: 0.4, fringe: 4 },
   "Side part": {
@@ -149,14 +120,10 @@ const SPECS: Readonly<Record<GrownHairStyle, Spec>> = {
     fringe: 1.5,
     comb: "Off the face",
   },
-  // The combed scalp follows the fitted hairline. Tails, crowns and knots have their own geometry.
   Ponytail: { ...TIED_SCALP, swept: {} },
   Bun: { ...TIED_SCALP, swept: {} },
   Braid: { ...TIED_SCALP, swept: { gather: [0, -0.3, -1] } },
 };
-
-// ---------------------------------------------------------------------------------------------
-// The ears
 
 interface EarBox {
   front: number;
@@ -166,7 +133,6 @@ interface EarBox {
 }
 
 const earSourceCache = new WeakMap<HumanBody, ReadonlySet<number>>();
-/** Source vertex ids of both ears, found once on the reference adult by their folded skin. */
 function earSources(human: HumanBody): ReadonlySet<number> {
   const known = earSourceCache.get(human);
   if (known) return known;
@@ -183,7 +149,6 @@ function earSources(human: HumanBody): ReadonlySet<number> {
       up = at.eps / DEG;
     if (side < 62 || side > 132 || up < -50 || up > 12) continue;
     const d = sub(p, f.centre);
-    // The skull faces away from its centre everywhere. The folds of an ear do not.
     if (
       (item(body.N, v * 3) * d[0] +
         item(body.N, v * 3 + 1) * d[1] +
@@ -204,7 +169,6 @@ function earSources(human: HumanBody): ReadonlySet<number> {
   return found;
 }
 
-/** Which vertices of this adult are ear, and how far each ear reaches: front, back, top and lobe as angles. */
 function measureEars(
   human: HumanBody,
   body: DressBody,
@@ -226,17 +190,12 @@ function measureEars(
     e.top = Math.max(e.top, at.eps);
     e.low = Math.min(e.low, at.eps);
   }
-  // A surface without the usual ears still gets a hairline.
   for (const e of sides)
     if (!Number.isFinite(e.front))
       Object.assign(e, { front: 84 * DEG, back: 106 * DEG, top: -10 * DEG, low: -46 * DEG });
   return { mark, sides };
 }
 
-// ---------------------------------------------------------------------------------------------
-// The hairline
-
-/** A curve through knots that never overshoots them. */
 function curve(knots: ReadonlyArray<readonly [number, number]>): (at: number) => number {
   const n = knots.length,
     x = knots.map((k) => k[0]),
@@ -272,10 +231,6 @@ function curve(knots: ReadonlyArray<readonly [number, number]>): (at: number) =>
   };
 }
 
-/**
- * The hairline of one side as elevation by direction, both in degrees: across the forehead, back at
- * the temple, down the sideburn in front of the ear, over the ear, down behind it and across the nape.
- */
 function sideLine(ear: EarBox, spec: Spec): (at: number) => number {
   const F = clamp(ear.front / DEG, 76, 96),
     B = clamp(ear.back / DEG, F + 12, 118),
@@ -303,19 +258,12 @@ function sideLine(ear: EarBox, spec: Spec): (at: number) => number {
   ]);
 }
 
-// ---------------------------------------------------------------------------------------------
-// The scalp
-
 interface ScalpAt {
   readonly r: number;
   readonly n: Vec;
   readonly v: number;
 }
 
-/**
- * The skull without its ears as a map from direction to distance, skin normal and nearest vertex.
- * Directions are laid out round the axis through the ears, so the map has no pole where hair grows.
- */
 function scalpMap(
   body: DressBody,
   f: HeadFrame,
@@ -364,7 +312,6 @@ function scalpMap(
     if (hi - lo > A / 2) continue;
     const area = (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0);
     if (Math.abs(area) < 1e-9) continue;
-    // Skin that faces the centre is the inside of a nostril or an eyelid.
     const mx = (p3(i * 3) + p3(j * 3) + p3(k * 3)) / 3 - c[0],
       my = (p3(i * 3 + 1) + p3(j * 3 + 1) + p3(k * 3 + 1)) / 3 - c[1],
       mz = (p3(i * 3 + 2) + p3(j * 3 + 2) + p3(k * 3 + 2)) / 3 - c[2];
@@ -402,7 +349,6 @@ function scalpMap(
         V[cell] = w0 >= w1 && w0 >= w2 ? i : w1 >= w2 ? j : k;
       }
   }
-  // Cells no triangle reached, and the patch where an ear was, take what surrounds them.
   const steps: ReadonlyArray<readonly [number, number]> = [
     [0, 1],
     [0, -1],
@@ -437,7 +383,6 @@ function scalpMap(
       }
     if (!empty) break;
   }
-  /** Distance `r`, unit normal `n` and nearest vertex `v` along a unit direction. */
   return (u) => {
     let a = Math.atan2(u[1], u[2]);
     if (a < -Math.PI / 2) a += TAU;
@@ -467,9 +412,6 @@ function scalpMap(
   };
 }
 
-// ---------------------------------------------------------------------------------------------
-// Combing
-
 const scale = (v: Vec, s: number): Vec => [v[0] * s, v[1] * s, v[2] * s];
 const tangent = (q: Vec, v: Vec): Vec => {
   const along = dot(q, v);
@@ -480,7 +422,6 @@ const aimAt = (phi: number, eps: number): Vec => [
   Math.sin(eps),
   Math.cos(eps) * Math.cos(phi),
 ];
-/** The nearest point to `q` on the great arc from `a` to `b`. */
 function onArc(q: Vec, a: Vec, b: Vec): Vec {
   const n = unit(cross(a, b)),
     flat = unit(sub(q, scale(n, dot(q, n))));
@@ -494,10 +435,6 @@ interface CombSpec {
   readonly forward: number;
   readonly back: number;
 }
-/**
- * Ways to comb the top, by the fringe choice. Hair runs away from `from`, a point or an arc on the
- * head; `forward` adds a pull towards the forehead and `back` sweeps the sides to the rear.
- */
 const COMBS: Readonly<Record<Comb, CombSpec>> = {
   "As cut": { from: [[0.12, 0.8, -0.58]], forward: 0.15, back: 0.3 },
   Parted: { from: [[0.05, 0.8, -0.6], aimAt(-5 * DEG, 30 * DEG)], forward: 0.45, back: 0.3 },
@@ -514,13 +451,10 @@ const isComb = (name: string | undefined): name is Comb =>
 
 interface Flow {
   (q: Vec): Vec;
-  /** The angle in radians from a direction to where the combing starts. Hair there fans out in every direction. */
   readonly reach: (q: Vec) => number;
 }
 
-/** The direction hair lies at a unit direction `q` of the head frame, as a unit tangent there. */
 function combing(look: Comb, gather: Vec | null): Flow {
-  // Tied hair runs to where it is gathered.
   const comb = COMBS[look],
     from = comb.from.map(unit),
     to = gather && unit(gather);
@@ -549,7 +483,6 @@ function combing(look: Comb, gather: Vec | null): Flow {
       rear = tangent(q, [0, 0, -1]);
     let top: Vec = far > 1e-4 ? [away[0] / far, away[1] / far, away[2] / far] : forward;
     top = unit(add(top, forward, comb.forward * smooth(0.1, 0.6, q[1])));
-    // Below the widest part of the head hair hangs, and on the sides it is brushed a little to the rear.
     const low = unit(add(down, rear, comb.back * Math.abs(q[0]))),
       hang = smooth(40 * DEG, 12 * DEG, Math.asin(clamp(q[1], -1, 1)));
     let lie = tangent(q, [
@@ -561,7 +494,6 @@ function combing(look: Comb, gather: Vec | null): Flow {
       const pull = sub(to, q);
       lie = length(pull) > 0.05 ? tangent(q, pull) : down;
     }
-    // Hair never lies in perfectly even rows.
     const turn =
         0.5 * (noise3(q[0] * 5 + 11, q[1] * 5, q[2] * 5) - 0.5) +
         0.3 * (noise3(q[0] * 17, q[1] * 17 + 5, q[2] * 17) - 0.5),
@@ -573,12 +505,7 @@ function combing(look: Comb, gather: Vec | null): Flow {
   });
 }
 
-// ---------------------------------------------------------------------------------------------
-// The strand artwork
-
 type Tile = readonly [number, number, number, number];
-// Tufts sit in a 256 pixel square: four long ones above two rows of four short ones.
-// The last short place holds unbroken combed hair, for hair seen in the mass under the cards.
 const TILES: {
   readonly long: ReadonlyArray<Tile>;
   readonly short: ReadonlyArray<Tile>;
@@ -599,10 +526,6 @@ let artwork: {
   readonly height: number;
   readonly data: Uint8ClampedArray;
 } | null = null;
-/**
- * Strands drawn as pixels: `data` is RGBA, rows from the top, with tips up and roots down in every
- * tile. The colour is a grey that the hair colour is multiplied by; the alpha is the strands.
- */
 function tuftPixels(): {
   readonly width: number;
   readonly height: number;
@@ -640,8 +563,6 @@ function tuftPixels(): {
       thick: number;
       tone: number;
     }[] = [];
-    // Strands gather into a few locks towards their tips. A lock keeps its point when the picture is drawn small,
-    // where single strands would run together into a block.
     const points = Array.from(
       { length: locks },
       (_, i) => 7 + ((wide - 14) * (i + 0.25 + 0.5 * hash1(seed * 53 + i))) / locks,
@@ -654,7 +575,6 @@ function tuftPixels(): {
           item(points, 0),
         ),
         far = Math.abs(to - x0) / (wide / locks);
-      // The strand in the middle of a lock is its longest.
       rows.push({
         x0,
         to,
@@ -669,7 +589,6 @@ function tuftPixels(): {
       });
     }
     for (let y = 0; y < tall; y++) {
-      // 0 at the root, 1 at the tip.
       const t = 1 - (y + 0.5) / tall,
         centres = rows.map(
           (r) =>
@@ -690,21 +609,17 @@ function tuftPixels(): {
             nearTone = r.tone;
           }
           if (along <= 0 || along >= 1) return;
-          // A strand starts fine, is fullest low down and thins to its tip.
           const half = r.thick * smooth(0, 0.1, along) * mix(1, 0.32, along ** 1.4),
             c = clamp(half - far + 0.5);
-          // A strand is darker along its edges, where the next one shades it.
           if (c > cover) {
             cover = c;
             tone = r.tone * (0.74 + 0.26 * clamp((half - far) / 1.2));
           }
         });
-        // Tones are amounts of light, stored the way a picture stores them, so a card is as bright as the roots under it.
         const shade = ((cover > 0 ? tone : nearTone) * (0.8 + 0.2 * t)) ** (1 / 2.2),
           at = ((top + y) * size + left + x) * 4,
           edge = x < 2 || x >= wide - 2 || y < 1 || y >= tall - 1;
         data[at] = data[at + 1] = data[at + 2] = Math.round(255 * shade);
-        // A faint alpha next to every strand keeps its colour when the picture is filtered or redrawn.
         data[at + 3] = edge ? 0 : Math.max(Math.round(255 * cover), near < 3.5 ? 14 : 0);
       }
     }
@@ -716,7 +631,6 @@ function tuftPixels(): {
     draw(tile, 40 + i, { strands: 20, thick: 2.2, reach: 0.62, ragged: 0.3, locks: 2 + (i % 2) }),
   );
   {
-    // Unbroken hair: streaks of tone that run the way the strands do, with no gaps.
     const [left, top, wide, tall] = TILES.solid;
     for (let x = 0; x < wide; x++) {
       const fine = hash1(9001 + x),
@@ -729,7 +643,6 @@ function tuftPixels(): {
             1,
           );
         data[at] = data[at + 1] = data[at + 2] = Math.round(255 * tone ** (1 / 2.2));
-        // The same clear gutter as every tuft has.
         data[at + 3] = x < 1 || x >= wide - 1 || y < 1 || y >= tall - 1 ? 0 : 255;
       }
     }
@@ -738,7 +651,6 @@ function tuftPixels(): {
 }
 
 const tuftTextures = new WeakMap<Raster, T.CanvasTexture>();
-/** The strand picture as a texture on a canvas, shared by every groom, as G0 draws it on its page. */
 function tuftMap(raster: Raster): T.CanvasTexture {
   const known = tuftTextures.get(raster);
   if (known) return known;
@@ -755,9 +667,6 @@ function tuftMap(raster: Raster): T.CanvasTexture {
   tuftTextures.set(raster, map);
   return map;
 }
-
-// ---------------------------------------------------------------------------------------------
-// The groom
 
 interface Layer {
   readonly position: number[];
@@ -778,17 +687,13 @@ const layer = (uv: boolean): Layer => ({
   weights: [],
 });
 
-/** The geometry of a groom: the roots under the cards and the cards of strands. */
 interface Groom {
   readonly roots: Layer;
   readonly cards: Layer;
-  /** The hairlines of drawn-back hair, which its painted scalp is drawn to. */
   readonly swept: ReadonlyArray<(at: number) => number> | null;
-  /** What holds tied hair. */
   readonly ties: ReadonlyArray<HairTie>;
 }
 
-/** The roots and the cards of a grown cut on this adult. `budget` is a game model's triangle allowance; 0 is full detail. */
 function groomGeometry(
   human: HumanBody,
   surface: HumanSurface,
@@ -813,14 +718,12 @@ function groomGeometry(
   const hair = new T.Color(hairColor ?? "#48372e"),
     tone = new T.Color(skin);
   const lineOf = (side: number) => lines[side] ?? (() => 0);
-  // Each hairline as points half a degree apart, to measure how far any direction is from it.
   const traced = lines.map((line, side) => {
     const points = new Float32Array(361 * 3);
     for (let i = 0; i <= 360; i++)
       points.set(aimAt((((side ? -1 : 1) * i) / 2) * DEG, line(i / 2) * DEG), i * 3);
     return points;
   });
-  /** The angle in degrees from a direction to the hairline; negative outside it. */
   const margin = (phi: number, eps: number): number => {
     const side = phi > 0 ? 0 : 1,
       points = traced[side] ?? new Float32Array(),
@@ -834,8 +737,6 @@ function groomGeometry(
       (Math.acos(Math.min(1, near)) / DEG) *
       (eps / DEG >= lineOf(side)(Math.abs(phi) / DEG) ? 1 : -1);
     if (!spec.openCrown) return lower;
-    // The temporal fringe follows the ear. At the occiput it meets the
-    // higher rear hairline, leaving one continuous area of exposed crown.
     const upper = 30 - 27 * q[2] - 41 * Math.max(0, q[2]) + 2.1 * q[0] - eps / DEG;
     return Math.min(lower, upper);
   };
@@ -854,10 +755,6 @@ function groomGeometry(
       v: at.v,
     };
   };
-  /**
-   * Light and dark locks: fine noise gathered along the line hair is combed in, so a lock keeps its
-   * tone from card to card and differs from the lock beside it. About -1 to 1.
-   */
   const lock = (q: Vec): number => {
     let sum = 0,
       a = q,
@@ -870,25 +767,18 @@ function groomGeometry(
     }
     return clamp((sum / 10 - 0.5) * 5.5, -1, 1);
   };
-  /** Hair length and how far it stands off the head, in metres, at a direction and a distance from the hairline. */
   const cutAt = (q: Vec, far: number) => {
     const eps = Math.asin(clamp(q[1], -1, 1)),
       top = smooth(14 * DEG, 46 * DEG, eps),
       front = smooth(0.15, 0.85, q[2]) * smooth(0.35, 0.8, q[1]);
-    // Across the forehead and round the temples the hairline is a clean edge; lower down it is a taper.
     const forehead = spec.openCrown ? 0 : smooth(4 * DEG, 18 * DEG, eps);
     const full = mix(spec.side, spec.top * (1 + spec.front * front), top);
-    // The taper: shortest at the hairline round the sides and the back, but not across the forehead.
     const len = mix(mix(spec.edge, full, smooth(0, spec.fade, far)), full, forehead) * mm;
-    // Colour fades into the skin over the last few millimetres only; the taper itself is in the length.
-    // The temple is a narrow wedge between two hairlines, so its fade is narrower than the one at the nape.
     const fade = spec.openCrown
       ? mix(6, 14, smooth(0, 18 * DEG, eps))
       : mix(5.5, 3, smooth(0, 14 * DEG, eps));
     const cover = mix(smooth(0, fade, far) ** 0.8, smooth(-0.5, 2.5, far), forehead);
     const lift = len * mix(0.55, spec.lay, smooth(0.004 * k, 0.018 * k, len));
-    // The roots stay under every card: only a little off the skin, and less still at the hairline.
-    // A game model thins the skin and the roots separately, so the roots keep at least two millimetres over it inside the hairline.
     return {
       len,
       lift,
@@ -900,7 +790,6 @@ function groomGeometry(
     };
   };
 
-  // The roots: scalp inside the hairline, lifted a little, coloured from skin to hair.
   const roots = layer(Boolean(spec.swept));
   {
     const wear = body.weight(/^(head|neck)/);
@@ -924,19 +813,16 @@ function groomGeometry(
         far = Math.max(0, margin(at.phi, at.eps)),
         here = cutAt(at.q, far),
         n = s.normal(i);
-      // Drawn-back hair is painted on the scalp, a little further off the skin inside the hairline.
       const lifted = here.under + (spec.swept ? mm * (1.2 + 2.2 * smooth(0, 12, far)) : 0);
       const p = add(a, n, lifted);
       roots.position.push(p[0], p[1], p[2]);
       roots.normal.push(n[0], n[1], n[2]);
-      // Its picture is laid out round the crown: the top of the head in the middle, the hairline at the rim.
       if (spec.swept) {
         const edge = lineOf(at.phi > 0 ? 0 : 1)(Math.abs(at.phi) / DEG);
         const boundary = edge - 6;
         const radius = 0.495 * clamp((90 - at.eps / DEG) / Math.max(1, 90 - boundary));
         roots.uv?.push(0.5 + radius * Math.sin(at.phi), 0.5 + radius * Math.cos(at.phi));
       }
-      // Streaks along the combing direction, darker where the hair is deep. The painted scalp carries its own colour.
       const shade = (0.66 + 0.16 * lock(at.q)) * mix(1, 0.88, here.top) * (spec.swept ? 0.8 : 1),
         solid = clamp(0.15 + 0.85 * here.cover);
       if (spec.swept) roots.color?.push(1, 1, 1);
@@ -953,13 +839,11 @@ function groomGeometry(
     roots.index = s.tri.slice();
   }
 
-  // The cards: each is rooted on the scalp and follows the combing direction.
   const cards = layer(true);
   const wear = body.weight(/^(head|neck)/),
     P = body.P,
     game = budget > 0;
   const point = (v: number): Vec => [item(P, v * 3), item(P, v * 3 + 1), item(P, v * 3 + 2)];
-  // A first pass counts what full cover needs, so that a game model can thin it evenly.
   const plan: {
     readonly a: Vec;
     readonly b: Vec;
@@ -990,19 +874,14 @@ function groomGeometry(
     if (far < -4) continue;
     const here = cutAt(at.q, Math.max(0, far)),
       area = length(cross(sub(b, a), sub(d, a))) / 2;
-    // Cards overlap about twice on top and thin out where the roots show the fade.
     const wide = clamp(here.len * 0.3, 0.004 * k, 0.0065 * k),
       layers = mix(1.7, 2.8, here.top) * mix(1, 1.35, here.forehead * smooth(9, 0, far));
-    // These cuts lie on the scalp, with no volume that would need more cover than the scalp under it.
     const count = (area * layers) / (wide * Math.max(here.len, 0.006 * k));
     plan.push({ a, b, d, count, t });
     wanted += count;
   }
-  // Hair that leaves the head is built first.
   const hung = layer(true);
   if (lengths) lengthCards(hung, lengths, { tiles: TILES.long, solid: TILES.solid, hair, k, game });
-  // Full detail carries up to 2,600 cards; a game model spends three tenths of its strand allowance here.
-  // Drawn-back hair is painted on the scalp and carries no cards there.
   const allowed = spec.swept
       ? 0
       : game
@@ -1034,9 +913,6 @@ function groomGeometry(
       const here = cutAt(at.q, far);
       const lie = flow,
         t0 = lie(at.q);
-      // Hair thins out towards the hairline round the sides and back, where the roots carry the fade.
-      // Across the forehead it grows thickly right up to the line.
-      // The outermost part of the fade is left to the roots alone: a lone tuft on bare skin reads as a chip.
       if (
         rnd(3) >
         mix(
@@ -1047,14 +923,10 @@ function groomGeometry(
       )
         continue;
       let len = Math.max(here.len, 0.0045 * k) * (0.65 + 0.6 * rnd(4));
-      // How far one radian of the head frame is on this head, here.
       const base = seat(at.q, 0),
         ahead = seat(unit(add(at.q, t0, 0.04)), 0),
         metre = length(sub(ahead.p, base.p)) / 0.04;
-      // Beside an ear two surfaces lie in one direction. A strand grows only where the map is the skin its root is on.
       if (length(sub(base.p, root)) > 0.004 * k) continue;
-      // A card may only hang a little past the hairline: more over the forehead, least round the ears.
-      // The fringe ends on one gently wandering line, so its edge is strand tips and not card ends.
       const tipFar = (l: number) => {
         const tip = f.aim(seat(unit(add(at.q, t0, l / metre)), 0).p);
         return margin(tip.phi, tip.eps);
@@ -1091,14 +963,12 @@ function groomGeometry(
       const tiles = long ? TILES.long : TILES.short,
         tile = tiles[Math.floor(rnd(7) * tiles.length) % tiles.length] ?? TILES.solid,
         flip = rnd(8) < 0.5;
-      // A narrow card shows a narrow part of its tile, so strands stay the same size on every card.
       const span = clamp(wide / (0.0065 * k), 0.3, 1),
         start = (1 - span) * rnd(11);
       const roll = (rnd(9) - 0.5) * 0.4,
         tilt =
           0.5 * (noise3(at.q[0] * 7 + 9, at.q[1] * 7, at.q[2] * 7) - 0.5) + 0.2 * (rnd(12) - 0.5),
         shade = (1 + 0.14 * (rnd(10) - 0.5)) * (1 + 0.24 * lock(at.q));
-      // The last hairs before bare skin are fine, so they take some of its colour.
       const fine = 0.5 * (1 - here.forehead) * (1 - smooth(0, here.fade, far));
       const skinning: Skin = body.skinOf(base.v >= 0 ? base.v : body.nearest(root, 8)),
         first = cards.position.length / 3,
@@ -1106,7 +976,6 @@ function groomGeometry(
       let q = at.q;
       for (let step = 0; step <= steps; step++) {
         const along = step / steps;
-        // A strand rises from its root and settles again towards its tip.
         path.push(
           seat(
             q,
@@ -1120,7 +989,6 @@ function groomGeometry(
         if (step < steps) q = unit(add(q, lie(q), len / steps / metre));
       }
       const station = (i: number) => path[i] ?? seat(at.q, 0);
-      // A strand stays on the scalp it grows from. One that would jump to another surface, such as an ear, is left out.
       if (
         path.some(
           (s, step) =>
@@ -1141,14 +1009,12 @@ function groomGeometry(
           const p = add(s.p, across, sign * half);
           cards.position.push(p[0], p[1], p[2]);
           cards.normal.push(face[0], face[1], face[2]);
-          // A card starts as dark as the roots it grows from, so where it begins does not show.
           const value = shade * (0.74 + 0.32 * along);
           cards.color?.push(
             mix(hair.r * value, tone.r, fine),
             mix(hair.g * value, tone.g, fine),
             mix(hair.b * value, tone.b, fine),
           );
-          // Picture rows run from the tip at the top of a tile to the root at its foot.
           const x = tile[0] + 2 + (tile[2] - 4) * ((sign < 0 !== flip ? 0 : 1) * span + start),
             y = tile[1] + 1.5 + (tile[3] - 3) * (1 - along);
           cards.uv?.push(x / 256, 1 - y / 256);
@@ -1206,10 +1072,6 @@ const isTiedHairStyle = (name: GrownHairStyle): name is TiedHairStyle =>
 export const isGrownHairStyle = (name: string | undefined): name is GrownHairStyle =>
   grownHairStyles.some((style) => style === name);
 
-/**
- * The meshes of a grown cut: the roots, and the cards of strands over them. Clay has no colour,
- * so the roots and cards carry none there. Under `material`'s "hair" each layer takes its own copy.
- */
 export function strandGroom(
   human: HumanBody,
   surface: HumanSurface,
@@ -1227,7 +1089,6 @@ export function strandGroom(
   skinColor: string,
   gameBudget = 0,
 ): DressMesh[] {
-  // At the textured presets a buzz cut is clipped hair painted on the scalp.
   if (style.hair === "Buzz cut" && finish)
     return [
       buzzCut(human, surface, style.hairColor, material, skinColor, finish.raster, finish.buzz),
@@ -1251,7 +1112,6 @@ export function strandGroom(
     if (under instanceof T.MeshStandardMaterial) {
       under.vertexColors = true;
       under.roughness = 1;
-      // Drawn-back hair is a painting of combed strands on the scalp, fitted to the wearer's hairline.
       if (groom.swept) {
         under.map = sweptScalpTexture(
           finish.raster,
@@ -1271,12 +1131,9 @@ export function strandGroom(
       over.roughness = 0.72;
       over.map = tuftMap(finish.raster);
     }
-    // A plain cutout, as in an exported file. Alpha to coverage breaks strands this fine into pale speckles
-    // in the workshop view.
     over.alphaTest = 0.4;
   }
   over.side = T.DoubleSide;
-  // The cards are already built to the size a game model can carry, so its export keeps every one.
   over.userData = { ...over.userData, fibreLOD: true };
   const roots = meshOf(groom.roots, under, style.hair + " roots", Boolean(groom.roots.uv));
   roots.mesh.userData["hairRoots"] = true;
@@ -1286,10 +1143,7 @@ export function strandGroom(
   }
   const cards = meshOf(groom.cards, over, style.hair, true);
   cards.mesh.userData["strandGroom"] = true;
-  // The roots cast the shadow of the hair. The strands lie a few millimetres over them and add nothing
-  // to it that shows, so they are left out of the shadow pass.
   cards.mesh.castShadow = false;
-  // What holds tied hair is cloth, built as the earlier styles built it.
   const ties = groom.ties
     .filter((part) => part.piece.tri.length)
     .map((part) => part.piece.mesh(material(part.tone, part.type), "head", part.name));

@@ -1,13 +1,3 @@
-// A skirt, a tunic tail or a coat tail hanging round both legs (skirt in
-// character-view/human-style-cloth.js and human-skirt-drape.js at 2761eb1).
-//
-// A draped skirt is a length of cloth sewn to the waist: it lies on the body
-// down to the widest place under it, leaves the body there and falls. Its
-// pattern is wider at the hem than the fall is, and what is left over stands
-// in folds. The hem is where the cloth runs out, so it rides up over a belly or
-// a seat and dips between folds. A long one describes a few joints its lower
-// cloth hangs from (human/drape.ts moves them).
-
 import type { ClothJoints } from "../cloth-joints.js";
 import {
   Envelope,
@@ -34,28 +24,18 @@ import {
 const TAU = Math.PI * 2;
 const ARMS = /^(upperarm|lowerarm|hand|thumb|index|middle|ring|pinky)/;
 
-/** How a named cloth hangs. */
 export interface Cloth {
-  /** How much wider the pattern grows per metre of length, as radius. */
   readonly sweep: number;
-  /** The length over which the cloth leaving the hip turns to a vertical fall; stiff cloth has a long reach. */
   readonly reach: number;
-  /** How many folds the fullness gathers into round the whole skirt. */
   readonly folds: number;
-  /** The deepest a fold may stand, as a share of its width. */
   readonly deep: number;
-  /** How flat the centre front lies. */
   readonly calm: number;
-  /** Extra fullness carried behind. */
   readonly back: number;
-  /** The most the hem may ride above or dip below its line, in metres before body scaling. */
   readonly lift: number;
   readonly onset: number;
 }
 
-/** Cloths that hang differently. */
 export const drapes = {
-  // Heavy satin: few deep flutes that open late.
   gown: {
     sweep: 0.17,
     reach: 0.26,
@@ -66,7 +46,6 @@ export const drapes = {
     lift: 0.03,
     onset: 0.14,
   },
-  // A gored skirt in a lighter silk: a rounder bell and more, shallower folds.
   gored: {
     sweep: 0.3,
     reach: 0.2,
@@ -77,7 +56,6 @@ export const drapes = {
     lift: 0.026,
     onset: 0.08,
   },
-  // A cotton day dress: many small soft folds from the waist seam.
   dress: {
     sweep: 0.26,
     reach: 0.16,
@@ -88,7 +66,6 @@ export const drapes = {
     lift: 0.02,
     onset: 0.05,
   },
-  // A short wool or twill skirt: nearly straight, a few broad folds.
   skirt: {
     sweep: 0.15,
     reach: 0.14,
@@ -99,7 +76,6 @@ export const drapes = {
     lift: 0.014,
     onset: 0.06,
   },
-  // A woollen robe: a straight heavy tube that breaks in long folds under the belt.
   robe: {
     sweep: 0.1,
     reach: 0.3,
@@ -114,36 +90,20 @@ export const drapes = {
 export type DrapeName = keyof typeof drapes;
 
 const turn = (a: number) => ((a % TAU) + TAU) % TAU;
-// Distance round the circle from the centre front.
 const fromFront = (a: number) => {
   const t = turn(a);
   return Math.min(t, TAU - t);
 };
 
-/** The hanging surface of a skirt. */
 export interface DrapeField {
-  /** Distance from the ring's centre at a depth and direction, folds included. */
   radius(h: number, a: number): number;
-  /** The surface without its folds. */
   mean(h: number, a: number): number;
-  /** Where the cloth would fall with no leg carrying it. */
   free(h: number, a: number): number;
-  /** How far the folds stand out of (positive) or sink into the mean surface there. */
   relief(h: number, a: number): number;
-  /** Depth of the hem in that direction. */
   hem(a: number): number;
-  /** Depth at which the cloth leaves the body. */
   leave(a: number): number;
 }
 
-/**
- * The hanging surface of a skirt over `env`, an envelope measured round the
- * figure and pulled taut round each ring, running from the waist seam (row 0)
- * down past the hem. `nominal` is the length to the designed hem line and
- * `seat` the depth of the fork of the legs: the cloth hangs from the trunk
- * above it, and the legs below it only push the cloth out where they stand
- * further out than it falls.
- */
 export function drapeField(
   env: Envelope,
   o: Cloth & {
@@ -171,15 +131,12 @@ export function drapeField(
     dh = (env.h1 - env.h0) / (rows - 1),
     body = env.r,
     ix = (i: number, j: number) => i * cols + (((j % cols) + cols) % cols);
-  // Hanging cloth never turns back in under a prominence.
   const hung = body.slice(),
     fork = Math.min(rows - 1, Math.round(seat / dh));
   for (let j = 0; j < cols; j++)
     for (let i = 1; i < rows; i++)
       hung[ix(i, j)] =
         i > fork ? at(hung, ix(fork, j)) : Math.max(at(hung, ix(i, j)), at(hung, ix(i - 1, j)));
-  // Cloth has some stiffness: it does not follow a sharp ledge under the waist seam but rounds it, standing a
-  // little proud above the ledge. The corner may be no tighter than a few centimetres.
   const round = 0.045 * k;
   for (let j = 0; j < cols; j++)
     for (let pass = 0; pass < 3; pass++)
@@ -190,7 +147,6 @@ export function drapeField(
         const chord = mix(at(hung, ix(lo, j)), at(hung, ix(hi, j)), (i - lo) / (hi - lo));
         if (chord > at(hung, ix(i, j))) hung[ix(i, j)] = mix(at(hung, ix(i, j)), chord, 0.7);
       }
-  // Round each ring too, without ever letting the cloth inside the figure.
   for (let pass = 0; pass < 2; pass++) {
     const old = hung.slice();
     for (let i = 0; i < rows; i++)
@@ -200,7 +156,6 @@ export function drapeField(
           (at(old, ix(i, j - 1)) + 2 * at(old, ix(i, j)) + at(old, ix(i, j + 1))) / 4,
         );
   }
-  // Below the fork a thigh or a knee that stands out carries the cloth, which hangs straight from it in turn.
   const legs = new Float32Array(rows * cols);
   for (let j = 0; j < cols; j++)
     for (let i = fork + 1; i < rows; i++)
@@ -214,7 +169,6 @@ export function drapeField(
           (at(old, ix(i, j - 1)) + 2 * at(old, ix(i, j)) + at(old, ix(i, j + 1))) / 4,
         );
   }
-  // Where the cloth leaves the body in each direction: the first depth at which it is as far out as it will get.
   const leaveRow = new Float32Array(cols);
   for (let j = 0; j < cols; j++) {
     const most = at(hung, ix(rows - 1, j));
@@ -227,7 +181,6 @@ export function drapeField(
     for (let j = 0; j < cols; j++)
       leaveRow[j] = (at(old, (j + cols - 1) % cols) + 2 * at(old, j) + at(old, (j + 1) % cols)) / 4;
   }
-  // The folds of one skirt: unevenly spaced, some fuller than others, the same for the same figure and cloth.
   const s = (n: number) => hash1(seed * 7 + n) * TAU,
     even = Math.min(1, folds / 11);
   const phase = (a: number) =>
@@ -241,7 +194,6 @@ export function drapeField(
     (1 + 0.3 * Math.sin(2.3 * a + s(5)) + 0.18 * Math.sin(4 * a + s(6))) *
     (1 - calm * Math.exp(-((fromFront(a) / 0.5) ** 2))) *
     (1 + back * 0.5 * (1 - Math.cos(a)));
-  // A fold seen from above: a broad lobe standing out and a narrower valley between two of them.
   const wave = (p: number) => -(Math.cos(p) + 0.32 * Math.cos(2 * p)) / 1.32;
   const mean = new Float32Array(rows * cols),
     stand = new Float32Array(rows * cols),
@@ -253,12 +205,8 @@ export function drapeField(
     for (let i = 0; i < rows; i++) {
       const t = Math.max(0, (i - at(leaveRow, j)) * dh),
         far = at(hung, ix(i, j));
-      // Leaving the hip the cloth carries on outward and gravity turns it down: a bell, not a cone.
       const bell = sweep * full * reach * k * (1 - Math.exp(-t / (reach * k)));
-      // A leg standing further out than the fall carries the cloth out with it.
       const r = Math.max(far + bell, at(legs, ix(i, j)) + 0.004 * k);
-      // What the pattern has over the fall stands in folds. A wave of `folds` lobes and height A round a ring
-      // of radius r is longer than the ring by about (folds * A / 2r)^2.
       const spare = Math.max(0, far + sweep * full * t - r),
         width = (TAU * r) / folds;
       const height =
@@ -268,8 +216,6 @@ export function drapeField(
       stand[ix(i, j)] = height * wave(phase(a) + (lean * t) / k);
     }
   }
-  // The hem lies where the cloth runs out. Every length of the pattern is as long as the designed hem line
-  // needs on average, so cloth that travels further over a belly, a seat or the crest of a fold ends higher.
   const lengths = new Float32Array(rows * cols),
     reachRow = nominal / dh;
   for (let j = 0; j < cols; j++)
@@ -295,7 +241,6 @@ export function drapeField(
         (cutAt - at(lengths, ix(i - 1, j))) /
           Math.max(1e-6, at(lengths, ix(i, j)) - at(lengths, ix(i - 1, j))),
       );
-    // No hem is cut or pressed dead level: it wanders a little round the skirt and dips between the folds.
     const a = (j / cols) * TAU,
       wander =
         lift *
@@ -341,16 +286,8 @@ export function drapeField(
   };
 }
 
-/** How many joints stand round each level of a hanging skirt. */
 export const drapeColumns = 8;
 
-/**
- * Joints for the hanging part of a skirt, in the space the figure was fitted
- * in: a ring at mid length and another at the hem, and the legs as rows of
- * balls. The cloth keeps its weights on the body; the rig hangs the cloth below
- * the hips on these joints. Null for a skirt too short to hang free of the
- * thighs.
- */
 export function drapeJoints(
   body: DressBody,
   m: Landmarks,
@@ -376,7 +313,6 @@ export function drapeJoints(
         h = top - y,
         point = env.point(h, a, field.mean(h, a)),
         centre = env.point(h, a, 0);
-      // The cloth this joint carries hangs from the hips at the height where the body lets go of it.
       const from = env.point(top - low, a, field.mean(top - low, a)),
         r = flat(point, centre) || 1;
       joints.push({
@@ -390,7 +326,6 @@ export function drapeJoints(
       });
     }
   });
-  // The legs as rows of balls, each as thick as the limb is there.
   const legs: Array<ClothJoints["legs"][number]> = [];
   for (const side of ["l", "r"])
     for (const [from, to, limb] of [
@@ -425,7 +360,6 @@ export function drapeJoints(
       legs.push({ from: from + "_" + side, to: to + "_" + side, radii });
     }
   const origin = env.point(0, 0, 0);
-  // Above `high` the cloth is the body's, below `low` the joints'.
   return {
     name,
     columns: drapeColumns,
@@ -449,10 +383,8 @@ export interface SkirtOptions {
   readonly folds?: number;
   readonly cols?: number;
   readonly shells?: ReadonlyArray<Shell>;
-  /** How far up the top turns in under the garment it hangs from; 0 leaves the top standing free. */
   readonly yoke?: number;
   readonly gores?: boolean;
-  /** Hang the skirt as this cloth, measured round the figure. */
   readonly drape?: { readonly cloth?: DrapeName } & Partial<Cloth>;
 }
 
@@ -462,11 +394,9 @@ export interface Skirt {
   readonly skin: (p: Vec) => Skin;
   readonly field: DrapeField | null;
   readonly rig: ClothJoints | null;
-  /** A point of the cloth at a share of its length and an angle, lifted off it. */
   pointAt(depth: number, angle: number, lift?: number): Vec;
 }
 
-/** A skirt, tunic tail or coat tail hanging round both legs from a height. */
 export function skirt(body: DressBody, m: Landmarks, o: SkirtOptions): Skirt {
   const {
     top,
@@ -484,7 +414,6 @@ export function skirt(body: DressBody, m: Landmarks, o: SkirtOptions): Skirt {
   const k = m.k,
     arm = body.weight(ARMS),
     points: Vec[] = [];
-  // A draped skirt is measured a little past its hem line, which the cloth may dip below.
   const cloth: Cloth | null = drape ? { ...drapes[drape.cloth ?? "gored"], ...drape } : null,
     past = cloth ? (cloth.lift + 0.012) * k : 0;
   const below = bottom - (cloth ? 0.008 : 0.03) * k;
@@ -503,7 +432,6 @@ export function skirt(body: DressBody, m: Landmarks, o: SkirtOptions): Skirt {
   let env: Envelope,
     field: DrapeField | null = null;
   if (cloth) {
-    // The rings keep one centre line, so cloth that hangs straight down keeps its distance from it.
     env = new Envelope(
       [0, top, m.pelvis[2]],
       [0, -1, 0],
@@ -536,7 +464,6 @@ export function skirt(body: DressBody, m: Landmarks, o: SkirtOptions): Skirt {
     }));
   const [left, right] = sides;
   if (!left || !right) throw new Error("A skirt needs both legs.");
-  // The skin a point of the skirt hangs in front of, found by walking from the cloth towards the leg behind it.
   const behind = (p: Vec) => {
     const { hip, knee } = p[0] >= 0 === left.hip[0] >= 0 ? left : right,
       t = (hip[1] - p[1]) / (hip[1] - knee[1]),
@@ -550,13 +477,10 @@ export function skirt(body: DressBody, m: Landmarks, o: SkirtOptions): Skirt {
     for (let n = 0; n <= steps; n++) {
       const q = add(p, way, n / steps),
         v = body.nearest(q, 1);
-      // A hand hanging beside the skirt is skin too, but the skirt does not follow it.
       if (v >= 0 && at(arm, v) < 0.05 && length(sub(q, body.point(v))) < 0.02 * k) return v;
     }
     return body.nearest(core, 3);
   };
-  // Cloth moves with the leg behind it, so a lifted thigh carries the skirt instead of passing through it. Across
-  // the middle the two legs share the cloth, and below the knee it mostly stays with the thigh.
   const skin = (p: Vec): Skin => {
     const shin = smooth(m.knee + 0.02 * k, m.knee - 0.12 * k, p[1]) * 0.7,
       own = smooth(0, 0.04 * k, Math.abs(p[0])) * 0.5 + 0.5,
@@ -584,11 +508,9 @@ export function skirt(body: DressBody, m: Landmarks, o: SkirtOptions): Skirt {
     }
     return mergeSkin(out);
   };
-  // A long draped skirt describes joints its lower cloth can hang from. Its own weights stay on the body.
   const rig = field ? drapeJoints(body, m, env, field, { top, bottom }) : null;
   const place = (row: number, j: number, inset: number): Vec => {
     if (field) {
-      // Rows divide the cloth from the seam to wherever its hem falls in this direction.
       const a = (j / cols) * TAU,
         deep = row / rows,
         h = deep * field.hem(a);
@@ -603,8 +525,6 @@ export function skirt(body: DressBody, m: Landmarks, o: SkirtOptions): Skirt {
       deep = row / rows;
     const phase = a * folds + 1.3 * Math.sin(a * 3);
     const hem = smooth(0.35, 1, deep);
-    // Gores stay over the hips before opening in soft flutes below the knee.
-    // The back carries a little more fullness than the front facing.
     const swing = phase + hem * (1.15 * Math.sin(2 * a + 0.4) + 0.6 * Math.cos(3 * a));
     const flute = Math.sin(swing) + 0.24 * Math.cos(2 * swing + 0.6);
     const wave = fold * k * (gores ? (0.25 * deep + 1.18 * hem) * flute : deep * Math.sin(phase));
@@ -623,8 +543,6 @@ export function skirt(body: DressBody, m: Landmarks, o: SkirtOptions): Skirt {
   const piece = new Piece(),
     rings: Vec[][] = [];
   if (yoke > 0) {
-    // A full skirt stands off the garment above it. Its top slopes in and ends just under that cloth, found by
-    // rays, so there is no gap to look down into.
     const casts = shells.map((s) => raycaster(s.pos, s.tri)),
       up = yoke * k,
       off = 0.35 * ease * k;
@@ -646,14 +564,10 @@ export function skirt(body: DressBody, m: Landmarks, o: SkirtOptions): Skirt {
   }
   for (let row = 0; row <= rows; row++)
     rings.push(Array.from({ length: cols }, (_, j) => place(row, j, 0)));
-  // The cloth turns under at the hem and runs back up as a lining, so the inside is cloth from any angle.
   for (let row = rows; row >= 0; row--)
     rings.push(Array.from({ length: cols }, (_, j) => place(row, j, 0.005 * k)));
   piece.loft(rings, skin, { flip: true });
   if (rig) piece.clothJoints = rig;
-  // How far the folds stand out of the hanging surface, for shading them where a reduced model cannot carry
-  // them. The shading is painted on charts seen from the front and from behind, which have no room for the
-  // flanks.
   if (field) {
     const relief = (deep: number, angle: number) =>
       field.relief(deep * field.hem(angle), angle) * smooth(0.3, 0.62, Math.abs(Math.cos(angle)));

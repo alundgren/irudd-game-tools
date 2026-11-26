@@ -1,20 +1,3 @@
-// Art verbs: send a typed brief to the paired agent, read it back with its
-// pictures, answer it, import a file, or cancel it.
-//
-//   irudd art capabilities
-//   irudd art request <doc> --agent <id> --kind <kind> --direction "<text>" [--attach role=file] [--part p-…]
-//   irudd art list [--doc <doc>] [--all]
-//   irudd art show <art-id> [--out <dir>]
-//   irudd art submit <art-id> --summary "<text>" (--image <file> | --trace-map <file> | --ops <file>)
-//                    [--author "<who made it>"] [--credit "<text>"] [--license <id>] [--source "<where>"]
-//   irudd art cancel <art-id>
-//
-// `submit` with --credential is the paired agent's reply. Without one it is
-// the person importing a file the agent could not make. Every picture is
-// staged with its SHA-256 and checked by the host; `show --out` writes the
-// brief, the request, every attachment and every submitted file, each named
-// by role or submission, so what is saved is bound to the digests listed.
-
 import fs from "node:fs";
 import path from "node:path";
 import { decodeWith, isJsonArray, type Json } from "@irudd/document";
@@ -60,7 +43,6 @@ function kind(context: Context): ArtKind {
   return found;
 }
 
-/** `--intent`: only a trace brief has one; a fit brief sends none, as fit briefs always have. */
 function intent(context: Context, k: ArtKind): { readonly intent?: "build" } {
   const value = text(context, "intent");
   if (value === undefined) return {};
@@ -136,7 +118,6 @@ function describe(r: ArtRequestView): string {
   ].join("\n");
 }
 
-/** Write the brief, the request, every attachment and every submitted file into `dir`. */
 async function save(c: WorkshopClient, r: ArtRequestView, dir: string): Promise<string[]> {
   fs.mkdirSync(dir, { recursive: true });
   const written: string[] = [];
@@ -257,7 +238,6 @@ async function submit(context: Context, c: WorkshopClient): Promise<number> {
     if (!isJsonArray(operations)) throw new UsageError("--ops holds a JSON array of operations.");
     reply = { ...header, kind: k, operations };
   }
-  // The same schema the host decodes with, so a malformed file is a usage error here.
   const checked = decodeWith(ArtReply, reply);
   if (!checked.ok)
     throw new UsageError(

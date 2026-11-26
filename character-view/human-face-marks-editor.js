@@ -1,5 +1,3 @@
-// The Appearance controls for face marks: a short list of marks, and the settings of the one
-// that is selected. Every change is one committed edit of `form.faceMarks`.
 import {
   changeFaceMarkKind,
   faceMark,
@@ -19,10 +17,6 @@ const sliders = {
 };
 const describe = (mark, index) => index + 1 + " · " + mark.kind + ", " + mark.place.toLowerCase() + (mark.side === "Both" ? "" : ", " + mark.side.toLowerCase());
 
-/**
- * Build the controls after `anchor` and return the function that shows a form in them.
- * `read()` gives the current form and `commit(form, message)` applies an edit.
- */
 export function faceMarksEditor(anchor, read, commit) {
   const make = (tag, set = {}) => Object.assign(document.createElement(tag), set),
     field = (title, input) => {
@@ -58,7 +52,6 @@ export function faceMarksEditor(anchor, read, commit) {
 
   let selected = 0;
   const marks = () => read().faceMarks ?? [];
-  // Replace the list of marks. An empty list leaves the form without the field.
   function save(next, message) {
     const { faceMarks, ...form } = read();
     commit(next.length ? { ...form, faceMarks: next } : form, message);
@@ -82,7 +75,6 @@ export function faceMarksEditor(anchor, read, commit) {
     if (!name || all.length >= faceMarkLimit) return;
     selected = all.length;
     save([...all, faceMark(name, seed())], name + " added.");
-    // Marks are painted, so they show in colour and not in clay.
     document.querySelector('[data-mode="Color"]')?.click();
   };
   kind.onchange = () => change((mark) => changeFaceMarkKind(mark, kind.value));
@@ -92,7 +84,6 @@ export function faceMarksEditor(anchor, read, commit) {
     ranges[key].onchange = () =>
       change((mark) => {
         const next = { ...mark, [key]: value(Number(ranges[key].value)) };
-        // A control at rest is left out of the saved mark.
         if (["across", "up", "turn"].includes(key) && !next[key]) delete next[key];
         return next;
       });

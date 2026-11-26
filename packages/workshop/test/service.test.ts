@@ -1,6 +1,3 @@
-// The project service through its public entry: sessions, commits, reads,
-// idempotent retries, concurrent and stale writers, artwork, the single-owner
-// lock, in-process faults and reopening.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
@@ -52,7 +49,6 @@ const firstPart = (project: Project) =>
     return id;
   });
 
-/** A project with one generated document; returns the session and the first part ID. */
 const seeded = (dir: string) =>
   Effect.gen(function* () {
     const project = yield* create(dir);
@@ -64,8 +60,6 @@ const seeded = (dir: string) =>
 function rawDb(dir: string): DatabaseSync {
   return new DatabaseSync(path.join(dir, projectFileName));
 }
-
-// ── Opening ────────────────────────────────────────────────────────────────
 
 test("create, close and reopen a project; missing, existing and foreign files fail typed", async () => {
   const dir = tempDir("open");
@@ -120,8 +114,6 @@ test("one service owns a project: a second open in this process fails until the 
   );
 });
 
-// ── Sessions and commits ────────────────────────────────────────────────────
-
 test("a session binds its caller: requests take its actor and cannot name another", async () => {
   const dir = tempDir("session");
   await run(
@@ -132,13 +124,11 @@ test("a session binds its caller: requests take its actor and cannot name anothe
       assert.equal(created.receipt.revision, 1);
       const part = yield* firstPart(project);
 
-      // Naming the session's own actor is allowed; naming another is forbidden.
       const own = { ...rename(1, part, "Mine"), actor: human };
       committed(yield* person.apply(own));
       const spoof = { ...rename(2, part, "Spoof"), actor: agent };
       assert.deepEqual(rejectedCodes(yield* person.apply(spoof)), ["forbidden"]);
 
-      // An agent session follows the document's policy.
       const bot = yield* project.session({ actor: agent });
       assert.deepEqual(rejectedCodes(yield* bot.apply(rename(2, part, "Bot"))), [
         "proposal-required",
@@ -169,7 +159,6 @@ test("reads: current, inspect, manual deltas, diff, receipt, journal and drafts"
       const { project, session, part } = yield* seeded(dir);
       const bot = yield* project.session({ actor: agent });
       committed(yield* session.apply(rename(1, part, "Human edit")));
-      // A draft from the agent, then a policy change: neither moves the head.
       const draft = committed(
         yield* bot.apply(
           request(2, {
@@ -263,15 +252,12 @@ test("every accepted entry is persisted, including draft and policy entries that
   assert.equal(before.journal?.sequence, 4);
 
   const after = await run(Effect.flatMap(reopen(dir), (p) => p.inspect(docId)));
-  // Compared as JSON: a fresh state may hold -0 where the recovered one holds 0.
-  // Canonical bytes and digests write both as 0, so the two are the same record.
   assert.deepEqual(
     JSON.parse(JSON.stringify(after)),
     JSON.parse(JSON.stringify(before)),
     "the recovered state reads exactly like the one that was written",
   );
 
-  // The header anchors the journal: dropping the last (policy-free, draft-only) entry is detected.
   const db = rawDb(dir);
   db.exec(`DELETE FROM journal WHERE document_id = '${docId}' AND sequence = 4`);
   db.close();
@@ -322,8 +308,6 @@ test("damaged rows are reported per document with the failing entry; other docum
     }),
   );
 });
-
-// ── Retries and concurrent writers ──────────────────────────────────────────
 
 test("retries are idempotent across reopen; a reused request ID with another payload is refused", async () => {
   const dir = tempDir("retry");
@@ -385,8 +369,6 @@ test("concurrent writers: one stale-revision race winner, one commit per request
 });
 
 test("a header that disagrees with its journal fails recovery, ahead or behind", async () => {
-  // A second writer cannot open the project (see the lock tests), so the only
-  // way the header and journal disagree is damage or a foreign tool.
   for (const sequence of [7, 1]) {
     const dir = tempDir("header");
     await run(
@@ -402,8 +384,6 @@ test("a header that disagrees with its journal fails recovery, ahead or behind",
     assert.equal(error._tag, "JournalDamaged", `header at ${sequence}`);
   }
 });
-
-// ── Faults inside the service ───────────────────────────────────────────────
 
 test("a fault before commit leaves the old state; a fault after commit leaves the new one", async () => {
   const dir = tempDir("faults");
@@ -452,8 +432,6 @@ test("a fault before commit leaves the old state; a fault after commit leaves th
   assert.equal(journal.length, 3);
 });
 
-// ── Artwork ─────────────────────────────────────────────────────────────────
-
 const assetEdit = (revision: number, digest: string, byteLength: number) =>
   request(revision, {
     type: "edit",
@@ -489,7 +467,7 @@ test("artwork is staged and verified before a document may reference it", async 
       const put = yield* session.putBlob({ bytes, mediaType: "image/png" });
       assert.equal(put.stored, "new");
       assert.equal((yield* session.putBlob({ bytes, mediaType: "image/png" })).stored, "existing");
-      bytes[100] = (bytes[100] ?? 0) ^ 0xff; // the caller's buffer is not the stored one
+      bytes[100] = (bytes[100] ?? 0) ^ 0xff;
       committed(yield* session.apply(assetEdit(1, put.digest, put.byteLength)));
       const read = yield* project.blob(put.digest);
       assert.equal(read.byteLength, 4096);
@@ -500,7 +478,6 @@ test("artwork is staged and verified before a document may reference it", async 
       return put.digest;
     }),
   );
-  // Rot the stored bytes: reads and verification detect it.
   const db = rawDb(dir);
   db.prepare("UPDATE blobs SET bytes = ? WHERE digest = ?").run(pngBytes(4096), digest);
   db.close();
@@ -515,8 +492,6 @@ test("artwork is staged and verified before a document may reference it", async 
     }),
   );
 });
-
-// ── Recovery across builds ──────────────────────────────────────────────────
 
 test("a build without the document's generator reopens it read-only and still replays and sets policy", async () => {
   const dir = tempDir("retired");

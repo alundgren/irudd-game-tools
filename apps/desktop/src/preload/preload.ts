@@ -1,8 +1,3 @@
-// The sandboxed preload: exposes `window.workshop`, one function per bridge
-// method, and nothing else. It forwards arguments to main, which validates
-// them, and hands replies to the page as unknown values for the page to check.
-// No Node API, no generic IPC and no event objects reach the page.
-
 import { contextBridge, ipcRenderer } from "electron";
 import { channels, type PreloadApi } from "../shared/api.js";
 

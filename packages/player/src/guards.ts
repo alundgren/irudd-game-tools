@@ -1,5 +1,3 @@
-// Narrowing guards that keep Three's default generic types instead of `any`.
-
 import * as T from "three";
 
 export function isMesh(object: T.Object3D): object is T.Mesh {

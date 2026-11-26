@@ -1,10 +1,3 @@
-// The editable adult's skin cage, evaluated from its measurements.
-//
-// A port of evaluateHuman and its helpers in the reference workshop's
-// character-view/human-surface.js at 2761eb14. The arithmetic is kept in the
-// same order on the same Float32 storage so a surface, and every joint and
-// region bound derived from it, matches the reference bit for bit.
-
 import {
   bodyAxes,
   bodyVertices,
@@ -25,7 +18,6 @@ import { poseFingers } from "./hands.js";
 import { shapeNeck } from "./neck.js";
 import { applyCapturedShape } from "./captured.js";
 
-/** Every measurement an adult has, in the reference workshop's order. */
 export const humanAxes = [
   "height",
   "frame",
@@ -77,14 +69,12 @@ const unitAxes = new Set<string>([
   "orbitalRim",
   "zygomaticArch",
 ]);
-/** [minimum, maximum, initial] of a measurement, as the reference editor bounds it. */
 export function humanRange(key: HumanAxis): readonly [number, number, number] {
   if (key === "height") return [1.43, 2.08, 1.72];
   if (unitAxes.has(key)) return [0, 1, 0];
   return [-1, 1, 0];
 }
 
-/** What the reference editor's validHuman accepts. */
 export function validHuman(p: Readonly<Record<string, number>>): boolean {
   return Object.entries(p).every(([key, value]) => {
     if (!isHumanAxis(key)) return false;
@@ -93,7 +83,6 @@ export function validHuman(p: Readonly<Record<string, number>>): boolean {
   });
 }
 
-/** The evaluated cage: positions of the surface vertices and the joints after them. */
 export interface HumanSurface {
   readonly positions: Float32Array;
   readonly joints: Float32Array;
@@ -113,7 +102,6 @@ export interface HumanSurface {
   readonly smileBias: number;
 }
 
-/** Typed array accessors over a decoded body. */
 export function bodyArrays(body: HumanBody) {
   const a = body.arrays;
   return {
@@ -187,7 +175,6 @@ function rotateBranches(
   }
 }
 
-// Advance one foot while the other supports the figure.
 function staggerFeet(
   positions: Float32Array,
   joints: Float32Array,
@@ -260,7 +247,6 @@ function applyPortraitFields(
   }
 }
 
-// The supraorbital ridge and the zygoma, read from this head's eye positions.
 function shapeFacialBones(
   vertices: Float32Array,
   eyeGroups: readonly [Uint16Array, Uint16Array],
@@ -307,10 +293,8 @@ function shapeFacialBones(
   }
 }
 
-/** Evaluated smile and expression targets, cached per body. */
 const expressionCache = new WeakMap<HumanBody, Map<string, Float32Array>>();
 
-/** An expression target as metres, on the cage or (smooth) on the subdivided surface. */
 export function expressionDisplacements(
   body: HumanBody,
   name: string,
@@ -383,7 +367,6 @@ function offsetRestSmile(
   }
 }
 
-/** The cage at its measurements, scaled to stature and posed into the fitting stance. */
 export function evaluateHuman(body: HumanBody, p: HumanMeasurements = {}): HumanSurface {
   if (!validHuman(p)) throw new Error("Choose supported adult human measurements.");
   const { u8, u16, u32, f32 } = bodyArrays(body);
@@ -524,7 +507,6 @@ export function evaluateHuman(body: HumanBody, p: HumanMeasurements = {}): Human
       castWeights.reduce((sum, axis) => sum + (p[axis] ?? 0), 0),
     );
     const fields = castWeights.map((axis) => [body.morph(axis), (p[axis] ?? 0) / total] as const);
-    // Each eyeball takes the mean movement of its own points.
     const before = body.eyeGroups.map((ids) =>
       Array.from(ids).flatMap((id) => [
         vertices[3 * id] ?? 0,
@@ -623,7 +605,6 @@ export function evaluateHuman(body: HumanBody, p: HumanMeasurements = {}): Human
   };
 }
 
-// Three points on each lateral cheek, spaced 10 mm apart on the neutral head.
 const cheekSections = [
   [
     [11929, 5325, 0.145],
@@ -642,7 +623,6 @@ const cheekSections = [
   ],
 ] as const;
 
-/** The change of slope below the cheekbone, in degrees, on the sharper side. */
 export function malarBend(surface: HumanSurface): number {
   const p = surface.positions;
   return Math.max(
@@ -668,7 +648,6 @@ export function malarBend(surface: HumanSurface): number {
   );
 }
 
-/** Forward distances of the lips from the nose-tip/chin line, in mm at 1.72 m stature. */
 export function restLipProfile(surface: HumanSurface): { upper: number; lower: number } {
   const p = surface.positions;
   const front = (ids: ReadonlyArray<number>) =>

@@ -1,11 +1,3 @@
-// The built-in figure's body pieces. Ported from baseParts in
-// character-view/model.js at 2761eb1, piece by piece and mesh by mesh in the
-// same order, so the merged skin matches.
-//
-// Ring sections, in metres, describe each piece's outer contour at its
-// landmarks: height, half-width, half-depth, forward offset and lateral
-// offset. Every mesh is placed relative to its piece's anatomical pivot.
-
 import {
   pieceNames,
   type Appearance,
@@ -19,7 +11,6 @@ import { faceTexture, type FacePaint } from "../paint/faces.js";
 import { earGeometry, faceCell, faceGeometry, shapeNeck } from "../surfaces/head.js";
 import { sweepGeometry } from "../surfaces/sweep.js";
 
-/** The anatomical pivot of each piece. */
 export const pieceAnchors: Readonly<Record<PieceName, readonly [number, number, number]>> = {
   torso: [0, 0.86, 0],
   head: [0, 1.42, 0],
@@ -40,13 +31,11 @@ const sole = "#273a38";
 const hardware = "#85958c";
 const up = new T.Vector3(0, 1, 0);
 
-/** A section row: height, half-width, half-depth, and optional forward and lateral offsets. */
 type Row = readonly [number, number, number, (number | undefined)?, (number | undefined)?];
 
 const shellGeometry = (rows: ReadonlyArray<Row>): T.BufferGeometry =>
   sweepGeometry(rows.map(([y, w, d, z = 0, x = 0]): Knot => [x, y, z, w, d]));
 
-/** A built-in face mesh, painted with its study when the paint is loaded. */
 export function builtinFace(
   look: Pick<Appearance, "face" | "skin" | "sculpt">,
   material: (color: string, finish: Finish) => T.Material,
@@ -65,10 +54,6 @@ export function builtinFace(
   return face;
 }
 
-/**
- * The six body pieces for `look` in `outfit`. `paint` paints the faces; a
- * uniform build passes none and the faces take the skin's material.
- */
 export function bodyPieces(
   look: Appearance,
   outfit: OutfitName,
@@ -417,8 +402,6 @@ export function bodyPieces(
       waist,
     );
     region = "head";
-    // An open-face helmet leaves the face visible and gives the suit a
-    // distinct outline in profile. The cheek guards join the neck seal.
     shell(
       [
         [1.55, 0.115, 0.059, -0.069],

@@ -1,22 +1,3 @@
-// Operator run of portable characters on a packaged build, in temporary state.
-//
-//   node --import ./packages/document/test/support/register.ts \
-//     apps/desktop/scripts/package.ts --out <dir>
-//   pnpm --filter @irudd/desktop qa:character -- --executable "<dir>\Irudd Workshop\Irudd Workshop.exe" [--keep]
-//
-// Project A, hidden window: start a character, stage nine small pictures,
-// recolour a part, rename a part, add a pose and namespaced metadata,
-// make a mistaken rename and click Undo, then click "Save character…".
-// Project B, a fresh project in a new app start: click "Open character…",
-// check the outliner, history and pictures, click Redo and Undo, and open
-// two damaged copies, which must be refused with the problems listed and
-// nothing written. Then the packaged CLI saves the character from B and
-// opens it in project C served by the packaged headless host.
-//
-// The native save and open dialogs are answered by replacing them in this
-// run's main process through its Node inspector (`--inspect=0`). Nothing
-// here ships, and nothing outside the temporary directory is touched.
-
 import assert from "node:assert/strict";
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -40,7 +21,6 @@ const { values } = parseArgs({
 if (!values.executable)
   throw new Error("Give the packaged app with --executable <Irudd Workshop.exe>.");
 const executable = resolve(values.executable);
-// The packaged clients, run as bin\irudd.exe runs them: the app's own executable as Node.
 const clients = join(dirname(executable), "resources", "app", "dist", "clients");
 for (const file of [executable, join(clients, "irudd.mjs")])
   if (!existsSync(file)) throw new Error(`No ${file}.`);
@@ -48,13 +28,11 @@ const scratch = mkdtempSync(join(tmpdir(), "irudd-character-qa-"));
 const stateDir = join(scratch, "state");
 const files = join(scratch, "files");
 mkdirSync(files);
-// The installed app needs no Node: give it and its CLI only System32 on PATH.
 const env = appEnvironment({
   IRUDD_STATE_DIR: stateDir,
   IRUDD_LAUNCHER_QUIET: "1",
   PATH: join(process.env["SystemRoot"] ?? "C:\\Windows", "System32"),
 });
-/** Chosen by the window when the person starts the character. */
 let documentId = "";
 const results: { step: string; ms: number; detail?: string }[] = [];
 const problems: string[] = [];
@@ -80,8 +58,6 @@ async function step<T>(name: string, run: () => Promise<T>): Promise<T> {
   }
 }
 
-// ── Small real pictures ─────────────────────────────────────────────────────
-
 function chunk(type: string, data: Uint8Array): Buffer {
   const head = Buffer.alloc(8);
   head.writeUInt32BE(data.length, 0);
@@ -91,7 +67,6 @@ function chunk(type: string, data: Uint8Array): Buffer {
   return Buffer.concat([head, data, crc]);
 }
 
-/** A 16×16 RGBA PNG with a two-colour pattern, distinct per index. */
 function picture(index: number): Uint8Array {
   const size = 16;
   const rows: number[] = [];
@@ -119,12 +94,9 @@ function picture(index: number): Uint8Array {
 
 const sha = (bytes: Uint8Array) => "sha256:" + createHash("sha256").update(bytes).digest("hex");
 
-// ── The packaged app ────────────────────────────────────────────────────────
-
 interface Running {
   readonly page: Page;
   readonly browser: Browser;
-  /** Answer the next save and open dialogs with these paths. */
   answerDialogs(answers: { save?: string; open?: string }): Promise<void>;
   close(): Promise<void>;
 }
@@ -140,7 +112,6 @@ async function editorPage(context: BrowserContext): Promise<Page> {
   throw new Error("The desktop editor page did not open.");
 }
 
-/** Evaluate in main through its Node inspector; `require` comes from the command-line API. */
 async function evaluateInMain(url: string, expression: string): Promise<unknown> {
   const socket = new WebSocket(url);
   await new Promise<void>((done, fail) => {
@@ -255,7 +226,6 @@ async function launch(extra: string[]): Promise<Running> {
   }
 }
 
-/** One host call as the window's person, through the page's own bridge. */
 async function call(page: Page, method: string, params: unknown): Promise<unknown> {
   const outcome = await page.evaluate(
     async ([m, p]) => {
@@ -353,7 +323,6 @@ const projectB = join(scratch, "project-b");
 const projectC = join(scratch, "project-c");
 const saved = join(files, "Portable walker.irudd-character");
 try {
-  // ── Project A: make and save ──────────────────────────────────────────────
   app = await step("launch without a project file or folder", () => launch([]));
   let page = app.page;
   await page.waitForFunction(
@@ -435,8 +404,6 @@ try {
     return `${pictures.reduce((n, p) => n + p.length, 0)} bytes in 9 PNGs`;
   });
   await step("recolour a part, rename it, add a pose and namespaced metadata", async () => {
-    // A frame creature's parts cannot show a paint layer, so the packaged run edits a colour;
-    // paint-layer references are checked by test/character-package.test.ts.
     await apply(page, 3, {
       type: "edit",
       ops: [{ op: "part.set", part: first, set: { color: "#6a8f4e" } }],
@@ -522,7 +489,6 @@ try {
     app = undefined;
   });
 
-  // ── Project B: a fresh project opens it ───────────────────────────────────
   app = await step("launch again on a fresh project B", () =>
     launch(["--project", projectB, "--create"]),
   );
@@ -604,7 +570,6 @@ try {
     );
   });
 
-  // ── The CLI: same service operation, through the packaged launcher ────────
   const cliSaved = join(files, "from-cli.irudd-character");
   await step("irudd save writes the character from project B's desktop host", async () => {
     const run = irudd("save", documentId, cliSaved, "--project", projectB);

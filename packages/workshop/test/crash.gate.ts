@@ -1,8 +1,3 @@
-// Real crashes: a service process is killed (SIGKILL, TerminateProcess on
-// Windows) inside the append transaction, after its commit, or at random points
-// in a stream of writes. The parent then reopens the project and checks that it
-// holds exactly the old or the new state, that no acknowledged commit is lost,
-// and that retrying the in-flight request takes effect once.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, type ChildProcess } from "node:child_process";
@@ -35,7 +30,6 @@ const childScript = path.join(supportDir, "child.ts");
 interface Running {
   readonly child: ChildProcess;
   readonly events: Array<Record<string, unknown>>;
-  /** Resolves with the first event matching `predicate`, or rejects when the child exits first. */
   readonly until: (
     predicate: (event: Record<string, unknown>) => boolean,
   ) => Promise<Record<string, unknown>>;
@@ -93,7 +87,6 @@ function start(options: Record<string, unknown>, script = childScript): Running 
   return { child, events, until, exited };
 }
 
-/** A project with one generated document. Returns the first part ID. */
 async function seed(dir: string): Promise<string> {
   return run(
     Effect.gen(function* () {
@@ -105,7 +98,6 @@ async function seed(dir: string): Promise<string> {
   );
 }
 
-/** Reopen, time it, and check the whole store. */
 async function reopenAndVerify(dir: string) {
   const started = performance.now();
   return run(
@@ -221,7 +213,6 @@ test("random kills in a stream of writes lose no acknowledged commit, and the in
     await stream.until(
       (e) => e["event"] === "ack" && Number(e["sequence"]) >= lastSequence + target,
     );
-    // Kill without waiting for a quiet moment; with luck the child is mid-commit.
     stream.child.kill("SIGKILL");
     await stream.exited;
 
@@ -301,14 +292,6 @@ function commandOf(value: unknown): CommandRequest["command"] {
     ],
   };
 }
-
-// ── Art replies ─────────────────────────────────────────────────────────────
-// A host child is killed at one of the art service's cut points while the
-// paired agent's reply is in flight over the real endpoint. The next host
-// start settles the pending reply from the journal: committed, it is the
-// proposed submission linked to its steering message; not committed, it is
-// dropped. Either way the agent's retry with a fresh submission ID leaves
-// exactly one proposal.
 
 const artHostScript = path.join(supportDir, "art-host.ts");
 

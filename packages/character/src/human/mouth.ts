@@ -1,12 +1,5 @@
-// The inside of the mouth (character-view/human-mouth.js at 2761eb1). The
-// lining of the head skin becomes a shallow pocket that hangs from the lips
-// and moves with them, and two short rows of teeth stand inside it. Closed
-// lips hide both rows; an expression that parts the lips slides the rows into
-// the opening, the upper row showing most.
-
 import * as T from "three";
 
-/** The lining's island in the 2048 px skin layout (human-complexion-data.json `mouth.island`). */
 const layout = 2048;
 const [boxLeft, boxTop, boxRight, boxBottom] = [1549, 1847, 1894, 2026] as const;
 
@@ -17,7 +10,6 @@ const smooth = (v: number, a: number, b: number) => {
 const mix = (a: number, b: number, t: number) => a + (b - a) * t;
 const found = new WeakMap<T.BufferGeometry, Uint8Array>();
 
-/** Which vertices of the head skin line the mouth: its own island of the skin layout. */
 export function mouthLining(geometry: T.BufferGeometry): Uint8Array {
   const hit = found.get(geometry);
   if (hit) return hit;
@@ -58,7 +50,6 @@ export function mouthLining(geometry: T.BufferGeometry): Uint8Array {
   return flags;
 }
 
-// Crown widths and heights in millimetres from the middle outward.
 const upperTeeth = [
   [8.6, 10],
   [6.8, 8.8],
@@ -76,7 +67,6 @@ const lowerTeeth = [
 
 type Pair = [number, number];
 
-/** Reshape the skin's lining into a pocket and return the teeth, or null without a lining. */
 export function mouthInterior(
   skin: T.Mesh,
   height: number,
@@ -171,7 +161,6 @@ export function mouthInterior(
     across[i] = x;
     p.setXYZ(i, x, line(x, 0) + (high[i] ?? 0), line(x, 1) - (deep[i] ?? 0));
   }
-  // The pocket rides with the lips: its roof with the upper lip, its floor with the lower.
   for (const move of moves) {
     const from = seam.map((i) => [move.getX(i), move.getY(i), move.getZ(i)] as const);
     for (const i of inner) {
@@ -193,7 +182,6 @@ export function mouthInterior(
     }
     move.needsUpdate = true;
   }
-  // Light the pocket by its own shape; it turns away into the head as it deepens.
   const normal = g.getAttribute("normal"),
     added = new Float32Array(p.count * 3);
   const a = new T.Vector3(),
@@ -237,7 +225,6 @@ export function mouthInterior(
   g.computeBoundingBox();
   g.computeBoundingSphere();
 
-  // The teeth stand on an arch that clears the lips at rest and in every expression.
   const scale = (corner / (24.5 * mm)) * mm,
     points: Pair[] = [];
   for (const i of seam) {
@@ -403,7 +390,6 @@ export function mouthInterior(
     m.vertexColors = true;
     m.roughness = 0.5;
   }
-  // Every triangle of the teeth is kept in a game export: there are few and each one shows.
   m.userData = { ...m.userData, fibreLOD: true };
   const mesh = new T.Mesh(geometry, m);
   mesh.name = "teeth";

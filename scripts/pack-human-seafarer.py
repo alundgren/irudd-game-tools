@@ -22,8 +22,6 @@ parser.add_argument(
     "--output", type=Path, default=Path("character-view/human-seafarer-data.json")
 )
 args = parser.parse_args()
-# Paired locations on native upright face chart and the original Einar skin chart.
-# Eye corners, brow regions, nose wings, mouth and chin are each registered independently.
 pairs = [
     (256, 84, 256, 37),
     (160, 125, 126, 92),
@@ -68,7 +66,6 @@ pairs = [
 m = np.asarray(pairs, dtype=float)
 warp = RBFInterpolator(m[:, :2], m[:, 2:], kernel="thin_plate_spline", smoothing=2)
 h, w = 591, 541
-# The upright chart is a clockwise quarter-turn of the native face rectangle.
 yy, xx = np.mgrid[:h, :w]
 u = (1 - (yy + 0.5) / h) * 512
 v = (xx + 0.5) / w * 512
@@ -85,8 +82,6 @@ grid[:, :, 1] = 5 + grid[:, :, 1] * 2215 / 512
 rgb = cv2.remap(
     im, grid, None, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE
 ).astype(float)
-# Divide by the base colour sampled on an unmarked cheek. Remove the very
-# low-frequency component, preserving individual freckles and scar tissue.
 log = np.log(rgb + 1)
 l = log - cv2.GaussianBlur(log, (0, 0), 27)
 swatch = np.median(log[(u > 137) & (u < 164) & (v > 250) & (v < 289)], axis=0)
@@ -107,7 +102,6 @@ for x, y, sx, sy in [
     (271, 288, 10, 7),
 ]:
     mask *= smooth((np.hypot((u - x) / sx, (v - y) / sy) - 0.65) / 0.72)
-# The eyes, mouth, jaw border and ears stay the native artist's.
 encoded = np.uint8(np.clip(np.rint(128 + 320 * l * mask[:, :, None]), 0, 255))
 data = io.BytesIO()
 Image.fromarray(encoded).save(data, "WEBP", quality=95, method=6)

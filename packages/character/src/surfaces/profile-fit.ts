@@ -1,7 +1,3 @@
-// A face's side contour fitted to a traced profile. Ported from sectionDepth
-// and fitHeadProfile in character-view/profile-fit.js at 2761eb1, arithmetic
-// in the same order so the vertices match.
-
 import type { FigureProfileFit } from "@irudd/document";
 import * as T from "three";
 import type { HeadSpace } from "./face.js";
@@ -30,10 +26,6 @@ export interface Sections {
   readonly right: Float64Array | null;
 }
 
-/**
- * Sample intersections of triangle edges with horizontal planes. Projected
- * depth includes the nose tip or lips even on an irregular imported portrait.
- */
 export function sectionDepth(
   geometry: T.BufferGeometry,
   bottom: number,
@@ -86,7 +78,6 @@ export interface ProfileResult {
   readonly scale: T.Vector3;
 }
 
-/** Fit `mesh`'s side contour to `fit`; `binding` is the face's paint in head-height units, if painted. */
 export function fitHeadProfile(
   mesh: T.Mesh,
   fit: FigureProfileFit,
@@ -132,8 +123,6 @@ export function fitHeadProfile(
   const halfWidth = (box.max.x - box.min.x) * 0.5;
   const finish = fit.stage === "finish";
   const dimension = (span * scale.y) / scale.z;
-  // Separate central features from the broader cheek plane: the whole cheek
-  // must not inherit every notch traced underneath a nose or lip.
   const nasalBase = [sample(fit.curve, 0.07), sample(fit.curve, 0.55)] as const;
   const mouthBase = [sample(fit.curve, 0.56), sample(fit.curve, 0.8)] as const;
   const gaussian = (v: number) => Math.exp(-v * v);
@@ -202,15 +191,11 @@ export function fitHeadProfile(
       -0.62 * (front - pivot),
       0.85 * (front - back),
     );
-    // A changed lip or nose edge should taper across the central face.
-    // Brow and jaw occupy more of the head width than the bridge and lips.
     const nasal = Math.exp(-(((t - 0.36) / 0.24) ** 2));
     const lip = Math.exp(-(((t - 0.65) / 0.12) ** 2));
     const width = 0.65 - 0.41 * nasal - 0.2 * lip;
     const x = Math.abs(px - midX) / Math.max(halfWidth, 1e-6);
     const lateral = Math.exp(-((x / width) ** 2));
-    // A finishing trace constrains the visible outline, including off-centre
-    // high points. A monotone depth map keeps the surface ordered after a retraction.
     const weight = finish ? fraction : fraction * fraction * lateral;
     let adjusted = z + shift * weight;
     if (relief) adjusted = T.MathUtils.lerp(adjusted, rebuild(px, y, z, target, t, front), relief);

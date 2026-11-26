@@ -17,7 +17,6 @@ from geom import Surface, clip, components, smoothstep, neighbours, vertex_norma
 H = Path(os.environ['EINAR_WORK']).resolve()
 OUT = H / 'fit'
 
-# ---------------------------------------------------------------- the body it is worn on
 B = json.load(open(H / 'body-rest.json'))
 NB = B['n']
 BP = np.array(B['seen']).reshape(-1, 3)[:NB]
@@ -38,7 +37,6 @@ FOOT = share(r'^(foot|ball)')
 HEAD = share(r'^head')
 body = Surface(BP, BT)
 
-# ---------------------------------------------------------------- Einar's bones, Y up
 def yup(v): return np.array([v[0], v[2], -v[1]])
 def einar_bones(path):
     bones = {}
@@ -60,7 +58,6 @@ def limb_target(name):
         'Forearm': (J('lowerarm'), J('hand')), 'Thigh': (J('thigh'), J('calf')), 'Knee': (J('calf'), J('foot')),
     }.get(base)
 
-# ---------------------------------------------------------------- garments
 def load(group):
     z = np.load(H / 'bake' / (group + '.npz'))
     g = dict(p=z['p'].astype(float), tri=z['tri'].astype(int), uv=z['uv'].astype(float), mat=z['mat'], piece=z['piece'],
@@ -87,13 +84,10 @@ def mirror_sleeve(g):
     """The left side of the coat was cut away for a mechanical arm. Replace it, outside a sagittal cut,
     by the mirrored right side with its sleeve."""
     main = g['pieces'].index('jacket_main'); rim = g['mats'].index('einar.jacket.rim')
-    # Only the knit inside the collar opening is worn.
     sw = g['pieces'].index('sweater'); cen = g['p'][g['tri']].mean(1)
     keep = ~((g['piece'] == sw) & ((np.abs(cen[:, 0]) > .11) | (cen[:, 2] < -.02) & (cen[:, 1] < 1.5)))
-    # The strap that held the mechanical arm's harness has nothing to hold on a sleeve.
     keep &= g['piece'] != g['pieces'].index('jacket_strap_shoulder')
     for k in ('tri', 'uv', 'mat', 'piece'): g[k] = g[k][keep]
-    # The hem of a coat hangs from the trunk; it does not follow a thigh.
     for i, name in enumerate(g['bones']):
         if name.startswith('Thigh'):
             g['W'][:, g['bones'].index('Spine')] += g['W'][:, i]; g['W'][:, i] = 0
@@ -108,17 +102,13 @@ def mirror_sleeve(g):
     for name in list(g['bones']):
         if name.endswith('.R'): add_bone(g, name[:-2] + '.L')
     per = dict(mat=g['mat'][tm], piece=g['piece'][tm])
-    # Left of the cut stays.
     lap = .006
     p, a, t1, u1, per1, cut1 = clip(g['p'], dict(W=g['W']), g['tri'][tm], g['uv'][tm], per, g['p'][:, 0] - c - lap)
-    # Right of the mirrored cut is copied across.
     p, a, t2, u2, per2, cut2 = clip(p, a, g['tri'][tm], g['uv'][tm], per, p[:, 0] + c - lap)
     used = np.unique(t2)
     remap = -np.ones(len(p), int); remap[used] = len(p) + np.arange(len(used))
     swap = [g['bones'].index(n[:-2] + ('.L' if n.endswith('.R') else '.R')) if n[-2:] in ('.L', '.R') else i for i, n in enumerate(g['bones'])]
     mp = p[used] * [-1, 1, 1]; mw = a['W'][used][:, swap]
-    # Draw the copy onto the cut edge of the side that stays, fading over a few centimetres.
-    # The copy is tucked just under the cut edge of the side that stays, like a lapped seam.
     is_cut = np.isin(used, cut2)
     kept = Surface(p, t1)
     q, _, _, _, nq = kept.closest(mp[is_cut])
@@ -126,7 +116,6 @@ def mirror_sleeve(g):
     print('seam mismatch mm: median', round(np.median(np.linalg.norm(disp, axis=1)) * 1000, 1), 'max', round(np.linalg.norm(disp, axis=1).max() * 1000, 1))
     bt = cKDTree(mp[is_cut]); dist, idx = bt.query(mp)
     mp = mp + disp[idx] * (1 - smoothstep(dist, 0.0, 0.05))[:, None]
-    # The side that stays is weighted as the mirror of the right side, so both halves move alike at the seam.
     right = np.zeros(len(p), bool); right[np.unique(g['tri'][tm])] = True; right &= p[:, 0] < 0
     ridx = np.where(right)[0]; rt = cKDTree(p[ridx] * [-1, 1, 1])
     left = np.zeros(len(p), bool); left[np.unique(t1)] = True; left &= p[:, 0] > 0
@@ -140,7 +129,6 @@ def mirror_sleeve(g):
     mat = np.r_[other['mat'], per1['mat'], per2['mat']]; piece = np.r_[other['piece'], per1['piece'], per2['piece']]
     mirrored = np.r_[np.zeros(len(other['tri']) + len(t1), bool), np.ones(len(t2m), bool)]
     new_main = np.r_[np.zeros(len(other['tri']), bool), np.ones(len(t1) + len(t2m), bool)]
-    # Pieces that lay on the replaced surface are seated on the new one.
     new = Surface(P, tri[new_main])
     loose = np.zeros(len(P), bool); loose[np.unique(other['tri'])] = True
     loose &= P[:, 0] > c - .03
@@ -149,7 +137,6 @@ def mirror_sleeve(g):
     blend = (1 - smoothstep(np.abs(h0), .02, .04)) * smoothstep(P[loose][:, 0], c - .03, c)
     P[loose] += (q1 + n1 * h0[:, None] - P[loose]) * blend[:, None]
     g.update(p=P, W=W, tri=tri, uv=uv, mat=mat, piece=piece, mirrored=mirrored)
-    # Drop vertices nothing uses.
     return compact(g)
 
 def compact(g):
@@ -177,7 +164,6 @@ def complete_weights(g, donors):
             w = 1 / (d + .003); g['W'][v] = (src[i] * w[:, :, None]).sum(1) / w.sum(1, keepdims=True)
     g['W'] /= np.maximum(g['W'].sum(1, keepdims=True), 1e-9)
 
-# ---------------------------------------------------------------- the warp
 def with_rim(surface):
     edges = {}
     for a, b, c in surface.tri:
@@ -214,7 +200,6 @@ class Warp:
         rows = np.array(rows); ok = ~np.isnan(rows[:, 0])
         rows = np.stack([np.interp(ys, ys[ok], rows[ok, k]) for k in range(4)], 1)
         rows = gaussian_filter1d(rows, 3, axis=0, mode='nearest')
-        # Above the armpit the width belongs to the shoulder joints, not to the silhouette with its arms.
         shoulder = abs(JOINT['upperarm_r'][0]) / abs(E['UpperArm.R'][0][0])
         k = smoothstep(ys, 1.30, 1.40)
         rows[:, 0] = rows[:, 0] * (1 - k) + shoulder * k
@@ -273,7 +258,6 @@ class Warp:
             else:
                 if torso is None: torso = self.torso(x)
                 out += w[:, None] * torso
-        # Hardware keeps its shape: it moves with its centre and turns with the cloth round it.
         for r in range(1, int(g['rigid'].max()) + 1):
             v = np.where(g['rigid'] == r)[0]
             a, b = x[v] - x[v].mean(0), out[v] - out[v].mean(0)
@@ -299,7 +283,6 @@ def boots_warp(g):
         print('boot', side, 'scale', np.round(k, 3))
     return out
 
-# ---------------------------------------------------------------- clearance
 def clear(g, p, layers, gap, keep=None, rounds=5):
     """Hold the cloth at least `gap` outside each surface under it, moving its neighbours with it so folds stay."""
     A = neighbours(len(p), g['tri'])
@@ -307,7 +290,6 @@ def clear(g, p, layers, gap, keep=None, rounds=5):
         for _ in range(rounds):
             q, _, _, h, n = surface.closest(p)
             need = np.maximum(least - h, 0) * (np.abs(h) < .06)
-            # The open edge of a layer under gives no side to clear: only its face does.
             rim = getattr(surface, 'rim', None)
             if rim is not None: need = need * (rim.query(q)[0] > .012)
             if keep is not None: need = need * keep
@@ -317,7 +299,6 @@ def clear(g, p, layers, gap, keep=None, rounds=5):
             p = p + n * push[:, None]
     return p
 
-# ---------------------------------------------------------------- binding
 def neck_hold(allow, level=1.47, radius=.07):
     """Three places round the neck (throat and either side of the nape) that a standing collar holds on to as
     one piece, so it keeps its line on any neck."""
@@ -349,8 +330,6 @@ def bind(p, allow, label, hold=None):
         if good.sum() < 6: good[:] = True
         c, d_t = c[good], d_t[good]
         r = np.linalg.norm(d_t, axis=1)
-        # The three are taken in fixed directions (up, and a third of a turn either side), so neighbouring
-        # points of the cloth ride nearly the same skin and move alike on another body.
         up = np.array([0., 1., 0.]) if abs(ni[1]) < .9 else np.array([0., 0., 1.])
         ua = up - (up @ ni) * ni; ua /= np.linalg.norm(ua); ub = np.cross(ni, ua)
         ang = np.arctan2(d_t @ ub, d_t @ ua)
@@ -372,7 +351,6 @@ def bind(p, allow, label, hold=None):
         elif np.abs(wt).max() > 2.5:
             tri = surf.tri[t[i]]; wt = w[i]; A_, B_, C_ = BP[tri]
         base = wt @ BP[tri]; delta = p[i] - base
-        # The offset is kept in the frame of the three vertices, as human-library.js turns it.
         def frame(P3):
             a_ = P3[1] - P3[0]; a_ = a_ / np.linalg.norm(a_); b_ = P3[2] - P3[0]
             n_ = np.cross(a_, b_); n_ = n_ / np.linalg.norm(n_); return np.array([a_, np.cross(n_, a_), n_])
@@ -403,7 +381,6 @@ def covered(layers):
         for a, b, c in tri:
             for e in ((a, b), (b, c), (c, a)): edges[(min(e), max(e))] = edges.get((min(e), max(e)), 0) + 1
         rim = np.unique([v for e, k in edges.items() if k == 1 for v in e])
-        # Only real openings count: a pocket mouth or a strap end lies on cloth, an opening lies on skin.
         if len(rim):
             _, _, _, hr, _ = body.closest(p[rim])
             far = cKDTree(p[rim])
@@ -417,7 +394,6 @@ def covered(layers):
     hide &= (HEAD < .5) & (HAND < .5)
     return hide
 
-# ================================================================ run
 if __name__ == '__main__':
     OUT.mkdir(exist_ok=True)
     E = einar_bones(H / 'bones.txt')
@@ -441,14 +417,12 @@ if __name__ == '__main__':
             name = bone + '.' + side
             w = pants['W'][:, pants['bones'].index(name)]
             warp.measure_girth(name, pants['p'][pmv & (w > .5)], ease)
-    # The same cut both sides.
     for bone in ('UpperArm', 'Forearm', 'Thigh', 'Knee'):
         a, b = warp.girth[bone + '.R'], warp.girth[bone + '.L']
         s = (a[1] + b[1]) / 2; warp.girth[bone + '.R'] = warp.girth[bone + '.L'] = (a[0], s)
         print('girth', bone, np.round(s, 3))
     fitted = {'jacket': warp.apply(jacket), 'pants': warp.apply(pants), 'boots': boots_warp(boots)}
     np.savez_compressed(OUT / 'warped.npz', **{k: v for k, v in fitted.items()})
-    # Layers from the skin out: boots and trousers on the skin, the trouser leg over the boot, the coat over all.
     fitted['boots'] = clear(boots, fitted['boots'], [(body, .003)], .003)
     boot_s = with_rim(Surface(fitted['boots'], boots['tri']))
     fitted['pants'] = clear(pants, fitted['pants'], [(body, .006), (boot_s, .004)], .006)
@@ -457,7 +431,6 @@ if __name__ == '__main__':
     hide = np.zeros(NB, bool)
     for k, g in (('jacket', jacket), ('pants', pants), ('boots', boots)):
         h = covered([(fitted[k], g['tri'])])
-        # A boot holds the whole foot.
         if k == 'boots': h |= (FOOT > .5) & (BP[:, 1] < fitted[k][:, 1].max() - .03)
         np.save(OUT / ('hide-' + k + '.npy'), IDS[h]); hide |= h
         print(k, 'hides', int(h.sum()))
@@ -472,10 +445,7 @@ if __name__ == '__main__':
             refs = np.zeros((len(p), 3), int); wts = np.zeros((len(p), 3)); off = np.zeros((len(p), 3))
             r, w, o = bind(p[sleeve], (ARM > .25) & (HAND < .6), 'jacket sleeves'); refs[sleeve], wts[sleeve], off[sleeve] = r, w, o
             stand = piece_vertices(g, 'jacket_collar1')
-            # The coat's neckline behind the collar goes with it, so no gap opens between the two at the nape.
-            # In front the lapels stay on the chest, where the knit shows between them.
             stand |= (cKDTree(p[stand]).query(p)[0] < .035) & ~sleeve & (p[:, 2] < 0)
-            # The collar widens half as much as the neck; the knitted neck inside it is the neck's own width.
             knit = piece_vertices(g, 'sweater') & (p[:, 1] > 1.44)
             follow = np.where(knit, 1., .5); stand |= knit
             r, w, o = bind(p[~sleeve], (ARM < .6) & (LEG < .7) & (HEAD < .7), 'jacket body', (stand[~sleeve], neck_hold((ARM < .6) & (LEG < .7) & (HEAD < .3)), follow[~sleeve])); refs[~sleeve], wts[~sleeve], off[~sleeve] = r, w, o

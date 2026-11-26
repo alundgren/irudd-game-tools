@@ -1,14 +1,3 @@
-// Creatures built from a plan: creature.plan on the document, and on parts
-// figure.undercoat, creature.coat-zone, creature.eye-surface, figure.wing,
-// creature.organ and creature.limb-chain, and motion.offer on the document. A
-// previous reader diagnoses them as capabilities, preparing a form resolves
-// G0's part names into typed organs and limb chains once, a build refuses
-// malformed organs and surfaces, a wing bends with the arm that carries it,
-// the textured finish refuses a host without a raster, a game build spends a
-// pelt's strands on clumps and undercoat tufts, and a courier's offer clip
-// eases into its pose. The four-preset parity of six-legged-crawler,
-// plan-8950, plan-8990, creature-pelt and creature-dispatch is the slow gate's.
-
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -29,7 +18,6 @@ type Mutable = { [key: string]: unknown };
 const isObject = (v: unknown): v is Mutable => typeof v === "object" && v !== null;
 const isMesh = (o: T.Object3D | undefined): o is T.Mesh => o instanceof T.Mesh;
 
-/** A prepared plan form, with `edit` applied to the features of the part labelled `label`. */
 function form(name: string, label?: string, edit?: (features: Mutable) => void): Mutable {
   const value: unknown = JSON.parse(readFileSync(join(fixturesDir, name + ".json"), "utf8"));
   assert.ok(isObject(value) && Array.isArray(value["parts"]));
@@ -111,7 +99,6 @@ test("preparing a plan form resolves G0's organ names once", () => {
     ids,
     roles,
   );
-  // Each side and kind is numbered on its own; the foot is optional, the toes tinted.
   assert.deepEqual(chains.get("left leg 2 thigh"), {
     chain: ["p-left-leg-2-thigh", "p-left-leg-2-shin"],
     limb: 0,
@@ -169,7 +156,6 @@ test("a creature's wing bends with the joints of the arm that carries it", () =>
       assert.ok(arm && arm.bones.length > 1, "a wing's arm has its own joints");
       const mesh = built.parts.get(wing.id)?.object;
       assert.ok(isMesh(mesh));
-      // Clay draws the wing in one colour; the textured presets keep its vertex colours.
       assert.equal(mesh.geometry.getAttribute("color"), undefined);
     }
   } finally {
@@ -203,7 +189,6 @@ test("finishing a creature plan's hide refuses a host without a raster", () => {
       () => buildCharacter(read(form(name)), { materials: clayMaterials(), finish: {} }),
       /creature plan's hide needs a raster/,
     );
-  // The organs the hide reads are typed on the document, never taken from labels.
   const doc = read(form("creature-pelt"));
   const body = doc.parts.find((p) => p.id === idOf(doc, "body"));
   assert.deepEqual(body?.features["creature.organ"], {
@@ -213,7 +198,6 @@ test("finishing a creature plan's hide refuses a host without a raster", () => {
   });
 });
 
-/** Strands and tufts on a creature-dispatch build's ruff locks, from their first vertices and triangles. */
 function ruff(game: boolean): {
   strands: number;
   tufts: number;
@@ -235,7 +219,6 @@ function ruff(game: boolean): {
       locks++;
     }
     if (!game) return { strands: zeros, tufts: 0, locks };
-    // A clump of 7 spans has 44 triangles and one first vertex; a tuft 9 and seven.
     const tufts = (44 * zeros - triangles) / (44 * 7 - 9);
     assert.ok(Number.isInteger(tufts));
     return { strands: zeros - 7 * tufts, tufts, locks };

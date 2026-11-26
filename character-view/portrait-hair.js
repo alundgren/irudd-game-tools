@@ -92,7 +92,6 @@ function hairMask(panel, polygons) {
   for (let i = 0; i < len; i++) {
     const x = ((i % n) + 0.5) / n,
       y = (Math.floor(i / n) + 0.5) / n;
-    // Wider uncertain band allows the actual hairline in the photo to refine a coarse polygon.
     let count = 0;
     for (const [dx, dy] of [
       [0, 0],
@@ -307,8 +306,6 @@ export function fitHairCap(part, panels, regions) {
   };
 }
 
-// Cut the outer surface at the painted hairline. The continuous inner head
-// recedes underneath it so replacing or taking off the hair changes its outline.
 export function separateHair(geometry, binding, cap, needShell = true) {
   const mask = read(cap.mask),
     relief = read(cap.relief),
@@ -476,8 +473,6 @@ export function separateHair(geometry, binding, cap, needShell = true) {
   g.hairLining = innerIndices;
   return g;
 }
-// Seat the inside of the removable cap on the replacement skull. The hair's
-// outside retains its original fit and relief, including its longer side locks.
 export function seatHair(hair, head, part, cap) {
   const lining = hair.geometry.hairLining;
   if (!lining?.length || !part.knots) return;
@@ -528,7 +523,6 @@ function hairMargin(key) {
   if (margins.has(key)) return margins.get(key);
   const mask = read(key),
     a = Uint8Array.from(mask, (v) => (v >= 123 ? 255 : 0));
-  // Distance inside the fitted hairline, wrapped through the longitude seam.
   for (let k = 0; k < 8; k++) {
     const prev = a.slice();
     for (let y = 0; y < height; y++)

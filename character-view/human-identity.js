@@ -1,19 +1,6 @@
-/* A coherent face for a newly drawn adult.
-
-   randomHuman first gives every measurement its own seeded draw. Independent draws of
-   forty small face controls average out, and the heads look related. This module turns
-   them into a person the way a character artist would block one in: the ancestry of the
-   skull, the outline of the face, then one type each for nose, eyes, mouth and brow that
-   moves the neighbouring controls together, then what age, frame and body mass do to the
-   soft tissue, a little one-sidedness, and a resting expression.
-
-   Only the draw is art-directed. Every control keeps its full range in the editor, and a
-   saved adult is never redrawn. `u(key)` is a uniform draw in [0, 1) that depends only on
-   the seed and the key, so adding a rule here leaves the other draws of a seed alone. */
 
 const clamp = (x, lo = -1, hi = 1) => Math.min(hi, Math.max(lo, x));
 
-/** Face outlines: [weight, name, controls at full strength]. */
 export const faceOutlines = [
   [20, "oval", { faceSquare: -0.5, faceRound: 0.12, jaw: -0.2, chinPoint: 0.15, jawAngle: -0.15 }],
   [15, "round", { faceRound: 0.6, faceFlesh: 0.25, jaw: 0.2, chinHeight: -0.3, chin: -0.2, jawAngle: -0.3, cheekFullness: 0.3, faceHeight: -0.2, chinPoint: -0.3 }],
@@ -59,7 +46,6 @@ const brows = [
   [18, "stern", { browAngle: -0.42, brow: -0.2 }],
   [18, "open", { browAngle: 0.5, brow: 0.2 }],
 ];
-/** Resting expressions: [weight, name]. */
 const moods = [[34, "neutral"], [26, "gentle"], [10, "warm"], [11, "stern"], [9, "wry"], [6, "weary"], [4, "alert"]];
 
 function choose(table, at) {
@@ -68,20 +54,13 @@ function choose(table, at) {
   return table[table.length - 1];
 }
 
-/**
- * Reshape the face controls of `spec` in place and return what was chosen.
- * `spec` already holds an independent draw of every control and the body's mass and age.
- */
 export function drawIdentity(spec, u, { relaxed = true } = {}) {
-  // Roughly normal, -1 to 1.
   const bell = (key) => ((u(key + "/a") + u(key + "/b") + u(key + "/c")) * 2) / 3 - 1;
   const between = (key, lo, hi) => lo + (hi - lo) * u(key);
   const add = (key, amount) => (spec[key] = (spec[key] ?? 0) + amount);
   const age = spec.age ?? 0, frame = spec.frame ?? 0;
   const fullness = 0.72 * (spec.weight ?? 0) + 0.12 * (spec.belly ?? 0) - 0.2 * (spec.muscle ?? 0);
 
-  // The skull's ancestry: most people lean clearly to one of the three source families,
-  // the rest sit between two. Face blend A and B are the logarithms the evaluator mixes.
   const lead = Math.floor(u("ancestry") * 3), second = (lead + 1 + Math.floor(u("ancestry second") * 2)) % 3;
   const share = [0.07, 0.07, 0.07];
   if (u("ancestry mixed") < 0.3) {
@@ -96,7 +75,6 @@ export function drawIdentity(spec, u, { relaxed = true } = {}) {
   spec.faceA = +clamp(Math.log(share[0] / share[2]) / 2.6).toFixed(3);
   spec.faceB = +clamp(Math.log(share[1] / share[2]) / 2.6).toFixed(3);
 
-  // Quieten the independent draws, so the chosen types carry the face.
   const quiet = {
     jaw: 0.65, chin: 0.7, chinHeight: 0.55, jawProjection: 0.7, cheeks: 0.65, temples: 0.6, forehead: 0.6,
     nose: 0.6, noseBridge: 0.75, noseLength: 0.6, noseHump: 0.5, noseTipWidth: 1.2, nostrilWidth: 1.2, noseTipAngle: 1,
@@ -113,9 +91,6 @@ export function drawIdentity(spec, u, { relaxed = true } = {}) {
   };
   for (const [key, size] of Object.entries(small)) spec[key] = size * bell("id " + key);
 
-  // One outline, and one type for each feature. Strength varies, so two people who share
-  // a type still differ, and a second outline at low strength keeps the outlines from
-  // falling into seven moulds.
   const chosen = {};
   function wear(name, table, lo, hi) {
     const [, label, controls] = choose(table, u(name));
@@ -130,12 +105,9 @@ export function drawIdentity(spec, u, { relaxed = true } = {}) {
   wear("eyes", eyes, 0.55, 1);
   wear("mouth", mouths, 0.55, 1);
   wear("brow", brows, 0.5, 1);
-  // A cleft chin is the exception.
   if (u("cleft") < 0.14) add("chinCleft", between("cleft depth", 0.45, 1));
   add("epicanthus", 0.5 * (share[1] - 0.33));
 
-  // Soft tissue follows age, mass and frame. Age folds and thins; mass fills; a broad
-  // frame carries more brow and jaw.
   add("nasolabialFold", 1.05 * age - 0.12 + 0.15 * Math.max(0, fullness));
   add("lidBag", 0.75 * age - 0.1);
   add("underEye", 0.45 * age);
@@ -152,7 +124,6 @@ export function drawIdentity(spec, u, { relaxed = true } = {}) {
   add("chin", 0.12 * frame);
   add("lipFullness", -0.1 * frame);
 
-  // No face is the same on both sides. One feature may lean clearly.
   const skews = ["jawSkew", "noseSkew", "mouthSkew", "eyeSkew", "browSkew", "cheekSkew"];
   for (const key of skews) spec[key] = (key === "eyeSkew" ? 0.14 : 0.3) * bell("id " + key);
   if (u("lean") < 0.3) {
@@ -161,9 +132,7 @@ export function drawIdentity(spec, u, { relaxed = true } = {}) {
   }
 
   if (relaxed) {
-    // The face at rest. A person's usual set of the mouth, lids and brow is part of who they are.
     const mood = choose(moods, u("mood"))[1], tilt = between("mood tilt", -0.08, 0.08);
-    // The source mouth rests a little downturned, so every mood starts from a slight lift.
     let smile = between("mood smile", -0.08, 0.14), corners = 0.14 + 0.2 * bell("mood corners");
     if (mood === "gentle") { smile = between("mood smile", 0.2, 0.5); corners += 0.15; }
     else if (mood === "warm") { smile = between("mood smile", 0.55, 0.85); corners += 0.3; add("eyeOpening", -0.12); }
@@ -186,20 +155,15 @@ export function drawIdentity(spec, u, { relaxed = true } = {}) {
     chosen.mood = mood;
   }
 
-  // A square outline keeps the crown its own roundness, and fullness that arrives from the
-  // outline, body mass and age at once is shared out, so a heavy face stays a face.
   if (spec.faceSquare > 0.3) spec.faceRound = Math.max(spec.faceRound, -0.15);
   const filled = ["faceFlesh", "jowlFullness", "cheekFullness", "submentalFullness"];
   const wide = 0.7 * Math.max(0, -Math.max(spec.faceTaper, -0.7)), full = filled.reduce((sum, key) => sum + Math.max(0, spec[key] ?? 0), 0);
   if (full + wide > 1.5) for (const key of filled) if (spec[key] > 0) spec[key] *= (1.5 - wide) / full;
 
-  // The same for width at the jaw: outline, chin width and jaw corners together stop short of a box.
   const outline = 0.8 * Math.max(0, Math.min(spec.faceSquare, 0.7)) + 0.8 * wide / 0.7, corners = Math.max(0, spec.jaw) + Math.max(0, spec.jawAngle);
   if (outline + corners > 1.35 && corners > 0)
     for (const key of ["jaw", "jawAngle"]) if (spec[key] > 0) spec[key] *= Math.max(0.25, (1.35 - outline) / corners);
 
-  // The hump and curve targets both project the bony bridge. When they stack
-  // on an already high, narrow bridge, distribute some projection across its sides.
   const ridge = Math.min(spec.noseHump, spec.noseCurve, spec.noseBridge);
   const overlap = clamp((ridge - 0.26) / 0.3, 0, 1);
   spec.noseBridgeWidth += 0.5 * overlap;
@@ -207,7 +171,6 @@ export function drawIdentity(spec, u, { relaxed = true } = {}) {
   spec.noseHump *= 1 - 0.50 * overlap;
   spec.noseBridge *= 1 - 0.24 * overlap;
 
-  // Keep what the eye generator and the lids can carry.
   const limits = {
     faceRound: [-0.4, 0.8], faceDiamond: [-0.5, 0.65], faceSquare: [-0.8, 0.7], faceTaper: [-0.7, 0.85], noseVolume: [-0.8, 0.75],
     eyeOpening: [-0.36, 0.3], forehead: [-0.6, 0.5], eyeDepth: [-0.8, 0.6], browRidge: [-0.4, 0.8], eyeSkew: [-0.3, 0.3],
@@ -220,10 +183,6 @@ export function drawIdentity(spec, u, { relaxed = true } = {}) {
   return { ...chosen, share };
 }
 
-/**
- * How light the skin of a drawn adult is, 0 dark to 1 light, from the same ancestry
- * shares as the skull and a uniform draw `at`. The ranges overlap widely.
- */
 export function skinLightness(share, at) {
   const lean = (0.2 * share[0] + 0.62 * share[1] + 0.74 * share[2]) / (share[0] + share[1] + share[2]);
   return clamp(lean + (at - 0.5) * 0.6, 0, 1);

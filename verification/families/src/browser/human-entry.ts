@@ -1,10 +1,3 @@
-// The page side of the adult's textured presets: bundled with esbuild and run
-// in installed Chrome, so canvas decoding, resampling and PNG encoding are the
-// browser's, as they were G0's.
-//
-// The runner (src/human-textured.ts) serves this bundle, the bundled surface
-// assets and the human packs from a routed origin, then calls `iruddHumanExport`.
-
 import {
   assetResolver,
   bundledAssets,
@@ -77,7 +70,6 @@ async function prepare() {
   const body = await loadHumanPacks(read);
   const paint = await prepareHumanPaint(raster, await loadHumanPaint(read), body);
   const surfaces = await loadSurfaces(raster, assets);
-  // A seeded adult paints with no turnaround sheets.
   return { body, paint, surfaces, atlases: await loadPaintAtlases(raster, assets, []), assets };
 }
 
@@ -129,7 +121,6 @@ async function exportAll(
   return out;
 }
 
-/** The WebGL renderer string, so the run records whether canvas work was hardware accelerated. */
 function renderer(): string | null {
   const canvas = document.createElement("canvas");
   const gl = canvas.getContext("webgl2") ?? canvas.getContext("webgl");

@@ -19,13 +19,11 @@ test("the source carries every hair card twice in one place; each is drawn once"
     assert.ok(copies >= index.length / 3 * .45, label + ": " + copies + " of " + index.length / 3 + " card triangles lie on another");
     assert.equal(castCardIndex(points, index), once, "worked out once");
     assert.equal(castCardCopies(points, once), 0, label + ": no two triangles left in one place");
-    // Every place the cards covered is still covered, by one of the triangles that were there.
     const before = new Set(), after = new Set(), triangles = new Set();
     for (let t = 0; t < index.length; t += 3) { before.add(place(points, index, t)); triangles.add(index.slice(t, t + 3).join(",")); }
     for (let t = 0; t < once.length; t += 3) { after.add(place(points, once, t)); assert.ok(triangles.has(once.slice(t, t + 3).join(","))); }
     assert.deepEqual(after, before, label + ": the same places");
     assert.equal(once.length / 3, before.size);
-    // The copy kept faces away from the middle of the hair.
     const middle = [0, 1, 2].map(d => points.reduce((sum, v, i) => i % 3 === d ? sum + v : sum, 0) / (points.length / 3));
     const filled = new Map();
     for (let t = 0; t < index.length; t += 3) filled.set(place(points, index, t), (filled.get(place(points, index, t)) ?? 0) + 1);
@@ -48,7 +46,6 @@ test("a card picture ready for cutting closes thick hair and takes nothing away"
     assert.equal(castCardPixels(pixels, side), made, "worked out once");
     assert.equal(made.length, pixels.length);
     let lowered = 0, recoloured = 0, holes = 0, holesLeft = 0, thick = 0, opened = 0, far = 0;
-    // Thick hair: the mean alpha of the five by five round a texel is over six tenths.
     const mean = i => {
       const x = i % side, y = (i - x) / side;
       if (x < 2 || y < 2 || x >= side - 2 || y >= side - 2) return 0;
@@ -72,7 +69,6 @@ test("a card picture ready for cutting closes thick hair and takes nothing away"
     assert.ok(thick > 2000, label);
     assert.ok(holesLeft <= holes * .25 && holesLeft / thick < .005, label + ": holes in thick hair " + holes + " -> " + holesLeft + " of " + thick);
   }
-  // The fair, fine-stranded hair is where it matters most.
   const figure = figures["Denim jacket"], pixels = read(figure.cardPaint, "pixels", Uint8Array), made = castCardPixels(pixels, figure.cardPaint.side);
   let before = 0, after = 0;
   for (let i = 3; i < pixels.length; i += 4) { if (pixels[i] >= 128) before++; if (made[i] >= 128) after++; }

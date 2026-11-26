@@ -1,8 +1,3 @@
-// The biological relief of a creature's hide: which material family its plan
-// reads as, and the height, roughness and shading of that material at a
-// point in the animal's own coordinates. Ported from
-// character-view/creature-relief.js at 2761eb1.
-
 import * as T from "three";
 import type { CreaturePlan } from "@irudd/document";
 import { hash2, noise2, noise3, slot, worley3 } from "./noise.js";
@@ -16,7 +11,6 @@ export interface ReliefProfile {
   readonly baseRough: number;
 }
 
-/** Classify a creature plan into a coherent material, its explicit coat family first. */
 export function classifyCreatureRelief(plan: CreaturePlan): ReliefProfile {
   const skin = plan.skin;
   const limbs = plan.limbs;
@@ -131,11 +125,6 @@ export function classifyCreatureRelief(plan: CreaturePlan): ReliefProfile {
   return { family: "pebbled", sub: "hide", bumpMetres: 0.0082, baseRough: 0.62 };
 }
 
-/**
- * Staggered, caudally overlapping roof-tile scales or contour feathers in
- * physical surface coordinates. Writes height, lap shadow, keel, cell hash
- * and tip rim into `dst`.
- */
 function sampleImbricated(
   dst: Float64Array,
   uAlong: number,
@@ -195,7 +184,6 @@ function sampleImbricated(
   dst[4] = bestTip;
 }
 
-/** Where a hide sample lies on the animal, as the hide evaluator measures it. */
 export interface ReliefContext {
   profile: ReliefProfile;
   seed: number;
@@ -230,10 +218,6 @@ export interface ReliefContext {
   jointProx: number;
 }
 
-/**
- * Relief at one point: `out` receives height (0–1), roughness, a shading
- * multiplier and a pale lift.
- */
 export function evaluateBiologicalRelief(
   out: Float64Array,
   ctx: ReliefContext,

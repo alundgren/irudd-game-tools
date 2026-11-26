@@ -1,19 +1,3 @@
-// G0 baseline: inventory the tracked corpus at the reference commit.
-//
-// usage: node verification/baseline/inventory.mjs [OUT_DIR]
-//
-// Run it with the reference checkout as the current directory; the script itself may live
-// in another checkout (node /path/to/verification/baseline/inventory.mjs /path/to/out).
-// Reads only Git-tracked files (git ls-files), so private material on the machine never
-// enters the inventory. Writes OUT_DIR/inventory.json (default .reference-cache/g0).
-// Every example form, every tracked GLB, every JS test module and the other example JSON
-// fixtures get a SHA-256, a structural summary and the tracked files that mention them.
-//
-// Two hashes identify each file. "sha256" hashes the working-tree bytes of this checkout, so
-// for text it follows core.autocrlf (CRLF on a default Windows clone, LF elsewhere).
-// "gitBlob" is the blob id at HEAD and "canonicalSha256" hashes that blob's bytes (the LF
-// form Git stores), so both agree across LF and CRLF clones. Compare checkouts by the
-// canonical pair; "checkout" records which line endings the working-tree hashes saw.
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -26,7 +10,6 @@ await mkdir(out, { recursive: true });
 const git = (...a) => execFileSync("git", a, { encoding: "utf8", maxBuffer: 1 << 28 }).trim();
 const tracked = git("ls-files").split("\n");
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
-// Blob id and stored bytes of every file at HEAD, read in one git cat-file batch.
 const blobOf = new Map(git("ls-tree", "-r", "--full-tree", "HEAD").split("\n").map((l) => {
   const [meta, path] = l.split("\t");
   return [path, meta.split(" ")[2]];
@@ -49,12 +32,10 @@ const checkout = {
   workingTreeEol: Object.fromEntries([...new Set(eolStates)].sort().map((k) => [k, eolStates.filter((x) => x === k).length])),
   dirty: git("status", "--porcelain", "--untracked-files=no") !== "",
 };
-// Text files that may name an example: sources, tests, docs and trial records.
 const textFiles = tracked.filter((f) => /\.(m?js|py|md|html|json)$/.test(f) && !/\.form\.json$/.test(f));
 const texts = new Map(await Promise.all(textFiles.map(async (f) => [f, await readFile(f, "utf8")])));
 const mentions = (needle) => [...texts].filter(([, t]) => t.includes(needle)).map(([f]) => f).sort();
 
-// The reference tree is the current directory, which may be another checkout than this script's.
 const { validateForm } = await import(pathToFileURL(resolve("character-view/recipe.js")).href);
 
 function formSummary(file, raw) {
@@ -65,7 +46,6 @@ function formSummary(file, raw) {
   const artwork = Object.entries(form.artwork ?? {}).map(([id, uri]) => {
     const m = /^data:([^;]+);base64,(.*)$/s.exec(uri);
     const bytes = m ? Buffer.from(m[2], "base64") : Buffer.alloc(0);
-    // Artwork ids are "<role>-<sha256 of the decoded bytes>" (art-, side-, face-, ...).
     const hash = sha256(bytes);
     return { id, role: id.slice(0, id.lastIndexOf("-")), mime: m?.[1] ?? null, bytes: bytes.length, sha256: hash, idMatchesContent: id.endsWith("-" + hash) };
   });
@@ -125,11 +105,9 @@ for (const f of tracked.filter((f) => /\.test\.m?js$/.test(f)).sort())
   testModules.push({ file: f, sha256: sha256(await readFile(f)), ...canonical(f) });
 const pythonTests = tracked.filter((f) => /(^|\/)test_[^/]+\.py$/.test(f)).sort();
 
-// Licence and credit records the port must carry with bundled art and code.
 const licenses = [];
 for (const f of tracked.filter((f) => f.startsWith("docs/licenses/")).sort()) {
   const t = await readFile(f, "utf8");
-  // The title is the first non-empty line without its line ending, heading marks or padding.
   licenses.push({ file: f, sha256: sha256(t), ...canonical(f), title: t.split(/\r?\n/).find((l) => l.trim())?.replace(/^#+\s*/, "").trim().slice(0, 120) ?? "" });
 }
 const lock = JSON.parse(await readFile("package-lock.json", "utf8"));
@@ -149,7 +127,6 @@ const record = {
     "package-lock.json": sha256(await readFile("package-lock.json")),
     corpus: sha256([...forms, ...glbs, ...otherFixtures].map((x) => x.file + " " + x.sha256).join("\n")),
     tests: sha256(testModules.map((x) => x.file + " " + x.sha256).join("\n")),
-    // The same aggregates over stored (Git blob) bytes, equal in LF and CRLF clones.
     canonical: {
       "package.json": canonical("package.json"),
       "package-lock.json": canonical("package-lock.json"),

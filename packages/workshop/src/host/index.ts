@@ -1,18 +1,3 @@
-// @irudd/workshop/host: own a project and serve it to local clients.
-//
-// Desktop main and the headless host (`irudd host`) both use this entry:
-//
-//   hostProject(options)   Effect, scoped: open the project, listen on its
-//                          OS-local endpoint, write the endpoint file.
-//   startHost(options)     the same with a Promise and an explicit close().
-//   attachOrHost(options)  host it if nobody owns it; if another process does,
-//                          connect to that owner as the person instead.
-//
-// The host binds every connection to an actor it chooses: the person for the
-// human key, the paired agent ID for an agent credential. Desktop calls the
-// same verbs in-process through `call`, so a window, the CLI and MCP share one
-// set of rules and one write path.
-
 import { Effect, Exit, Scope } from "effect";
 import { randomBytes } from "node:crypto";
 import fs from "node:fs";
@@ -85,42 +70,20 @@ export {
 } from "./starters.js";
 
 export interface HostOptions extends LocationOptions {
-  /** The project directory. */
   readonly path: string;
-  /** Create the project when it does not exist yet. */
   readonly create?: { readonly label: string; readonly inMemory?: boolean };
-  /** Defaults to `workshopRegistry()`. */
   readonly registry?: Registry;
   readonly starters?: ReadonlyArray<StarterDefinition>;
-  /** Prepared documents to offer as `form` starters, for example from `loadForms(dir)`. */
   readonly forms?: ReadonlyArray<FormStarter>;
-  /** The person this host acts for. Defaults to the OS account. */
   readonly human?: Actor;
   readonly kind?: HostIdentity["kind"];
   readonly durability?: "full" | "normal";
   readonly lockTimeoutMs?: number;
-  /** Connection log lines, for example to stderr. */
   readonly log?: (line: string) => void;
-  /** The irudd command agents are told to run in steering messages. Default: `irudd`. */
   readonly agentCommand?: string;
-  /**
-   * Translators that turn a kind of art reply into document operations, such
-   * as desktop main's repaint. Variation replies need none.
-   */
   readonly artTranslators?: ReadonlyArray<ArtTranslator>;
-  /**
-   * Test hook: called between the writes of an art call (see `ArtCut`). A
-   * test ends the process or throws there to check what the next start
-   * recovers. Never set in a product host.
-   */
   readonly artCut?: (point: ArtCut) => void;
-  /**
-   * Digests of artwork this build ships with its own origin, such as the
-   * character package's bundled sheets. Submitting their bytes as an art reply
-   * credits nobody new. Artwork shipped beside `forms` is included already.
-   */
   readonly shippedArtwork?: ReadonlyArray<string>;
-  /** Delivery timing, for tests. */
   readonly steeringTiming?: {
     readonly retryBaseMs?: number;
     readonly deliverTimeoutMs?: number;
@@ -134,18 +97,10 @@ export interface WorkshopHost {
   readonly endpoint: Endpoint;
   readonly files: HostFiles;
   readonly human: Actor;
-  /** Call a verb in-process as the person, with the same rules and events as the wire. */
   call<M extends MethodName>(method: M, params: MethodParams[M]): Promise<MethodResults[M]>;
-  /** Commits made through this host, by any caller. */
   onCommit(listener: (event: CommitEvent) => void): () => void;
-  /** Steering messages changing state, for the person's outbox view. */
   onSteer(listener: (event: SteerEvent) => void): () => void;
-  /**
-   * Register the project's review renderer in process (desktop main's isolated
-   * review worker). Returns the function that unregisters it.
-   */
   registerRenderer(renderer: ReviewRenderer): () => void;
-  /** Register an art translator for its kind. Returns the function that removes it. */
   registerArtTranslator(translator: ArtTranslator): () => void;
 }
 
@@ -153,14 +108,11 @@ export class HostFailed extends Error {
   readonly _tag = "HostFailed";
 }
 
-/** The OS account as an actor ID: lowercase, at most 64 characters. */
 export function defaultHuman(): Actor {
   let name = "person";
   try {
     name = os.userInfo().username;
-  } catch {
-    // Some service accounts have no user record.
-  }
+  } catch {}
   const id =
     name
       .toLowerCase()
@@ -199,7 +151,6 @@ export const hostProject = (
 
     const log = options.log ?? (() => undefined);
     const files = hostFiles(options.path, options);
-    // Release transient pairing and review caches after their connections and stores close.
     if (options.create?.inMemory && !fs.existsSync(files.dir)) {
       yield* Effect.addFinalizer(() =>
         Effect.sync(() => {
@@ -240,7 +191,6 @@ export const hostProject = (
       log(
         `steering: the outbox belonged to another project at this path; kept it as ${opened.replaced}`,
       );
-    // The art service reads briefs back for the steering prompt; it is created below.
     let art: Art | undefined;
     const steering = new Steering({
       store: opened.store,
@@ -274,7 +224,6 @@ export const hostProject = (
         `art: the request log belonged to another project at this path; kept it as ${artLog.replaced}`,
       );
     yield* Effect.addFinalizer(() => Effect.sync(() => artLog.store.close()));
-    // The dispatcher commits art proposals, so commit events and steering re-checks follow.
     let dispatchRef: Dispatcher | undefined;
     const shipped = new Set([
       ...(options.forms ?? []).flatMap((f) => (f.artwork ?? []).map((a) => a.digest)),
@@ -314,7 +263,6 @@ export const hostProject = (
       emit: (event) => {
         broadcast(event, ["human", "agent"]);
         for (const listener of listeners) listener(event);
-        // A proposal linked to a steering message may have been accepted, discarded or refined.
         if (event.command.startsWith("proposal.")) void steering.documentChanged(event.documentId);
       },
       steering,
@@ -322,7 +270,6 @@ export const hostProject = (
       art: artRoutes,
     });
     dispatchRef = dispatcher;
-    // Settle art replies a stopped host left between the request log and the journal.
     const recovered = yield* Effect.tryPromise({
       try: () => art.recover(),
       catch: (cause) => new HostFailed(`Cannot recover the art request log: ${String(cause)}`),
@@ -371,7 +318,6 @@ export const hostProject = (
           new Promise<void>((resolve) => {
             for (const socket of sockets) socket.destroy();
             server.close(() => resolve());
-            // Remove the endpoint only if it is still ours; a newer host may have replaced it.
             try {
               const current: unknown = JSON.parse(fs.readFileSync(files.endpoint, "utf8"));
               if (
@@ -382,9 +328,7 @@ export const hostProject = (
                 fs.rmSync(files.endpoint, { force: true });
                 credentials.dispose();
               }
-            } catch {
-              // Already gone.
-            }
+            } catch {}
           }),
       ),
     );
@@ -429,11 +373,9 @@ export const hostProject = (
   });
 
 export interface RunningHost extends WorkshopHost {
-  /** Stop serving, close the project and release its lock. */
   close(): Promise<void>;
 }
 
-/** Start a host outside an Effect program. Rejects with the typed project error or `HostFailed`. */
 export async function startHost(options: HostOptions): Promise<RunningHost> {
   const scope = await Effect.runPromise(Scope.make());
   const exit = await Effect.runPromiseExit(Scope.provide(scope)(hostProject(options)));
@@ -454,10 +396,6 @@ export type Attached =
   | { readonly mode: "host"; readonly host: RunningHost }
   | { readonly mode: "attached"; readonly client: WorkshopClient };
 
-/**
- * Own the project, or connect to the process that already owns it. Desktop
- * calls this when a window opens a project: the same verbs work either way.
- */
 export async function attachOrHost(options: HostOptions): Promise<Attached> {
   try {
     return { mode: "host", host: await startHost(options) };
@@ -472,5 +410,4 @@ export async function attachOrHost(options: HostOptions): Promise<Attached> {
   }
 }
 
-/** Every method name, for desktop menus and documentation. */
 export const hostMethods: ReadonlyArray<MethodName> = methodNames;

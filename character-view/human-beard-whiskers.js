@@ -1,8 +1,6 @@
 import { Vector3 } from "three";
 import { randomStream } from "./random.js";
 
-// Grow narrow fans across the surface of a fitted beard. Each root takes its
-// movement from the triangle underneath, including in a smile or a blink.
 export function addBeardWhiskers({ pos, norm, tex, index, moved }, chart, scale, full) {
   const originalPoints = pos.length / 3;
   const triangles = index.length / 3;
@@ -39,8 +37,6 @@ export function addBeardWhiskers({ pos, norm, tex, index, moved }, chart, scale,
     const cell = t => Math.min(31,Math.max(0,Math.floor(32*t)));
     if (chart.coverage[32*cell(1-v)+cell(u)] < 85) continue;
     normal.normalize();
-    // Chin whiskers hang down. On the jaw they also sweep forward around
-    // the angle of the jaw, following the skin rather than its world axes.
     down.set((random()-.5)*.32,-1,.21* Math.abs(normal.x));
     down.addScaledVector(normal,-down.dot(normal)).normalize();
     side.crossVectors(normal,down).normalize();

@@ -39,7 +39,6 @@ def cloth_panels(uv, uv_indices, heights, corners, diffuse):
     for t, v in zip(uv_indices, corners):
         island = root(t)
         lowest[island] = min(lowest.get(island, heights[v]), heights[v])
-    # In these standing source garments only the trouser panels reach below the pelvis.
     size = diffuse.size
     pixels = [(round(u*(size[0]-1)), round((1-v)*(size[1]-1))) for u, v in uv]
     panel = Image.new("L", size)
@@ -126,7 +125,6 @@ def pack(root, out):
         hair = folder.parent.name == "hair"
         trim = cutout(corners, texcorners, tex, im, encode) if hair else {}
         if hair:
-            # Preserve directional values under an art-directed hair tint.
             gray = np.asarray(im.convert("L"), dtype=float)
             ref = max(
                 22, float(np.quantile(gray[np.asarray(im.getchannel("A")) > 128], 0.85))

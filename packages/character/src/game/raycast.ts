@@ -1,8 +1,3 @@
-// First hits of rays on a triangle soup, through a uniform grid of the
-// triangles' bounds (raycaster and meet in character-view/human-style-kit.js at
-// 2761eb1). The game page's contact bake and the face occlusion bake share it.
-
-/** Where a ray meets one triangle (corner offsets `a`, `b`, `c` into `pos`), as a multiple of its direction, or Infinity. */
 export function meet(
   pos: ArrayLike<number>,
   a: number,
@@ -47,7 +42,6 @@ export type Ray = (
   maxDistance?: number,
 ) => number;
 
-/** First hits on a triangle soup, through a uniform grid of the triangles' bounds. */
 export function raycaster(pos: ArrayLike<number>, tri: ArrayLike<number>, cell = 0.03): Ray {
   const count = tri.length / 3;
   const lo = [Infinity, Infinity, Infinity];
@@ -131,7 +125,6 @@ export function raycaster(pos: ArrayLike<number>, tri: ArrayLike<number>, cell =
           if (d < best) best = d;
         }
       const axis = E(0) < E(1) ? (E(0) < E(2) ? 0 : 2) : E(1) < E(2) ? 1 : 2;
-      // A hit before the ray leaves this cell cannot be beaten by a triangle further on.
       if (best <= E(axis) || E(axis) >= leave) return best <= maxDistance ? best : Infinity;
       c[axis] = (c[axis] ?? 0) + (way[axis] ?? 0);
       const ca = c[axis] ?? 0;

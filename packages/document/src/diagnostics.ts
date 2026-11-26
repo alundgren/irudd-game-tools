@@ -1,10 +1,6 @@
-// Structured, field-specific diagnostics. Every rejection the document package
-// produces is one or more of these; clients render them and agents read them.
-
 import type { Json } from "./json.js";
 
 export const diagnosticCodes = [
-  // Decoding and schema
   "schema",
   "unsupported-format",
   "unknown-feature",
@@ -13,19 +9,16 @@ export const diagnosticCodes = [
   "unsupported-generator",
   "generator-failed",
   "limit",
-  // Graph and references
   "duplicate-id",
   "missing-reference",
   "reference-cycle",
   "immutable-id",
   "retired-id",
   "base-mismatch",
-  // Storage environment
   "missing-asset",
   "asset-mismatch",
   "catalog-missing",
   "catalog-mismatch",
-  // Protocol
   "wrong-document",
   "stale-revision",
   "request-reused",
@@ -41,10 +34,8 @@ export const diagnosticCodes = [
   "proposal-version",
   "already-created",
   "not-created",
-  // Capability of this build for a recovered document
   "upgrade-required",
   "read-only",
-  // Durable journal
   "journal-integrity",
 ] as const;
 export type DiagnosticCode = (typeof diagnosticCodes)[number];
@@ -53,10 +44,8 @@ export type DiagnosticPath = ReadonlyArray<string | number>;
 
 export interface Diagnostic {
   readonly code: DiagnosticCode;
-  /** Location in the document, command or envelope the diagnostic concerns. */
   readonly path: DiagnosticPath;
   readonly message: string;
-  /** Machine-readable detail, for example the revision and actor of a conflicting edit. */
   readonly detail?: Json;
 }
 
@@ -80,7 +69,6 @@ export function fail<T = never>(diagnostics: ReadonlyArray<Diagnostic>): Checked
   return { ok: false, diagnostics };
 }
 
-/** Thrown inside pure operations and converted to a diagnostic at the reducer boundary. */
 export class DocumentProblem extends Error {
   readonly diagnostics: ReadonlyArray<Diagnostic>;
   constructor(diagnostics: ReadonlyArray<Diagnostic>) {

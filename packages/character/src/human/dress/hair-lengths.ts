@@ -1,8 +1,3 @@
-// The shapes a strand groom hangs its tied lengths on: tails, knots and
-// plaits as rings of points, the tie that holds them and where on the head the
-// hair is gathered (hairLengths and TIED in character-view/human-style-hair.js
-// at 2761eb1).
-
 import { surfaceFrame, type HeadFrame } from "./fringe.js";
 import {
   Piece,
@@ -29,7 +24,6 @@ interface TubeOptions {
   readonly flat?: number;
 }
 
-/** The rings of a tube along a path with a radius profile. */
 function tubeRings(
   path: ReadonlyArray<Vec>,
   radius: (t: number) => number,
@@ -65,7 +59,6 @@ function tubeRings(
   return rings;
 }
 
-/** A tube along a path with a radius profile: tails, braid strands and ties. */
 function tube(
   piece: Piece,
   path: ReadonlyArray<Vec>,
@@ -85,7 +78,6 @@ const bezier = (a: Vec, b: Vec, c: Vec, d: Vec, n: number): Vec[] =>
     return [x(0), x(1), x(2)];
   });
 
-/** Skin weights for hair that leaves the head: head, then neck, then upper back. */
 export function hangSkin(body: DressBody, m: Landmarks): (p: Vec) => Skin {
   const head = body.bone("head"),
     neck = body.bone("neck_01"),
@@ -101,7 +93,6 @@ export function hangSkin(body: DressBody, m: Landmarks): (p: Vec) => Skin {
   };
 }
 
-/** A tube of tied hair: a tail, a knot wound round and round, a plaited strand or the tuft at its end. */
 export interface HairTube {
   readonly rings: ReadonlyArray<ReadonlyArray<Vec>>;
   readonly wound?: boolean;
@@ -110,7 +101,6 @@ export interface HairTube {
   readonly tuft?: boolean;
 }
 
-/** What holds tied hair: cloth, built as the sculpted styles built it. */
 export interface HairTie {
   readonly piece: Piece;
   readonly name: string;
@@ -118,15 +108,11 @@ export interface HairTie {
   readonly type: string;
 }
 
-/** The shapes a strand groom hangs its lengths on. */
 export interface HairLengths {
   readonly tubes: ReadonlyArray<HairTube>;
   readonly ties: ReadonlyArray<HairTie>;
-  /** The direction of the head frame where tied hair is gathered. */
   readonly gather: Vec;
-  /** Skin weights for a point of hair that has left the head. */
   readonly skin: (p: Vec) => Skin;
-  /** The head's own skin, for what turns with it. */
   readonly rigid: Skin;
 }
 
@@ -139,7 +125,6 @@ const tieOf = (piece: Piece): HairTie => ({
 
 export type TiedHairStyle = "Ponytail" | "Bun" | "Braid";
 
-// Tails, knots and plaits: tubes as rings of points, the tie that holds them and where on the head the hair is gathered.
 const TIED: Readonly<
   Record<
     TiedHairStyle,
@@ -254,7 +239,6 @@ const TIED: Readonly<
   },
 };
 
-/** The tied lengths of a style on this body. */
 export function tiedLengths(body: DressBody, m: Landmarks, name: TiedHairStyle): HairLengths {
   const f = surfaceFrame(body.surface),
     skin = hangSkin(body, m);

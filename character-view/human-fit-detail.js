@@ -1,8 +1,6 @@
 import { Vector3 } from "three";
 import { fitOffsetLimit } from "./human-fit-head.js";
 
-// Each skin vertex follows four controls. Use their actual interpolation
-// weights to distribute a measured surface residual across the editable cage.
 export function refineFaceSurface(
   surface,
   normals,
@@ -62,9 +60,6 @@ export function refineFaceSurface(
     if (ids.length)
       observations.set(v, { influence, normal: targetNormal.clone() });
   }
-  // Adjacent points on a smooth reference have an edge perpendicular to their
-  // average normal. Match that slope too, so lowering one cheek sample does
-  // not leave a corrugated surface between the measured points.
   const edges = new Set();
   for (let i = 0; i < surface.bodyTriangles * 3; i += 3) {
     for (let j = 0; j < 3; j++) {
@@ -96,10 +91,7 @@ export function refineFaceSurface(
       addRow(ids, coefficients, (strength * p.dot(n)) / scale);
     }
   }
-  // Tikhonov regularisation limits drift in tangential or unobserved directions.
   const penalty = diagonal.map((value) => 1.8 + 0.3 * value);
-  // Regularise nearby control displacements together to keep cheek and skull
-  // contours smooth where a scan has no matching lid opening or ear fold.
   const links = [];
   for (const { i, near, total } of support) {
     const a = slots.get(i);

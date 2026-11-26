@@ -1,7 +1,3 @@
-// The CLI's verbs. Each one connects to the project's host as the person
-// signed in to this OS account, or as a paired agent with --credential; the
-// CLI never opens the project file.
-
 import fs from "node:fs";
 import { isJson, isJsonArray, type Json } from "@irudd/document";
 import {
@@ -18,7 +14,6 @@ import * as format from "./format.js";
 
 export class UsageError extends Error {}
 
-/** Exit codes: usage 2, host or credential 3, rejected command 4, host error 5. */
 export const exit = { ok: 0, failed: 1, usage: 2, unavailable: 3, rejected: 4, error: 5 } as const;
 
 export type OptionSpec = {
@@ -29,7 +24,6 @@ export type OptionSpec = {
 
 export interface Context {
   readonly project: string;
-  /** A paired agent's credential file: connect as that agent instead of the person. */
   readonly credential: string | undefined;
   readonly json: boolean;
   readonly positionals: ReadonlyArray<string>;

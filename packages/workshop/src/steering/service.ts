@@ -1,17 +1,3 @@
-// The host's steering service: the outbox, its delivery worker, the paired
-// agents' inboxes and the Claude channel push route.
-//
-// Rules it keeps:
-// - A message goes only to the conversation its agent's current pairing was
-//   bound to when the person sent it. A changed recipient, a re-pairing or a
-//   revocation stops delivery; nothing is retargeted.
-// - An offline route keeps the message queued and is retried with backoff.
-//   A send whose outcome is unknown is never resent automatically.
-// - Host acceptance, the agent's acknowledgement and the applied receipt are
-//   recorded separately. Only the authenticated agent of the message's pairing
-//   acknowledges it, and only a journal entry that agent committed can be
-//   linked as applied.
-
 import { Effect, Option, Schema } from "effect";
 import { createHash } from "node:crypto";
 import { Actor, type JournalEntry } from "@irudd/document";
@@ -37,7 +23,6 @@ import {
 } from "../wire/steering.js";
 import type { SteeringStore } from "./store.js";
 
-/** A failure with the plain fields the wire carries. */
 export class SteeringError extends Error {
   readonly _tag: string;
   readonly [field: string]: unknown;
@@ -48,7 +33,6 @@ export class SteeringError extends Error {
   }
 }
 
-/** The pairing side of the host: who is paired now, and with which pairing. */
 export interface PairingSource {
   pairingId(agent: string): string | undefined;
   list(): ReadonlyArray<{
@@ -59,12 +43,10 @@ export interface PairingSource {
   }>;
 }
 
-/** One authenticated agent connection, as the steering service sees it. */
 export interface AgentLink {
   readonly id: string;
   readonly agent: string;
   readonly pairingId: string;
-  /** Write one frame; false when the connection is gone. */
   write(frame: InboxEvent): boolean;
 }
 
@@ -72,9 +54,7 @@ export interface SteeringOptions {
   readonly store: SteeringStore;
   readonly project: Project;
   readonly pairings: PairingSource;
-  /** Named transport adapters. `claude-channel` and `inbox` are built in. */
   readonly emit: (event: SteerEvent) => void;
-  /** The irudd command an agent runs, for the instructions in each message. */
   readonly agentCommand: string;
   readonly credentialFile: (agent: string) => string;
   readonly log?: (line: string) => void;
@@ -82,12 +62,7 @@ export interface SteeringOptions {
   readonly deliverTimeoutMs?: number;
   readonly checkTimeoutMs?: number;
   readonly channelConfirmMs?: number;
-  /** First retry delay after an offline route; doubles up to a minute. */
   readonly retryBaseMs?: number;
-  /**
-   * How to answer a message that carries something other than free text, such
-   * as an art brief: replaces the propose and link lines. Undefined: the usual lines.
-   */
   readonly instructions?: (
     message: SteeringMessage,
     cli: { readonly irudd: string; readonly cred: string },
@@ -96,7 +71,6 @@ export interface SteeringOptions {
 
 const crockford = "0123456789abcdefghjkmnpqrstvwxyz";
 
-/** `stm-` and 26 base-32 digits of SHA-256(project, agent, request ID): the same request gives the same ID. */
 export function steeringMessageId(projectId: string, agent: string, requestId: string): string {
   const digest = createHash("sha256")
     .update(`irudd.steering\0${projectId}\0${agent}\0${requestId}`)
@@ -172,7 +146,6 @@ export class Steering {
     this.now = options.now ?? Date.now;
   }
 
-  /** Recover from the last run and start delivering. */
   start(): void {
     for (const message of this.store.inFlight()) {
       const updated = this.store.update(
@@ -189,7 +162,6 @@ export class Steering {
       );
       this.announce(updated);
     }
-    // Pairings revoked or rotated while no host was running.
     for (const pairing of new Set(
       this.store.list({ unacknowledged: true, limit: 500 }).map((m) => m.agent),
     ))
@@ -208,8 +180,6 @@ export class Steering {
     this.pushWaits.clear();
     this.watchers.clear();
   }
-
-  // ── Person: recipients ──────────────────────────────────────────────────
 
   bind(
     person: Actor,
@@ -259,12 +229,10 @@ export class Steering {
     return { agent, unbound: this.store.unbind(agent) };
   }
 
-  /** Every paired agent with its recipient and the last known availability. */
   recipients(): ReadonlyArray<RecipientView> {
     return this.options.pairings.list().map((pairing) => this.view(pairing));
   }
 
-  /** Ask the recipient's host now. */
   async check(agent: string): Promise<RecipientView> {
     const pairing = this.options.pairings.list().find((p) => p.agent === agent);
     if (!pairing)
@@ -306,7 +274,6 @@ export class Steering {
     };
   }
 
-  /** The recipient bound to the agent's current pairing, if any. */
   private current(agent: string): Recipient | undefined {
     const recipient = this.store.recipient(agent);
     if (!recipient) return undefined;
@@ -348,8 +315,6 @@ export class Steering {
       conversation: null,
     };
   }
-
-  // ── Person: messages ────────────────────────────────────────────────────
 
   async send(
     person: Actor,
@@ -396,7 +361,6 @@ export class Steering {
         { path: ["params", "documentId"] },
       );
     let cursor: ManualCursor | null = null;
-    // Each document's journal position now: requests up to it can never be linked.
     const baseline: Record<string, number> = {};
     if (documentId !== null) {
       const head = await Effect.runPromise(this.options.project.current(documentId));
@@ -481,7 +445,6 @@ export class Steering {
     return updated;
   }
 
-  /** The person's explicit resend to the agent's current recipient. */
   retry(messageId: string): SteeringMessage {
     const message = this.get(messageId);
     this.requireConnected(message.agent);
@@ -524,7 +487,6 @@ export class Steering {
     return updated;
   }
 
-  /** After `pair.agent` (rotation) or `pair.revoke`: messages of an older pairing are revoked. */
   pairingChanged(agent: string): void {
     const pairingId = this.options.pairings.pairingId(agent);
     for (const message of this.store.open(agent)) {
@@ -553,8 +515,6 @@ export class Steering {
       if (watcher.link.agent === agent && watcher.link.pairingId !== pairingId)
         this.watchers.delete(id);
   }
-
-  // ── Agent: inbox ────────────────────────────────────────────────────────
 
   private authorize(link: { readonly agent: string; readonly pairingId: string }): void {
     if (this.options.pairings.pairingId(link.agent) !== link.pairingId)
@@ -591,7 +551,6 @@ export class Steering {
   ): SteeringMessage {
     this.authorize(link);
     const message = this.store.message(messageId);
-    // Another agent's message is reported as missing: an agent sees only its own inbox.
     if (!message || message.agent !== link.agent)
       throw new SteeringError("MessageMissing", `Your inbox has no message ${messageId}.`, {
         messageId,
@@ -644,14 +603,6 @@ export class Steering {
     return updated;
   }
 
-  /**
-   * The agent links a request it committed for a message. A request that appended a
-   * revision applies the message at once. A proposal it created or refined makes the
-   * message "proposed" until the person accepts exactly that version (applied at the
-   * accepting revision), discards it, or it is superseded. Requests committed before
-   * the person sent the message are never linked. A later request of the agent's own
-   * may replace a link that has not applied.
-   */
   async applied(
     link: { readonly agent: string; readonly pairingId: string },
     params: { readonly messageId: string; readonly documentId: string; readonly requestId: string },
@@ -742,10 +693,6 @@ export class Steering {
     });
   }
 
-  /**
-   * Re-check linked proposals against the journal: after a commit to a document,
-   * and on start for every document.
-   */
   documentChanged(documentId?: string): Promise<void> {
     return this.serial(async () => {
       try {
@@ -756,7 +703,6 @@ export class Steering {
     });
   }
 
-  /** Recompute one message's review and applied state; store and announce a change. */
   private async resolve(message: SteeringMessage): Promise<SteeringMessage | undefined> {
     const stored = message.report;
     if (!stored || message.applied || message.closed) return undefined;
@@ -786,7 +732,6 @@ export class Steering {
     return updated;
   }
 
-  /** Run steps that read the journal and then write the outbox one at a time. */
   private serial<T>(step: () => Promise<T>): Promise<T> {
     const run = this.queue.then(step, step);
     this.queue = run.then(
@@ -853,9 +798,6 @@ export class Steering {
       }
   }
 
-  // ── Prompts ─────────────────────────────────────────────────────────────
-
-  /** The text a conversation receives: the person's words, then how to answer through the pairing. */
   prompt(message: SteeringMessage): string {
     const { agentCommand: irudd } = this.options;
     const credential = this.options.credentialFile(message.agent);
@@ -900,8 +842,6 @@ export class Steering {
       ...(message.documentId ? { document: message.documentId } : {}),
     };
   }
-
-  // ── Delivery ────────────────────────────────────────────────────────────
 
   private announce(message: SteeringMessage): void {
     this.options.emit({
@@ -1068,8 +1008,6 @@ export class Steering {
     this.announce(updated);
   }
 
-  // ── Claude channel ──────────────────────────────────────────────────────
-
   private channelWatcher(agent: string, instance: string): Watcher | undefined {
     const pairingId = this.options.pairings.pairingId(agent);
     return [...this.watchers.values()].find(
@@ -1117,7 +1055,6 @@ export class Steering {
   private channelTransport(): SteeringTransport {
     return {
       transport: "claude-channel",
-      // The service answers channel checks itself, per agent (channelAvailability).
       check: () =>
         Promise.resolve({
           state: "offline",
@@ -1176,8 +1113,6 @@ export class Steering {
   }
 }
 
-// ── Linked requests ─────────────────────────────────────────────────────────
-
 const decodeActor = Schema.decodeUnknownOption(Actor);
 
 function actorOf(envelope: unknown): Actor | null {
@@ -1185,7 +1120,6 @@ function actorOf(envelope: unknown): Actor | null {
   return Option.getOrNull(decodeActor(Reflect.get(envelope, "actor")));
 }
 
-/** What a linked request did, or undefined when it neither changed nor proposed anything. */
 function reportOf(entry: JournalEntry, at: number): SteeringReport | undefined {
   const receipt = entry.receipt;
   const base = {
@@ -1207,10 +1141,6 @@ function reportOf(entry: JournalEntry, at: number): SteeringReport | undefined {
   return undefined;
 }
 
-/**
- * The review and applied state of a report, from the journal entries after it.
- * Only the person's acceptance of exactly the linked version applies a proposal.
- */
 function judge(
   report: SteeringReport,
   entries: ReadonlyArray<JournalEntry>,

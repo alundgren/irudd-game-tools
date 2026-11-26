@@ -3,8 +3,6 @@ import { CanvasTexture, Float32BufferAttribute, SRGBColorSpace, Vector3 } from "
 const textures = new Map();
 const clamp = (v, lo, hi) => Math.max(lo,Math.min(hi,v));
 
-// The staggered lattice follows the dome. Each lens has a separate curvature
-// and a quiet edge. View-dependent highlights come from the scene lights.
 function facet(x,y) {
   const spacing = .186, rowHeight = spacing*Math.sqrt(3)/2;
   const row = Math.round(y/rowHeight);
@@ -71,8 +69,6 @@ export function finishCreatureEye(mesh, part, materials) {
   }
   mesh.material=materials.get(key);
   if (!mesh.material.map) return;
-  // The equator is the first sixteen cage points, in anatomical order.
-  // Its two diameters carry the texture through turning and hand sculpture.
   const ring=part.cage.vertices, vec=i=>new Vector3(...ring[i]);
   const u=vec(0).sub(vec(8)), v=vec(4).sub(vec(12));
   const centre=vec(0).lerp(vec(8),.5);

@@ -13,7 +13,6 @@ import type { Workshop } from "./bridge.js";
 
 type Finish = NonNullable<BuildOptions["finish"]>;
 
-/** Keep decoded images for the current set of sheets. Geometry and UVs are rebuilt for each edit. */
 export class ViewportPaint {
   private last: { key: string; result: Promise<Finish> } | undefined;
 

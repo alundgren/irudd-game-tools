@@ -1,7 +1,3 @@
-// Steering verbs. A person binds a paired agent to the conversation it already
-// works in and sends it messages; the paired agent, with --credential, reads
-// its inbox, acknowledges, proposes and links what it applied.
-
 import fs from "node:fs";
 import { isJsonArray, type Json } from "@irudd/document";
 import type { RecipientRoute, SteeringMessage, RecipientView } from "@irudd/workshop/wire";

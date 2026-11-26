@@ -39,8 +39,8 @@ from PIL import Image
 from scipy import ndimage
 
 DARKER, LIGHTER = 1.6, 0.8
-MICRO_SCALE, MESO_SCALE = 400.0, 110.0   # bytes per texel of height
-DONORS = [  # name in the pack, age band (0 young, 1 middle, 2 old)
+MICRO_SCALE, MESO_SCALE = 400.0, 110.0
+DONORS = [
     ("young_african_female", 0), ("young_african_male", 0), ("young_asian_female", 0), ("young_asian_male", 0),
     ("young_caucasian_female", 0), ("young_caucasian_female2", 0), ("young_caucasian_male", 0), ("young_caucasian_male2", 0),
     ("middleage_african_female", 1), ("middleage_african_male", 1), ("middleage_asian_female", 1), ("middleage_asian_male", 1),
@@ -116,7 +116,6 @@ def clean_ratio(texel, f, X, Y):
     hair = np.clip(blur(np.clip(ndimage.maximum_filter(np.maximum(dark, hairy), 9), 0, 1), 5) * 1.6, 0, 1)
     brows = np.clip(blur(ndimage.maximum_filter(f["brows"], 15), 5) * 1.5, 0, 1)
     keep = (1 - hair) * (1 - brows)
-    # Brows are filled from open skin, not from the darker lid fold and lash line below them.
     source = keep * (1 - np.clip(blur(np.maximum(f["lids"], f["socket"]), 3) * 1.6, 0, 1))
     est = R.copy()
     for s in (22, 11, 6):
@@ -178,7 +177,6 @@ def pack(system, relief_dir, source, out, preview=None):
         brows[y:y + h, x:x + w] = np.maximum(brows[y:y + h, x:x + w], a[:brows.shape[0] - y, :brows.shape[1] - x])
     brows = np.asarray(Image.fromarray((brows * 255).astype(np.uint8)).resize(size, Image.Resampling.LANCZOS), float) / 255
     f = dict(lips=tone[..., 0], lids=tone[..., 1], socket=eyes[..., 1], mask=eyes[..., 2], vis=vis, brows=brows)
-    # The face lies on its side in the layout. Upright it is H wide and W tall: X across the face, Y down it.
     yy, xx = np.mgrid[0:W, 0:H].astype(float)
     X, Y = np.rot90(xx, 1), np.rot90(yy, 1)
 
@@ -200,7 +198,6 @@ def pack(system, relief_dir, source, out, preview=None):
     N = crop(Image.open(normal).convert("RGB"), rect, size) * 2 - 1
     N[..., :2] *= window[..., None]
     height = integrate_normals(N)
-    # Relief and gloss belong to the face proper, like the colour: the donor's scalp lies beyond it.
     fade = smooth(f["mask"], 0.12, 0.9) * (1 - smooth(((X - 295) / 172) ** 2 + ((Y - 292) / 205) ** 2, 0.78, 1.22))
     micro = (height - blur(height, 2.5)) * fade
     meso = (blur(height, 2.5) - blur(height, 22)) * fade

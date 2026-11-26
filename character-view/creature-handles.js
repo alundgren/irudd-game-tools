@@ -1,15 +1,10 @@
 import { Vector3 } from "three";
 import { spineFrame } from "./creature-plan.js";
 
-// Where the drag handles of a body plan sit and how a drag changes the plan.
-// Nothing here touches the page, so the same rules run in tests.
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const round = (v) => Math.round(v * 1000) / 1000;
 
 export const girthNames = ["hips", "loin", "belly", "chest", "shoulders"];
-// The plan holds five girths from the hips to the shoulders. The two end
-// handles sit a little inside the rounded caps of the trunk, where the end
-// girths show.
 export const girthStations = [0.1, 0.25, 0.5, 0.75, 0.9];
 export const girthRange = [0.4, 2.2];
 export const limbNames = {
@@ -19,8 +14,6 @@ export const limbNames = {
   fin: "fins",
   tentacle: "tentacles",
 };
-// Where a limb of each kind leaves the trunk, in trunk radii across the body
-// and toward the back.
 const roots = {
   leg: [0.68, -0.3],
   arm: [0.86, 0],
@@ -29,7 +22,6 @@ const roots = {
   tentacle: [0.82, 0],
 };
 
-// Stations of every pair in a limb group, from the front of the body back.
 export function limbStations(limb) {
   if (limb.pairs === 1) return [(limb.from + limb.to) / 2];
   const front = Math.max(limb.from, limb.to),
@@ -53,10 +45,6 @@ export function limbRoot(frame, kind, station, side) {
     .addScaledVector(at.dorsal, d * back);
 }
 
-// The direction around the trunk in which a thickness handle sits, as parts
-// across the body and toward the back. It lies on the outline seen by the
-// viewer, on the upper side of the picture. A spine seen end-on has no
-// outline, so its handles sit on the back.
 export function girthDirection(frame, station, view) {
   const at = frame.at(station);
   if (!view) return [0, 1];
@@ -68,7 +56,6 @@ export function girthDirection(frame, station, view) {
   return [n.x, n.dot(at.dorsal)];
 }
 
-// The point of the trunk outline in that direction.
 export function girthPoint(frame, station, [across, back]) {
   const at = frame.at(station),
     [w, d] = at.radius,
@@ -82,7 +69,6 @@ export function girthPoint(frame, station, [across, back]) {
   };
 }
 
-// The outline of the trunk at a station, as a closed ring of points.
 export function girthRing(frame, station, count = 40) {
   const at = frame.at(station),
     [w, d] = at.radius;
@@ -101,9 +87,6 @@ export function setGirth(plan, index, value) {
   return { ...plan, spine: { ...plan.spine, bulge } };
 }
 
-// Find the girth that puts the outline under the pointer. `beyond` measures a
-// candidate plan: positive when its outline lies past the pointer. The whole
-// plan is measured because a thicker body can also stand higher.
 export function solveGirth(plan, index, beyond) {
   let [low, high] = girthRange;
   if (beyond(setGirth(plan, index, low)) >= 0) return setGirth(plan, index, low);
@@ -117,9 +100,6 @@ export function solveGirth(plan, index, beyond) {
   return setGirth(plan, index, (low + high) / 2);
 }
 
-// The picture direction in which a thickness handle is pulled: from the
-// middle of the trunk out through the handle. `px` turns a point of the
-// creature into picture coordinates.
 export function girthAxis(handle, px) {
   const centre = px(handle.centre),
     spot = px(handle.point),
@@ -128,7 +108,6 @@ export function girthAxis(handle, px) {
     ? [(spot[0] - centre[0]) / reach, (spot[1] - centre[1]) / reach]
     : [0, -1];
 }
-// The plan whose outline at a thickness handle lies under `goal`.
 export function pullGirth(start, handle, axis, goal, px) {
   return solveGirth(start, handle.index, (candidate) => {
     const spot = px(
@@ -137,15 +116,11 @@ export function pullGirth(start, handle, axis, goal, px) {
     return (spot[0] - goal[0]) * axis[0] + (spot[1] - goal[1]) * axis[1];
   });
 }
-// The path in the picture along which a limb handle slides.
 export const limbRail = (frame, kind, side, px, steps = 64) =>
   Array.from({ length: steps + 1 }, (_, i) =>
     px(limbRoot(frame, kind, i / steps, side)),
   );
 
-// Move a whole limb group so its middle sits at a station. Both sides and
-// every pair move together and keep their spacing, so the group stays inside
-// the trunk as one.
 export function moveLimbs(plan, index, station) {
   const limb = plan.limbs[index];
   const shift = clamp(
@@ -161,8 +136,6 @@ export function moveLimbs(plan, index, station) {
   };
 }
 
-// The place along an evenly sampled line that lies nearest a point, from 0 at
-// its first sample to 1 at its last.
 export function nearestAlong(line, [x, y]) {
   let best = 0,
     least = Infinity;
@@ -188,7 +161,6 @@ export const lineLength = (line) =>
     0,
   );
 
-// The directions of a camera, as the handles need them.
 export function viewOf(camera) {
   camera.updateMatrixWorld();
   const e = camera.matrixWorld.elements;
@@ -199,9 +171,6 @@ export function viewOf(camera) {
   };
 }
 
-// Every handle of a plan as seen by a viewer. `view` gives the forward, up
-// and right directions of the camera; without one the thickness handles sit
-// on the back and the limb handles on the left.
 export function creatureHandles(plan, view) {
   const frame = spineFrame(plan);
   const girths = girthStations.map((station, index) => {
@@ -220,7 +189,6 @@ export function creatureHandles(plan, view) {
   const limbs = plan.limbs.map((limb, index) => {
     const sides = limbSides(limb),
       station = limbCentre(limb);
-    // The handle sits on the side of the body that faces the viewer.
     let side = sides[0];
     if (sides.length > 1 && view)
       side =

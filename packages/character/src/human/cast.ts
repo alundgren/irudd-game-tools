@@ -1,6 +1,3 @@
-// The Rocketbox cast an adult may be drawn as (character-view/human-cast-looks.js
-// and the colour helpers of human-cast-wardrobe.js).
-
 import { castPeople, type CastPerson } from "./catalogue.js";
 import { randomStream } from "./identity.js";
 
@@ -43,13 +40,11 @@ const hex = (tone: ReadonlyArray<number>) =>
     )
     .join("");
 
-/** The colour of a member's photographed face skin. */
 export const castSkin = (name: string): string | null => {
   const person = castPerson(name);
   return person ? hex(person.tone) : null;
 };
 
-/** A skin colour for a drawn cast member: most keep the photographed skin. */
 export function drawCastSkin(name: string, skin: string, seed: number, keep = 0.6): string | null {
   const original = castSkin(name);
   const person = castPerson(name);

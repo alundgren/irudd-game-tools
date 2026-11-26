@@ -34,7 +34,6 @@ test("a collapsed fold transfers its normal through straight and mirrored UV isl
     assert.ok(Math.abs(pixels[centre] - (mirror ? 82 : 174)) <= 1);
     assert.ok(Math.abs(pixels[centre + 1] - 102) <= 1);
     assert.ok(Math.abs(pixels[centre + 2] - 244) <= 1);
-    // A normal from an overlapping sheet in front of the face is ignored.
     g.attributes.position.setZ(4, 0.025);
     pixels.set([128, 128, 255, 255], centre);
     transferFaceNormals(pixels, 15, 15, g, high, low);

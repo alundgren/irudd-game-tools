@@ -1,7 +1,5 @@
 import { humanRestPositions } from "./human-surface.js";
 
-// A woven panel spans several attachment triangles. Fit the front of a shirt
-// against a patch of rib cage, so a pocket or lapel keeps its cut as the bust moves.
 const bindings = new Map();
 const cell = 0.018;
 const bin = (p) => Math.floor(p / cell);
@@ -63,8 +61,6 @@ export function fitChestPanel(name, surface, proxyRest, positions) {
       for (let k = 0; k < 3; k++)
         point[k] +=
           weight * (surface.positions[i * 3 + k] - rest[i * 3 + k] * scale);
-      // Cloth can hang below an apex and bridge the midline. A nearer
-      // anchor has more support than a distant one on the other breast.
       const x = rest[i * 3] - proxyRest[j],
         y = rest[i * 3 + 1] - proxyRest[j + 1];
       const falloff = scale * (4.7 * x * x + (y > 0 ? 0.29 * y : -0.7 * y));

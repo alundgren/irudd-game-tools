@@ -4,9 +4,6 @@ import wardenPortrait from "./warden-portrait.json" with { type: "json" };
 import { setNativePortrait } from "../character-view/native-portrait.js";
 import { faceMark } from "../character-view/human-face-marks.js";
 
-// Four characters directed with the same controls and pieces as an artist uses.
-// Each keeps its face, clothing, silhouette and expression editable independently.
-// How each of them stands and walks, on the posture controls of the adult panel.
 const postures = {
   "salt-road-warden": { style: "Planted", weight: -0.3, hip: 0.3, slouch: -0.2, shoulders: -0.15, arms: 0.9, elbows: 0.4, hands: 0.55, feet: 0.4, toes: 0.5, headTurn: 0.2, chin: -0.1, stride: 0.2, swing: 0 },
   "dock-assessor": { style: "Sway-back", handAtWaist: 1, weight: 0.35, hip: 0.3, lean: -0.6, slouch: 0.35, hands: 0.6, feet: 0.3, toes: 0.55, headTilt: -0.15, chin: 0.1, stride: -0.3, swing: 0.15 },

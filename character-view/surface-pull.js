@@ -1,7 +1,5 @@
 import { Matrix4, Vector3 } from "three";
 
-// Pulls live in the part's own frame. A separate reach on each local axis
-// keeps the influence spherical in world space on a non-uniformly scaled part.
 export function pullPoint(v, stroke) {
   const [x, y, z] = stroke.at,
     [rx, ry, rz] = stroke.reach;
@@ -13,7 +11,6 @@ export function pullPoint(v, stroke) {
   const primary = weight(x);
   const twin =
     stroke.mirrorX === undefined ? 0 : weight(2 * stroke.mirrorX - x);
-  // Do not double the offset where symmetric influence regions overlap.
   const a = Math.max(primary, twin),
     side = primary + twin ? (primary - twin) / (primary + twin) : 0;
   v.x += a * side * stroke.offset[0];
@@ -32,7 +29,6 @@ export function pullSurface(root) {
     records = [];
   ownedMeshes(root, (mesh) => {
     const local = inverse.clone().multiply(mesh.matrixWorld);
-    // Anatomy instances may share source geometry. A sculpt is private to its region.
     const original = mesh.geometry;
     const g = original.clone();
     mesh.geometry = g;

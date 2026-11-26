@@ -1,12 +1,3 @@
-// Export prepared fixtures with the new builders and compare each against the
-// fresh G0 export of its source form at the same preset.
-//
-//   node --import ../../packages/document/test/support/register.ts src/locked.ts src/run.ts [--preset full] NAME...
-//
-// Clay exports run in Node. Textured presets run in installed Chrome under
-// the shared GPU lock (src/browser/run.ts). Writes the fresh GLBs and
-// report.json to .reference-cache/g4a/<preset>/.
-
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -69,7 +60,6 @@ export async function exportAndCompare(
   if (preset !== "clay") throw new Error("Textured presets run in Chrome; use exportTextured.");
   installNodeExporter();
   const started = performance.now();
-  // A native adult builds from the body pack.
   const human = doc.generation?.generator === humanAdultId ? await loadHumanBody() : undefined;
   const result = await exportCharacter(doc, {
     preset,
@@ -80,25 +70,18 @@ export async function exportAndCompare(
   return compareRow(name, preset, doc, result.bytes, Math.round(performance.now() - started));
 }
 
-/** Project blobs a document declares, i.e. its assets this build does not ship. */
 export function projectBlobs(doc: CharacterDocument) {
   return doc.assets
     .filter((a) => !bundledAsset(a.digest))
     .map((a) => ({ digest: a.digest, mediaType: a.mediaType }));
 }
 
-/** A requested export that produced no GLB. */
 export interface Failed {
   readonly name: string;
   readonly preset: Target;
   readonly error: string;
 }
 
-/**
- * Export documents at textured presets in Chrome and compare each with G0.
- * A preset that throws in the page comes back as a `Failed` entry, so one
- * missing output never hides the others.
- */
 export async function exportTextured(
   runner: TexturedRunner,
   jobs: ReadonlyArray<{
@@ -198,7 +181,6 @@ if (import.meta.main) {
       );
     }
   } finally {
-    // Release Chrome (and with it the GPU lock) even when an export fails.
     await runner?.close();
   }
   mkdirSync(join(outDir, preset), { recursive: true });

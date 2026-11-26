@@ -1,13 +1,7 @@
-// Faces traced from a portrait. Ported from portraitSurface in
-// character-view/facial-sculpt.js, headSpace in portrait-frame.js and
-// portrait-relief.js at 2761eb1, arithmetic in the same order so the vertices
-// match. A fitted depth field (portrait-depth.js) blends in last.
-
 import type { DepthField, FigurePaint, PortraitLandmarks } from "@irudd/document";
 import * as T from "three";
 import { applyPortraitDepth } from "./portrait-depth.js";
 
-/** A binding in head-height units: its height and offset span the head, not the traced region. */
 export type HeadSpace = Pick<FigurePaint, "height" | "offset" | "rest" | "portrait">;
 
 const gaussian = (x: number, center: number, radius: number) =>
@@ -15,10 +9,6 @@ const gaussian = (x: number, center: number, radius: number) =>
 const bell = (x: number, y: number, cx: number, cy: number, rx: number, ry: number) =>
   Math.exp(-(((x - cx) / rx) ** 2) - ((y - cy) / ry) ** 2);
 
-/**
- * Portrait sculpting uses head-height units. The source picture's standing
- * height coordinates stay intact for sampling its colours.
- */
 export function headSpace(paint: HeadSpace): HeadSpace {
   const frame = paint.portrait?.frame;
   if (!frame) return paint;
@@ -36,11 +26,6 @@ export function headSpace(paint: HeadSpace): HeadSpace {
 
 type Correction = (i: number, x: number, y: number, phi: number, face: PortraitLandmarks) => number;
 
-/**
- * A side silhouette carries the nose, lips and chin along its whole outside
- * contour. Rebuild a smooth cheek plane under it and keep the profile's
- * detail only at its anatomical landmarks.
- */
 function profileCorrection(binding: HeadSpace, geometry: T.BufferGeometry): Correction {
   const height = binding.height;
   const rows = binding.rest;
@@ -79,7 +64,6 @@ function profileCorrection(binding: HeadSpace, geometry: T.BufferGeometry): Corr
   };
 }
 
-/** Convex corneas, lid margins, the orbital crease, nasal wings and the lip line. */
 export function landmarkRelief(
   x: number,
   y: number,
@@ -121,13 +105,6 @@ export function landmarkRelief(
   return relief;
 }
 
-/**
- * Sculpt a traced face. A profile gives each row's frontmost point, which
- * only the bridge and tip of the nose reach: recess the cheeks and eye
- * sockets locally and keep the profile at the nose tip, lips and chin.
- * Without landmarks the geometry is unchanged; with them a fitted depth
- * field blends in last.
- */
 export function portraitSurface(
   geometry: T.BufferGeometry,
   binding: HeadSpace,

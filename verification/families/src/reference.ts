@@ -1,5 +1,4 @@
-﻿/** Authenticate the local G0 GLB before counting a parity comparison. */
-import { createHash } from "node:crypto";
+﻿import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -31,8 +30,6 @@ export function authenticateReference(
   if (!isRecord(record)) return false;
   if (record["sha256"] === comparedSha) return true;
 
-  // G0 can reorder buffers or re-encode textures. Validate a different encoding
-  // with G0's own accessor/scene digest plus every decoded texture, in slot order.
   const path = join(dir, name);
   const summary: unknown = JSON.parse(
     execFileSync(process.execPath, [join(baselineDir, "glb.mjs"), path], {
@@ -53,7 +50,6 @@ export function authenticateReference(
 }
 
 if (import.meta.main) {
-  // Derive the pixel oracle only from the pinned original bytes of all 245 files.
   const baseline: unknown = JSON.parse(readFileSync(join(baselineDir, "baseline.json"), "utf8"));
   const frozen = isRecord(baseline) && baseline["frozen"];
   const exports = isRecord(frozen) && frozen["exports"];

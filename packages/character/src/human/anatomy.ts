@@ -1,8 +1,3 @@
-// Anatomy of the nose, mouth and eyelids that the source head leaves soft
-// (character-view/human-face-anatomy.js at 2761eb1). Each change is a field
-// over the neutral smoothed head, one value per smoothed vertex, so a vertex
-// keeps its share on any head. Distances are millimetres on a 1.72 m adult.
-
 import * as T from "three";
 import type { HumanBody } from "./body.js";
 import { boneNames } from "./catalogue.js";
@@ -42,15 +37,10 @@ const smooth = (v: number, a: number, b: number) => {
 const bell = (v: number, at: number, width: number) => Math.exp(-(((v - at) / width) ** 2));
 
 export interface FaceFields {
-  /** Displacement in millimetres, three per smoothed vertex. */
   readonly move: Float32Array;
-  /** The share of light lost. */
   readonly shade: Float32Array;
-  /** The lower lip's share of the smile lift. */
   readonly lower: Float32Array;
-  /** The supratarsal crease weight a blink unwinds. */
   readonly crease: Float32Array;
-  /** Lid and crease contours a game reduction keeps. */
   readonly lidAnchors: Uint8Array;
   readonly upperEdge: ReadonlyArray<number>;
   readonly lowerEdge: ReadonlyArray<number>;
@@ -59,7 +49,6 @@ export interface FaceFields {
 
 const cache = new WeakMap<HumanBody, FaceFields>();
 
-/** The fields on the neutral head. */
 export function faceAnatomyFields(body: HumanBody): FaceFields {
   const hit = cache.get(body);
   if (hit) return hit;
@@ -152,7 +141,6 @@ export function faceAnatomyFields(body: HumanBody): FaceFields {
     );
     if (d < 0.22 * seg) ring0[v] = 1;
   }
-  // Flood-fill the hidden socket lining from its UV islands up to the closed ring 0.
   const uvParent = Int32Array.from({ length: s.uv.length / 2 }, (_, i) => i);
   const findUv = (start: number) => {
     let i = start;
@@ -419,7 +407,6 @@ export function faceAnatomyFields(body: HumanBody): FaceFields {
   return fields;
 }
 
-/** Moves the head's smoothed surface in place. Call before anything is built on it. */
 export function refineFaceForm(body: HumanBody, surface: SmoothSurface): SmoothSurface {
   const { move, count } = faceAnatomyFields(body);
   const p = surface.positions;
@@ -432,7 +419,6 @@ export function refineFaceForm(body: HumanBody, surface: SmoothSurface): SmoothS
   return surface;
 }
 
-/** Give every posed expression its own surface normals, rejoining UV copies. */
 export function facialMorphNormals(
   geometry: T.BufferGeometry,
   vertexIds: ReadonlyArray<number>,
@@ -485,7 +471,6 @@ export function facialMorphNormals(
   probe.dispose();
 }
 
-/** Lays the nostril, lip seam and lid margin shade on the head skin's vertex colours. */
 export function shadeFaceForm(
   body: HumanBody,
   geometry: T.BufferGeometry,
@@ -509,11 +494,6 @@ export function shadeFaceForm(
 
 const unwound = new WeakSet<object>();
 
-/**
- * Reshape the head skin's Blink and Smile targets in place: a blink unwinds the
- * crease, and a smile raises the lower lip to the edge of the upper teeth.
- * Returns the rise in metres.
- */
 export function refineExpressions(
   body: HumanBody,
   geometry: T.BufferGeometry,

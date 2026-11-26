@@ -1,7 +1,3 @@
-// One lazily opened connection to the project's host, reopened after the host
-// restarts. A call that was in flight when the connection dropped reports
-// that its outcome is unknown; the agent retries with the same request ID.
-
 import { connect, WorkshopError, type WorkshopClient } from "@irudd/workshop/client";
 import type { MethodName, MethodParams, MethodResults } from "@irudd/workshop/wire";
 
@@ -16,7 +12,6 @@ export class HostConnection {
     this.stateDir = stateDir;
   }
 
-  /** The open connection, opening (or reopening) it when needed. */
   async open(): Promise<WorkshopClient> {
     if (this.client && !this.client.isClosed()) return this.client;
     this.opening ??= connect({

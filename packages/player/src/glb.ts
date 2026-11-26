@@ -1,8 +1,3 @@
-// Read what a binary glTF says about itself without building a scene.
-//
-// Pure: no DOM, no WebGL. The desktop library lists files with this, and the
-// player shows it next to the rendered model.
-
 const magic = 0x46546c67;
 const jsonChunk = 0x4e4f534a;
 
@@ -20,7 +15,6 @@ function text(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
-/** The `irudd.export` provenance a workshop export stamps in `asset.extras.irudd`. */
 export interface ExportProvenance {
   readonly format: string;
   readonly version: number;
@@ -44,7 +38,6 @@ export interface GlbSummary {
   readonly animations: ReadonlyArray<string>;
   readonly extensionsUsed: ReadonlyArray<string>;
   readonly extensionsRequired: ReadonlyArray<string>;
-  /** Present only for files the workshop exported. A file without a recipe has none. */
   readonly provenance: ExportProvenance | undefined;
 }
 
@@ -52,7 +45,6 @@ export class GlbError extends Error {
   override readonly name = "GlbError";
 }
 
-/** The JSON chunk of a GLB. Throws GlbError for anything that is not a binary glTF 2. */
 export function glbJson(bytes: Uint8Array): JsonObject {
   if (bytes.byteLength < 20) throw new GlbError("The file is too short to be a GLB.");
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);

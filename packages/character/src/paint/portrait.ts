@@ -1,13 +1,3 @@
-// Portrait plates painted onto a fitted face. Ported from rasterTriangles and
-// backdropOpacity in character-view/portrait-plate.js and from
-// paintSidePortrait and applyPortraitPlates in character-view/side-portrait.js
-// at 2761eb1, arithmetic in the same order so the textures match.
-//
-// A side plate is a photograph registered in head space by its brow, ear and
-// chin, then sampled into the face's and ears' existing UV layout. A front
-// plate is already in the face's UV layout and is drawn over it. Both survive
-// an ordinary glTF export without a shader.
-
 import * as T from "three";
 import { rasterMediaTypes, type Digest, type SidePlate } from "@irudd/document";
 import type { AssetResolver } from "../assets.js";
@@ -26,10 +16,6 @@ type Visit = (
 
 const at = (list: ArrayLike<number>, i: number): number => list[i] ?? 0;
 
-/**
- * Visit each pixel centre inside each triangle of `geometry` at the pixel-edge
- * coordinates `xy`, with the vertices and their barycentric weights.
- */
 export function rasterTriangles(
   geometry: T.BufferGeometry,
   xy: ArrayLike<number>,
@@ -71,11 +57,6 @@ export function rasterTriangles(
   }
 }
 
-/**
- * The opacity of pixel `j` against its scanline's backdrop, whose ends are
- * `first` and `last`. A plain or transparent backdrop keeps its boundary; on a
- * chroma key its dominant colour is suppressed even in mixed edge pixels.
- */
 export function backdropOpacity(
   rgb: ArrayLike<number>,
   j: number,
@@ -109,7 +90,6 @@ interface SidePixels {
   readonly h: number;
 }
 
-/** The plate's pixels and, per row, the first and last pixels off its backdrop. */
 function sidePixels(raster: Raster, image: RasterImage): SidePixels {
   const w = image.width;
   const h = image.height;
@@ -119,7 +99,6 @@ function sidePixels(raster: Raster, image: RasterImage): SidePixels {
   const rgba = ctx.getImageData(0, 0, w, h).data;
   const left = new Int32Array(h).fill(w);
   const right = new Int32Array(h).fill(-1);
-  // Compare each border to its own scanline. A plain background may have a slight gradient.
   for (let y = 0; y < h; y++) {
     const first = 4 * y * w;
     const last = first + 4 * (w - 1);
@@ -154,11 +133,6 @@ function standard(mesh: T.Mesh): T.MeshStandardMaterial {
   return material;
 }
 
-/**
- * A canvas of `mesh`'s current colour: its map, or its plain colour. A canvas
- * that is read back asks for frequent reads, as G0's does, since that choice
- * selects how the browser resamples.
- */
 function baseCanvas(raster: Raster, mesh: T.Mesh, width: number, height: number, read: boolean) {
   const material = standard(mesh);
   const canvas = raster.canvas(width, height);
@@ -172,7 +146,6 @@ function baseCanvas(raster: Raster, mesh: T.Mesh, width: number, height: number,
   return { canvas, ctx };
 }
 
-/** The textures plates make, for the character to dispose. */
 export type PlateTextures = T.Texture[];
 
 function usePortraitTexture(
@@ -256,17 +229,12 @@ function bakeMesh(
   usePortraitTexture(mesh, canvas, made, ear);
 }
 
-/** The side contour a finishing profile fit measured, in face-local units. */
 export interface SideFrame {
   readonly brow: number;
   readonly chin: number;
   readonly front: number;
 }
 
-/**
- * Sample the side plate `image`, registered by `plate`, onto the sides of
- * `face` and onto the ears `owner` carries.
- */
 export function paintSidePortrait(
   raster: Raster,
   face: T.Mesh,
@@ -333,7 +301,6 @@ export function paintSidePortrait(
   for (const node of ears) bakeMesh(raster, node, face, sample, made, true);
 }
 
-/** Draw the front plates `images`, in order, over `mesh`'s UV paint. */
 export function applyPortraitPlates(
   raster: Raster,
   mesh: T.Mesh,
@@ -346,15 +313,12 @@ export function applyPortraitPlates(
   usePortraitTexture(mesh, canvas, made);
 }
 
-/** Portrait plates loaded as individual images. */
 export interface PortraitPlates {
   readonly raster: Raster;
   readonly image: (plate: Digest) => RasterImage | undefined;
-  /** Plates a binding named that did not resolve to raster bytes. */
   readonly missing: ReadonlyArray<Digest>;
 }
 
-/** Resolve and decode every plate `digests` names. Unresolvable plates are listed, not thrown. */
 export async function loadPortraitPlates(
   raster: Raster,
   assets: AssetResolver,

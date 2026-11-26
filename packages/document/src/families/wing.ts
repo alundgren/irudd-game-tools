@@ -1,18 +1,3 @@
-// figure.wing: the lifting surface of a wing, grown from one short
-// description. Ported from validWing in character-view/wing-surface.js at
-// 2761eb1.
-//
-// `structure` says what carries the surface: a bat wing is skin between an
-// arm and `count` long fingers, a feathered wing `count` primaries on a
-// folded arm, an insect wing a pleated film on `count` branching veins. The
-// surface is drawn in its own flat frame: `span` runs from the shoulder to
-// the tip, `back` back along the body, and `side` (1 left, -1 right)
-// mirrors it. `bone` is the arm's radius in metres; `bend`, `notch` and
-// `point` shape the arm, the trailing edge and the tip; `pattern` lays
-// `dark` and `pale` pigment over it and `limb` colours its bones and
-// coverts. The same description, seed included, always grows the same wing.
-// The part's own colour is the surface's main colour.
-
 import { Schema } from "effect";
 import { family, Hex } from "./family.js";
 

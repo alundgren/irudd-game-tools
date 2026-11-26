@@ -22,7 +22,6 @@ Image.MAX_IMAGE_PIXELS = None
 D = np.load(here / 'work' / (a.name + '-aligned.npz'))
 frame = json.load(open(here / 'work' / 'frame.json'))
 
-# The Python port of the native head is the editor's head at another size. Take the scan on to the editor's.
 pxyz, _, _, _ = R.editable(0)
 N = json.load(open(here.parent / 'studio-head10' / 'work' / 'native.json'))
 J = np.array(N['positions']).reshape(-1, 3)
@@ -34,20 +33,17 @@ marks = s * D['marks'] @ Rm.T + t
 faces, fuv = D['faces'], D['fuv']
 centre = np.array(frame['centre'])
 
-# Chart coordinates of every vertex.
 rel = xyz - centre
 radius = np.linalg.norm(rel, axis=1)
 theta = np.degrees(np.arccos(np.clip(rel[:, 1] / radius, -1, 1)))
 az = np.arctan2(rel[:, 0], rel[:, 2])
-chart = .5 + .5 * (theta / a.theta)[:, None] * np.stack([np.sin(az), -np.cos(az)], 1)   # face towards the bottom
+chart = .5 + .5 * (theta / a.theta)[:, None] * np.stack([np.sin(az), -np.cos(az)], 1)
 
-# The scalp zone: everything above the brows in front, and above the nape and collar behind.
 tri_theta = theta[faces].max(1)
 zone = tri_theta < a.theta - 1
 ftri = faces[zone]; fuvz = fuv[zone]
 
-# Bake the photograph into the chart; the outermost surface along each direction wins.
-source = R.donor.__globals__['Image'].open  # same PIL
+source = R.donor.__globals__['Image'].open
 folder = (here / 'source' / a.name) if (here / 'source' / a.name).exists() else (C.person / a.name)
 image = np.asarray(Image.open(next(folder.glob('*diffuse.png'))).convert('RGB'))
 ctx = R.ctx
@@ -63,11 +59,10 @@ vao = ctx.vertex_array(prog, [(ctx.buffer(rows.tobytes()), '2f 2f 1f', 'at', 'uv
 S = a.side
 target = ctx.texture((S, S), 4, dtype='f4'); depth = ctx.depth_renderbuffer((S, S)); fb = ctx.framebuffer([target], depth)
 fb.use(); ctx.viewport = (0, 0, S, S); fb.clear(0, 0, 0, 0); ctx.enable(gl.DEPTH_TEST); vao.render()
-baked = np.frombuffer(target.read(), '<f4').reshape(S, S, 4)   # row 0 is chart v = 0
+baked = np.frombuffer(target.read(), '<f4').reshape(S, S, 4)
 covered = baked[:, :, 3] > 0
 rgb = np.clip(baked[:, :, :3] * 255, 0, 255).astype(np.uint8)
 
-# Hair and skin by colour, each learnt from where it is certain.
 lab = cv2.cvtColor(rgb, cv2.COLOR_RGB2LAB).astype(float)
 yy, xx = np.mgrid[:S, :S]
 def chart_of(p):
@@ -88,7 +83,6 @@ def far(m):
 hair_m, skin_m = model(sure_hair), model(sure_skin)
 dh, ds = far(hair_m), far(skin_m)
 matte = 1 / (1 + np.exp(-(ds - dh) * 1.4))
-# Skin is coloured; hair with little colour of its own (grey, white, black) is hair however light it is.
 chroma = np.hypot(lab[:, :, 1] - 128, lab[:, :, 2] - 128)
 skin_chroma, hair_chroma = np.median(chroma[sure_skin]), np.median(chroma[sure_hair])
 if hair_chroma < .55 * skin_chroma:
@@ -96,28 +90,24 @@ if hair_chroma < .55 * skin_chroma:
     matte = np.maximum(matte, plain * (ds > 2.2))
 print('chroma skin', skin_chroma.round(1), 'hair', hair_chroma.round(1))
 neither = (dh > 5.5) & (ds > 5.5) & ((chroma > 1.4 * max(skin_chroma, hair_chroma)) | (lab[:, :, 0] > np.percentile(lab[sure_hair][:, 0], 99) + 70) if a.band else matte < .5)
-matte[neither] = 0        # neither: cloth, ear shadow
+matte[neither] = 0
 matte[~covered] = 0
-# Nothing in front of the face below the eyes is scalp hair: nostrils, lashes and a beard are dark too.
 eyes = np.array([chart_of(marks[i]) for i in (33, 133, 362, 263)]); oval = np.array([chart_of(m) for m in marks if np.isfinite(m).all()])
-turn = lambda q: np.arctan2(q[..., 0] - S / 2, S / 2 - q[..., 1])      # 0 straight down the face
+turn = lambda q: np.arctan2(q[..., 0] - S / 2, S / 2 - q[..., 1])
 reach = np.hypot(xx - S / 2, yy - S / 2); bearing = np.arctan2(xx - S / 2, S / 2 - yy)
 width = np.abs(turn(oval)).max() * .6; eye_reach = np.hypot(*(eyes - S / 2).T).mean()
 matte[(np.abs(bearing) < width) & (reach > eye_reach)] = 0
-pure = cv2.GaussianBlur(matte.astype('f4'), (0, 0), 1.2)   # how surely each texel is hair itself, not skin seen between strands
-# Keep only hair joined to the crown, and close pinholes; the edge keeps its photographic irregularity.
+pure = cv2.GaussianBlur(matte.astype('f4'), (0, 0), 1.2)
 solid = matte > .5
 solid = ndimage.binary_opening(solid, iterations=1)
 labels, n = ndimage.label(ndimage.binary_closing(solid, iterations=3))
 keep = labels == labels[S // 2 + (int(S * .12) if a.hair == 'back' else 0), S // 2]
-# Pinholes are hair; a face ringed by long hair is not.
 holes, count = ndimage.label(ndimage.binary_fill_holes(keep) & ~keep)
 if count:
     small = np.flatnonzero(np.bincount(holes.ravel())[1:] < (S * .05) ** 2) + 1
     keep |= np.isin(holes, small)
 band = np.zeros((S, S), bool)
 if a.band:
-    # Cloth that touches the hair and lies on the head, not the collar at the rim.
     cloth, count = ndimage.label(ndimage.binary_opening(neither & covered, iterations=2))
     touching = np.unique(cloth[ndimage.binary_dilation(keep, iterations=4) & (cloth > 0)])
     inner = np.hypot(xx - S / 2, yy - S / 2) < .68 * S / 2
@@ -130,16 +120,12 @@ if a.band:
     keep = ndimage.binary_closing(keep, iterations=3)
     print('band texels', int(band.sum()))
 near = ndimage.distance_transform_edt(~keep)
-# Well inside the hair everything is hair, highlights too. Within a centimetre and a half of its edge the skin
-# seen between strands stays skin, so a fringe keeps its gaps and the hairline its thinning.
 deep = ndimage.distance_transform_edt(keep) > S * .035
 matte = np.where(keep & (deep | band | (pure > .5)), np.maximum(matte, .85), np.where(keep, np.minimum(matte, pure), matte * np.clip(1 - near / (S * .012), 0, 1)))
 matte = cv2.GaussianBlur(matte.astype('f4'), (0, 0), .8)
 
-# Inside the hair, light hair that classed as skin (highlights) stays hair; outside the photograph is not needed.
 alpha = np.clip(matte, 0, 1)
 own = (alpha > .6) & (pure > .55) & ~band
-# Spread hair colour a little way under the edge so soft texels do not mix in the scan's own skin.
 hair_only = rgb.astype('f4') * own[:, :, None]
 weight = own.astype('f4')
 for _ in range(3):
@@ -148,7 +134,6 @@ for _ in range(3):
     hair_only = np.where(own[:, :, None], rgb.astype('f4'), fill * (weight > .02)[:, :, None]); weight = np.where(own, 1., (weight > .02) * 1.)
 colour = np.where(own[:, :, None], rgb, np.clip(hair_only, 0, 255)).astype(np.uint8)
 if band.any():
-    # Under the band the hair is painted from the nearest hair towards the crown, curl for curl.
     by, bx = np.nonzero(band); todo = np.ones(len(by), bool)
     away = np.stack([S / 2 - by, S / 2 - bx], 1).astype('f4'); away /= np.maximum(np.linalg.norm(away, axis=1, keepdims=True), 1e-3)
     clear = own & ~ndimage.binary_dilation(band, iterations=10); first = np.zeros(len(by), int)
@@ -156,7 +141,6 @@ if band.any():
         sy = np.clip((by + away[:, 0] * step).astype(int), 0, S - 1); sx = np.clip((bx + away[:, 1] * step).astype(int), 0, S - 1)
         hit = todo & clear[sy, sx]
         first[hit] = step; todo &= ~hit
-    # Mirrored in the band's upper edge, so the hair runs on under it and is not drawn out into streaks.
     for reach in (2, 1):
         sy = np.clip((by + away[:, 0] * first * reach).astype(int), 0, S - 1); sx = np.clip((bx + away[:, 1] * first * reach).astype(int), 0, S - 1)
         good = (first > 0) & clear[sy, sx] & (todo | True if reach == 1 else True)
@@ -165,8 +149,6 @@ if band.any():
         colour[by[good], bx[good]] = rgb[sy[good], sx[good]]
     print('band left unpainted', int(todo.sum()))
 if hair_chroma < .55 * skin_chroma:
-    # Colourless hair: the scanned person's scalp glowing through thin hair is their skin, not the wearer's. Each
-    # texel keeps its light and shade and as much colour as the hair itself varies by.
     L = cv2.cvtColor(colour, cv2.COLOR_RGB2LAB).astype('f4')
     mid = np.median(lab[sure_hair][:, 1:], 0); spread = max(3., 2.5 * np.percentile(np.linalg.norm(lab[sure_hair][:, 1:] - mid, axis=1), 90))
     off = L[:, :, 1:] - mid; size = np.linalg.norm(off, axis=2, keepdims=True)
@@ -174,15 +156,12 @@ if hair_chroma < .55 * skin_chroma:
     colour = cv2.cvtColor(np.clip(L, 0, 255).astype(np.uint8), cv2.COLOR_LAB2RGB)
     print('chroma kept within', round(float(spread), 1))
 
-# The shell: triangles that show any hair, with the vertices they use.
 ys = np.clip((chart[:, 1] * S).astype(int), 0, S - 1); xs = np.clip((chart[:, 0] * S).astype(int), 0, S - 1)
-wide = ndimage.maximum_filter(alpha, size=int(S * .045) | 1)   # a margin of bare shell, so the matte cuts the outline and not the mesh
+wide = ndimage.maximum_filter(alpha, size=int(S * .045) | 1)
 vertex_alpha = wide[ys, xs]
 shown = zone & (vertex_alpha[faces].max(1) > .08)
-# Drop inner layers: a triangle hidden behind the surface that was baked.
 mid = chart[faces].mean(1); my = np.clip((mid[:, 1] * S).astype(int), 0, S - 1); mx = np.clip((mid[:, 0] * S).astype(int), 0, S - 1)
 shown &= radius[faces].mean(1) / .25 > baked[my, mx, 3] - .012 / .25
-# Only the piece joined to the crown: stray scraps of collar or shoulder share the chart but not the surface.
 from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import connected_components
 f = faces[shown]; edges = np.concatenate([f[:, [0, 1]], f[:, [1, 2]], f[:, [2, 0]]])
@@ -200,11 +179,8 @@ show = lambda x: cv2.resize(x[::-1], (640, 640), interpolation=cv2.INTER_AREA)
 over = (colour * alpha[:, :, None] + np.array([70, 150, 70]) * (1 - alpha[:, :, None])).astype(np.uint8)
 Image.fromarray(np.hstack([show(rgb), show(np.dstack([alpha * 255] * 3).astype(np.uint8)), show(over)])).save(here / 'work' / (a.name + '-chart.jpg'), quality=90)
 
-# Raw copies for the Node packer: points, triangles and the 512 px picture with its matte.
 small = cv2.resize(np.dstack([colour, (alpha * 255).astype(np.uint8)])[::-1], (512, 512), interpolation=cv2.INTER_AREA)
 xyz[used].astype('<f4').tofile(here / 'work' / (a.name + '-points.f32'))
-# How far inside the hairline each vertex lies, in millimetres along the scalp: hair rises from its roots.
-# Only skin makes a hairline: the free ends of long hair, by the collar or the open air, are not rooted.
 inside = ndimage.distance_transform_edt(~((alpha <= .4) & covered & (ds < 5.5))) * (np.radians(a.theta) / (S / 2)) * 95.
 inside[ys[used], xs[used]].astype('<f4').tofile(here / 'work' / (a.name + '-inland.f32'))
 tri.astype('<u4').tofile(here / 'work' / (a.name + '-tri.u32'))

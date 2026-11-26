@@ -300,7 +300,6 @@ h2 {
   justify-self: start;
 }
 
-/* Steering */
 .steering textarea {
   width: 100%;
   box-sizing: border-box;
@@ -433,7 +432,6 @@ h2 {
   opacity: 0.5;
 }
 
-/* Artwork */
 .art-compose {
   display: grid;
   gap: 4px;

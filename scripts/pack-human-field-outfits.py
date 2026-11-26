@@ -65,13 +65,11 @@ def outfit(model):
     uv = z["uv"][body]
     ids = chart_ids(uv)
     male = model.startswith("Male")
-    # Each number is a connected island in the source UV chart.
     taboo = [1, 3, 4, 5, 6, 28] if male else [0, 23, 5, 21, 13, 14, 15]
     keep = ~np.isin(ids, taboo)
     tri = tri[keep]
     uv = uv[keep]
     ids = ids[keep]
-    # Register the donor's fitting pose and place the sole on the native ground plane.
     bones = json.loads((p / (model + ".bones.json")).read_text())
     src = []
     dst = []
@@ -103,7 +101,6 @@ def outfit(model):
     )
     pos = xyz + warp(xyz)
     pos = native.clear({"tri": tri}, pos, [(native.body, 0.004)], 0.004)
-    # A sleeve follows its own arm even when it brushes the waist. Each trouser leg follows its own thigh.
     kinds = np.zeros(len(pos), int)
     armShare = np.load(p / (model + "-arm.npy"))[used]
     kinds[armShare > 0.32] = 1
@@ -140,8 +137,6 @@ def outfit(model):
     hide |= (native.FOOT > 0.72) & (native.BP[:, 1] < 0.1)
     skin = native.BP
     trunk = (native.ARM < 0.66) & (native.HAND < 0.09) & (native.HEAD < 0.03)
-    # The source leaves the neck and hands open. Fully remove the torso and upper thigh skin
-    # that ought to stay dressed even when shape edits push it through the low-poly source.
     hide |= trunk & (skin[:, 1] > 0.74) & (skin[:, 1] < 1.425)
     outerShoulder = (np.abs(skin[:, 0]) > 0.059) | (
         skin[:, 2] < native.JOINT["neck_01"][2] - 0.025
@@ -172,7 +167,6 @@ def outfit(model):
     albedo = picture("color")
     normal = picture("normal")
     spec = picture("specular").mean(2) / 255
-    # The source's panel boundaries are UV seams. Each panel follows an independent wardrobe dye.
     tones = [
         ("main", [12, 13, 15, 19, 20, 22] if male else [2, 10, 11, 12]),
         ("dark", [0, 27] if male else [1, 18, 3, 4, 19, 24]),

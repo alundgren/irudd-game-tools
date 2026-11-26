@@ -1,9 +1,3 @@
-// Ground contact. Ported from character-view/ground-contact.js at 2761eb1.
-//
-// Measure the skinned sole, talon or hem rather than assuming that the ankle
-// joint lies on the floor. At each motion key, translate the whole actor by the
-// residual. Limb solves continue to determine each leg's local shape.
-
 import * as T from "three";
 
 export function alignGroundContacts(
@@ -73,7 +67,6 @@ export function alignGroundContacts(
       );
     }
     if (airborne) {
-      // Lift the entire loop enough for the lowest wingtip, preserving the authored bob.
       const lift = Math.max(0, min.y + 0.035 * (max.y - min.y) - lowest);
       for (let i = 1; i < positions.length; i += 3) positions[i] = (positions[i] ?? 0) + lift;
     }

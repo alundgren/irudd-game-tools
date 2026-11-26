@@ -1,11 +1,8 @@
-// Read and rewrite the JSON chunk of a binary glTF.
-
 const magic = 0x46546c67;
 const jsonChunk = 0x4e4f534a;
 
 export interface GlbParts {
   readonly json: unknown;
-  /** Every chunk after the JSON chunk, byte for byte. */
   readonly rest: Uint8Array;
 }
 
@@ -19,7 +16,6 @@ export function readGlb(bytes: Uint8Array): GlbParts {
   return { json, rest: bytes.slice(20 + length) };
 }
 
-/** Pack JSON and the remaining chunks into a binary glTF. */
 export function writeGlb(json: unknown, rest: Uint8Array): Uint8Array {
   const encoded = new TextEncoder().encode(JSON.stringify(json));
   const padded = Math.ceil(encoded.length / 4) * 4;
@@ -43,13 +39,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/**
- * The same glTF with its embedded images in a fixed place: image `i` takes
- * the `i`-th of the image buffer views in index order, and the binary chunk is
- * rebuilt in buffer view order. The exporter appends each image when its
- * encoding finishes, so without this the same model can come out with its
- * images in a different order and different bytes.
- */
 export function canonicalImages(parts: GlbParts): GlbParts {
   const { json, rest } = parts;
   if (!isRecord(json) || !Array.isArray(json["images"]) || !Array.isArray(json["bufferViews"]))
@@ -68,7 +57,6 @@ export function canonicalImages(parts: GlbParts): GlbParts {
   );
   if (imageViews.some((v) => v < 0) || new Set(imageViews).size !== imageViews.length) return parts;
   const slots = [...imageViews].sort((a, b) => a - b);
-  /** Which old view's bytes and description each view index holds after the move. */
   const source = views.map((_view, index) => index);
   slots.forEach((slot, i) => (source[slot] = imageViews[i] ?? slot));
   const placed: { view: Record<string, unknown>; bytes: Uint8Array }[] = [];

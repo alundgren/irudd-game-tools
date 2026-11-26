@@ -1,12 +1,3 @@
-// Geometry tools for dressing the adult (character-view/human-style-kit.js at
-// 2761eb1). Garments and hair are derived from the body itself: a region of
-// skin is cut out along anatomical lines, lifted off the body, relaxed like
-// cloth under tension and closed at its edges. Every vertex keeps blended skin
-// weights from the body beneath it.
-//
-// The arithmetic keeps the reference's order of operations and its mix of
-// 32-bit and 64-bit storage, so a dressed adult matches its export exactly.
-
 import * as T from "three";
 import { meet, raycaster as gridRaycaster, type Ray } from "../../game/raycast.js";
 import { boneNames } from "../catalogue.js";
@@ -14,13 +5,10 @@ import type { HumanSurface } from "../surface.js";
 import type { ClothJoints } from "../cloth-joints.js";
 
 export type Vec = readonly [number, number, number];
-/** Up to four bones and their weights. */
 export type Skin = readonly [ReadonlyArray<number>, ReadonlyArray<number>];
 
-/** MPFB ids below this are skin; the rest are helpers. */
 const bodySourceVertices = 13380;
 
-/** An element of a numeric array, 0 past its end. */
 export const at = (a: ArrayLike<number>, i: number): number => a[i] ?? 0;
 export const clamp = (x: number, lo = 0, hi = 1): number => Math.min(hi, Math.max(lo, x));
 export const mix = (a: number, b: number, t: number): number => a + (b - a) * t;
@@ -50,10 +38,8 @@ export const lerp3 = (a: Vec, b: Vec, t: number): Vec => [
   mix(a[1], b[1], t),
   mix(a[2], b[2], t),
 ];
-/** Three consecutive values of an array as a point. */
 export const vec = (a: ArrayLike<number>, k: number): Vec => [at(a, k), at(a, k + 1), at(a, k + 2)];
 
-/** Repeatable value noise in 3D, range 0..1. */
 export function noise3(x: number, y: number, z: number): number {
   const xi = Math.floor(x),
     yi = Math.floor(y),
@@ -84,7 +70,6 @@ export function hash1(n: number): number {
   return ((x ^ (x >>> 13)) >>> 0) / 4294967295;
 }
 
-/** The four heaviest bones of a list of (bone, weight) pairs, normalised. */
 export function mergeSkin(pairs: ReadonlyArray<readonly [number, number]>): [number[], number[]] {
   const sum = new Map<number, number>();
   for (const [bone, weight] of pairs) if (weight > 0) sum.set(bone, (sum.get(bone) ?? 0) + weight);
@@ -100,7 +85,6 @@ export function mergeSkin(pairs: ReadonlyArray<readonly [number, number]>): [num
   return [bones, weights];
 }
 
-/** Landmarks every garment is placed against. Heights are world metres. */
 export interface Landmarks {
   readonly k: number;
   readonly neck: Vec;
@@ -118,36 +102,28 @@ export interface Landmarks {
   readonly waistband: number;
 }
 
-/** Measurements, weight fields and spatial lookups shared by every garment. */
 export interface DressBody {
   readonly surface: HumanSurface;
   readonly P: Float32Array;
   readonly N: Float32Array;
   readonly tri: ReadonlyArray<number>;
-  /** Skin vertices; helper vertices follow them. */
   readonly count: number;
   readonly names: ReadonlyArray<string>;
   readonly floor: number;
   readonly top: number;
-  /** Height over 1.72 m. */
   readonly scale: number;
   bone(name: string): number;
   joint(name: string): Vec;
-  /** Summed skin weight of the bones whose names match. */
   weight(pattern: RegExp): Float32Array;
   point(v: number): Vec;
   nearest(p: Vec, reach?: number, skip?: ArrayLike<number> | null): number;
   skinAt(p: Vec): Skin;
-  /** The skin of the trunk and legs nearest a point: what a belt, a pocket or a coat's skirt moves with. */
   trunkAt(p: Vec): Skin;
   skinOf(v: number): Skin;
   rigid(name: string): Skin;
-  /** Push a point out of the body, leaving a gap. */
   clear(p: Vec, gap: number): Vec;
   blend(parts: ReadonlyArray<readonly [string, number]>): Skin;
-  /** Position along an arm: 0 at the shoulder, 1 at the elbow, 2 at the wrist. */
   readonly arm: Float32Array;
-  /** Position along a leg: 0 at the hip, 1 at the knee, 2 at the ankle. */
   readonly leg: Float32Array;
 }
 
@@ -232,7 +208,6 @@ export function analyse(surface: HumanSurface): DressBody {
       const wc = weight(new RegExp("^(" + endName + "|" + tipPattern + ")_?.*_" + side + "$"));
       for (let v = 0; v < count; v++) {
         const total = at(wa, v) + at(wb, v) + at(wc, v);
-        // A stray trace of the other side's weight must not replace the side a point belongs to.
         if (total <= at(most, v)) continue;
         most[v] = total;
         const p = point(v),
@@ -249,7 +224,6 @@ export function analyse(surface: HumanSurface): DressBody {
     return out;
   }
   const scale = (top - floor) / 1.72;
-  // A coarse grid finds the skin nearest to any point.
   const cell = 0.03 * scale,
     grid = new Map<number, number[]>();
   const key = (x: number, y: number, z: number) =>
@@ -349,10 +323,8 @@ export function analyse(surface: HumanSurface): DressBody {
   };
 }
 
-/** A per-vertex field of a shell: an array, or 32-bit storage where the reference keeps one. */
 export type Field = number[] | Float32Array;
 
-/** A piece of skin lifted off the body. `anc` is the skin point each vertex belongs to. */
 export class Shell {
   pos: number[] = [];
   anc: number[] = [];
@@ -360,7 +332,6 @@ export class Shell {
   bones: number[] = [];
   weights: number[] = [];
   tri: number[] = [];
-  /** Per-vertex fields carried through cuts: positions along limbs, weights, edges. */
   f: Record<string, Field> = {};
   get count(): number {
     return this.pos.length / 3;
@@ -382,7 +353,6 @@ export class Shell {
   skin(i: number): Skin {
     return [this.bones.slice(i * 4, i * 4 + 4), this.weights.slice(i * 4, i * 4 + 4)];
   }
-  /** A carried field's value at a vertex, 0 when the shell has none. */
   value(name: string, i: number): number {
     return this.f[name]?.[i] ?? 0;
   }
@@ -412,7 +382,6 @@ export function bodyShell(
 
 const triples = ["pos", "anc", "nrm"] as const;
 
-/** Keep the part of the shell where `value` is positive. New edge vertices lie exactly on the cut. */
 export function cut(s: Shell, value: (i: number) => number): Shell {
   const n = s.count,
     f = new Float32Array(n);
@@ -423,7 +392,6 @@ export function cut(s: Shell, value: (i: number) => number): Shell {
     edges = new Map<number, number>();
   const fields: Record<string, number[]> = {};
   for (const name of names) fields[name] = [];
-  // A shell that already has edges lists them twice over, as the reference does.
   const edge: number[] = [];
   fields["edge"] = edge;
   out.f = fields;
@@ -442,7 +410,6 @@ export function cut(s: Shell, value: (i: number) => number): Shell {
     }
     return at(map, i);
   }
-  // a is kept, b is cut away
   function split(a: number, b: number): number {
     const key = a < b ? a * n + b : b * n + a;
     let made = edges.get(key);
@@ -492,7 +459,6 @@ export function cut(s: Shell, value: (i: number) => number): Shell {
   return out;
 }
 
-/** Keep only the connected part nearest to a point. */
 export function connected(s: Shell, near: Vec): Shell {
   const parent = Array.from({ length: s.count }, (_, i) => i);
   const find = (i: number) => {
@@ -526,7 +492,6 @@ const topologies = new WeakMap<
   { readonly tri: number[]; readonly size: number; readonly count: number; readonly made: Topology }
 >();
 
-/** Neighbours of every vertex and the walk along open edges. Kept while the shell's triangles stay as they are. */
 export function topology(s: Shell): Topology {
   const known = topologies.get(s);
   if (known && known.tri === s.tri && known.size === s.tri.length && known.count === s.count)
@@ -537,7 +502,6 @@ export function topology(s: Shell): Topology {
     fill = new Int32Array(n + 1);
   for (let t = 0; t < tri.length; t += 3)
     for (let k = 0; k < 3; k++) half.add(at(tri, t + k) * n + at(tri, t + ((k + 1) % 3)));
-  // A boundary half edge has no twin. `next` and `prev` walk the open edge.
   const next = new Int32Array(n).fill(-1),
     prev = new Int32Array(n).fill(-1),
     pairs: number[] = [];
@@ -549,7 +513,6 @@ export function topology(s: Shell): Topology {
       next[a] = b;
       prev[b] = a;
     }
-    // An edge with two sides is listed once, from its lower vertex.
     if (!twin || a < b) pairs.push(a, b);
   }
   for (const v of pairs) fill[v + 1] = at(fill, v + 1) + 1;
@@ -572,7 +535,6 @@ export function topology(s: Shell): Topology {
   return made;
 }
 
-/** Ordered open edges of a shell, each a list of vertex indices walked along the triangle winding. */
 export function loops(s: Shell): number[][] {
   const { next } = topology(s),
     seen = new Uint8Array(s.count),
@@ -589,7 +551,6 @@ export function loops(s: Shell): number[][] {
   return out;
 }
 
-/** Lift every vertex off its skin point along the skin normal. */
 export function lift(s: Shell, distance: number | ((i: number) => number)): Shell {
   for (let i = 0; i < s.count; i++) {
     const d = typeof distance === "function" ? distance(i) : distance;
@@ -608,10 +569,6 @@ export interface RelaxOptions {
   readonly apart?: boolean;
 }
 
-/**
- * Pull the cloth taut. Each pass averages neighbours, which spans hollows and
- * softens anatomy, then keeps every vertex at least `gap` above its skin point.
- */
 export function relax(s: Shell, options: RelaxOptions = {}): Shell {
   const {
     passes = 6,
@@ -656,13 +613,11 @@ export function relax(s: Shell, options: RelaxOptions = {}): Shell {
         (at(p, i * 3) - at(a, i * 3)) * nx +
         (at(p, i * 3 + 1) - at(a, i * 3 + 1)) * ny +
         (at(p, i * 3 + 2) - at(a, i * 3 + 2)) * nz;
-      // Sliding sideways would carry cloth into neighbouring bulges, so softening moves only in and out.
       if (alongNormal) {
         p[i * 3] = at(a, i * 3) + nx * d;
         p[i * 3 + 1] = at(a, i * 3 + 1) + ny * d;
         p[i * 3 + 2] = at(a, i * 3 + 2) + nz * d;
       }
-      // Left and right halves may meet at the centre line but never pass through each other.
       if (apart && Math.abs(at(a, i * 3)) > 0.0002 && at(p, i * 3) * at(a, i * 3) < 0) p[i * 3] = 0;
       if (d < g) {
         p[i * 3] = at(p, i * 3) + nx * (g - d);
@@ -675,7 +630,6 @@ export function relax(s: Shell, options: RelaxOptions = {}): Shell {
   return s;
 }
 
-/** Split every triangle in four. Run before fine displacement such as hair grooves. */
 export function subdivide(s: Shell): Shell {
   const out = new Shell(),
     n = s.count,
@@ -732,10 +686,6 @@ export function subdivide(s: Shell): Shell {
   return out;
 }
 
-/**
- * A radial height map around an axis: for each station along the axis and each
- * direction around it, how far the body reaches. Cloth hangs from it.
- */
 export class Envelope {
   readonly o: Vec;
   readonly a: Vec;
@@ -744,7 +694,6 @@ export class Envelope {
   readonly r: Float32Array;
   readonly cu: Float32Array;
   readonly cv: Float32Array;
-  /** Keep every ring centred on the axis. */
   fixed = false;
   readonly h0: number;
   readonly h1: number;
@@ -783,7 +732,6 @@ export class Envelope {
       t = f - i;
     return [mix(at(this.cu, i), at(this.cu, i + 1), t), mix(at(this.cv, i), at(this.cv, i + 1), t)];
   }
-  /** Station, direction and radius of a point. */
   polar(p: Vec): Vec {
     const [h, x, y] = this.local(p),
       [cx, cy] = this.centre(h);
@@ -799,7 +747,6 @@ export class Envelope {
       this.o[2] + this.a[2] * h + this.u[2] * x + this.v[2] * y,
     ];
   }
-  /** Measure the given points. Set `fixed` first to keep every ring centred on the axis. */
   measure(points: ReadonlyArray<Vec>): this {
     const { rows, cols } = this,
       lo = Array.from({ length: rows }, () => [Infinity, Infinity]),
@@ -853,7 +800,6 @@ export class Envelope {
         for (const j of [Math.floor(fc) % cols, (Math.floor(fc) + 1) % cols])
           this.r[i * cols + j] = Math.max(at(this.r, i * cols + j), radius);
     }
-    // Fill unmeasured directions from their neighbours around the ring, then empty rows from the nearest row.
     const full: number[] = [];
     for (let i = 0; i < rows; i++) {
       const row = this.r.subarray(i * cols, (i + 1) * cols),
@@ -878,7 +824,6 @@ export class Envelope {
       }
     return this;
   }
-  /** Bridge hollows around each ring. `span` (radians) limits how wide a hollow is bridged. */
   taut(tension = 1, span = Math.PI): this {
     const { rows, cols } = this,
       reach = Math.max(1, Math.round(((span / (2 * Math.PI)) * cols) / 2)),
@@ -900,7 +845,6 @@ export class Envelope {
     }
     return this;
   }
-  /** Let cloth hang: travelling down the axis it may return to the body only at `fall` metres per metre; `rise` does the same upward. */
   hang(fall = 0.2, rise = 1): this {
     const { rows, cols } = this,
       dh = (this.h1 - this.h0) / (rows - 1),
@@ -952,7 +896,6 @@ export class Envelope {
       t,
     );
   }
-  /** Move shell vertices out to the hanging surface. `mask(i)` fades the effect, `extra` adds ease. */
   drape(
     s: Shell,
     mask: ((i: number) => number) | null,
@@ -975,18 +918,13 @@ export class Envelope {
   }
 }
 
-/** A finished piece's mesh, the region it follows and its authored skin. */
 export interface DressMesh {
   readonly mesh: T.Mesh;
-  /** The joint the piece mainly follows. */
   readonly region: string;
   readonly boneIndices: Uint8Array;
   readonly weights: Float32Array;
-  /** How far each vertex hangs, where a shell recorded it, for folds baked at Game detail. */
   readonly foldMetres?: Float32Array;
-  /** Joints the rig may hang this cloth from; the mesh's own weights name only bones of the body. */
   readonly clothJoints?: ClothJoints;
-  /** Cloth that hangs in folds. */
   readonly draped?: boolean;
 }
 
@@ -1003,7 +941,6 @@ export interface LoftOptions {
 }
 type SkinFor = Skin | ((p: Vec, i: number, j: number) => Skin);
 
-/** Collects triangles with skin weights and turns them into one mesh. */
 export class Piece {
   pos: number[] = [];
   bones: number[] = [];
@@ -1011,11 +948,8 @@ export class Piece {
   tri: number[] = [];
   shells: Shell[] = [];
   foldBands: Array<readonly [number, ArrayLike<number>]> = [];
-  /** A shoe's chart coordinates, two per vertex, for its finished surface. */
   shoeUV: number[] | undefined = undefined;
-  /** Joints a long draped skirt describes for its lower cloth. */
   clothJoints: ClothJoints | undefined = undefined;
-  /** Cloth that hangs in folds, which a reduced model keeps a share of faces for. */
   draped = false;
   get count(): number {
     return this.pos.length / 3;
@@ -1026,7 +960,6 @@ export class Piece {
     this.weights.push(...skin[1]);
     return this.count - 1;
   }
-  /** Add a shell and close its open edges back to the skin so no underside shows. */
   shell(s: Shell, options: ShellOptions = {}): this {
     const { thickness = 0.004, close = true, flip = false } = options;
     const base = this.count;
@@ -1050,8 +983,6 @@ export class Piece {
         gap = length(sub(p, a));
       const inner =
         gap > thickness + 0.001 ? add(p, unit(sub(a, p)), thickness) : add(a, n, 0.0008);
-      // The recess ends a little way inside the opening. Under cloth that hangs well clear it ends below the skin,
-      // so the two sides of a hem over a cleft part into the body instead of crossing in the cleft.
       let deep: Vec = [0, 0, 0],
         total = 0;
       for (const j of neighbours[i] ?? [])
@@ -1070,8 +1001,6 @@ export class Piece {
         Math.min(1, Math.max(0, (gap - 0.012) / 0.02)),
       ]);
     }
-    // Under a hem that hangs well clear, the recess keeps an even line round the opening and does not follow the skin
-    // into a narrow cleft, where its two sides would face each other.
     for (let pass = 0; pass < 16; pass++) {
       const old = this.pos.slice();
       for (const [i, [, , deep, clear]] of ring) {
@@ -1099,7 +1028,6 @@ export class Piece {
     }
     return this;
   }
-  /** Add a grid of points: rings[i][j]. `closed` wraps each ring, `caps` fans the first and last ring shut. */
   loft(rings: ReadonlyArray<ReadonlyArray<Vec>>, skin: SkinFor, options: LoftOptions = {}): this {
     const { closed = true, capStart = false, capEnd = false, flip = false } = options;
     const base = this.count,
@@ -1137,10 +1065,6 @@ export class Piece {
     }
     return this;
   }
-  /**
-   * Add a sheet with thickness from two grids of points, outer[i][j] and inner[i][j],
-   * with its four edges closed. Every face is turned away from the middle of the sheet.
-   */
   slab(
     outer: ReadonlyArray<ReadonlyArray<Vec>>,
     inner: ReadonlyArray<ReadonlyArray<Vec>>,
@@ -1172,8 +1096,6 @@ export class Piece {
     const middle = (i: number, j: number) => lerp3(cell(outer, i, j), cell(inner, i, j), 0.5);
     for (let i = 0; i + 1 < rows; i++)
       for (let j = 0; j + 1 < cols; j++) {
-        // In a twisted quad the diagonal midpoint can lie outside a thin sheet.
-        // Use the middle of all four thicknesses to choose the outward winding.
         const core = lerp3(
           lerp3(middle(i, j), middle(i, j + 1), 0.5),
           lerp3(middle(i + 1, j), middle(i + 1, j + 1), 0.5),
@@ -1182,7 +1104,6 @@ export class Piece {
         quad(index(0, i, j), index(0, i, j + 1), index(0, i + 1, j + 1), index(0, i + 1, j), core);
         quad(index(1, i, j), index(1, i, j + 1), index(1, i + 1, j + 1), index(1, i + 1, j), core);
       }
-    // Edges face away from the body of the sheet; rows may end early and repeat their last point.
     const mean = (list: ReadonlyArray<Vec>): Vec => {
       const s = list.reduce<Vec>((t, p) => add(t, p), [0, 0, 0]);
       return [s[0] / list.length, s[1] / list.length, s[2] / list.length];
@@ -1225,7 +1146,6 @@ export class Piece {
   }
 }
 
-/** Convex outline of 2D points, counter-clockwise. */
 export function hull2(
   points: ReadonlyArray<readonly [number, number]>,
 ): Array<readonly [number, number]> {
@@ -1252,7 +1172,6 @@ export function hull2(
   return lower.slice(0, -1).concat(upper.slice(0, -1));
 }
 
-/** Distance from `centre` to a convex outline along a direction. */
 export function reach2(
   outline: ReadonlyArray<readonly [number, number]>,
   centre: readonly [number, number],
@@ -1276,7 +1195,6 @@ export function reach2(
   return best;
 }
 
-/** First hit of a ray on a triangle soup; returns the distance or Infinity. */
 export function raycast(
   pos: ArrayLike<number>,
   tri: ArrayLike<number>,
@@ -1304,7 +1222,6 @@ export function raycast(
   return best;
 }
 
-/** Many rays against triangles that stay where they are. */
 export function raycaster(pos: ArrayLike<number>, tri: ArrayLike<number>, cell = 0.03): Ray {
   return gridRaycaster(pos, tri, cell);
 }

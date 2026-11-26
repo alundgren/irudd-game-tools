@@ -1,6 +1,3 @@
-// The single document validator against committed valid and invalid fixtures,
-// plus the family-extension mechanism: payload schemas, upgrade codecs,
-// reference fields and capability errors.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -145,9 +142,6 @@ test("corrupt or truncated blob bytes are detected against the declaration", () 
   assert.equal(sha256Digest(atlas.bytes), atlas.digest);
 });
 
-// A family feature exercising the extension mechanism: version 2 renamed a
-// field, version 1 payloads upgrade on read, and the payload names a layer
-// target part that reference integrity checks.
 const Layer = Schema.Struct({
   target: Schema.String,
   opacity: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })),

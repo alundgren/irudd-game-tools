@@ -1,16 +1,3 @@
-// Game and Portrait detail: one material, one compact atlas and a triangle
-// budget. Ported from optimizeForGame in character-view/game-export.js, with
-// game-surface.js, game-contact.js, game-face-relief.js and the grid
-// raycaster of human-style-kit.js, at 2761eb1.
-//
-// Every source material gets a tile on a shared page sized by how much
-// surface it covers. Its colour, emission, roughness/metalness/occlusion and
-// relief are drawn into that tile through the host raster, so the atlas is
-// resampled by the browser exactly as the reference workshop's was. Meshes
-// are welded, simplified with meshoptimizer toward the budget while keeping
-// UVs, normals, colours and joint influence, and remapped into their tiles.
-// A short-range contact term in the second UV set darkens creases.
-
 import * as T from "three";
 import { mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
 import { MeshoptSimplifier, type Flags } from "meshoptimizer/simplifier";
@@ -55,7 +42,6 @@ interface Batch {
   result?: Indices;
 }
 
-/** Triangle indices as geometry stores them. */
 type Indices = Uint16Array | Uint32Array;
 
 interface UVScale {
@@ -68,7 +54,6 @@ interface Tile {
   readonly material: Std;
   weight: number;
   readonly uvScale: UVScale;
-  /** One sampled texel for the whole material, when every corner shares it. undefined: not yet seen. */
   sampleUV: readonly [number, number] | null | undefined;
   rect?: [number, number, number, number];
   uv?: [number, number, number, number];
@@ -139,8 +124,6 @@ function simplifyInputs(g: T.BufferGeometry): SimplifyInput {
       const bone = ba[4 * i + j] ?? 0;
       attr[out + 5 + j] = influence;
       if (!influence) continue;
-      // Identify which joints carry the weights. A rigid toe and a rigid
-      // shin otherwise have the same attribute vector, [1, 0, 0, 0].
       attr[out + 9] = (attr[out + 9] ?? 0) + influence * Math.sin(2.13 * bone);
       attr[out + 10] = (attr[out + 10] ?? 0) + influence * Math.cos(1.81 * bone);
       attr[out + 11] = (attr[out + 11] ?? 0) + influence * Math.sin(3.61 * bone);
@@ -175,8 +158,6 @@ function reduce(
   const target = 3 * Math.min(idx.length / 3, Math.max(12, Math.ceil((idx.length / 3) * ratio)));
   if (target >= idx.length) return idx;
   const { p, attr, stride, weights } = input;
-  // The simplifier widens 16-bit indices itself; doing it first changes only
-  // the width of the array it returns, never the triangles.
   const wide = idx instanceof Uint32Array ? idx : Uint32Array.from(idx);
   const run = (error: number, flags: Flags[]) =>
     MeshoptSimplifier.simplifyWithAttributes(
@@ -192,9 +173,6 @@ function reduce(
       flags,
     )[0];
   let result = run(0.011, ["Sparse"]);
-  // A fitted garment can have a normal seam at each source triangle.
-  // Permit seam collapses for materials that miss the target and retain
-  // UVs, surface normals and joint influence in the error metric.
   if (result.length > target * (hair ? 1.5 : 1.12)) result = run(0.035, ["Sparse", "Permissive"]);
   if (result.length > target * (hair ? 1.5 : 1.25)) result = run(0.085, ["Sparse", "Permissive"]);
   return result;
@@ -222,8 +200,6 @@ function simplify(g: T.BufferGeometry, b: Batch, ratio: number, input: SimplifyI
   );
 }
 
-// Materials without a share of their own are reduced as one surface. The
-// triangles then go where the shape needs them.
 function together(
   g: T.BufferGeometry,
   pool: ReadonlyArray<Batch>,
@@ -241,7 +217,6 @@ function together(
     const part = index.subarray(b.start, b.start + b.count);
     idx.set(part, at);
     at += b.count;
-    // A point used by two materials stays where it is, so no triangle is left spanning both.
     for (const i of part)
       if ((owner[i] ?? -1) < 0) owner[i] = k;
       else if (owner[i] !== k) shared[i] = lock[i] = 1;
@@ -293,7 +268,6 @@ function simplifyPool(
     held.push(...short);
     open = open.filter((b) => !short.includes(b));
   }
-  // What the others had no use for goes back to the materials held at their floor.
   const spare = budget - kept(pool);
   if (held.length && spare > 0.01 * budget)
     for (const b of held)
@@ -342,7 +316,6 @@ function tileBounds(
   return [x + pad, y + pad, w - 2 * pad, h - 2 * pad];
 }
 
-// A material can occur on many merged meshes. A single differing coordinate requires its full texture.
 function noteSampledUV(
   entry: Tile,
   geometry: T.BufferGeometry,
@@ -356,7 +329,6 @@ function noteSampledUV(
     const v = geometry.index ? geometry.index.getX(c) : c;
     const u = uv ? T.MathUtils.clamp(uv.getX(v), 0, 1) : defaultUV;
     const y = uv ? T.MathUtils.clamp(uv.getY(v), 0, 1) : defaultUV;
-    // Corners have an unambiguous source texel even when maps have different dimensions.
     if ((u !== 0 && u !== 1) || (y !== 0 && y !== 1)) {
       entry.sampleUV = null;
       return;
@@ -405,7 +377,6 @@ function writeTile(
   const [x, y, w, h] = rect;
   const { width, height } = tile;
   const pad = (w - width) / 2;
-  // Extrude edge texels into the gutter for bilinear filtering.
   ctx.drawImage(tile, 0, 0, 1, 1, x, y, pad, pad);
   ctx.drawImage(tile, width - 1, 0, 1, 1, x + w - pad, y, pad, pad);
   ctx.drawImage(tile, 0, height - 1, 1, 1, x, y + h - pad, pad, pad);
@@ -445,8 +416,6 @@ function fillTile(
   );
   for (let i = 0; i < pixels.data.length; i += 4) {
     for (let k = 0; k < 3; k++) pixels.data[i + k] = lut[k]?.[pixels.data[i + k] ?? 0] ?? 0;
-    // A single GLB atlas has one cutoff. Map each original material's
-    // threshold to its midpoint while keeping soft edge coverage for mipmaps.
     if (cutout) {
       const a = (pixels.data[i + 3] ?? 0) / 255;
       const threshold = material.alphaTest;
@@ -469,10 +438,6 @@ function canvasTexture(c: HTMLCanvasElement, srgb: boolean): T.CanvasTexture {
   return t;
 }
 
-// ── game-surface.js ─────────────────────────────────────────────────────────
-
-// Recover metres per unit of U and V for a material's height field. Weight
-// by UV triangle area so tiny, distorted islands do not dominate the scale.
 function measureTileScale(mesh: T.Mesh, batch: Batch, totals: UVScale): void {
   const geometry = mesh.geometry;
   const position = geometry.getAttribute("position");
@@ -531,7 +496,6 @@ function packNormals(out: Uint8ClampedArray, pixels: Uint8ClampedArray, scale: T
   }
 }
 
-// Bake the slope of the height actually sampled at this detail level; a constant height stays flat.
 function heightNormals(
   out: Uint8ClampedArray,
   heights: Uint8ClampedArray,
@@ -633,8 +597,6 @@ function fillSurface(
   }
 }
 
-// ── game-contact.js ─────────────────────────────────────────────────────────
-
 const directions = Array.from({ length: 32 }, (_, i) => {
   const y = 1 - (2 * (i + 0.5)) / 32;
   const r = Math.sqrt(1 - y * y);
@@ -663,7 +625,6 @@ interface Work {
   readonly input: SimplifyInput;
 }
 
-/** Short-range visibility in the bind pose, stored as a second UV set into the contact ramp. */
 function bakeContact(work: ReadonlyArray<Work>, size: number): void {
   const positions: number[] = [];
   const triangles: number[] = [];
@@ -707,7 +668,6 @@ function bakeContact(work: ReadonlyArray<Work>, size: number): void {
         const i = g.index?.getX(offset) ?? offset;
         if (visited[i]) continue;
         visited[i] = 1;
-        // Existing texture AO retains its full texel resolution in the atlas red.
         if (imageOf(material.aoMap)) {
           values[2 * i] = uv.getX(i);
           values[2 * i + 1] = uv.getY(i);
@@ -742,15 +702,12 @@ function bakeContact(work: ReadonlyArray<Work>, size: number): void {
   }
 }
 
-// ── the atlas page ──────────────────────────────────────────────────────────
-
 interface Page {
   readonly material: T.MeshStandardMaterial;
   dispose(): void;
 }
 
 function atlas(raster: Raster, entries: Tile[], size: number, contact: boolean): Page {
-  // Large untextured meshes only need a patch of constant colour.
   for (const entry of entries) {
     const m = entry.material;
     const maps = [
@@ -870,8 +827,6 @@ function atlas(raster: Raster, entries: Tile[], size: number, contact: boolean):
 }
 
 function canonicalizeGameAttributes(geometry: T.BufferGeometry): void {
-  // Keep authored colour and skin data available to the simplifier. Only
-  // clamp the resulting colours and clear unused joint slots in the file.
   const color = attribute(geometry, "color");
   if (color && !color.normalized) {
     const data = color.array;
@@ -994,12 +949,10 @@ export interface GameResult {
 export interface GameOptions {
   readonly raster: Raster;
   readonly triangles?: number;
-  /** Atlas edge in pixels: 1024 for Game, 2048 for Portrait. */
   readonly size?: number;
   readonly contact?: boolean;
 }
 
-/** Pack every visible mesh under `root` onto one atlas material within a triangle budget. */
 export async function optimizeForGame(root: T.Object3D, options: GameOptions): Promise<GameResult> {
   const { raster, triangles = gameTriangleTarget, size = 1024, contact = true } = options;
   await MeshoptSimplifier.ready;
@@ -1144,8 +1097,6 @@ export async function optimizeForGame(root: T.Object3D, options: GameOptions): P
         initial: batch.count / 3,
         triangles: (batch.result?.length ?? 0) / 3,
       });
-    // Human complexion faces transfer their normals and occlusion into the
-    // atlas; a traced portrait face has no face layout and needs neither.
     if (mesh.userData["faceSurface"]) {
       const normalCanvas = imageOf(page.material.normalMap);
       const occlusionCanvas = useContact ? imageOf(page.material.aoMap) : undefined;

@@ -1,10 +1,3 @@
-// The host's credentials: a person's key, new on every start, and paired
-// agents, which persist across restarts until a person revokes them.
-//
-// Pairings are read from disk on every handshake, so a revocation by any host
-// process applies to the next connection. Agent IDs bind the actor the host
-// stamps: an agent never chooses its own identity.
-
 import { Schema } from "effect";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
@@ -24,7 +17,6 @@ const PairingRow = Schema.Struct({
   agent: AgentId,
   name: Schema.optionalKey(Schema.String),
   createdAt: Schema.Number,
-  /** base64url of the derived HMAC key; the secret itself lives only in the credential file. */
   key: Schema.String,
 });
 
@@ -36,7 +28,6 @@ const PairingsFile = Schema.Struct({
 });
 type PairingsFile = typeof PairingsFile.Type;
 
-/** A pairing's ID: a hash of its derived key, so re-pairing (a new secret) gives a new ID. */
 export function pairingIdOf(key: string): string {
   return `pair-${createHash("sha256").update(`irudd.pairing\0${key}`).digest("hex").slice(0, 16)}`;
 }
@@ -66,7 +57,6 @@ export class Credentials {
       projectId: this.project.projectId,
       agents: [],
     };
-    // Pairings for a project that was replaced at the same path do not carry over.
     if (!read || !read.ok || read.value.projectId !== this.project.projectId) return empty;
     return read.value;
   }
@@ -80,7 +70,6 @@ export class Credentials {
     return row ? Buffer.from(row.key, "base64url") : undefined;
   }
 
-  /** The agent's current pairing ID, or undefined when it is not paired. */
   pairingId(agent: string): string | undefined {
     const row = this.read().agents.find((a) => a.agent === agent);
     return row ? pairingIdOf(row.key) : undefined;
@@ -99,7 +88,6 @@ export class Credentials {
     }));
   }
 
-  /** Pair (or re-pair, rotating its secret) an agent and write its credential file. */
   pair(agent: string, name: string | undefined): PairResult {
     const secret = newSecret();
     const createdAt = Date.now();
@@ -139,7 +127,6 @@ export class Credentials {
     return remaining.length !== current.agents.length;
   }
 
-  /** Forget the person's key when the host stops. */
   dispose(): void {
     fs.rmSync(this.files.humanKey, { force: true });
   }

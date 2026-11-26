@@ -1,14 +1,7 @@
-// Dressed looks the adult starter offers: the reference workshop's seeded
-// adults in clothes, hair and accessories, as frozen in its look draws
-// (.reference-cache/g0/seeded/adult-look-*.form.json at 2761eb1). Each is
-// plain style data over a seeded adult, so a person or an agent edits any of
-// it like the rest of the parameters.
-
 import type { HumanAdultParams } from "./generator.js";
 
 type HumanStyle = HumanAdultParams["style"];
 
-/** A look: the seed it dresses in work clothes and the style fields it sets. */
 export interface HumanLook {
   readonly id: string;
   readonly label: string;
@@ -16,11 +9,6 @@ export interface HumanLook {
   readonly style: HumanStyle;
 }
 
-/**
- * Seed 491's look: boots, trousers, a short-sleeved top and a buttoned
- * jacket, long centre-parted hair swept right, a teardrop pendant and upswept
- * frames.
- */
 export const look491: HumanLook = {
   id: "look-491",
   label: "Work clothes, long centre part",
@@ -90,7 +78,6 @@ export const look491: HumanLook = {
   },
 };
 
-/** Seed 8973's look: a day dress with a sash and flats, and round wire frames. */
 export const look8973: HumanLook = {
   id: "look-8973",
   label: "Day dress, round wire frames",
@@ -114,12 +101,6 @@ export const look8973: HumanLook = {
   },
 };
 
-/**
- * Seed 8950's look without its braid: the chore jacket over an undershirt,
- * work trousers with cargo pockets and work boots, with berry satin makeup.
- * The outfits and grown cuts are checked on it against G0's exports of its
- * frozen look with only the hair changed (.reference-cache/g0/derived).
- */
 export const unbraidedLook8950: HumanLook = {
   id: "look-8950-unbraided",
   label: "Chore jacket, berry satin",
@@ -142,12 +123,6 @@ export const unbraidedLook8950: HumanLook = {
   },
 };
 
-// The looks below wear the seed's own cast member (G0 wears a whole cast member in work clothes, so the
-// fields beside the cast keep what G0 froze for the moment the adult is worn as itself again). Of each
-// frozen style these hold the fields the port has: library outfits, hats, earrings, facial hair and
-// stage paint are not ported yet, and those G0 values are left out.
-
-/** Seed 1's look: the Long tunic cast member, its hem hanging from joints of its own. */
 export const look1: HumanLook = {
   id: "look-1",
   label: "Long tunic",
@@ -163,7 +138,6 @@ export const look1: HumanLook = {
   },
 };
 
-/** Seed 42's look: the Blue shirt cast member in its own clothes. */
 export const look42: HumanLook = {
   id: "look-42",
   label: "Blue shirt",
@@ -180,7 +154,6 @@ export const look42: HumanLook = {
   },
 };
 
-/** Seed 8713's look: the Blue shirt cast member with a rose stain. */
 export const look8713: HumanLook = {
   id: "look-8713",
   label: "Blue shirt, rose stain",
@@ -196,7 +169,6 @@ export const look8713: HumanLook = {
   },
 };
 
-/** Seed 9001's look: the Striped polo cast member. */
 export const look9001: HumanLook = {
   id: "look-9001",
   label: "Striped polo",
@@ -213,7 +185,6 @@ export const look9001: HumanLook = {
   },
 };
 
-/** Seed 49027675's look: the Cropped jacket cast member. */
 export const look49027675: HumanLook = {
   id: "look-49027675",
   label: "Cropped jacket",
@@ -229,7 +200,6 @@ export const look49027675: HumanLook = {
   },
 };
 
-/** Seed 3782767734's look: the Gardener cast member in a borrowed work shirt and shorts. */
 export const look3782767734: HumanLook = {
   id: "look-3782767734",
   label: "Gardener, work shirt and shorts",
@@ -247,8 +217,6 @@ export const look3782767734: HumanLook = {
   },
 };
 
-/** Every look the starter offers. */
-/** Seed 8950's look as G0 froze it: the chore jacket and berry satin makeup, the hair in a braid. */
 export const look8950: HumanLook = {
   id: "look-8950",
   label: "Chore jacket, braid",
@@ -268,7 +236,6 @@ export const humanLooks: ReadonlyArray<HumanLook> = [
   look3782767734,
 ];
 
-/** A seeded adult dressed in a look: its own style with the look's fields over it. */
 export function dressedAdult(seeded: HumanAdultParams, look: HumanLook): HumanAdultParams {
   return { ...seeded, outfit: "Work clothes", style: { ...seeded.style, ...look.style } };
 }

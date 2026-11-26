@@ -1,10 +1,3 @@
-// Run Three's GLTFExporter under Node for geometry-only presets.
-//
-// The exporter reads its packed buffers through the browser's FileReader. Node
-// has Blob but no FileReader, so this verification-only module provides the
-// two read methods the exporter calls. Textured presets need a canvas and run
-// in the browser instead.
-
 class NodeFileReader {
   result: ArrayBuffer | string | null = null;
   onloadend: (() => void) | null = null;

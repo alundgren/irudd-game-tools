@@ -1,11 +1,3 @@
-// A prepared view of a turnaround sheet, measured from its pixels. Ported
-// from preparePanel in character-view/turnaround.js at 2761eb1. Free of
-// three.js, so a host process measures panels with the raster it has.
-//
-// Dilation supplies the nearest foreground colour outside thin silhouettes.
-// It keeps the chroma key out of texture filtering at the edge of a claw.
-
-/** One prepared view of a sheet: 640 px square, key removed and dilated. */
 export interface Panel {
   readonly size: number;
   readonly pixels: Uint8ClampedArray<ArrayBuffer>;
@@ -15,11 +7,6 @@ export interface Panel {
   readonly span: number;
 }
 
-/**
- * A view panel from the pixels of one sheet quadrant drawn into a `size`
- * square canvas: the subject's mask, its centre, feet and span. The pixels
- * are dilated in place.
- */
 export function panelFromPixels(pixels: Uint8ClampedArray<ArrayBuffer>, size: number): Panel {
   if (pixels.length !== size * size * 4) throw new Error("A panel needs size × size RGBA pixels.");
   const px = (i: number) => pixels[i] ?? 0;
@@ -41,7 +28,6 @@ export function panelFromPixels(pixels: Uint8ClampedArray<ArrayBuffer>, size: nu
   }
   for (let i = 2 * size + 2; i < mask.length - 2 * size - 2; i++) {
     if (!subject[i]) continue;
-    // Exclude antialiased key-colour spill before extending surface colours.
     if (!subject[i - 2] || !subject[i + 2] || !subject[i - size * 2] || !subject[i + size * 2])
       continue;
     mask[i] = 1;
@@ -56,8 +42,6 @@ export function panelFromPixels(pixels: Uint8ClampedArray<ArrayBuffer>, size: nu
   if (maxY - minY < size * 0.15 || maxX - minX < size * 0.04)
     throw new Error("Each view needs a visible subject on magenta or transparency.");
   const filled = mask.slice();
-  // Fine hair resamples saturated key pixels into pastel fringe colours.
-  // Extend clean neighbours through that narrow fringe without changing its silhouette.
   let clean = 0;
   for (let j = 0; j < tail; j++) {
     const i = queue[j] ?? 0;

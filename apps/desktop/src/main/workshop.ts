@@ -1,10 +1,3 @@
-// The desktop's link to a project: the shared workshop host, in-process when
-// this process owns the project, or a client of the process that does.
-//
-// This adapter is the only place desktop main touches the project service.
-// It never opens SQLite itself, so a window, the CLI and MCP share one owner,
-// one registry, one write path and one stream of commit events.
-
 import { Schema } from "effect";
 import type { Registry } from "@irudd/document";
 import { attachOrHost, loadForms, type StarterDefinition } from "@irudd/workshop/host";
@@ -22,7 +15,6 @@ import { registerInProcess, serveAttached } from "./review-link.js";
 import type { ReviewWorker } from "./review.js";
 import { desktopArtTranslators, shippedArtwork, type ArtRaster } from "./art.js";
 
-/** Both the in-process host and an attached client answer the same verbs. */
 interface Verbs {
   call<M extends MethodName>(method: M, params: MethodParams[M]): Promise<MethodResults[M]>;
 }
@@ -31,15 +23,9 @@ export interface WorkshopLink {
   readonly mode: "host" | "attached";
   readonly directory: string;
   readonly label: string;
-  /** Validate the window's parameters and call the method as the person. */
   call(method: WindowMethod, params: unknown): Promise<CallOutcome>;
   onCommit(listener: (notice: CommitNotice) => void): () => void;
-  /** Steering messages changing state: queued, host accepted, acknowledged, applied, and so on. */
   onSteer(listener: (notice: SteerNotice) => void): () => void;
-  /**
-   * Save or open a character file at a path main chose from a dialog. The
-   * same host method the CLI calls; it throws `WorkshopError` on failure.
-   */
   characterFile<M extends "document.save" | "document.open">(
     method: M,
     params: MethodParams[M],
@@ -55,8 +41,6 @@ function refuse(method: string): Promise<never> {
 
 const is = Schema.is;
 
-// One entry per window method: the parameters are checked against the wire
-// schema before they reach the host, which checks them again.
 const routes: {
   readonly [M in WindowMethod]: (verbs: Verbs, params: unknown) => Promise<unknown>;
 } = {
@@ -155,17 +139,11 @@ function notice(event: CommitEvent): CommitNotice {
 
 export interface LinkOptions {
   readonly directory: string;
-  /** Create the project with this label when the directory holds none. */
   readonly create?: { readonly label: string; readonly inMemory?: boolean };
-  /** Directory of prepared form documents the host offers as starters. */
   readonly forms?: string;
-  /** The features and generators a hosted project reads documents with. */
   readonly registry?: Registry;
-  /** The starters a hosted project offers, beside its prepared forms. */
   readonly starters?: ReadonlyArray<StarterDefinition>;
-  /** The isolated review worker this window offers the project as its renderer. */
   readonly review?: ReviewWorker;
-  /** The raster the art fits draw with; the review worker's when absent. */
   readonly raster?: ArtRaster;
   readonly log?: (line: string) => void;
 }
@@ -182,7 +160,6 @@ export async function openWorkshop(options: LinkOptions): Promise<WorkshopLink> 
     shippedArtwork,
     ...(options.registry ? { registry: options.registry } : {}),
     ...(options.starters ? { starters: options.starters } : {}),
-    // The installed launcher names its own CLI, so steering tells agents a command that exists.
     ...(process.env["IRUDD_AGENT_COMMAND"]
       ? { agentCommand: process.env["IRUDD_AGENT_COMMAND"] }
       : {}),
@@ -209,7 +186,6 @@ export async function openWorkshop(options: LinkOptions): Promise<WorkshopLink> 
     verbs = host;
     const off = host.onCommit(emit);
     const offSteer = host.onSteer(emitSteer);
-    // The worker starts beside the window: opening the project never waits for it.
     let closed = false;
     let offReview = (): void => undefined;
     if (options.review)
@@ -227,7 +203,6 @@ export async function openWorkshop(options: LinkOptions): Promise<WorkshopLink> 
   } else {
     const client = attached.client;
     verbs = client;
-    // Inbox events are for agent connections; a window only shows commits and steering states.
     const off = client.onEvent((event) => {
       if (event.event === "commit") emit(event);
       else if (event.event === "steer") emitSteer(event);

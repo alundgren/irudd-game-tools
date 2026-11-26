@@ -1,14 +1,3 @@
-// Disposable fixtures for the static check.
-//
-//   node tools/static/fixtures.ts [--keep]
-//
-// Builds a miniature of the planned workspace in the OS temp directory, links this repository's
-// node_modules, proves the clean fixture passes, then applies one deliberate violation at a time.
-// Each violation must fail with the named step's diagnostic and a nonzero exit, and the same
-// fixture must pass again once the violation is removed. Every check run must leave the fixture
-// tree unchanged, which proves the check is read-only even when a tsconfig asks for output.
-// Fixtures live outside the repository because Oxlint and Oxfmt honour the repository's .gitignore.
-
 import { spawn } from "node:child_process";
 import {
   existsSync,
@@ -33,11 +22,9 @@ const vp = join(repo, "node_modules/vite-plus/bin/vp");
 const base = join(tmpdir(), `irudd-static-fixtures-${process.pid}`);
 const keep = process.argv.includes("--keep");
 
-// Built so the escape scanner in check.ts does not treat this file's text as a directive.
 const disable = ["oxlint", "disable-next-line"].join("-");
 const disableFile = ["oxlint", "disable"].join("-");
 
-// A compiler that answers --showConfig truthfully and then fails without printing anything.
 const silentTsc = join(base, "silent-tsc.mjs");
 const silentTscSource = `import { spawnSync } from "node:child_process";
 const args = process.argv.slice(2);
@@ -152,9 +139,7 @@ interface Scenario {
   readonly name: string;
   readonly files: Files;
   readonly expect: { readonly step: string; readonly pattern: RegExp };
-  /** Extra check arguments for the violating run only. */
   readonly args?: readonly string[];
-  /** Fixture paths linked to repository directories, such as a package's node_modules. */
   readonly links?: Readonly<Record<string, string>>;
 }
 
@@ -493,7 +478,6 @@ const scenarios: readonly Scenario[] = [
       pattern: /libReplacement is outside the read-only compiler option policy/,
     },
   },
-  // Effective compiler options.
   {
     name: "noImplicitAny false under strict",
     files: {
@@ -538,7 +522,6 @@ const scenarios: readonly Scenario[] = [
     args: ["--tsc", silentTsc],
     expect: { step: "types", pattern: /tsc exited 2 without a readable diagnostic/ },
   },
-  // JavaScript.
   {
     name: "allowJs with a JavaScript entry",
     files: {
@@ -594,7 +577,6 @@ const scenarios: readonly Scenario[] = [
       pattern: /packages\/workshop\/src\/loader\.mjs is JavaScript outside every tsconfig program/,
     },
   },
-  // Ambient declarations and libraries in the pure document program.
   {
     name: "first-party declaration file in document",
     files: {
@@ -631,7 +613,6 @@ const scenarios: readonly Scenario[] = [
     files: { "packages/document/src/index.ts": `/// <reference lib="dom" />\n${docIndex}` },
     expect: { step: "types", pattern: /lib "dom" leaks into the program/ },
   },
-  // Values typed any.
   {
     name: "JSON.parse result used without narrowing",
     files: {
@@ -646,7 +627,6 @@ const scenarios: readonly Scenario[] = [
     },
     expect: { step: "lint", pattern: /no-unsafe-member-access/ },
   },
-  // Module loading that bypasses import statements.
   {
     name: "getBuiltinModule outside a named adapter",
     files: {
@@ -679,7 +659,6 @@ const scenarios: readonly Scenario[] = [
       pattern: /document-only-effect: packages\/document\/src\/index\.ts → .*effect\/dist\/http\//,
     },
   },
-  // Coverage of lint and format.
   {
     name: "package gitignore hides a source",
     files: {
@@ -712,7 +691,6 @@ const scenarios: readonly Scenario[] = [
       pattern: /packages\/document\/\.oxlintrc\.json: package-local lint, format or ignore/,
     },
   },
-  // Suppressions.
   {
     name: "escape names two rules",
     files: {
@@ -739,7 +717,6 @@ const scenarios: readonly Scenario[] = [
   },
 ];
 
-// Scenarios that must pass: legitimate code next to the rules above.
 const passing: readonly Scenario[] = [
   {
     name: "declared dependencies bring in their own workspace dependencies",
@@ -765,7 +742,6 @@ const passing: readonly Scenario[] = [
   },
 ];
 
-// The exact edge from "client imports the storage writer" with its scoped exception passes.
 const scopedException: Scenario = {
   name: "exact scoped exception",
   files: {
@@ -783,8 +759,6 @@ const scopedException: Scenario = {
   expect: { step: "", pattern: /^$/ },
 };
 
-// ---------------------------------------------------------------------------------------------
-
 const linkPaths = [
   "node_modules",
   ...new Set(scenarios.concat(passing).flatMap((scenario) => Object.keys(scenario.links ?? {}))),
@@ -798,7 +772,6 @@ function isLink(path: string): boolean {
   }
 }
 
-/** Removes fixtures without ever recursing through a linked repository directory. */
 function removeFixtures(): void {
   if (!existsSync(base)) return;
   for (const name of readdirSync(base)) {
@@ -810,7 +783,6 @@ function removeFixtures(): void {
   rmSync(base, { recursive: true, force: true });
 }
 
-/** Every file in a fixture with its size and modification time, skipping linked dependencies. */
 function snapshot(root: string, dir = root, out = new Map<string, string>()): Map<string, string> {
   for (const name of readdirSync(dir)) {
     const path = join(dir, name);
@@ -835,7 +807,6 @@ interface Outcome {
   readonly findings: readonly { readonly step: string; readonly message: string }[];
   readonly ms: number;
   readonly output: string;
-  /** Fixture files the check created, changed or removed. */
   readonly wrote: readonly string[];
 }
 
@@ -894,7 +865,6 @@ async function fresh(name: string, links: Readonly<Record<string, string>> = {})
     mkdirSync(dirname(join(root, path)), { recursive: true });
     symlinkSync(target, join(root, path), "junction");
   }
-  // Normalise the clean sources with the same formatter the check uses.
   await node([vp, "fmt", "."], root);
   return root;
 }
@@ -926,7 +896,6 @@ async function main(): Promise<number> {
     if (outcome.wrote.length > 0) report(false, `${name}: check wrote ${outcome.wrote.join(", ")}`);
   };
 
-  // These build-contract probes parse source only. They need neither Electron nor a GPU.
   const desktopRoot = join(base, "electron-contract");
   const mainEntry = "apps/desktop/src/main/main.ts";
   const preloadEntry = "apps/desktop/src/preload/preload.ts";

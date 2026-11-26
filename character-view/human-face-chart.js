@@ -1,7 +1,3 @@
-// A chart of the face paint: where every pixel of the painted face rectangle lies on the
-// adult head, in millimetres. Marks are placed and sized on the face itself, so a round spot
-// stays round where the texture layout stretches, and the lips and eyes are left out exactly.
-// The chart is measured once on the neutral adult and needs no image and no document.
 import browLayout from "./human-brow-paint.json" with {type:"json"};
 import { unzlibSync } from "three/addons/libs/fflate.module.js";
 import data from "./human-complexion-data.json" with { type: "json" };
@@ -9,7 +5,6 @@ import { evaluateHuman, smoothHumanSurface } from "./human-surface.js";
 
 const layout = 2048,
   [left, top, right, bottom] = data.rect;
-/** Size of the stored face rectangle. The paint is drawn at `chartDensity` times this. */
 export const chartWidth = right - left,
   chartHeight = bottom - top,
   chartDensity = 2;
@@ -28,7 +23,6 @@ function unpack(text) {
   );
 }
 
-// Distance in pixels to the nearest marked pixel, by two chamfer passes.
 function distanceFrom(marked) {
   const far = 1e6,
     d = new Float32Array(W * H);
@@ -54,17 +48,6 @@ function distanceFrom(marked) {
 }
 
 let charted;
-/**
- * The chart, built on first use. Arrays hold one value per pixel of the stored rectangle:
- * - `x`, `y`, `z`: millimetres from the point between the eyes; +x is the wearer's left, +y up.
- * - `nx`, `ny`, `nz`: the surface normal.
- * - `area`: square millimetres of skin under the pixel.
- * - `skin`: 1 where paint may go, fading to 0 at the border of the rectangle and of the face.
- * - `lip`, `lid`: the lips with the mouth opening, and the mobile eyelids, 0 to 1.
- * - `eye`: pixels from the eye opening; negative inside it.
- * - `wet`: the eye opening with the rim of each lid that faces the eye, 0 to 1 with a soft edge.
- * `unit` is the distance between the eyes and `points` holds measured landmarks.
- */
 export function faceChart() {
   if (charted) return charted;
   const s = smoothHumanSurface(evaluateHuman({}));
@@ -113,7 +96,6 @@ export function faceChart() {
         lid[at] = w0 * Q[4] + w1 * Q[9] + w2 * Q[14];
       }
   }
-  // A position anywhere on the rectangle, from the nearest covered pixels.
   const near = (px, py) => {
     const fx = Math.min(W - 1.001, Math.max(0, px - 0.5)),
       fy = Math.min(H - 1.001, Math.max(0, py - 0.5)),
@@ -136,7 +118,6 @@ export function faceChart() {
       out[2] += w * z[at];
     }
     if (total < 1e-6) {
-      // Inside an opening: take the closest covered pixel.
       let best = Infinity;
       for (let dj = -6; dj <= 6; dj++)
         for (let di = -6; di <= 6; di++) {
@@ -156,7 +137,6 @@ export function faceChart() {
     return out.map((v) => v / total);
   };
 
-  // The lid margins are stored as lines in the rectangle: upper left, upper right, lower left, lower right.
   const lines = data.lids.map((line) => {
     const p = unpack(line.points),
       points = [];
@@ -180,10 +160,8 @@ export function faceChart() {
     y[i] = (y[i] - eyeY) * 1000;
     z[i] *= 1000;
   }
-  // From here on positions are in millimetres.
   const spot = near;
 
-  // Normals and the skin under each pixel, from neighbouring pixels.
   const nx = new Float32Array(n),
     ny = new Float32Array(n),
     nz = new Float32Array(n).fill(1),
@@ -204,15 +182,12 @@ export function faceChart() {
       const size = Math.hypot(cx, cy, cz);
       area[at] = size;
       if (size < 1e-9) continue;
-      // The face looks along +z.
       if (cz < 0) (cx = -cx), (cy = -cy), (cz = -cz);
       nx[at] = cx / size;
       ny[at] = cy / size;
       nz[at] = cz / size;
     }
 
-  // Paint may go where the head is charted, away from the border of the rectangle (texture
-  // coordinates beyond it read the border) and from the outer edge of the charted skin.
   const outside = new Uint8Array(n),
     stack = [];
   const push = (i) => {
@@ -233,7 +208,6 @@ export function faceChart() {
   }
   const shore = distanceFrom(outside),
     skin = new Float32Array(n);
-  // The lining of the mouth is painted as a dark square in an empty corner. Keep clear of it.
   const [patchX, patchY, patchHalf] = data.mouth.patch,
     keep = patchHalf + 10;
   for (let j = 0; j < H; j++)
@@ -244,11 +218,9 @@ export function faceChart() {
       skin[at] = smooth(Math.min(i, j, W - 1 - i, H - 1 - j), 4, 16) * smooth(shore[at], 2, 9);
     }
 
-  // The eye openings: the area between the upper and lower lid margins.
   const eye = new Float32Array(n).fill(1e3);
   for (const { upper, lower } of eyes) {
     const ring = [...upper, ...[...lower].reverse()];
-    // Both lines run the same way along the eye. Turn one if they do not.
     const closed =
       Math.hypot(upper[0][0] - lower[0][0], upper[0][1] - lower[0][1]) <
       Math.hypot(upper[0][0] - lower.at(-1)[0], upper[0][1] - lower.at(-1)[1])
@@ -277,9 +249,6 @@ export function faceChart() {
       }
   }
 
-  // The stored lid margins lie on the rim of the lid that faces the eye, a few millimetres
-  // behind the edge seen from the front. The rim is the skin beside the opening that does
-  // not face forward.
   const rim = new Float32Array(n),
     wet = new Float32Array(n);
   for (let at = 0; at < n; at++) if (eye[at] < 0 || (eye[at] < 11 && hit[at] && (nz[at] < 0.55 || area[at] === 0))) rim[at] = 1;
@@ -292,7 +261,6 @@ export function faceChart() {
       wet[at] = Math.max(rim[at], sum / 9);
     }
 
-  // Landmarks, as [across, up] in millimetres. The first eye is the wearer's left.
   const leftFirst = centres[0][0] > centres[1][0] ? [0, 1] : [1, 0];
   const sides = leftFirst.map((k) => {
     const { upper, lower } = eyes[k],
@@ -302,7 +270,6 @@ export function faceChart() {
       centre: [centres[k][0] * 1000, (centres[k][1] - eyeY) * 1000],
       outer: (outerFirst ? ends[0] : ends[1]).slice(0, 2),
       inner: (outerFirst ? ends[1] : ends[0]).slice(0, 2),
-      // Lid margins from the inner corner to the outer one, in rectangle pixels.
       upper: outerFirst ? [...upper].reverse() : upper,
       lower: (Math.abs(spot(...lower[0])[0]) > Math.abs(spot(...lower.at(-1))[0])) ? [...lower].reverse() : lower,
     };
@@ -326,7 +293,6 @@ export function faceChart() {
     }
     if (Math.abs(x[i]) < 3 && y[i] < -0.2 * unit && y[i] > -1.2 * unit && z[i] > noseTip[2]) noseTip = [x[i], y[i], z[i]];
   }
-  // Brow lines: where the stored brow strokes lie, per side, from the inner end outwards.
   const strokes = unpack(data.brows.eyebrow001),
     bins = [[], []];
   for (let i = 0; i < strokes.length; i += 6) {
@@ -339,8 +305,6 @@ export function faceChart() {
   const brows = bins.map((slots) =>
     slots.filter(Boolean).map((list) => [0, 1].map((k) => list.reduce((sum, p) => sum + p[k], 0) / list.length)),
   );
-  // Carry positions a few pixels into the openings, so values read between pixels at a lid
-  // margin are those of the skin beside it.
   const known = Uint8Array.from(hit);
   for (let round = 0; round < 4; round++) {
     const found = [];
@@ -368,7 +332,6 @@ export function faceChart() {
   return charted;
 }
 
-/** Where each stored brow stroke is rooted, as x and y pairs in pixels of the stored rectangle. */
 export function browRoots(name = "eyebrow001") {
   const strokes = unpack(browLayout[name]?.strokes ?? data.brows[name] ?? data.brows.eyebrow001),
     roots = new Float32Array(strokes.length / 3);
@@ -380,7 +343,6 @@ export function browRoots(name = "eyebrow001") {
 }
 
 const browMasks = new Map();
-/** How much brow hair is painted over each pixel of the stored rectangle, 0 to 1. */
 export function browCover(name = "eyebrow001") {
   if (!browLayout[name]?.strokes && !data.brows[name]) name = "eyebrow001";
   if (browMasks.has(name)) return browMasks.get(name);
@@ -388,7 +350,6 @@ export function browCover(name = "eyebrow001") {
     strokes = unpack(browLayout[name]?.strokes ?? data.brows[name]);
   for (let i = 0; i < strokes.length; i += 6)
     for (let t = 0; t <= 1; t += 0.125) {
-      // The strokes are curves through three points.
       const a = (1 - t) * (1 - 2 * t),
         b = 4 * t * (1 - t),
         c = t * (2 * t - 1),
@@ -407,7 +368,6 @@ export function browCover(name = "eyebrow001") {
   return mask;
 }
 
-/** The point of the face under a position in the stored rectangle, as [x, y, z] in millimetres. */
 export function chartPoint(px, py) {
   const c = faceChart(),
     fx = Math.min(W - 1.001, Math.max(0, px - 0.5)),
@@ -421,7 +381,6 @@ export function chartPoint(px, py) {
     (f) => (f[at] * (1 - a) + f[at + 1] * a) * (1 - b) + (f[at + W] * (1 - a) + f[at + W + 1] * a) * b,
   );
 }
-/** The pixel of the stored rectangle that shows a point of the face given as seen from the front, in millimetres. */
 export function chartPixel(mx, my) {
   const c = faceChart();
   let best = Infinity,

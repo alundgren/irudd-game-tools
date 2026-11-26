@@ -64,8 +64,6 @@ def eyes(root):
     uv = p["tex"][p["uv"].reshape(-1, 3)].mean(1)
     x = np.clip((uv[:, 0] * alpha.shape[1]).astype(int), 0, alpha.shape[1] - 1)
     y = np.clip(((1 - uv[:, 1]) * alpha.shape[0]).astype(int), 0, alpha.shape[0] - 1)
-    # The source eye is an opaque ball with a recessed iris inside a clear shell. The
-    # shell carries the cornea dome, so it becomes the single opaque surface here.
     shell = tri[alpha[y, x] < 32]
     used = np.unique(shell)
     planar = np.full((len(points), 2), 0.5)
@@ -74,7 +72,6 @@ def eyes(root):
         box = points[ids]
         middle = (box.min(0) + box.max(0)) / 2
         radius = (box[:, :2].max(0) - box[:, :2].min(0)).max() / 2
-        # Front projection: the iris sits at the centre and 1 is the ball's outline.
         planar[ids] = 0.5 + (box[:, :2] - middle[:2]) / (2 * radius)
     renumber = np.full(len(points), -1)
     renumber[used] = np.arange(len(used))
@@ -89,12 +86,10 @@ def trace(image, spacing, max_width, min_length, seed, max_length=400, hairs=Fal
     rgba = np.asarray(image.convert("RGBA"), float) / 255
     alpha = rgba[..., 3]
     soft = ndimage.gaussian_filter(alpha, 1.1)
-    # Inside a dense brow the single hairs only show as darker lines in the paint.
     ink = ndimage.gaussian_filter(alpha * (1 - rgba[..., :3].mean(-1)), 0.8) if hairs else soft
     gy, gx = np.gradient(ink)
     blur = 2.0 if hairs else 3.2
     tensor = [ndimage.gaussian_filter(v, blur) for v in (gx * gx, gx * gy, gy * gy)]
-    # Strokes run across the dominant gradient.
     angle = 0.5 * np.arctan2(2 * tensor[1], tensor[0] - tensor[2]) + np.pi / 2
     field = np.stack([np.cos(angle), np.sin(angle)], -1)
     mask = soft > 0.3
@@ -108,7 +103,6 @@ def trace(image, spacing, max_width, min_length, seed, max_length=400, hairs=Fal
     order = order[np.argsort(rank)]
     outward = None
     if hairs:
-        # Brow hairs lean from the thick inner end toward the thin tail.
         labels, count = ndimage.label(mask)
         outward = np.zeros((count + 1, 2))
         for k in range(1, count + 1):
@@ -128,7 +122,6 @@ def trace(image, spacing, max_width, min_length, seed, max_length=400, hairs=Fal
             v = sample(field, p)
             if v @ d < 0:
                 v = -v
-            # A sharp turn means the walk has crossed into a neighbouring stroke.
             if v @ d < 0.93:
                 break
             d = v
@@ -160,7 +153,6 @@ def trace(image, spacing, max_width, min_length, seed, max_length=400, hairs=Fal
             continue
         line = np.array(line)
         widths = np.array([min(max_width, max(0.5, sample(depth, p))) for p in line])
-        # Lashes start at their thicker end.
         third = max(1, len(line) // 3)
         if not hairs and widths[:third].mean() < widths[-third:].mean():
             line, widths = line[::-1], widths[::-1]
@@ -225,7 +217,6 @@ def strands(root, folder, name, spacing, max_width, min_length, points_per_stran
     pixels, faces, along, roots = ribbons(traced, points_per_strand, np.random.default_rng(seed))
     uv = np.column_stack([pixels[:, 0] / size, 1 - pixels[:, 1] / size])
     hits = locate(card, uv)
-    # Mirrored islands may share texture space. Emit a copy for each island under the stroke.
     parents, blend, index, t, base, tri_out = [], [], {}, [], [], []
     islands = card_islands(card)
     per_strand = 2 * (points_per_strand - 2) + 1
@@ -237,7 +228,6 @@ def strands(root, folder, name, spacing, max_width, min_length, points_per_stran
             for tri, w in hits[corner]:
                 options.setdefault(islands[tri[0]], {})[corner] = (tri, w)
         for island, found in options.items():
-            # Keep whole strands only, so every strand has the same vertex layout.
             if len(found) < len(corners):
                 continue
             for corner in corners:
@@ -282,7 +272,6 @@ def card_rows(card, members):
             uv_of[face[k]] = card["tex"][face_uv[k]]
             edge = tuple(sorted((face[k], face[(k + 1) % 3])))
             uses[edge] = uses.get(edge, 0) + 1
-    # Quads arrive as triangle pairs. The shared diagonal is used twice, like inner edges.
     border = [e for e, n in uses.items() if n == 1]
     links = {}
     for a, b in border:
@@ -342,13 +331,11 @@ def lashes(root, per_centimetre=19, seed=7):
     for island in sorted(set(islands)):
         members = set(np.nonzero(islands == island)[0])
         rows = card_rows(card, members)
-        # Painted lashes are thickest where they leave the lid.
         ink = [np.mean([sample(depth, pixel(along_line(a, f)) * 0.88 + pixel(along_line(b, f)) * 0.12)
                         for f in np.linspace(0.05, 0.95, 60)]) for a, b in (rows, rows[::-1])]
         lid, tips = (rows[0], rows[1]) if ink[0] > ink[1] else (rows[1], rows[0])
         sub = dict(card, corners=card["corners"].reshape(-1, 3)[[c in members for c in card["corners"][::3]]].ravel(),
                    uv=card["uv"].reshape(-1, 3)[[c in members for c in card["corners"][::3]]].ravel())
-        # How far the painted row reaches from the lid edge toward the free edge.
         stations = np.linspace(0, 1, 48)
         reach = []
         for f in stations:
@@ -357,10 +344,8 @@ def lashes(root, per_centimetre=19, seed=7):
             reach.append(max(inked) if inked else 0)
         reach = ndimage.gaussian_filter1d(np.array(reach), 1.5, mode="nearest")
         lid_points = card["points"][list(members)]
-        width = np.ptp(lid_points[:, 0]) * 10  # decimetres in the source
+        width = np.ptp(lid_points[:, 0]) * 10
         count = int(round(width * per_centimetre))
-        # The card runs on past the inner eye corner, where it leaves the lid. Find which
-        # end is the outer one, then start the row clear of the tear duct and taper both ends.
         def side(f):
             q = pixel(along_line(lid, f)) * 0.9 + pixel(along_line(tips, f)) * 0.1
             hit = locate(sub, np.array([[q[0] / size, 1 - q[1] / size]]))[0]
@@ -382,7 +367,6 @@ def lashes(root, per_centimetre=19, seed=7):
                 v = sample(field, p)
                 if v @ d < 0:
                     v = -v
-                # Stay with the row's own fan and ignore crossings in the paint.
                 d = d * 0.82 + v * 0.18 if v @ d > 0.5 else d
                 d /= np.linalg.norm(d)
                 p = p + d

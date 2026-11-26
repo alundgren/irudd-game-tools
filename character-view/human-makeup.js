@@ -7,8 +7,6 @@ const W = chartWidth,
   H = chartHeight,
   D = chartDensity;
 
-// Natural pigment at the root remains visible between pale or silver tips.
-// Desaturating the scalp colour also works on dyed hair.
 export function browPigment(hair, skin, age = 0, makeup) {
   const light = (c) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
   const powdered = Boolean(stageDesigns[makeup]);
@@ -20,25 +18,16 @@ export function browPigment(hair, skin, age = 0, makeup) {
   return root;
 }
 
-// Everyday + theatrical stage makeup palettes. Everyday looks keep their original subtle
-// multiplicative stains; stage looks add a millimetre-accurate graphic pass (`stageMakeupFace`)
-// on top of the painted face canvas so wing geometry, cut-crease luminance contrast, inner-corner
-// pearl shimmer, sculpted lip contour and draped cheek colour stay crisp at 300px and 128px
-// across fair, deep and fantasy skin tones.
 const palettes = {
   "Rose stain": { lip: [0.98, 0.68, 0.77], shadow: [0.89, 0.79, 0.80], cheek: [1, 0.89, 0.93], strength: 0.70, roughness: 0.5 },
   "Burnished copper": { lip: [0.92, 0.55, 0.38], shadow: [0.85, 0.61, 0.43], cheek: [0.99, 0.83, 0.75], strength: 0.82, roughness: 0.47 },
   "Berry satin": { lip: [0.84, 0.32, 0.53], shadow: [0.73, 0.55, 0.75], cheek: [0.97, 0.78, 0.88], strength: 0.90, roughness: 0.45 },
   "Plum stage": { lip: [0.75, 0.22, 0.43], shadow: [0.53, 0.38, 0.68], cheek: [0.95, 0.70, 0.88], strength: 1, roughness: 0.42, stage: true },
   "Smoked charcoal": { lip: [0.88, 0.70, 0.71], shadow: [0.36, 0.37, 0.41], cheek: [0.96, 0.90, 0.88], strength: 0.91, roughness: 0.48, stage: true },
-  // Opt-in artist theatrical choices (excluded from `drawnMakeupStyles` so random draws keep their schedule).
   "Gilded nocturne": { lip: [0.78, 0.26, 0.22], shadow: [0.46, 0.36, 0.30], cheek: [0.95, 0.76, 0.66], strength: 0.98, roughness: 0.44, stage: true },
   "Crimson aria": { lip: [0.84, 0.14, 0.22], shadow: [0.44, 0.24, 0.30], cheek: [0.96, 0.72, 0.78], strength: 1, roughness: 0.40, stage: true },
 };
 
-// Graphic theatrical stage designs painted in millimetre space on `faceChart()`.
-// Colours are sRGB hex strings converted to linear light at paint time so luminous lid shimmer
-// and inner-corner pearl stay legible on deep and fantasy skin as well as fair skin.
 const stageDesigns = {
   "Plum stage": {
     wing: "#3a1250",
@@ -142,7 +131,6 @@ const stageDesigns = {
   },
 };
 
-// The original five drawn styles keep every random seed's draw schedule unchanged.
 export const drawnMakeupStyles = ["Rose stain", "Burnished copper", "Berry satin", "Plum stage", "Smoked charcoal"];
 export const stageMakeupStyles = Object.keys(stageDesigns);
 export const makeupStyles = ["None", ...Object.keys(palettes)];
@@ -151,9 +139,6 @@ export const makeupPalette = (name) => (Object.hasOwn(palettes, name) ? palettes
 export function mixMakeup(channels, palette, lips, lids, socket, blush, mask) {
   const opacity = mask * palette.strength;
   const lip = Math.min(1, lips * 1.22) * opacity;
-  // Stage palettes get their deliberate graphic eye wing, cut-crease and temple drape in
-  // `stageMakeupFace`; keep the broad multiplicative socket/cheek wash restrained here so
-  // under-eyes stay clean rather than bruising into dark rings.
   const lid = Math.min(1, (palette.stage ? lids * 0.22 + socket * socket * 0.08 : lids * 0.98 + socket * socket * 0.36)) * opacity;
   const cheek = Math.min(1, blush * blush * (palette.stage ? 0.16 : 0.84)) * opacity;
   for (let i = 0; i < 3; i++) {
@@ -161,7 +146,6 @@ export function mixMakeup(channels, palette, lips, lids, socket, blush, mask) {
   }
 }
 
-// Colour and geometry helpers (aligned with human-face-marks.js linear encoding & headroom).
 const decode = Float32Array.from({ length: 256 }, (_, i) => {
   const v = i / 255;
   return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
@@ -245,7 +229,6 @@ function hairCover(name) {
   return facialCovers.get(name);
 }
 
-// Precompute per-eye geometric landmarks (upper/lower margins in mm) once on `faceChart()`.
 let eyeGuides = null;
 function guidesOf(c) {
   if (eyeGuides) return eyeGuides;
@@ -284,12 +267,6 @@ function guidesOf(c) {
   return eyeGuides;
 }
 
-/**
- * Paint theatrical graphic stage makeup directly onto a face texture pixel buffer (`W*D x H*D`).
- * Pure pixel-array function (runs cleanly in Node without DOM for deterministic testing).
- * Preserves bare-skin border bytes exactly by rescaling headroom `base` on an exact byte ratio
- * whenever luminous lid shimmer or pearl accents exceed the starting head headroom.
- */
 export function paintStageMakeup(target, styleName, look) {
   const design = stageDesigns[styleName];
   if (!design) return { base: look.base ?? look.skin, changed: new Set() };
@@ -306,8 +283,6 @@ export function paintStageMakeup(target, styleName, look) {
   const beard = hairCover(look.facialHair);
   const guides = guidesOf(c);
 
-  // Skin-harmonized linear targets: deep shades stay richly chromatic on dark skin without
-  // washing out; luminous shimmer/pearl stays vivid on deep skin without chalky clipping.
   const pearlGain = mix(0.66, 1.0, fair);
   const lidGain = mix(0.84, 1.0, fair);
   const tones = {
@@ -323,7 +298,6 @@ export function paintStageMakeup(target, styleName, look) {
     drape: hexLinear(design.drape).map((v, k) => mix(v * 0.72, v, fair) * 0.85 + skin[k] * 0.15),
   };
 
-  // Raise material base headroom on an exact byte ratio if any luminous highlight exceeds startBase.
   const peakTarget = [0, 1, 2].map((k) =>
     Math.max(
       startBase[k],
@@ -362,7 +336,6 @@ export function paintStageMakeup(target, styleName, look) {
     }
   };
 
-  // 1. Eye & temple graphic architecture (both sides, strictly outside wet eye margin & brows).
   const near = {};
   for (const g of guides) {
     const { sign, eye, upper, lower, innerAx, outerAx, sampleY, browY } = g;
@@ -371,18 +344,15 @@ export function paintStageMakeup(target, styleName, look) {
     const [ix, iy] = eye.inner;
     const tipX = outerAx + design.wingReach;
     const tipY = oy + design.wingLift;
-    // Lower wing diagonal unit direction (from outer eye corner up-outward to wing tip).
     const wdx = tipX - outerAx,
       wdy = tipY - oy,
       wLen = Math.hypot(wdx, wdy) || 1;
     const wux = wdx / wLen,
       wuy = wdy / wLen;
-    // Upper liner flick polyline from outer corner part-way up the wing diagonal.
     const flickPts = [
       [ox - sign * 1.0, oy + 0.2],
       [ox + sign * wux * 0.68 * wLen, oy + wuy * 0.68 * wLen],
     ];
-    // Cut-crease arc polyline above the mobile lid sweeping smoothly into the outer wing tip.
     const creasePts = [];
     for (let s = 0; s <= 12; s++) {
       const t = s / 12;
@@ -418,7 +388,6 @@ export function paintStageMakeup(target, styleName, look) {
         const browClear = 1 - smooth(brows[at], 0.12, 0.72);
         const beardClear = beard ? 1 - beard[at] : 1;
 
-        // Subpixel-interpolated mm coordinates for crisp anti-aliased graphic edges!
         const fx = clamp((i + 0.5) / D - 0.5, 0, W - 1.001);
         const fy = clamp((j + 0.5) / D - 0.5, 0, H - 1.001);
         const xi = Math.floor(fx),
@@ -434,7 +403,7 @@ export function paintStageMakeup(target, styleName, look) {
         if (mx * sign < 8) continue;
 
         const ax = Math.abs(mx);
-        const tEye = (ax - innerAx) / span; // 0 = inner corner, 1 = outer corner
+        const tEye = (ax - innerAx) / span;
         const yUp = sampleY(upper, ax);
         const yBrow = browY(ax);
         const aboveUp = my - yUp;
@@ -442,7 +411,6 @@ export function paintStageMakeup(target, styleName, look) {
         const q = (j * FW + i) * 4;
         const guard = skinM * wetClear * browClear * beardClear;
 
-        // (a) High-fashion temple-to-cheekbone drape blush (diagonal sweep up into outer temple).
         const dxD = ax - 48.0,
           dyD = my - -15.5;
         const alongD = dxD * 0.58 + dyD * 0.81;
@@ -455,7 +423,6 @@ export function paintStageMakeup(target, styleName, look) {
           blendPixel(q, tones.drape, design.drapeAlpha * drapeM * skinM * beardClear * browClear, 0.58);
         }
 
-        // (b) Subtle satin brow-arch highlight right under the outer brow bone.
         const browBand =
           smooth(tEye, 0.35, 0.72) *
           (1 - smooth(tEye, 1.15, 1.55)) *
@@ -464,13 +431,11 @@ export function paintStageMakeup(target, styleName, look) {
           blendPixel(q, tones.browLift, design.browLiftAlpha * browBand * guard, 0.34);
         }
 
-        // (c) Architectural swept outer-V & cat-eye opera wing (crisp lower diagonal edge, clean under-eye!).
         const rx = ax - outerAx,
           ry = my - oy;
-        const wingAlong = rx * wux + ry * wuy; // distance along wing diagonal
-        const wingPerp = -rx * wuy + ry * wux; // + = above the crisp lower diagonal cutoff
+        const wingAlong = rx * wux + ry * wuy;
+        const wingPerp = -rx * wuy + ry * wux;
         const lowerCut = smooth(wingPerp, -0.45, 0.85);
-        // Upper silhouette curves gracefully from upper outer socket down to meet the wing tip.
         const wingHeight = (6.8 * (1 - clamp(wingAlong / (wLen + 0.5), 0, 1)) ** 0.72) + 0.7;
         const wingBody =
           lowerCut *
@@ -482,7 +447,6 @@ export function paintStageMakeup(target, styleName, look) {
           blendPixel(q, tones.wing, design.wingAlpha * wingBody * guard, 0.58);
         }
 
-        // (d) Luminous satin-shimmer mobile eyelid (softly feathered so closed Blink lids stay natural).
         const creaseH = 4.2 + 1.3 * Math.sin(Math.PI * clamp(tEye / 0.85, 0, 1));
         const lidM =
           smooth(tEye, 0.02, 0.18) *
@@ -493,7 +457,6 @@ export function paintStageMakeup(target, styleName, look) {
           blendPixel(q, tones.lid, design.lidAlpha * lidM * guard, design.lidRough);
         }
 
-        // (e) Softly blended velvet cut-crease arc framing the top of the mobile lid into the wing.
         toLine(creasePts, mx, my, near);
         const creaseWidth = 1.55 + 0.60 * Math.sin(Math.PI * clamp(near.along, 0, 1));
         const creaseBand =
@@ -506,14 +469,12 @@ export function paintStageMakeup(target, styleName, look) {
           blendPixel(q, tones.crease, design.creaseAlpha * creaseBand * guard, 0.60);
         }
 
-        // (f) Luminous inner-corner (medial canthus) pearl highlight.
         const dInner = Math.hypot((ax - (innerAx - 1.4)) / 3.4, (my - (iy + 0.4)) / 2.7);
         const pearlM = Math.exp(-(dInner * dInner) * 1.6);
         if (pearlM > 0.02) {
           blendPixel(q, tones.pearl, design.pearlAlpha * pearlM * guard, 0.24);
         }
 
-        // (g) Crisp graphic upper lash liner + lifted outer wing flick.
         toLine(upper, mx, my, near);
         const upSide = aboveUp >= -0.5;
         const lineW = 0.65 + 0.95 * smooth(near.along, 0.10, 0.88);
@@ -526,7 +487,6 @@ export function paintStageMakeup(target, styleName, look) {
           near.along < 0.99
             ? (1 - smooth(near.distance, flickW * 0.55, flickW + 0.45)) * smooth(near.along, 0.0, 0.08)
             : 0;
-        // Delicate outer-third lower lash tightline connecting cleanly into the outer wing.
         toLine(lower, mx, my, near);
         const lowTight =
           near.along > 0.56
@@ -540,7 +500,6 @@ export function paintStageMakeup(target, styleName, look) {
     }
   }
 
-  // 2. Sculpted theatrical lip contour (crisp Cupid's bow & corner depth + satin central cushion).
   const mouth = c.points.mouth;
   const mouthBox = boxAround(c, -(mouth.corner + 5), mouth.bottom - 5, mouth.corner + 5, mouth.top + 5);
   if (mouthBox) {
@@ -577,7 +536,6 @@ export function paintStageMakeup(target, styleName, look) {
   return { base, changed };
 }
 
-// Head-mesh material cache for graphic stage makeup (mirrors `markFace` caching pattern).
 const paintedStage = new Map();
 function makeTexture(canvas, like) {
   const t = new T.CanvasTexture(canvas);
@@ -586,10 +544,6 @@ function makeTexture(canvas, like) {
   return t;
 }
 
-/**
- * Apply graphic theatrical stage makeup to a face material made by `faceMaterial`.
- * Returns `material` completely untouched for `"None"` and everyday makeup styles.
- */
 export function stageMakeupFace(material, form) {
   const name = form.humanStyle?.makeup;
   if (!name || !stageDesigns[name]) return material;

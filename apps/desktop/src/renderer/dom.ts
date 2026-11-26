@@ -1,5 +1,3 @@
-// Small DOM helpers. Every string is set as text, never parsed as HTML.
-
 export function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   props: {

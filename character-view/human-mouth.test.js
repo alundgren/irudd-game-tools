@@ -23,7 +23,6 @@ test("the mouth lining is a shallow pocket that opens with a smile", () => {
     const smile = g.morphAttributes.position[skin.morphTargetDictionary.Smile];
     const count = lining.reduce((sum, flag) => sum + flag, 0);
     assert.ok(count > 1000 && count < 0.15 * p.count, "the lining is a small part of the head");
-    // Lips are the skin vertices that share a position with the lining.
     const key = (i) => [p.getX(i), p.getY(i), p.getZ(i)].map((v) => Math.round(v * 2e5)).join("/");
     const lips = new Set();
     for (let i = 0; i < p.count; i++) if (!lining[i]) lips.add(key(i));
@@ -80,7 +79,6 @@ test("teeth stand inside the mouth as their own mesh and slide into a smile", ()
       box = new T.Box3().setFromBufferAttribute(p),
       head3 = new T.Box3().setFromBufferAttribute(skin.geometry.attributes.position);
     for (const value of p.array) assert.ok(Number.isFinite(value));
-    // Behind the face, below the nose and narrower than the head.
     assert.ok(box.max.z < head3.max.z - 0.012 && box.min.z > head3.max.z - 0.06);
     assert.ok(box.max.x - box.min.x < 0.45 * (head3.max.x - head3.min.x));
     assert.ok(Math.abs(box.max.x + box.min.x) < 1e-6, "the two sides match");

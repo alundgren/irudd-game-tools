@@ -1,9 +1,3 @@
-// Binding an adult's regions (character-view/skin.js and human-mesh.js at
-// 2761eb1). A region's joints run from its own pivot to its child's for the
-// jointed limbs; every other region has one joint at its pivot. Authored skin
-// weights name source bones, which resolve to the joints of the nearest
-// region with that bone, so a duplicated limb binds to its own branch.
-
 import * as T from "three";
 import type { Region } from "../rig/region.js";
 import type { HumanBuild } from "./binding.js";
@@ -15,7 +9,6 @@ const childRoles: Readonly<Record<string, string>> = {
   shin: "foot",
 };
 
-/** Joint points of an adult region, or undefined for a part that is not a region. */
 export function humanCentres(
   s: Region,
   regions: ReadonlyMap<string, Region>,
@@ -34,7 +27,6 @@ export function humanCentres(
   return [origin];
 }
 
-/** Joint index of each source bone name, for one region's authored weights. */
 export function humanBinding(
   owner: Region,
   regions: ReadonlyMap<string, Region>,

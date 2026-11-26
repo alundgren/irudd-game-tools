@@ -1,5 +1,3 @@
-// Motion family: how a part is skinned and animated.
-
 import { Schema } from "effect";
 import { PartId } from "../schema.js";
 import { bounded, family, Vec3Between } from "./family.js";
@@ -34,14 +32,6 @@ export const motionRole = family({
   toJson: (v) => v,
 });
 
-// ── motion.hold ─────────────────────────────────────────────────────────────
-//
-// A part that keeps its authored rest pose under the generated movements:
-// an upper arm holding it supports a heavy prop, so its shoulder, elbow,
-// wrist and the fingers of the hand it carries follow the body unposed. A
-// hand that holds keeps its fingers still. Saved joint poses still move it.
-// From holdArmPose in character-view/motion.js at 2761eb1.
-
 export const MotionHold = Schema.Struct({});
 export type MotionHold = typeof MotionHold.Type;
 
@@ -53,19 +43,9 @@ export const motionHold = family({
   toJson: (v) => v,
 });
 
-// ── motion.poses ────────────────────────────────────────────────────────────
-//
-// Authored joint poses, each exported as a one-second clip "Pose · <name>".
-// A joint addresses a skeleton bone by the part whose region it skins, its
-// station along that region (0 is the region's first bone) and, for a finger
-// rig, its digit. `turn` rotates the bone after its rest rotation and `shift`
-// moves it from its rest position. Ported from character-view/poses.js; the
-// core `poses` (one rotation per part) are a separate, not yet built list.
-
 const unit = (q: ReadonlyArray<number>) => Math.abs(Math.hypot(...q) - 1) <= 0.002;
 
 export const PoseJoint = Schema.Struct({
-  /** The part whose region holds the bone, or null for the character root. */
   part: Schema.NullOr(PartId),
   station: Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 255 })),
   digit: Schema.optionalKey(Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(32))),

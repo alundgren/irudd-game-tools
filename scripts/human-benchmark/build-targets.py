@@ -32,8 +32,6 @@ CANDIDATES = 400
 COPYRIGHT = ("Derived from the Momentum Human Rig (MHR) v1.0.1, Copyright (c) Meta Platforms, Inc. "
              "and affiliates. Licensed under the Apache License 2.0. Modified: one sampled identity, "
              "posed, converted to metres and exported without rig, blend shapes or textures.")
-# Selection rule. The second identity coefficient moves the surface between a
-# male-typical and a female-typical build; the first is body mass.
 GROUPS = {"f": ("female-typical build", lambda c: c >= 1.0), "m": ("male-typical build", lambda c: c <= -0.4)}
 ROLES = ["development", "held out", "held out"]
 
@@ -62,7 +60,6 @@ def select(rig):
         pool = np.flatnonzero(test(build))
         feature = np.column_stack([stature[pool], mass[pool]])
         feature = (feature - feature.mean(0)) / feature.std(0)
-        # Start at the most typical candidate, then twice add the one farthest from those chosen.
         picks = [int(np.argmin(np.linalg.norm(feature - np.median(feature, 0), axis=1)))]
         while len(picks) < 3:
             gap = np.linalg.norm(feature[:, None] - feature[picks][None], axis=2).min(1)

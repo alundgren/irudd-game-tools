@@ -1,11 +1,3 @@
-// Library hair on the adult (libraryPieces, fittedProxy and garment in
-// character-view/human-library.js, settleAuthored in human-authored-hair.js
-// and hairRoots in human-style-hair.js at 2761eb1). An authored groom's cards
-// are tied to the skin cage, held in the shape their artist combed where they
-// stand off the head, combed off the face by the wearer's fringe and trimmed to
-// their painted outline. A shell of short roots covers the scalp the cards
-// grow from, ending at the groom's own hairline.
-
 import * as T from "three";
 import { context2d, type Raster } from "../../raster.js";
 import { boneNames } from "../catalogue.js";
@@ -42,25 +34,15 @@ import {
 
 const DEG = Math.PI / 180;
 
-/** The personal style fields library hair reads. */
 export interface HairStyle {
   readonly hair?: string | undefined;
   readonly fringe?: string | undefined;
   readonly hairColor?: string | undefined;
 }
 
-// Styles that keep the wearer's fringe; other authored grooms keep their tied or cropped shape.
 const combed = new Set(["Side-swept pixie", "Fringed bob", "Long centre part", "Loose waves"]);
 const defaultHairColor = "#51433b";
 
-/**
- * Hold hair that stands off the head in the shape its artist combed. A card
- * vertex is fitted to the skin under it, which is right for hair lying on the
- * scalp and wrong for a hem hanging centimetres from a neck: there every fold
- * of the skin swings it. Such a vertex follows the skull as a whole instead,
- * stretched to the width, height and depth of this head. In between the two
- * are blended by how far the vertex stands off.
- */
 function settleAuthored(
   p: Float32Array,
   anchor: Float32Array,
@@ -72,7 +54,6 @@ function settleAuthored(
     gain = [1, 1, 1],
     shift = [0, 0, 0];
   for (let d = 0; d < 3; d++) {
-    // Least squares of this head against the resting one, along each axis.
     let n = 0,
       sx = 0,
       sy = 0,
@@ -110,7 +91,6 @@ function settleAuthored(
   }
 }
 
-/** The groom's cards fitted to this adult, in world coordinates. */
 function fittedCards(
   s: HumanSurface,
   groom: Groom,
@@ -181,11 +161,6 @@ function fittedCards(
   return p;
 }
 
-/**
- * The trimmed cards: each trimmed vertex blends three card vertices. Clipping a
- * card splits its triangles, so the original smooth normals are interpolated
- * across those cuts and each little triangle does not catch a different light.
- */
 function trimmedCards(
   groom: Groom,
   p: Float32Array,
@@ -233,14 +208,6 @@ function trimmedCards(
   return g;
 }
 
-/**
- * Hair for the game export: the fitted cards themselves, cut to their outline
- * by the map as they were authored (gameCards at 2761eb1). Trimmed cards are
- * separate slivers that a simplifier pulls apart; whole cards share their
- * vertices and thin evenly. Triangles the map leaves empty are left out;
- * without a map to cut them, `cover` is the least share of a triangle that
- * must be hair.
- */
 function gameCards(
   groom: Groom,
   p: Float32Array,
@@ -252,7 +219,6 @@ function gameCards(
     faces = groom.faceIndices;
   const triple = (a: number, b: number, c: number) => (a * 65536 + b) * 65536 + c,
     covered = new Map<number, number>();
-  // Each trimmed sliver lies inside one card triangle and knows how much of it it fills.
   for (let f = 0; f < faces.length; f += 3) {
     const i = at(faces, f) * 3,
       j = at(faces, f + 1) * 3,
@@ -305,7 +271,6 @@ function gameCards(
   return g;
 }
 
-/** Join the slivers of trimmed cards where they meet, so a plain game export can thin them too (joinTrimmed). */
 function joinTrimmed(g: T.BufferGeometry): T.BufferGeometry {
   const position = g.getAttribute("position"),
     normal = g.getAttribute("normal"),
@@ -343,7 +308,6 @@ function joinTrimmed(g: T.BufferGeometry): T.BufferGeometry {
     });
     out.setAttribute(name, new T.BufferAttribute(data, width));
   }
-  // Slivers that close up to nothing would only confuse the simplifier.
   out.setIndex(
     index.filter((_, k) => {
       const t = k - (k % 3);
@@ -365,7 +329,6 @@ interface CapOptions {
   readonly ragged: number;
 }
 
-/** The scalp as a thin volume, cut along the hairline (cap in human-style-hair.js, smooth and ungrooved). */
 function cap(body: DressBody, f: HeadFrame, options: CapOptions) {
   const { thick, lip, edge, levels, within, ragged } = options;
   const k = f.k,
@@ -379,7 +342,6 @@ function cap(body: DressBody, f: HeadFrame, options: CapOptions) {
       s.value("head", i) > 0.5
         ? eps - hairline(phi) + ragged * DEG * (noise3(q[0] * 13 + 3, q[1] * 13, q[2] * 13) - 0.5)
         : -1;
-    // A groom that knows the scalp it covers ends its cap there, a little past the usual hairline at most.
     const value = at(line, i);
     if (within && value > -1) line[i] = Math.min(value + 7 * DEG, within(i));
   }
@@ -392,7 +354,6 @@ function cap(body: DressBody, f: HeadFrame, options: CapOptions) {
       r = length(out),
       u = [out[0] / r, out[1] / r, out[2] / r] as const,
       dir = f.aim(a);
-    // Roughly the angle to the nearest point of the hairline, which runs steeply at the temples and behind the ears.
     const near =
       s.value("line", i) /
       Math.hypot(
@@ -400,14 +361,12 @@ function cap(body: DressBody, f: HeadFrame, options: CapOptions) {
         (hairline(dir.phi + DEG) - hairline(dir.phi - DEG)) /
           (2 * DEG * Math.max(0.3, Math.cos(dir.eps))),
       );
-    // Hair grows out of the skin: it starts thin at the hairline and thickens over `edge`.
     const t = thick() * k * smooth(0, edge, near) ** 1 + lip * k * smooth(0, 0.1, near);
     s.set(i, add(f.centre, u, r + Math.max(0.0012 * k, t)));
   }
   return s;
 }
 
-/** Short roots over the scalp; `within` ends them at a groom's own hairline. */
 function hairRoots(body: DressBody, within: ((i: number) => number) | null): Piece {
   const f = headFrame(body);
   const s = cap(body, f, {
@@ -421,7 +380,6 @@ function hairRoots(body: DressBody, within: ((i: number) => number) | null): Pie
   return new Piece().shell(s, { thickness: 0.0012 });
 }
 
-/** What the textured presets finish library hair with. */
 export interface HairFinish {
   readonly raster: Raster;
   readonly maps: ReadonlyMap<GroomName, GroomMaps>;
@@ -429,12 +387,6 @@ export interface HairFinish {
 
 const between = (x: number, a: number, b: number) => Math.min(1, Math.max(0, (x - a) / (b - a)));
 
-/**
- * The strand picture of a groom in one hair colour (tintedStrands at 2761eb1).
- * The middle strand takes the colour as chosen and the painted light and dark
- * stay as shading. Hair also has a sheen that does not come from its pigment,
- * so the lightest strands of black hair still show as strands.
- */
 function tintedStrands(raster: Raster, maps: GroomMaps, hex: string): T.CanvasTexture {
   const image = maps.picture;
   const canvas = raster.canvas(image.width, image.height);
@@ -450,8 +402,6 @@ function tintedStrands(raster: Raster, maps: GroomMaps, hex: string): T.CanvasTe
     sheen = 0.012 + 0.05 * (1 - Math.min(1, luma * 3)) ** 2;
   const table = colour.map((c) =>
     Uint8ClampedArray.from({ length: 256 }, (_, v) => {
-      // Lit hair is a little darker than its pigment in the middle; light strands rise toward it and are held
-      // below white, so pale hair keeps its strands.
       const t = lin(v / 255) / middle,
         glint = between(t, 0.95, 1.7),
         level = 0.72 * (t <= 1 ? t : 1 + (t - 1) * 0.5);
@@ -468,9 +418,6 @@ function tintedStrands(raster: Raster, maps: GroomMaps, hex: string): T.CanvasTe
   return map;
 }
 
-// Fine hairs at the edge of the underlayer taper into exposed scalp. Deeper in
-// the groom the same chart shows the short hairs underneath longer locks
-// (human-hairline.js at 2761eb1).
 const rootMaps = new WeakMap<Raster, T.CanvasTexture>();
 function hairlineTexture(raster: Raster): T.CanvasTexture {
   const known = rootMaps.get(raster);
@@ -502,13 +449,10 @@ function hairlineTexture(raster: Raster): T.CanvasTexture {
   return map;
 }
 
-/** Chart the roots' shell by direction and by depth inside the hairline, and draw fine hairs on it. */
 function textureHairRoots(raster: Raster, mesh: T.Mesh, shell: Shell, frame: HeadFrame): void {
   const uv = new Float32Array(mesh.geometry.getAttribute("position").count * 2);
   for (let i = 0; i < shell.count; i++) {
     const { q } = frame.aim(shell.anchor(i));
-    // A continuous longitude projection across the front, temples and nape.
-    // Extra vertices on the closed underside keep the clear edge of the map.
     uv[2 * i] = 0.5 + 0.42 * q[0] + 0.06 * q[2];
     uv[2 * i + 1] = Math.max(0, Math.min(1, shell.value("line", i) / 0.24));
   }
@@ -522,20 +466,12 @@ function textureHairRoots(raster: Raster, mesh: T.Mesh, shell: Shell, frame: Hea
   mesh.material = material;
 }
 
-/** What library hair adds to the adult. */
 export interface FittedHair {
-  /** The cards, rigid with the head. */
   readonly cards: T.Mesh;
-  /** The roots, skinned to the scalp. */
   readonly roots: DressMesh;
-  /** Source vertices the groom covers. */
   readonly hide: ReadonlyArray<number>;
 }
 
-/**
- * The library hair a style names, or null when it names none this port fits.
- * `rest` is the body's resting cage, which the groom was authored on.
- */
 export function fittedHair(
   surface: HumanSurface,
   style: HairStyle,
@@ -553,9 +489,7 @@ export function fittedHair(
   const groom = grooms(name);
   const ids = new Map(Array.from(surface.ids, (v, i) => [v, i] as const));
   const p = fittedCards(surface, groom, ids, rest);
-  // Preserve tied and cropped silhouettes. Loose authored fringes still follow the wearer's comb setting.
   const fringe = style.hair !== undefined && combed.has(style.hair) ? style.fringe : undefined;
-  // The fringe is combed on the fitted cards, before they are trimmed to their outline.
   if (fringe) combFringe(p, surfaceFrame(surface), fringe);
   const colour = style.hairColor ?? defaultHairColor;
   const m = material(colour, "plain").clone();
@@ -567,16 +501,12 @@ export function fittedHair(
     m.normalScale.setScalar(0.82);
   }
   m.side = T.DoubleSide;
-  // The game exporter gives tagged hair its own share of triangles and keeps its cards whole.
   m.userData["hairCards"] = true;
   if (!plain && m instanceof T.MeshStandardMaterial) {
-    // Authored layers are painted thin where they overlap; cut at the usual opacity they open holes to the roots.
     m.alphaTest = 0.2;
     m.alphaToCoverage = true;
     m.roughness = 0.78;
   }
-  // A plain export has no map, so it keeps the trimmed outline. Where trimming cuts each card triangle into
-  // many slivers no game budget can hold them, and the half-covered cards stand in.
   const fine = groom.faceIndices.length > 8 * groom.corners.length;
   const frame = surfaceFrame(surface);
   const geometry =
@@ -590,18 +520,15 @@ export function fittedHair(
   cards.userData["styleRegion"] = "head";
   cards.userData["libraryHair"] = name;
   cards.castShadow = true;
-  // Roots in a darker tone of the hair, about as dark as the shaded cards above them.
   const tone = "#" + new T.Color(colour).multiplyScalar(plain ? 0.5 : 0.86).getHexString();
   const scalp = groom.scalp;
   let within: ((i: number) => number) | null = null;
   if (scalp) {
-    // An authored groom records the scalp its cards cover, so its roots end at its own hairline.
     const field = new Float32Array(surface.positions.length / 3).fill(-1);
     scalp.ids.forEach((id, k) => {
       const v = ids.get(id);
       if (v !== undefined) field[v] = at(scalp.field, k) / 100;
     });
-    // Let the painted root hairs emerge a little beyond the thickest locks.
     const allowance =
       !plain && ["short_layered", "short_receding", "bun_tied"].includes(name) ? 0.38 : 0;
     within = (i) => (at(field, i) + allowance) * 0.3;

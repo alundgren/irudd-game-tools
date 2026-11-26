@@ -9,8 +9,6 @@ import swatchesUrl from "./surfaces.atlas.webp";
 const surfaces = new Map();
 const surfaceRoughness = new Map();
 
-// Short, overlapping filaments remain visible between the collar's long
-// geometric guard hairs. Draw pigment only, so lighting follows the mesh.
 function shortFur() {
   const size = 384, canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
@@ -25,7 +23,6 @@ function shortFur() {
     const dy = 4 + 13 * draw(), radius = 0.3 + draw() * 0.8;
     const value = Math.round(136 + draw() * 105);
     ctx.fillStyle = `rgb(${value},${value},${value})`;
-    // Wrap only the strokes that meet the boundary.
     const xs = [x];
     if (Math.min(x, x + dx) - radius < 0) xs.push(x + size);
     if (Math.max(x, x + dx) + radius > size) xs.push(x - size);
@@ -85,7 +82,6 @@ export async function loadSurfaces() {
   const [image, jacket, horn, devices] = await Promise.all(
     [swatchesUrl, jacketUrl, hornUrl, armourDevicesUrl].map((url) => new T.ImageLoader().loadAsync(url)),
   );
-  // Keep the intrinsic value variation while allowing every site to be tinted.
   setArmourDeviceArtwork(devices);
   const hornCanvas = document.createElement("canvas");
   hornCanvas.width = horn.width;
@@ -132,14 +128,12 @@ export async function loadSurfaces() {
     }
     const roughCtx = roughCanvas?.getContext("2d");
     const roughData = roughCtx?.createImageData(256, 256);
-    // Retain grain as a neutral value map so the artist controls the dye colour.
     for (let i = 0; i < data.data.length; i += 4) {
       const l =
         0.21 * data.data[i] + 0.72 * data.data[i + 1] + 0.07 * data.data[i + 2];
       const value = Math.min(255, Math.max(138, 211 + (l - 136) * 0.58));
       data.data[i] = data.data[i + 1] = data.data[i + 2] = value;
       if (roughData) {
-        // Satin-oiled grain crowns (lower roughness ~0.36) vs deeper leather pores (~0.56).
         const norm = (value - 138) / (255 - 138);
         const r = i === 0 ? 0.79 : Math.max(0.64, Math.min(0.98, 0.96 - 0.30 * norm));
         const g = Math.round(255 * r);
@@ -165,8 +159,6 @@ export async function loadSurfaces() {
       surfaceRoughness.set(name, roughTex);
     }
   }
-  // Unwrap the front panel around a vertical garment loft. Back and side
-  // samples use a plain area of the same cloth with the sewing details omitted.
   const canvas = document.createElement("canvas");
   canvas.width = 1024;
   canvas.height = 512;

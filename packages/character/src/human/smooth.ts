@@ -1,29 +1,19 @@
-// The smoothed adult surface (smoothHumanSurface in character-view/human-surface.js
-// at 2761eb1). Each smoothed vertex is a fixed blend of evaluated cage vertices,
-// so one surface topology serves every adult; the triangles, texture
-// coordinates, pigment masks and skin weights come with it from the pack.
-
 import type { HumanBody } from "./body.js";
 import type { HumanSurface } from "./surface.js";
 
 export interface SmoothSurface {
-  /** The cage it was smoothed from. */
   readonly cage: HumanSurface;
-  /** Smoothed vertex positions. The face anatomy refinement moves them in place. */
   readonly positions: Float32Array;
   readonly joints: Float32Array;
   readonly height: number;
   readonly indices: Uint32Array;
   readonly bodyTriangles: number;
-  /** The cage quad each smoothed triangle came from. */
   readonly parentFaces: Uint16Array;
   readonly quadIds: Uint16Array;
   readonly boneIndices: Uint8Array;
   readonly weights: Float32Array;
-  /** Texture coordinates, whole numbers of 1/65535. */
   readonly uv: Uint16Array;
   readonly uvFaces: Uint32Array;
-  /** Per texture vertex: lip zone, lid, mouth and nail masks, 0 to 255. */
   readonly pigments: Uint8Array;
 }
 

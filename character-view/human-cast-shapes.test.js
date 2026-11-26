@@ -31,7 +31,6 @@ test("every cast foundation reshapes the face by millimetres and leaves skull, e
     let face = 0;
     for (let v = 0; v < base.bodyVertices; v++) {
       const moved = dist2(shaped.positions, base.positions, v), y = base.positions[3*v+1], z = base.positions[3*v+2];
-      // Behind the ear line, on the crown and below the jaw nothing moves.
       if (y < hy - .125 || z < hz - .03 || y > top - .035) assert.ok(moved < 2e-5, `${key} moves vertex ${v} off the face by ${moved}`);
       face = Math.max(face, moved);
     }
@@ -57,7 +56,6 @@ test("facial skin keeps its orientation on the cage and the smooth surface", () 
 });
 
 test("eyes stay round and seated, and the lips keep their order", () => {
-  // Lip pairs: skin vertices of the mouth that lie within 6 mm of each other at rest, one above the other.
   const p = base.positions, head = base.names.indexOf("head"), hy = base.joints[3*head+1];
   const mouth = [];
   for (let v = 0; v < base.bodyVertices; v++)
@@ -74,7 +72,6 @@ test("eyes stay round and seated, and the lips keep their order", () => {
         worst = Math.max(worst, Math.abs(dist(q, group[i], group[j]) - dist(p, group[i], group[j])));
       assert.ok(worst < 3e-5, `${key} bends an eyeball by ${worst}`);
     }
-    // A foundation may thin or fill the lips with the lower face it brings. It never folds one over the other.
     for (const [i, j] of pairs) { const r = dist(q, i, j) / dist(p, i, j); assert.ok(r > .45 && r < 1.5 && (Math.abs(p[3*i+1]-p[3*j+1]) < .001 || (q[3*i+1]-q[3*j+1]) * (p[3*i+1]-p[3*j+1]) > 0), `${key} folds the lips at ${i},${j}: ${r}`); }
   }
 });

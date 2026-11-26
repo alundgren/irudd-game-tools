@@ -1,9 +1,4 @@
 import {softenWaveEdge} from "./human-waves-root.js";
-// Refit and backing mass for the MakeHuman authored "Loose waves" (cloud_waves) groom.
-// Keeps the artist's 16 painted wavy ribbons as the exterior, unwinds their 360-degree lower
-// corkscrew twists, smooths crown stair-stepping and excessive stand-off, unifies card normals
-// to remove faceted strip seams, and derives a recessed fitted wavy inner surface that follows
-// the wearer's skull, body clearance, combing and exterior hem so gaps never reveal bare scalp.
 import * as T from "three";
 import { hatHead } from "./human-hats.js";
 import { hairline, settleFringe, surfaceBody, surfaceFrame } from "./human-fringe.js";
@@ -13,7 +8,6 @@ import { add, clamp, cross, dot, hash1, length, mix, smooth, sub, unit } from ".
 const DEG = Math.PI / 180;
 const TAU = Math.PI * 2;
 
-/** Radial extent of head and neck (excluding arms/deltoids) from an upright axis, by height and bearing. */
 function bodyReach(body, axis, top, low, k) {
   const cell = 0.012 * k;
   const rows = Math.max(2, Math.ceil((top - low) / cell) + 1);
@@ -21,7 +15,6 @@ function bodyReach(body, axis, top, low, k) {
   const R = new Float32Array(rows * cols);
   const headNeck = body.weight(/^(head|neck)/);
   for (let v = 0; v < body.count; v++) {
-    // Only head/neck and inner chest/upper-back (never outer shoulders/arms, which would flare hair sideways).
     if (headNeck[v] < 0.2 && body.arm[v] > 0.25) continue;
     const p = body.point(v);
     if (p[1] > top || p[1] < low) continue;
@@ -57,7 +50,6 @@ function bodyReach(body, axis, top, low, k) {
   };
 }
 
-/** Smooth outward hair-volume normal at a point around the head and hanging drape. */
 function volumeNormal(pt, f, axis) {
   const k = f.k;
   const dx = pt[0] - f.centre[0];
@@ -76,7 +68,6 @@ function volumeNormal(pt, f, axis) {
   ]);
 }
 
-/** Split the UV-connected ribbons of cloud_waves into orderly rows (root -> tip) x cols (across). */
 function extractStrips(p, corners, uvCorners, uv) {
   const nuv = uv.length / 2;
   const parent = Int32Array.from({ length: nuv }, (_, i) => i);
@@ -125,11 +116,6 @@ function extractStrips(p, corners, uvCorners, uv) {
   return strips;
 }
 
-/**
- * Unwind corkscrew ribbon twists, sculpt a fitted wavy silhouette (sleek over the back of the
- * head, softly arched over the upper temples, lush coherent S-waves with tapered layered ends),
- * and keep every strand in the silky combed portion of Cortu's strand texture.
- */
 function refitStrips(strips, body, f, hHead, reach, axis, style) {
   const k = f.k;
   const mm = k / 1000;
@@ -149,7 +135,6 @@ function refitStrips(strips, body, f, hHead, reach, axis, style) {
     const rndA = hash1(sIdx * 37 + 11) - 0.5;
     const rndB = hash1(sIdx * 53 + 29) - 0.5;
 
-    // 1. Extract row centerlines and authored widths.
     const C = rows.map((row) => [
       0.25 * row[0].p[0] + 0.5 * row[1].p[0] + 0.25 * row[2].p[0],
       0.25 * row[0].p[1] + 0.5 * row[1].p[1] + 0.25 * row[2].p[1],
@@ -157,13 +142,11 @@ function refitStrips(strips, body, f, hHead, reach, axis, style) {
     ]);
     const hwAuth = rows.map((row) => 0.5 * length(sub(row[2].p, row[0].p)));
 
-    // Record forehead rows moved by combFringe so we keep the wearer's eye/brow clearance intact.
     const onForehead = C.map((pt) => {
       const a = f.aim(pt);
       return pt[2] > f.centre[2] + 0.22 * f.radii[2] && Math.abs(a.phi) < 54 * DEG && pt[1] > eyeY - 0.008 * k;
     });
 
-    // 2. Smooth jagged low-poly bends along the centerline while preserving macro drape.
     const smoothC = C.map((pt) => pt.slice());
     for (let r = 1; r < R - 1; r++) {
       if (onForehead[r]) continue;
@@ -173,8 +156,6 @@ function refitStrips(strips, body, f, hHead, reach, axis, style) {
     }
     for (let r = 0; r < R; r++) C[r] = smoothC[r];
 
-    // Guide the front-most sweeping lock (c14) smoothly downward along the left face-framing waves
-    // instead of cutting horizontally backward across the vertical side locks behind the ear.
     const endsHighBack = C[R - 1][1] - f.centre[1] > -0.125 * k && C[R - 1][2] - f.centre[2] < -0.05 * k;
     if (endsHighBack) {
       const y4 = C[4][1], z4 = C[4][2], x4 = C[4][0];
@@ -188,13 +169,11 @@ function refitStrips(strips, body, f, hHead, reach, axis, style) {
       }
     }
 
-    // Subtle organic staggered hem length per lock so the ends read layered without spiky splay.
     const hemJitter = 8 * mm * rndA;
     for (let r = 5; r < R; r++) {
       C[r][1] += hemJitter * smooth(4, R - 1, r);
     }
 
-    // 3. Fit every centerline station into a sleek, natural wavy silhouette with body clearance.
     for (let r = 0; r < R; r++) {
       const pt = C[r];
       const o = hHead.over(pt);
@@ -205,14 +184,12 @@ function refitStrips(strips, body, f, hHead, reach, axis, style) {
       const sweptBoost = smooth(-0.04 * k, 0.06 * k, pt[0]) * mix(4.5, 2.0, isBack) * mm;
 
       if (o.eps > 10 * DEG) {
-        // Upper head & crown: sleeker over the occiput (no helmet puff), gently arched over upper temples.
         const knee = mix(isCrown ? 9.0 : 7.0, isCrown ? 7.5 : 5.5, isBack) * mm;
         const ceil = mix(isCrown ? 16.5 : 13.0, isCrown ? 12.2 : 10.0, isBack) * mm
           + templeArch * 3.2 * mm
           + sweptBoost * smooth(10 * DEG, 45 * DEG, o.eps);
         let h = o.h;
         if (onForehead[r]) {
-          // Softly arched forehead wave lift rather than a flat horizontal band across the brow.
           const archLift = 2.8 * mm * smooth(48 * DEG, 12 * DEG, absPhi);
           h = h > 6.5 * mm ? 6.5 * mm + 7.5 * mm * Math.tanh((h - 6.5 * mm) / (14 * mm)) : h;
           h += archLift;
@@ -224,7 +201,6 @@ function refitStrips(strips, body, f, hHead, reach, axis, style) {
         const nr = o.r - o.h + h;
         C[r] = [f.centre[0] + o.u[0] * nr, f.centre[1] + o.u[1] * nr, f.centre[2] + o.u[2] * nr];
       } else {
-        // Sides, cheeks, neck and hanging wavy drape.
         const dx = pt[0] - axis[0];
         const dz = pt[2] - axis[1];
         const bearing = Math.atan2(dx, dz);
@@ -240,7 +216,6 @@ function refitStrips(strips, body, f, hHead, reach, axis, style) {
         );
         const clear = (y > neckY ? 6.5 : 9.0) * mm + earZone * 4.0 * mm;
         const minR = bodyR + clear;
-        // Sleeker along the occiput/nape, fuller wavy cascade framing the jaw and shoulders.
         const headBasedMax = skullR
           + mix(mix(16, 26, smooth(0.25, 0.85, t)), mix(11, 19, smooth(0.25, 0.85, t)), backMask) * mm
           + (isCrown ? 3.5 * mm : 0)
@@ -255,7 +230,6 @@ function refitStrips(strips, body, f, hHead, reach, axis, style) {
       }
     }
 
-    // Keep hanging slope gentle over shoulders without abrupt inward kinks.
     for (let r = R - 2; r >= 2; r--) {
       if (C[r][1] >= f.centre[1]) continue;
       const rCur = Math.hypot(C[r][0] - axis[0], C[r][2] - axis[1]);
@@ -269,7 +243,6 @@ function refitStrips(strips, body, f, hHead, reach, axis, style) {
       }
     }
 
-    // 4. Determine consistent across-strip sign from the well-behaved upper rows (r = 1..4).
     let signVote = 0;
     for (let r = 1; r <= Math.min(4, R - 2); r++) {
       const Tdir = unit(sub(C[r + 1], C[r - 1]));
@@ -280,12 +253,10 @@ function refitStrips(strips, body, f, hHead, reach, axis, style) {
     }
     const sSign = signVote >= 0 ? 1 : -1;
 
-    // Correlate wave phase smoothly by strip azimuth so neighbouring locks wave together as lush loose waves.
     const midPt = C[Math.floor(R * 0.55)];
     const stripPhi = Math.atan2(midPt[0] - axis[0], midPt[2] - axis[1]);
     const wavePhase = stripPhi * 1.15 + (isCrown ? 0.55 : 0) + 0.35 * rndB;
 
-    // 5. Reconstruct each row untwisted, with readable loose S-waves, rounded lock camber, and soft wavy tips.
     for (let r = 0; r < R; r++) {
       const t = r / (R - 1);
       const Tdir = unit(sub(C[Math.min(R - 1, r + 1)], C[Math.max(0, r - 1)]));
@@ -306,25 +277,20 @@ function refitStrips(strips, body, f, hHead, reach, axis, style) {
         roll = clamp(authRoll, -maxRoll, maxRoll) * mix(0.65, 0.18, smooth(0.35, 0.75, t));
       }
 
-      // Coherent, readable loose S-wave silhouette (stronger around mid-length & ends, gently damped at center back
-      // so the back forms a lush continuous wave cascade instead of splaying sideways).
       const absMidPhi = Math.abs(stripPhi);
       const backCalm = mix(1.0, 0.62, smooth(130 * DEG, 175 * DEG, absMidPhi));
       const waveRamp = smooth(0.24, 0.62, t);
       const waveAngle = wavePhase + t * TAU * 1.65;
       const swaySide = 10.8 * mm * backCalm * waveRamp * Math.sin(waveAngle);
       const swayOut = 6.8 * mm * waveRamp * Math.cos(waveAngle);
-      // Soft curled wave end bounce (curving gently inward/outward with character, never flat or stiff).
       const tipCurl = (-5.5 + 3.2 * Math.sin(stripPhi * 2.2)) * mm * smooth(0.74, 1.0, t);
       roll += 13 * DEG * waveRamp * Math.sin(waveAngle + 0.45);
 
       const S = unit(add(Snat.map((x) => x * Math.cos(roll)), Nout, Math.sin(roll)));
       const Nloc = unit(cross(Tdir, S)).map((x) => x * sSign);
 
-      // Keep full lush lock width down the wave, tapering softly (not sharply pointy) into rounded wavy ends.
       const tipTaper = 1 - 0.44 * (smooth(0.66, 1.0, t) ** 1.25);
       const hw = clamp(hwAuth[r], 24 * mm, 33 * mm) * tipTaper;
-      // Rich cylindrical lock camber so every S-wave catches silky 3D highlights at 300px.
       const camber = 4.6 * mm * smooth(0.0, 0.22, t) * mix(1.0, 0.52, smooth(0.76, 1.0, t));
 
       const center = add(add(C[r], Snat, swaySide), Nout, swayOut + tipCurl);
@@ -350,8 +316,6 @@ function refitStrips(strips, body, f, hHead, reach, axis, style) {
       }
     }
 
-    // 6. Map UVs across Cortu's silky combed wave region (v in [0.33, 0.985]): captures the natural
-    // painterly S-wave curvature around v=0.33..0.52 while staying 100% clear of the enclosed alpha=0 holes below v=0.22.
     let uMax = -Infinity;
     for (const row of rows) for (const v of row) uMax = Math.max(uMax, v.u);
     const uCeil = isCrown ? 0.556 : 0.528;
@@ -363,16 +327,10 @@ function refitStrips(strips, body, f, hHead, reach, axis, style) {
         cell.v = clamp(0.33 + 0.655 * cell.v, 0.33, 0.988);
       }
     }
-    // Tag per-strip subtle tonal variation for crisp lock-to-lock separation at 300px.
     rows.stripTone = 0.96 + 0.09 * hash1(sIdx * 71 + 5);
   });
 }
 
-/**
- * Pack the 16 refitted strips into a single indexed BufferGeometry, run Loop subdivision via
- * smoothHairCards, ensure outward front-face winding, blend coherent volume + lock-camber normals,
- * and attach natural root-to-tip & per-lock depth shading vertex colors.
- */
 function buildExteriorGeometry(strips, f, axis, style, plain) {
   const posList = [];
   const uvList = [];
@@ -434,7 +392,6 @@ function buildExteriorGeometry(strips, f, axis, style, plain) {
   const uvAttr = geo.attributes.uv;
   const idx = geo.index.array;
 
-  // Map each subdivided vertex back to its source strip tone (each source tri becomes 4 consecutive tris).
   const vertTone = new Float32Array(pos.count).fill(1);
   for (const { triStart, triEnd, tone } of stripMeta) {
     const start = triStart * 12, end = triEnd * 12;
@@ -447,12 +404,10 @@ function buildExteriorGeometry(strips, f, axis, style, plain) {
     const vn = volumeNormal(pt, f, axis);
     let nx = norm.getX(i), ny = norm.getY(i), nz = norm.getZ(i);
     if (nx * vn[0] + ny * vn[1] + nz * vn[2] < 0) { nx = -nx; ny = -ny; nz = -nz; }
-    // 66% smooth volume normal + 34% local cambered lock normal: unified silhouette lighting with crisp wave ridges.
     const blended = unit([mix(nx, vn[0], 0.66), mix(ny, vn[1], 0.66), mix(nz, vn[2], 0.66)]);
     norm.setXYZ(i, blended[0], blended[1], blended[2]);
     if (colors) {
       const v = uvAttr.getY(i);
-      // Soft root shadow (v near 0.98) -> luminous mid-waves -> subtly shaded ends, times per-lock variation.
       const along = mix(0.95, 0.85, smooth(0.72, 0.98, v)) * mix(0.93, 1.02, smooth(0.33, 0.56, v));
       const ao = clamp(along * vertTone[i], 0.72, 1.0);
       colors[i * 3] = ao;
@@ -464,12 +419,6 @@ function buildExteriorGeometry(strips, f, axis, style, plain) {
   return geo;
 }
 
-/**
- * Derive a sleek, recessed fitted wavy inner hair surface directly from the wearer's skull,
- * body clearance, combing direction, and exterior hem.
- * Recessed deeply behind the forehead hairline so the hairline stays soft, slim over the back of
- * the head (no helmet bulk), and stopping well above the exterior's tapered wavy lock ends.
- */
 function buildInnerSurface(extGeo, body, f, hHead, reach, axis, style, plain) {
   const k = f.k;
   const mm = k / 1000;
@@ -477,7 +426,6 @@ function buildInnerSurface(extGeo, body, f, hHead, reach, axis, style, plain) {
   const neckY = body.joint("neck_01")[1];
   const shoulderY = body.joint("upperarm_l")[1];
 
-  // Sample the fitted exterior cards' actual radial envelope and hem bottom by azimuth & height.
   const BINS = 36;
   const Y_BANDS = 14;
   const yTop = f.top + 0.025 * k;
@@ -500,7 +448,6 @@ function buildInnerSurface(extGeo, body, f, hHead, reach, axis, style, plain) {
     if (pt[1] < extHemY[b]) extHemY[b] = pt[1];
     const o = hHead.over(pt);
     if (o.eps > 22 * DEG && o.h > 2 * mm && o.h < 35 * mm) {
-      // Average rather than max so one raised lock does not puff the inner cap out like a helmet.
       extCapH[b] = (extCapH[b] * capCount[b] + o.h) / (capCount[b] + 1);
       capCount[b]++;
     }
@@ -551,9 +498,6 @@ function buildInnerSurface(extGeo, body, f, hHead, reach, axis, style, plain) {
     return id;
   };
 
-  // --- Sheet A: Recessed Crown Under-Cap (24 cols x 5 rows -> 240 tris) ---
-  // Recessed well behind the forehead hairline (+12 deg) and tapering smoothly down to 1.2 mm
-  // so Hair roots and front waves own the hairline with zero hard cap band.
   {
     const COLS = 24, ROWS = 5;
     const partPhi = style.fringe === "Swept left" ? -20 * DEG : style.fringe === "Swept right" ? 20 * DEG : 0;
@@ -595,9 +539,6 @@ function buildInnerSurface(extGeo, body, f, hHead, reach, axis, style, plain) {
     }
   }
 
-  // --- Sheet B: Sleek Recessed Wavy Drape Backing Curtain (24 cols x 8 rows -> 384 tris) ---
-  // Hugs the occiput/nape snugly (no helmet puff), seals behind-ear & side gaps, and stops
-  // 26-34 mm ABOVE the exterior's tapered wavy tips so outer authored waves own the silhouette ends.
   {
     const COLS = 24, ROWS = 8;
     const openPhi = 62 * DEG;
@@ -639,7 +580,6 @@ function buildInnerSurface(extGeo, body, f, hHead, reach, axis, style, plain) {
           const bodyR = reach(y, swayPhi);
           const clear = (y > neckY ? 5.0 : y > shoulderY - 0.04 * k ? 7.5 : 8.5) * mm + earZone * 4.0 * mm;
           const minR = bodyR + clear;
-          // Slim fitted silhouette on the back of the head and nape; never puffs wider than skull + 11mm at back.
           const slimCap = Math.max(minR + 3 * mm, skullAxisR(swayPhi) + mix(14, 9, backMask) * mm);
           const recess = mix(5.5, 9.5, smooth(0.3, 0.9, tr)) * mm + (1 - edgeTuck) * 5.0 * mm + smooth(0.75, 1.0, tr) * 5.5 * mm;
           const flute = 1.8 * mm * Math.sin(phi * 13 + tr * 5.5) * edgeTuck * (1 - 0.5 * smooth(0.8, 1.0, tr));
@@ -675,7 +615,6 @@ function buildInnerSurface(extGeo, body, f, hHead, reach, axis, style, plain) {
   return geo;
 }
 
-/** Merge two indexed BufferGeometries with matching attributes (position, normal, uv, optional color). */
 function mergeParts(a, b) {
   const names = ["position", "normal", "uv", ...(a.attributes.color ? ["color"] : [])];
   const out = new T.BufferGeometry();
@@ -697,10 +636,6 @@ function mergeParts(a, b) {
   return out;
 }
 
-/**
- * Build the complete fitted "Loose waves" (cloud_waves) geometry for one adult:
- * refitted + untwisted MakeHuman authored exterior ribbons over a recessed fitted wavy inner surface.
- */
 export function buildLooseWaves(surface, fittedPositions, corners, uvCorners, uv, style = {}, plain = false) {
   const body = surfaceBody(surface);
   const f = surfaceFrame(surface);

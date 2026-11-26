@@ -1,12 +1,3 @@
-// Fast regression for the adults G0 wears as a clothed Rocketbox cast member.
-// A seeded adult whose draw chose a member keeps its own regions in Anatomy;
-// in work clothes the member is worn whole: its face with the authored poses,
-// its body and clothes (or a fitted borrowed outfit) and its hair cards, shaped
-// by the adult's measurements. The starter's cast looks export G0's clay
-// meshes, rig, clips and credits (the Long tunic's hem with the drape joints it
-// hangs from and their motion in every clip), and the member's skin colour and
-// outfit are parameters a steer changes while a held region edit stays.
-
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
@@ -31,10 +22,6 @@ installNodeExporter();
 const body = await loadHumanBody();
 const store = adultStore(body);
 
-/**
- * `accessorDigest` of G0's adult-look-SEED clay export
- * (.reference-cache/human-oracle) and the Rocketbox avatars it credits.
- */
 const g0Looks: ReadonlyArray<{
   readonly id: string;
   readonly digest: string;
@@ -114,7 +101,6 @@ test("in Anatomy the drawn cast member is not worn and its tailored layers are n
     "the worn face carries its poses",
   );
   assert.notEqual(accessorDigest(worn), accessorDigest(anatomy));
-  // With no member and no outfit named, G0 puts on its field jacket and denim, which is not built yet.
   const bare = seededHumanAdult(body, 491);
   await assert.rejects(
     clayBytes(documentOf(store.generate({ ...bare, outfit: "Work clothes" }, "bare")), body),
@@ -141,7 +127,6 @@ test("the member's skin and outfit steer the export while a held region edit sta
       castBottom: "Jeans and shoes",
     },
   };
-  // A borrowed denim jacket and jeans are one of the Gardener's fitted outfits.
   s = store.commit(s, { type: "edit", ops: [{ op: "generation.steer", params: steered }] });
   const held = documentOf(s).parts.find((p) => p.id === head.id);
   const base = documentOf(s).generation?.base.slots.find((b) => b.slot === humanSlot("head"));
@@ -149,7 +134,6 @@ test("the member's skin and outfit steer the export while a held region edit sta
   assert.ok(Math.abs(held.position[1] - base.position[1] - 0.01) < 1e-9, "the held edit stays");
   const after = parseGlb(await clayBytes(documentOf(s), body));
   assert.notEqual(accessorDigest(after), before, "the outfit changed the export");
-  // The member, the borrowed jacket and jeans, and the donor its face shape and pigment blend toward.
   assert.deepEqual(avatarsOf(after), [
     "Professions/Gardener_Male_01",
     "Adults/Male_Adult_12",

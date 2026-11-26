@@ -1,9 +1,3 @@
-// Finish the packed costumes against the body they are worn on.
-//   node scripts/pack-human-attire-finish.mjs character-view/human-attire-data.json
-// Run by pack-human-attire.py. Garment points their author fitted to helper geometry this body does not
-// carry (the joint markers round an ankle) are fitted to the nearest skin instead, from where the author
-// left them. Then the skin each garment covers is found, for garments whose authors marked none. A skin point is covered when the garment lies just outside it along its
-// normal and no opening of the garment is near: skin stays up a sleeve, under a hem and inside a collar.
 import { readFileSync, writeFileSync } from "node:fs";
 import { deflateSync, inflateSync } from "node:zlib";
 import { evaluateHuman, humanRestPositions } from "../character-view/human-surface.js";
@@ -12,7 +6,6 @@ import { raycaster } from "../character-view/human-style-kit.js";
 const file = process.argv[2], library = JSON.parse(readFileSync(file, "utf8"));
 const unpack = (text, Type) => { const raw = inflateSync(Buffer.from(text, "base64")); return new Type(raw.buffer, raw.byteOffset, raw.byteLength / Type.BYTES_PER_ELEMENT); };
 const pack = (values, Type = Uint16Array) => { const data = Type.from(values); return deflateSync(Buffer.from(data.buffer, data.byteOffset, data.byteLength), { level: 9 }).toString("base64"); };
-// The closest point of triangle abc to p, as barycentric weights.
 function closest(p, a, b, c) {
   const sub = (u, v) => [u[0] - v[0], u[1] - v[1], u[2] - v[2]], dot = (u, v) => u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
   const ab = sub(b, a), ac = sub(c, a), ap = sub(p, a), d1 = dot(ab, ap), d2 = dot(ac, ap);
@@ -33,7 +26,6 @@ function closest(p, a, b, c) {
 const body = evaluateHuman({}), rest = humanRestPositions(), at = new Map(Array.from(body.ids, (id, i) => [id, i]));
 const reach = .07, opening = .028;
 
-// Outward normals of the resting skin.
 const normals = new Float32Array(body.bodyVertices * 3);
 for (let c = 0; c < body.bodyTriangles * 3; c += 3) {
   const [a, b, d] = [0, 1, 2].map(k => body.indices[c + k]), p = k => [0, 1, 2].map(j => rest[k * 3 + j]);
@@ -45,8 +37,6 @@ for (let c = 0; c < body.bodyTriangles * 3; c += 3) {
 for (const [name, record] of Object.entries(library)) {
   const refs = unpack(record.refs, Uint16Array).slice(), weights = unpack(record.weights, Float32Array).slice(), offsets = unpack(record.offsets, Float32Array).slice(), corners = unpack(record.corners, Uint16Array);
   const authored = unpack(record.rest, Float32Array), cloth = new Float32Array(refs.length), point = v => [rest[v * 3], rest[v * 3 + 1], rest[v * 3 + 2]];
-  // Where each point lies on this resting body. The author's own body differs a little from it, so a point
-  // without a fit is moved the way the fitted points round it moved, and then fitted to the skin there.
   const loose = [], held = [];
   for (let i = 0; i < refs.length; i += 3) {
     if ([0, 1, 2].some(k => !at.has(refs[i + k]))) { loose.push(i); continue; }
@@ -71,7 +61,6 @@ for (const [name, record] of Object.entries(library)) {
     }
     cloth.set(p, i);
   }
-  // Cloth worn under another piece lies close above a height: [from, to, share of its stand-off kept].
   if (record.under) {
     const [from, to, keep] = record.under;
     for (let i = 0; i < refs.length; i += 3) {
@@ -85,7 +74,6 @@ for (const [name, record] of Object.entries(library)) {
   console.log(name, "fitted", loose.length, "loose points to the skin");
   if (!record.cover) { delete record.cover; continue; }
   delete record.cover;
-  // Edges with one triangle are the garment's openings.
   const edges = new Map(), rim = [];
   for (let c = 0; c < corners.length; c += 3) for (let k = 0; k < 3; k++) {
     const a = corners[c + k], b = corners[c + (k + 1) % 3], key = a < b ? a * 65536 + b : b * 65536 + a;
@@ -94,7 +82,6 @@ for (const [name, record] of Object.entries(library)) {
   for (const [key, uses] of edges) if (uses === 1) for (const v of [Math.floor(key / 65536), key % 65536]) rim.push([cloth[v * 3], cloth[v * 3 + 1], cloth[v * 3 + 2]]);
   const hit = raycaster(cloth, corners), hide = [];
   for (let v = 0; v < body.bodyVertices; v++) {
-    // None of these garments is a glove or a hood: a hand beside a skirt or a jaw over a collar stays.
     let lead = 0;
     for (let k = 1; k < 4; k++) if (body.weights[v * 4 + k] > body.weights[v * 4 + lead]) lead = k;
     if (/^head$|^hand_|^thumb|^index|^middle|^ring|^pinky/.test(body.names[body.boneIndices[v * 4 + lead]])) continue;

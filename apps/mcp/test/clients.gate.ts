@@ -1,14 +1,3 @@
-// clients gate: a real host process, CLI processes and an MCP SDK client
-// driving the MCP server over stdio, all against one open project.
-//
-//   pnpm --filter @irudd/mcp gate:clients
-//
-// It covers: pairing, a seeded/preset start, the MCP handshake and tool list,
-// a person's manual edit read back by the agent as a manual delta, the agent
-// refused a direct edit, a proposal with a duplicate request, a stale CLI
-// edit, killing and restarting the host under a live MCP server, a duplicate
-// across the restart, preview, accept with the manual edit preserved, reject,
-// receipts, and (on Windows) the irudd.cmd launcher.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFile, spawn, type ChildProcess } from "node:child_process";
@@ -168,7 +157,6 @@ test(
       assert.equal(created.code, 0, JSON.stringify(created.value));
       assert.equal(field(created.value, "receipt", "revision"), 1);
 
-      // A real MCP handshake over stdio.
       t = Date.now();
       const transport = new StdioClientTransport({
         command: process.execPath,
@@ -204,14 +192,12 @@ test(
       assert.equal(field(first.value, "revision"), 1);
       const part = String(field(first.value, "document", "parts", 1, "id"));
 
-      // A person's manual edit through the CLI, then the agent reads it as a manual delta.
       const manual = await cliJson("rename", doc, part, "Left foreleg", "--base", "1");
       assert.equal(manual.code, 0, JSON.stringify(manual.value));
       const delta = await tool(client, "read_changes", { documentId: doc, since: 1, by: "human" });
       assert.equal(field(delta.value, "deltas", "length"), 1);
       assert.equal(field(delta.value, "deltas", 0, "actor", "kind"), "human");
 
-      // Direct edits are off for agents; the host answers proposal-required.
       const direct = await tool(client, "edit_document", {
         documentId: doc,
         baseRevision: 2,
@@ -221,7 +207,6 @@ test(
       assert.ok(direct.isError);
       assert.equal(field(direct.value, "diagnostics", 0, "code"), "proposal-required");
 
-      // A proposal, then the same request again: one commit, one replay.
       const proposal = {
         documentId: doc,
         baseRevision: 2,
@@ -236,12 +221,10 @@ test(
       const duplicate = await tool(client, "propose_change", proposal);
       assert.equal(field(duplicate.value, "kind"), "replayed");
 
-      // A stale CLI edit is rejected with nothing written.
       const stale = await cliJson("rename", doc, part, "Stale", "--base", "1");
       assert.equal(stale.code, 4);
       assert.equal(field(stale.value, "diagnostics", 0, "code"), "stale-revision");
 
-      // Kill the host under a live MCP server, then restart it.
       t = Date.now();
       await killed(host.child);
       const down = await tool(client, "read_document", { documentId: doc });
@@ -267,7 +250,6 @@ test(
       });
       assert.equal(field(receipt.value, "command"), "proposal.create");
 
-      // The person previews and accepts; the manual edit survives.
       const preview = await cliJson("preview", doc, "prop-tail");
       assert.equal(preview.code, 0);
       assert.equal(preview.value["stale"], false);
@@ -279,7 +261,6 @@ test(
       assert.equal(field(head.value, "document", "parts", 1, "label"), "Left foreleg");
       assert.equal(field(head.value, "document", "generation", "params", "tail", "length"), 1.3);
 
-      // A second proposal, rejected by the person.
       const second = await tool(client, "propose_change", {
         documentId: doc,
         baseRevision: 3,

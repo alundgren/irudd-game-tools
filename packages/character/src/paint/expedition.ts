@@ -1,7 +1,3 @@
-// The pressure suit's textile. Ported from expedition.js in character-view at
-// 2761eb1: each suited region is traced once from the bundled expedition
-// sheet and baked like a painted part, tinted white.
-
 import type { OutfitRoleName } from "@irudd/document";
 import { expeditionAtlas } from "../dress.js";
 import type { Binding, PaintAtlases } from "./turnaround.js";
@@ -94,11 +90,6 @@ const tracks: ReadonlyArray<readonly [OutfitRoleName, ReadonlyArray<TrackRow>]> 
 
 const kits = new WeakMap<PaintAtlases, ReadonlyMap<OutfitRoleName, Binding> | undefined>();
 
-/**
- * The traced suit regions, or nothing when the sheet is not loaded. G0
- * prepares no regional views for them (it hands preparePaintRegions the
- * traced parts, which carry no region of their own), so they bake unoccluded.
- */
 export function expeditionKit(
   atlases: PaintAtlases,
 ): ReadonlyMap<OutfitRoleName, Binding> | undefined {

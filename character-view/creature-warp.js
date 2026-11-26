@@ -1,16 +1,8 @@
 import { MathUtils, Matrix4 } from "three";
 import { sweepRings } from "./surface.js";
 
-// Live shape feedback while a body plan handle is held. Building the meshes
-// of a creature takes several frames, so a held drag moves the meshes that
-// are already on screen instead: every region takes the place the new plan
-// gives it, a sweep whose rings changed is carried ring by ring to its new
-// path and radii, and joined skin follows the regions that own it. The exact
-// build replaces this picture once the pointer rests.
 const same = (a, b) => a === b || JSON.stringify(a) === JSON.stringify(b);
 const placed = ["position", "rotation", "size", "knots", "frameSize"];
-// A sweep whose rings a warp can carry: its surface is the plain sweep of
-// its knots.
 const plainSweep = (part) =>
   part.shape === "sweep" &&
   !part.paint &&
@@ -19,8 +11,6 @@ const plainSweep = (part) =>
   !part.wearFit &&
   !part.outfitRole;
 
-// What a warp has to do for each region to turn `base` into `next`, or null
-// when the two forms differ by more than the places and rings of regions.
 export function warpSteps(base, next) {
   if (base.parts.length !== next.parts.length) return null;
   for (const key of new Set([...Object.keys(base), ...Object.keys(next)]))
@@ -53,8 +43,6 @@ export function warpSteps(base, next) {
   return steps;
 }
 
-// The rings of a sweep as flat numbers: centre, across, depth and path
-// directions, then the two radii.
 function ringNumbers(knots) {
   const rings = sweepRings(knots),
     out = new Float64Array(rings.length * 14);
@@ -68,9 +56,6 @@ function ringNumbers(knots) {
   });
   return out;
 }
-// For every ring, the map that carries the space around it from the old
-// sweep to the new one: nine numbers that turn a point, three that shift it
-// and nine that turn a surface direction.
 function ringMaps(from, to) {
   const count = from.length / 14,
     maps = new Float64Array(count * 21);
@@ -96,8 +81,6 @@ function ringMaps(from, to) {
   }
   return maps;
 }
-// Where a point lies along a sweep: the ring before it plus the part of the
-// way to the next ring.
 function alongRings(rings, x, y, z) {
   const count = rings.length / 14;
   let best = 0,
@@ -197,8 +180,6 @@ export function creatureWarp() {
       ? (region.rings ??= ringNumbers(region.part.knots))
       : null;
 
-  // Remember a mesh as it was built and note, for each of its points, where
-  // it lies in the regions that own it.
   function bindMesh(region) {
     const mesh = region.object,
       geometry = mesh.geometry,
@@ -240,7 +221,6 @@ export function creatureWarp() {
         blend.weight[i] < 1 && blend.first[i] !== blend.second[i]
           ? ownerOf(blend.ids[blend.second[i]])
           : 255;
-      // A point whose owner is not in the figure stays with its own mesh.
       slots[0].owner[i] = first === 255 ? ownerOf(region.part.id) : first;
       if (first !== 255 && second !== 255) {
         slots[1].owner[i] = second;
@@ -250,7 +230,6 @@ export function creatureWarp() {
     const p = position.array,
       n = normal?.array;
     owners.forEach((owner, k) => {
-      // From the space of this mesh to the space of the owner.
       const to = scratch
         .copy(owner.world)
         .invert()
@@ -316,7 +295,6 @@ export function creatureWarp() {
       count = kept.weight.length;
     const world = region.object.matrixWorld;
     const carry = kept.owners.map((owner) => ({
-      // From the space of the owner back to the space of this mesh.
       to: scratch
         .copy(world)
         .invert()
@@ -434,9 +412,6 @@ export function creatureWarp() {
     bound.warped = false;
   }
 
-  // Show `next` on the figure that was built from `base`. False when the
-  // change is more than a warp can show; the figure is then left untouched
-  // for an exact build to replace.
   function show(figure, base, next) {
     if (!figure || !base || !next) return false;
     const steps = warpSteps(base, next);
@@ -447,7 +422,6 @@ export function creatureWarp() {
     }
     for (let i = 0; i < steps.length; i++)
       if (steps[i] && !bound.regions[i]) return false;
-    // A sweep with new rings needs its mesh in a form a warp can move.
     for (let i = 0; i < steps.length; i++) {
       const region = bound.regions[i];
       if (!steps[i]?.rings || !region.object.isMesh) continue;
@@ -491,9 +465,6 @@ export function creatureWarp() {
     for (const region of bound.regions) {
       if (!region?.object.isMesh) continue;
       const joined = region.object.blendOwners;
-      // Joined skin is written in the space of its own mesh, so it has to
-      // be worked out again whenever that mesh or one of its owners moves.
-      // Any other mesh rides its own place and changes only with its rings.
       let kept = bound.meshes.get(region);
       const touched = joined
         ? kept
@@ -521,7 +492,6 @@ export function creatureWarp() {
   return {
     show,
     restore,
-    // Forget a figure that is about to be replaced.
     release() {
       bound = null;
     },

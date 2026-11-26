@@ -1,25 +1,3 @@
-// Where a host and its clients meet on one machine, and how they prove a shared key.
-//
-// Per-user state lives outside the project directory, so copying or backing
-// up a project never copies credentials:
-//
-//   Windows  %LOCALAPPDATA%\irudd\workshop
-//   macOS    ~/Library/Application Support/irudd/workshop
-//   other    $XDG_STATE_HOME/irudd/workshop (default ~/.local/state)
-//   any      $IRUDD_STATE_DIR overrides the root
-//
-// Inside it, `hosts/<key>/` belongs to one project directory (`key` is a hash
-// of its resolved path):
-//
-//   endpoint.json      the running host: pipe, pid, instance. Not secret.
-//   human.key          the person's secret, new on every host start.
-//   pairings.json      paired agents and their derived keys.
-//   agents/<id>.json   an agent's credential, read by the MCP server.
-//
-// Secrets never cross the wire. Each side proves it holds the key with an
-// HMAC over both nonces, so a process squatting on the pipe name learns
-// nothing and is detected by the client.
-
 import { Schema } from "effect";
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import fs from "node:fs";
@@ -29,7 +7,6 @@ import { decodeWith, diagnostic, fail, type Checked } from "@irudd/document";
 import { AgentId, HostIdentity, wireProtocol, wireVersion } from "./protocol.js";
 
 export interface LocationOptions {
-  /** Override the per-user state root. Defaults to `$IRUDD_STATE_DIR` or the platform location. */
   readonly stateDir?: string;
 }
 
@@ -48,14 +25,11 @@ export function stateRoot(options: LocationOptions = {}): string {
   return path.join(xdg, "irudd", "workshop");
 }
 
-/** The resolved, comparable form of a project directory. */
 export function canonicalProjectPath(directory: string): string {
   let resolved = path.resolve(directory);
   try {
     resolved = fs.realpathSync.native(resolved);
-  } catch {
-    // A directory that does not exist yet keeps its resolved path.
-  }
+  } catch {}
   return process.platform === "win32" ? resolved.toLowerCase() : resolved;
 }
 
@@ -89,16 +63,12 @@ export function agentCredentialPath(files: HostFiles, agent: string): string {
   return path.join(files.agents, `${agent}.json`);
 }
 
-/** The OS-local endpoint for one host start. */
 export function endpointAddress(files: HostFiles, instance: string): string {
   if (process.platform === "win32")
     return `\\\\.\\pipe\\irudd-workshop-${files.key}-${instance.slice(0, 12)}`;
   const inDir = path.join(files.dir, "host.sock");
-  // Unix socket paths are limited to about 104 bytes.
   return Buffer.byteLength(inDir) < 100 ? inDir : path.join(os.tmpdir(), `irudd-${files.key}.sock`);
 }
-
-// ── Files ───────────────────────────────────────────────────────────────────
 
 export const Endpoint = Schema.Struct({
   format: Schema.Literal("irudd.workshop-endpoint"),
@@ -114,7 +84,6 @@ export type Endpoint = typeof Endpoint.Type;
 export const AgentCredential = Schema.Struct({
   format: Schema.Literal("irudd.agent-credential"),
   version: Schema.Literal(1),
-  /** The project directory this credential opens. */
   project: Schema.String,
   projectId: Schema.String,
   agent: AgentId,
@@ -142,15 +111,12 @@ export function readJsonFile<S extends Schema.Decoder<unknown>>(
   return decodeWith(schema, value);
 }
 
-/** Write a private file atomically: a temporary sibling, then rename. */
 export function writePrivateFile(file: string, text: string): void {
   fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
   const temporary = `${file}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
   fs.writeFileSync(temporary, text, { mode: 0o600 });
   fs.renameSync(temporary, file);
 }
-
-// ── Proofs ──────────────────────────────────────────────────────────────────
 
 export function newNonce(): string {
   return randomBytes(32).toString("base64url");
@@ -160,7 +126,6 @@ export function newSecret(): string {
   return randomBytes(32).toString("base64url");
 }
 
-/** The HMAC key both sides derive from a secret. */
 export function deriveKey(secret: string): Buffer {
   return createHash("sha256").update(`irudd.workshop-key\0${secret}`).digest();
 }

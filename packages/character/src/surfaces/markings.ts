@@ -1,6 +1,3 @@
-// Procedural coat patterns painted into vertex colours by the full and game
-// presets. Ported from character-view/markings.js at 2761eb1.
-
 import * as T from "three";
 import { TessellateModifier } from "three/addons/modifiers/TessellateModifier.js";
 import { mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
@@ -49,7 +46,6 @@ export function markingField(m: FigureMarkings): MarkingField {
       const width = Math.sin(0.5 * Math.PI * m.coverage);
       return 1 - ease(vein, width - 0.08, width + 0.08);
     }
-    // Jittered 3D cells give neighbouring limbs the same field on their seam.
     const ix = Math.floor(x);
     const iy = Math.floor(y);
     const iz = Math.floor(z);
@@ -89,15 +85,12 @@ function standard(mesh: T.Mesh): T.MeshStandardMaterial {
   return material;
 }
 
-/** Paint a part's markings, refining large triangles first unless the mesh is joined. */
 export function paintMarkings(mesh: T.Mesh, m: FigureMarkings, joined: boolean): void {
   mesh.updateWorldMatrix(true, false);
   let geo = mesh.geometry;
   const triangles = (geo.index?.count ?? geo.getAttribute("position").count) / 3;
   const iterations = Math.min(5, Math.floor(Math.log2(16000 / triangles)));
   if (iterations > 0 && !joined && !geo.morphAttributes["position"]) {
-    // Bisect large triangles on their existing planes. Physical coordinates
-    // keep narrow markings sharp even when the local axes have unequal scales.
     const world = geo.clone().applyMatrix4(mesh.matrixWorld);
     const split = new TessellateModifier(m.spacing * 0.19, iterations).modify(world);
     const refined = mergeVertices(split, 1e-6);
@@ -135,17 +128,12 @@ export function paintMarkings(mesh: T.Mesh, m: FigureMarkings, joined: boolean):
   mesh.material = mat;
 }
 
-/** What a joined skin paints for one owner: its undercoat, then a limb tint, then its markings. */
 export interface CoatLayers {
   readonly under?: FigureMarkings | undefined;
   readonly tint?: ((color: T.Color, p: T.Vector3) => void) | undefined;
   readonly mark?: FigureMarkings | undefined;
 }
 
-/**
- * Paint a joined skin with each owner's undercoat, limb tint and markings. A
- * boundary vertex mixes its two owners with the weights the skin uses for joints.
- */
 export function paintJoinedCoat(
   mesh: T.Mesh,
   owners: BlendOwners,

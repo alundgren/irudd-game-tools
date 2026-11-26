@@ -52,7 +52,6 @@ def evaluated(name, full=False):
         me.uv_layers["UVMap"].data.foreach_get("uv", uv)
         result["tri"] = tri.reshape(-1, 3)
         result["uv"] = uv.reshape(-1, 2)[loops].reshape(-1, 3, 2).astype(np.float32)
-        # Quads, for one level of the artist's subdivision.
         sizes = np.zeros(len(me.polygons), np.int32)
         me.polygons.foreach_get("loop_total", sizes)
         corners = np.zeros(len(me.loops), np.int32)
@@ -64,7 +63,6 @@ def evaluated(name, full=False):
     return result
 
 def paint(name, layer):
-    # The mirror modifier repeats the painted colour, so read it from the evaluated mesh.
     ob = bpy.data.objects[name]
     graph = bpy.context.evaluated_depsgraph_get()
     ev = ob.evaluated_get(graph)
@@ -101,7 +99,6 @@ for pose, bones in poses.items():
         data[key + "/" + pose] = evaluated(parts[key])["points"] - data[key + "/points"]
 reset()
 
-# Landmarks from the rig: where each face bone holds the skin, and the eye centres.
 head = bpy.data.objects[parts["head"]]
 groups = [g.name for g in head.vertex_groups]
 rows = []

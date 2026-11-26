@@ -1,27 +1,3 @@
-// Durable storage of a document: the journal.
-//
-// Every commit yields one `JournalEntry` (format "irudd.journal" version 1):
-// the accepted envelope, its receipt and the command's materialised effect,
-// chained to the previous entry by digest. Storage appends entries in order
-// and keeps nothing else authoritative.
-//
-// Two ways back from a journal:
-//
-//   openJournal    normal recovery. Rebuilds the state from the recorded
-//                  effects without running a generator, a feature codec or
-//                  an op, so it works in any build that reads this journal
-//                  version. Every digest, link and receipt is checked; any
-//                  mismatch fails the whole journal with the entry index.
-//                  The result reports what this build can do with the head
-//                  (`Access`), and earlier requests still replay their
-//                  original receipts.
-//
-//   replayJournal  forensic replay. Re-executes every envelope with `reduce`
-//                  and requires byte-identical entries. Only meaningful in
-//                  the environment the journal was written with (the same
-//                  generators, feature codecs, assets and catalog); a newer
-//                  build is expected to differ, and that is not corruption.
-
 import { Schema } from "effect";
 import { headAccess, type Access } from "./access.js";
 import { applyChanges, ChangeSchema } from "./changes.js";
@@ -131,7 +107,6 @@ const EntryRecord = Schema.Struct({
   digest: Digest,
 });
 
-/** The parts of a stored envelope recovery needs. Other fields belong to the command. */
 const EnvelopeHeader = Schema.Struct({
   format: Schema.Literal(commandFormat),
   version: Count,
@@ -148,7 +123,6 @@ const EnvelopeHeader = Schema.Struct({
 });
 const decodeHeader = Schema.decodeUnknownResult(EnvelopeHeader, { onExcessProperty: "ignore" });
 
-/** The revision kind each command records; undefined for commands that append none. */
 const revisionKinds: Readonly<Record<CommandType, RevisionKind | undefined>> = {
   "document.create": "create",
   "document.generate": "create",
@@ -167,30 +141,22 @@ export type Recovery =
   | {
       readonly ok: true;
       readonly state: DocumentState;
-      /** What this build can do with the head. Absent before creation. */
       readonly access: Access;
     }
   | {
       readonly ok: false;
-      /** Index of the first entry that fails. Nothing is recovered. */
       readonly index: number;
       readonly diagnostics: ReadonlyArray<Diagnostic>;
     };
 
 export interface OpenOptions {
-  /**
-   * The last entry storage committed, kept outside the journal (for example in
-   * the store's own header). Detects a journal truncated at its end.
-   */
   readonly last?: { readonly sequence: number; readonly digest: string };
 }
 
-/** The bytes to store for an entry: `canonicalJson(journalJson(entry))`. */
 export function journalJson(entry: JournalEntry): Json {
   return entry;
 }
 
-/** What this build can do with the state's head document. */
 export function documentAccess(state: DocumentState, env: Environment): Access {
   return state.document ? headAccess(state.document, env.registry) : { mode: "writable" };
 }
@@ -209,7 +175,6 @@ function corrupt(path: DiagnosticPath, message: string, detail?: Json): Corrupt 
   return new Corrupt([diagnostic("journal-integrity", path, message, detail)]);
 }
 
-/** Rebuild a document state from its journal. See the module comment. */
 export function openJournal(
   documentId: DocumentIdType,
   entries: ReadonlyArray<unknown>,
@@ -258,7 +223,6 @@ export function openJournal(
           `Entry ${i + 1}'s receipt misstates its revision.`,
         );
 
-      // Proposal effect: present exactly for proposal commands, and a legal transition.
       const proposal = effect.proposal;
       if (type.startsWith("proposal.")) {
         if (!proposal || proposal.id !== e.command.proposal)
@@ -486,7 +450,6 @@ function readEntry(raw: unknown, i: number, previous: JournalEntry | undefined):
         `Entry ${i + 1} records a ${command} command, which needs a newer build.`,
       ),
     ]);
-  // Decode a copy: the caller's objects are never frozen or retained.
   const decoded = decodeWith(EntryRecord, detach(raw), [i]);
   if (!decoded.ok) throw new Corrupt(decoded.diagnostics);
   const { digest: _digest, ...body } = decoded.value;
@@ -500,11 +463,6 @@ function readEntry(raw: unknown, i: number, previous: JournalEntry | undefined):
   return entry;
 }
 
-/**
- * Forensic replay: re-run every envelope with `reduce` in `env` and require
- * each entry to come out byte-identical. Needs the environment the journal
- * was written with; use `openJournal` to recover a document.
- */
 export function replayJournal(
   documentId: DocumentIdType,
   entries: ReadonlyArray<unknown>,

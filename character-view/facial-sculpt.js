@@ -19,8 +19,6 @@ export const isFace = (p) => p?.shape === "head" || p?.anatomy === "face";
 const bell = (x, y, cx, cy, rx, ry) =>
   Math.exp(-(((x - cx) / rx) ** 2) - ((y - cy) / ry) ** 2);
 
-// Local displacements carry the UVs with the surface. X measures half-widths
-// from the centre, Y runs from chin to crown, and +Z faces the camera.
 export function deformFace(
   geometry,
   sculpt = {},
@@ -103,9 +101,6 @@ export function deformFace(
   return geometry;
 }
 
-// A profile supplies the frontmost point of each row. Only the bridge and
-// tip of the nose reach that depth. Recess cheeks and eye sockets locally
-// and retain the source profile at the nasal tip, lips and chin.
 export function portraitSurface(geometry, binding) {
   const paint = headSpace(binding);
   const face = paint?.portrait;

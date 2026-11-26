@@ -39,8 +39,6 @@ export function poseEditor(current, save) {
   scene.add(wristTarget);
   let reach,
     pickingSurface = false;
-  // Limbs that are posed together, the feet held in place meanwhile and the
-  // selected joint as it was before its latest change.
   let limbs = [],
     following = [],
     planted = null,

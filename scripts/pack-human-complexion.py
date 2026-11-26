@@ -63,20 +63,17 @@ def detail_maps(library, detail_mask, box):
         im = open_skin(library, name).crop(box)
         rgb = np.asarray(im, dtype=float) / 255.0
         lum = rgb @ np.array([0.2126, 0.7152, 0.0722])
-        # R: fine pore & micro-grain relief (high-pass, sigma 4.5 px in 2048 space).
         lum_fine = ndimage.gaussian_filter(lum, 4.5)
         fine = np.log((lum + 0.08) / (lum_fine + 0.08))
         fine -= np.median(fine[valid])
         pore_ch = np.tanh(fine / 0.11)
 
-        # G: anatomical wrinkles & mid-fine skin structure (band-pass 2.2..12.5 px).
         lum_s = ndimage.gaussian_filter(lum, 2.2)
         lum_m = ndimage.gaussian_filter(lum, 12.5)
         wrinkle = np.log((lum_s + 0.08) / (lum_m + 0.08))
         wrinkle -= np.median(wrinkle[valid])
         wrinkle_ch = np.tanh(wrinkle / 0.14)
 
-        # B: modest organic red-green warmth variation (band-pass 4..34 px, zero-mean).
         rg = np.log((rgb[..., 0] + 0.08) / (rgb[..., 1] + 0.08))
         mottle = ndimage.gaussian_filter(rg, 4.0) - ndimage.gaussian_filter(rg, 34.0)
         mottle -= np.median(mottle[valid])
@@ -149,7 +146,6 @@ def pack(library, mpfb, destination):
         np.add.at(normal, F[:, k], cross)
     normal /= np.linalg.norm(normal, axis=1, keepdims=True) + 1e-12
 
-    # Landmarks measured on the base head. All zone sizes follow the eye spacing.
     eyes = [V[sorted(groups["helper-" + s + "-eye"])].mean(0) for s in "lr"]
     eye_y, eye_x = eyes[0][1], abs(eyes[0][0])
     unit = 2 * eye_x / .0615
@@ -176,8 +172,6 @@ def pack(library, mpfb, destination):
     under = blob(eye_x * 1.02, eye_y - .0145 * unit, .016, .0065) * step(eye_y - .004 * unit - y, 0, .004 * unit)
     socket = blob(eye_x, eye_y + .001 * unit, .023, .014)
     ridge = np.exp(-((x / (.0075 * unit)) ** 2)) * step(y, nose[1] - .005 * unit, nose[1] + .008 * unit) * step(eye_y + .008 * unit - y, 0, .012 * unit)
-    # Broad anatomical sebum/sheen zones: forehead & brow ridge, nose bridge/tip/wings,
-    # malar cheekbones, philtrum/cupid's bow, chin, and a gentle mid-face base transition.
     gloss = np.clip(
         .78 * blob(0, eye_y + .044 * unit, .044, .024)
         + .48 * blob(.028 * unit, eye_y + .022 * unit, .022, .011)
@@ -190,35 +184,27 @@ def pack(library, mpfb, destination):
         + .22 * blob(0, eye_y - .025 * unit, .068, .068),
         0, 1,
     )
-    # Clean skin mask for CC0 detail extraction: keeps pores/wrinkles/chroma inside bare
-    # facial skin and cuts out the source textures' painted hairline, temples, eye cavities, and nostrils.
     scalp_cut = 1 - step(y, eye_y + .055 * unit, eye_y + .073 * unit)
     temple_cut = 1 - step(y, eye_y + .014 * unit, eye_y + .042 * unit) * step(x, .047 * unit, .064 * unit)
     ear_cut = step(z, nose[2] - .088 * unit, nose[2] - .062 * unit)
     eye_cut = 1 - .92 * blob(eye_x, eye_y, .018, .0095)
     nostril_cut = 1 - .88 * blob(.0095 * unit, nose[1] - .007 * unit, .0085, .0065)
     detail_keep = scalp_cut * temple_cut * ear_cut * eye_cut * nostril_cut
-    # Beard growth: under the nose, around the mouth and along the jaw toward the ear.
     line = nose[1] - .012 * unit + .5 * np.maximum(0, x - .024 * unit)
     beard = step(line - y, 0, .012 * unit) * (1 - .55 * blob(.03 * unit, mouth[1] + .012 * unit, .012, .012))
 
-    # Facial hair zones. Lips are cut out of all of them further down.
     lip_points = V[lip_vertices]
     lip_low, corner = lip_points[:, 1].min(), np.abs(lip_points[:, 0]).max()
     reach = np.clip(x / corner, 0, 1.6)
-    # Above the mouth, from under the nose and out past the corners, where it turns down.
     moustache = (step(nose[1] - .005 * unit - .75 * np.maximum(0, x - .008 * unit) - y, 0, .004 * unit)
                  * step(y, mouth[1] - .003 * unit - .003 * unit * reach ** 2, mouth[1] + .001 * unit)
-                 # Not the underside of the nose.
                  * step(normal[used][:, 1], -.6, -.25)
                  * (1 - step(x, corner + .003 * unit, corner + .012 * unit)))
     chin_zone = step(lip_low - .001 * unit - y, 0, .004 * unit) * (1 - step(x, .02 * unit, .031 * unit))
-    # The cheek line stays low along the jaw and climbs to the sideburn in front of the ear.
     climb = np.clip((x - .028 * unit) / (.044 * unit), 0, 1) ** 2.2
     cheek_line = mouth[1] - .002 * unit + (eye_y - .02 * unit - mouth[1]) * climb - .012 * unit * np.clip(1 - x / (.028 * unit), 0, 1)
     side_zone = step(cheek_line - y, 0, .006 * unit) * step(x, .014 * unit, .026 * unit)
 
-    # Relief: how far each point stands out of, or sinks into, the smoothed head.
     tree = cKDTree(V[sorted(groups["body"])])
     body = V[sorted(groups["body"])]
     relief = np.zeros(len(p))
@@ -229,7 +215,6 @@ def pack(library, mpfb, destination):
             w = np.exp(-((q - p[i]) ** 2).sum(1) / (2 * (sigma * unit) ** 2))
             relief[i] += gain * (normal[used[i]] @ (p[i] - (q * w[:, None]).sum(0) / w.sum())) / (sigma * unit)
 
-    # Draw each field into the skin layout.
     order = {v: i for i, v in enumerate(used)}
     corner = np.vectorize(order.get)(faces)
     names = ["blush", "under", "socket", "gloss", "beard", "relief", "moustache", "chin", "side", "detail_keep"]
@@ -254,33 +239,26 @@ def pack(library, mpfb, destination):
         ys, xs = (gy[hit] - .5).astype(int), (gx[hit] - .5).astype(int)
         canvas[ys, xs] = w0[hit][:, None] * values[tri[0]] + w1[hit][:, None] * values[tri[1]] + w2[hit][:, None] * values[tri[2]]
         weight[ys, xs] = 1
-    # Fill the eye and mouth openings and seams from their surroundings, then soften.
     missing = weight == 0
     nearest = ndimage.distance_transform_edt(missing, return_distances=False, return_indices=True)
     canvas = canvas[nearest[0], nearest[1]]
     zone_names = ["moustache", "chin", "side"]
     field = {name: ndimage.gaussian_filter(canvas[..., k], 5 if name == "beard" else 1.6) * (1 if name in zone_names else face_mask)
              for k, name in enumerate(names)}
-    # A head is convex overall. Measure relief against the typical face surface.
     field["relief"] = (field["relief"] - np.median(field["relief"][face_mask > .5])) * face_mask
     byte = lambda v: np.rint(np.clip(v, 0, 1) * 255).astype("uint8")
     lids = crop("mpfb_eyelids.jpg") * face_mask
     lips = lips * face_mask
-    # Facial hair zones as small grids. Geometry and paint both sample them by position in
-    # the face rectangle, so they serve any mesh density and need no image decoding.
     clear = 1 - np.clip(ndimage.gaussian_filter(lips, 1.2) * 1.6, 0, 1)
     grid = (width // 3, height // 3)
     growth = {"size": list(grid), **{
         name: base64.b64encode(zlib.compress(np.asarray(
             Image.fromarray(byte(field[name] * clear)).resize(grid, Image.Resampling.BOX)).tobytes(), 9)).decode()
         for name in zone_names}}
-    # The mouth lining has its own island outside the face rectangle. Record where, so the
-    # editor can point it at a dark patch of the face paint.
     centre = V[F].mean(1)
     lining = ((np.abs(centre[:, 0]) < .035 * unit) & (np.abs(centre[:, 1] - mouth[1]) < .03 * unit)
               & (centre[:, 2] > mouth[2] - .06 * unit) & ~inside)
     layout = np.column_stack([UV[:, 0] * SIZE, (1 - UV[:, 1]) * SIZE])
-    # A few faces at the lip seam belong to other islands. Keep the main cluster.
     middle = np.median(layout[FT[lining]].mean(1), axis=0)
     lining &= (np.abs(layout[FT].mean(1) - middle) < 260).all(1)
     island = layout[FT[lining]].reshape(-1, 2)
@@ -288,11 +266,8 @@ def pack(library, mpfb, destination):
     spot = layout[FT]
     within = ((spot[..., 0] > mouth_box[0]) & (spot[..., 0] < mouth_box[2]) & (spot[..., 1] > mouth_box[1]) & (spot[..., 1] < mouth_box[3])).any(1)
     others = centre[within & ~lining]
-    # The paint for it goes in the emptiest part of the rectangle, away from every face.
     empty = ndimage.distance_transform_edt((weight == 0) & (face_mask < .004))
     at = np.unravel_index(np.argmax(empty), empty.shape)
-    # Centre and half size of the square, in pixels of the rectangle. Coordinates beyond the
-    # rectangle read its border, so the square keeps a margin from it.
     half, margin = float(empty[at]) / 4.3, 10
     patch = [float(np.clip(at[1] + .5, half + margin, width - half - margin)),
              float(np.clip(at[0] + .5, half + margin, height - half - margin)), half]
@@ -307,7 +282,6 @@ def pack(library, mpfb, destination):
         np.dstack([byte(field["under"]), byte(field["socket"]), byte(face_mask)]),
     ]
 
-    # Project the packed brow strands and lash roots onto the skin layout.
     face_data = json.loads((destination.parent / "human-face-data.json").read_text())
     decode = lambda text, kind: np.frombuffer(zlib.decompress(base64.b64decode(text)), kind)
     surface = cKDTree(V[used])
@@ -365,18 +339,14 @@ def pack(library, mpfb, destination):
             row = np.array([(points[s] + points[s + 1]) / 2 for s in starts if lower[s] == low and points[s, 0] * side > 0])
             row = row[np.argsort(row[:, 0])]
             flat = to_layout(row)
-            # Roots past the eye corner sit off the lid and land far away on the skin.
-            # Keep the longest evenly spaced run.
             step_d = np.linalg.norm(np.diff(flat, axis=0), axis=1)
             breaks = np.concatenate([[-1], np.nonzero(step_d > 4 * np.median(step_d))[0], [len(step_d)]])
             longest = np.argmax(np.diff(breaks))
             flat = flat[breaks[longest] + 1:breaks[longest + 1] + 1]
             print("lid margin", "lower" if low else "upper", len(flat), "of", len(row), "roots")
-            # Smooth the scatter of single roots into a clean margin.
             flat = np.column_stack([ndimage.uniform_filter1d(flat[:, k], 5, mode="nearest") for k in range(2)])
             lid_lines.append(dict(lower=bool(low), points=quantise(flat[::2])))
     destination.write_text(json.dumps({
-        # human-complexion.js refuses a file packed any other way than it reads.
         "encoding": {"name": "signed-detail", "neutral": 128},
         "rect": box, "maps": detail_maps(library, detail_mask, box), "fields": [webp(im) for im in images],
         "brows": brows, "lids": lid_lines, "growth": growth, "mouth": {"island": mouth_box, "patch": patch},

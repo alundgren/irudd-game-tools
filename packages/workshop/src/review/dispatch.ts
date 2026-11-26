@@ -1,7 +1,3 @@
-// The review verbs of the host's dispatcher. Agents may ask for capabilities,
-// exports, inspections and artifact reads; serving as the renderer belongs to
-// a person's connection (an attached desktop).
-
 import { decodeWith } from "@irudd/document";
 import { toWireError, type DecodedParams, type MethodName } from "../wire/protocol.js";
 import { reviewParams } from "../wire/review.js";
@@ -14,13 +10,11 @@ type Outcome =
 
 export interface ReviewCaller {
   readonly role: "human" | "agent";
-  /** The wire connection, when the caller has one. */
   readonly connection?: ConnectionLink;
 }
 
 type ReviewParams = typeof reviewParams;
 
-/** Parameters decoded again with the method's own schema, typed for that method. */
 function typed<M extends keyof ReviewParams>(method: M, value: unknown): ReviewParams[M]["Type"] {
   const decoded = decodeWith(reviewParams[method], value, ["params"]);
   if (!decoded.ok)
@@ -30,7 +24,6 @@ function typed<M extends keyof ReviewParams>(method: M, value: unknown): ReviewP
   return decoded.value;
 }
 
-/** Remote renderers by connection ID, so a closed connection fails its jobs. */
 export class ReviewRoutes {
   private readonly review: Review;
   private readonly remotes = new Map<

@@ -1,8 +1,3 @@
-// Mantles build a two-sided sewn panel and take movement from the arms they
-// cover; skirts hang from cloth joints that each clip moves; cuts outside the
-// legacy editor's bounds are refused. The parity of four-arm-cape and
-// relay-wardrobe is the slow gate's.
-
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

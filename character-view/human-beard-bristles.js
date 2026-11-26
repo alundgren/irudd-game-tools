@@ -1,8 +1,3 @@
-// Original drawn artwork for short, coarse beard hair. Every hair is a tapered stroke with its
-// own length, lean and brightness, so a card ends in separate tips and never in a shaped edge.
-//   bristlePixels() -> { width, height, data, normal, rough }
-//   bristleMaps() -> { map, normalMap, roughnessMap }
-//   BRISTLE_TILES: pixel rectangles [x, y, width, height] with the origin at the top left
 import * as T from "three";
 import { randomStream } from "./random.js";
 import { beardTexture } from "./human-beard-texture.js";
@@ -10,12 +5,9 @@ import { beardTexture } from "./human-beard-texture.js";
 const SIZE = 512;
 const row = (y, w, h, n, x = 0) => Array.from({ length: n }, (_, i) => [x + i * w, y, w, h]);
 
-// Lying tufts are rooted along the bottom edge and run up the tile. Standing fringes are rooted
-// along the whole bottom edge and are much wider than they are tall.
 export const BRISTLE_TILES = {
   dense: row(0, 64, 128, 4),
   medium: row(0, 64, 128, 2, 256),
-  // Close, even growth that hides the skin under the looser tufts.
   thatch: row(0, 64, 128, 2, 384),
   sparse: row(128, 64, 128, 4),
   single: row(128, 64, 128, 4, 256),
@@ -27,7 +19,6 @@ export const BRISTLE_SIZE = SIZE;
 const GUTTER = 3;
 let cached = null;
 
-/** Tone and cutout, a tangent normal and a roughness value for every pixel of the sheet. */
 export function bristlePixels() {
   if (cached) return cached;
   const tone = new Float32Array(SIZE * SIZE).fill(0.8),
@@ -35,13 +26,11 @@ export function bristlePixels() {
     height = new Float32Array(SIZE * SIZE);
   const next = randomStream(0x5b12e7a3);
   const between = (a, b) => a + (b - a) * next();
-  // One scratch layer per hair keeps a stroke's own overlap from darkening it.
   const layerAlpha = new Float32Array(SIZE * SIZE), layerRise = new Float32Array(SIZE * SIZE);
 
   function hair([tx, ty, tw, th], x0, y0, angle, length, bend, rootWidth, value) {
     const x1 = tx + GUTTER, x2 = tx + tw - GUTTER, y1 = ty + GUTTER, y2 = ty + th - GUTTER;
     const dx = Math.sin(angle), dy = -Math.cos(angle);
-    // A quadratic curve: the control point sits beside the middle of the hair.
     const cx = x0 + dx * length * 0.5 - dy * bend, cy = y0 + dy * length * 0.5 + dx * bend;
     const ex = x0 + dx * length, ey = y0 + dy * length;
     const touched = [];
@@ -49,7 +38,6 @@ export function bristlePixels() {
     for (let s = 0; s <= steps; s++) {
       const t = s / steps, u = 1 - t;
       const px = u * u * x0 + 2 * u * t * cx + t * t * ex, py = u * u * y0 + 2 * u * t * cy + t * t * ey;
-      // Coarse hair keeps most of its width and narrows over the last third.
       const radius = 0.5 * rootWidth * (1 - 0.62 * t ** 2.4) * (0.72 + 0.28 * Math.min(1, t * 9));
       const reach = Math.ceil(radius + 1);
       for (let y = Math.max(y1, Math.floor(py - reach)); y <= Math.min(y2 - 1, Math.ceil(py + reach)); y++)
@@ -65,7 +53,6 @@ export function bristlePixels() {
     }
     for (const i of touched) {
       const a = layerAlpha[i], y = Math.floor(i / SIZE);
-      // Darker where the hair leaves the skin, brightest along its outer half.
       const along = Math.min(1, Math.max(0, (y0 - y) / Math.max(1, y0 - ey)));
       const shade = value * (0.78 + 0.22 * Math.min(1, along * 2.4)) * (0.9 + 0.1 * layerRise[i]);
       tone[i] = tone[i] * (1 - a) + shade * a;
@@ -78,7 +65,6 @@ export function bristlePixels() {
   function tuft(tile, count, spread, widths, shortest = 0.42) {
     const [tx, ty, tw, th] = tile, base = ty + th - GUTTER - 1.5;
     const lean = between(-0.07, 0.07);
-    // Short hairs first, so the longest lie on top the way an outer layer does.
     const hairs = Array.from({ length: count }, (_, k) => {
       const across = count === 1 ? between(0.4, 0.6) : (k + between(0.15, 0.85)) / count;
       return { across, length: between(shortest, 0.93) * (th - 2 * GUTTER - 6) };
@@ -95,7 +81,6 @@ export function bristlePixels() {
     const lean = between(-0.16, 0.16);
     const hairs = Array.from({ length: count }, (_, k) => ({
       x: tx + GUTTER + 5 + (tw - 2 * GUTTER - 10) * ((k + between(0.1, 0.9)) / count),
-      // A few long hairs stand clear of many short ones.
       length: (next() < 0.3 ? between(0.7, 0.96) : between(0.3, 0.68)) * (th - 2 * GUTTER - 4),
     })).sort((a, b) => a.length - b.length);
     for (const { x, length } of hairs)
@@ -127,7 +112,6 @@ export function bristlePixels() {
 }
 
 let maps = null;
-/** The dyeable cutout sheet with its relief and roughness, shared by every short beard. */
 export function bristleMaps() {
   if (maps) return maps;
   const { width, height, data, normal, rough } = bristlePixels();

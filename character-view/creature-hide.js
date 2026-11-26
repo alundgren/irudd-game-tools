@@ -19,7 +19,6 @@ const { clamp, smoothstep } = MathUtils;
 const HIDE_SIZE = 1024;
 const CHART_MARGIN = 4;
 
-// Fast exact linear [0..1] -> sRGB [0..255] lookup table.
 const LIN_TO_SRGB = Uint8Array.from({ length: 4096 }, (_, i) => {
   const x = i / 4095;
   const s = x <= 0.0031308 ? 12.92 * x : 1.055 * x ** (1 / 2.4) - 0.055;
@@ -40,7 +39,6 @@ function hash3(x, y, z, seed) {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
-// Smooth 3D value noise in [0, 1], zero allocations.
 function noise3(x, y, z, seed) {
   const ix = Math.floor(x),
     iy = Math.floor(y),
@@ -68,7 +66,6 @@ function noise3(x, y, z, seed) {
   return y0 + (y1 - y0) * uz;
 }
 
-// 3D Worley cellular distances (f1, f2) into a 2-element scratch array.
 function worley3(out, x, y, z, seed) {
   const ix = Math.floor(x),
     iy = Math.floor(y),
@@ -128,9 +125,6 @@ export function isCreatureHidePart(part, skin) {
   );
 }
 
-// Perceptual visibility [0..1] of a creature's authored marking pattern.
-// Returns 0 for unpatterned skin, ~0.14 for Countershade-only, and scales with
-// perceptual sRGB luminance + chroma contrast for patterned kinds.
 export function patternVisibility(skin) {
   const m = skin?.markings;
   if (!m) return 0;
@@ -147,7 +141,6 @@ export function patternVisibility(skin) {
     dg = ag - bg,
     db = ab - bb;
   const dist = Math.sqrt(0.3 * dr * dr + 0.59 * dg * dg + 0.11 * db * db);
-  // Very light-on-light markings (e.g. #f0eee6 on #d4c3a6) read softer in bright lit scenes.
   const avgL = 0.5 * (0.299 * (ar + br) + 0.587 * (ag + bg) + 0.114 * (ab + bb));
   const brightPenalty = avgL > 0.72 ? 1 - 0.38 * clamp((avgL - 0.72) / 0.22, 0, 1) : 1;
   return clamp((dist * brightPenalty) / 0.28, 0, 1);
@@ -187,8 +180,6 @@ function makeMarkingSampler(m) {
       return smoothstep(underside, lo, hi);
     }
 
-    // Subtle organic 3D domain warp gives hand-painted biological curves
-    // without moving spot centres or introducing high-frequency noise.
     if (organicWarp) {
       const wf = 1.35;
       const wa = kind === "Bands" ? 0.06 : 0.055;
@@ -243,7 +234,6 @@ function heroWeight(partId) {
   return 0.68;
 }
 
-// Build parallel-transported polyline segments for a sweep's knots in world space.
 function knotSegments(part, matrixWorld) {
   const pts = part.knots.map((k) =>
     new Vector3(k[0], k[1], k[2]).applyMatrix4(matrixWorld),
@@ -275,9 +265,6 @@ function knotSegments(part, matrixWorld) {
   return { segs, total };
 }
 
-// Split an indexed geometry so vertices belonging to multiple charts are duplicated
-// cleanly along chart boundaries. If mesh.handRig is present, clone and remap its
-// per-digit vertex indices so finger skinning stays exact on every seam vertex.
 function assignChartTriangles(mesh, triChartIds, numCharts) {
   const geometry = mesh.geometry;
   const pos = geometry.attributes.position;
@@ -289,7 +276,6 @@ function assignChartTriangles(mesh, triChartIds, numCharts) {
     return { geometry, buckets, srcOrder: null, isIndexed: false };
   }
 
-  // Remap (oldVertex, chartId) -> newVertex so vertices inside a chart stay shared.
   const map = new Map();
   const srcOrder = [];
   const newIndices = new Uint32Array(idx.count);
@@ -355,8 +341,6 @@ function triangleArea3D(ax, ay, az, bx, by, bz, cx, cy, cz) {
   return 0.5 * Math.hypot(rx, ry, rz);
 }
 
-// Compute clean non-overlapping UV charts for every hide mesh.
-// Each chart returns { mesh, part, tris, localU, localV, area, weight, aspect }.
 export function buildHideCharts(entries) {
   const charts = [];
   const p = new Vector3(),
@@ -375,7 +359,6 @@ export function buildHideCharts(entries) {
     const triCount = (idx ? idx.count : pos.count) / 3;
     const hw = heroWeight(part.id);
 
-    // Case 1: Non-blended sweep / ellipsoid / cone / cylinder already have bijective UVs.
     const nativeUv =
       !mesh.blendOwners &&
       !mesh.handRig &&
@@ -415,8 +398,6 @@ export function buildHideCharts(entries) {
       continue;
     }
 
-    // Case 2: Blended sweep patches (body, neck, muzzle, thigh, shin, tail, etc.)
-    // -> Left/Right half-cylinder unwrap along parallel-transported part.knots.
     if (mesh.blendOwners && part.knots?.length > 1) {
       const { segs, total } = knotSegments(part, mesh.matrixWorld);
       if (segs.length && total > 1e-5) {
@@ -525,9 +506,6 @@ export function buildHideCharts(entries) {
       }
     }
 
-    // Case 3: Branching / flat cages & hands (foot, toes, hand, box, trunk tip)
-    // -> 4-chart dominant-normal projection (Top/+Y, Bottom/-Y, Right/+X, Left/-X)
-    //    so splayed toes and fingers never overlap in UV.
     const isExtremity =
       mesh.handRig ||
       part.shape === "box" ||
@@ -628,9 +606,6 @@ export function buildHideCharts(entries) {
       continue;
     }
 
-    // Case 4: Head skullCage & ellipsoidal / convex organic blobs (haunch, pelvis, shoulders, brow, lid, etc.)
-    // -> Two Sagittal Lambert Azimuthal Equal-Area Hemispheres (+X Right and -X Left).
-    //    Unbroken cheeks/brow/snout/crown on each side with near-1:1 area fidelity and zero pole pinching!
     geo.computeBoundingBox();
     const box = geo.boundingBox;
     const center = box.getCenter(new Vector3());
@@ -717,7 +692,6 @@ export function buildHideCharts(entries) {
   return charts;
 }
 
-// Binary-split area-proportional rectangle packer (same proven scheme as game-export.js).
 export function packHideCharts(charts, size = HIDE_SIZE) {
   if (!charts.length) return [];
   const totalW = charts.reduce((s, c) => s + c.weight, 0);
@@ -757,10 +731,6 @@ export function packHideCharts(charts, size = HIDE_SIZE) {
   return charts;
 }
 
-// Pure scalar 3D creature hide evaluator (albedo RGB, micro-height, roughness).
-// Zero allocations per sample.
-// A swept limb has its own proximal/distal frame, even when its skin is
-// joined to the body. Project in metres so the rows retain their size.
 function reliefAxis(part, object) {
   if (!object || !part.knots || part.knots.length < 2 || part.id === "body") return null;
   object.updateWorldMatrix(true, false);
@@ -817,7 +787,6 @@ export function createHideEvaluator(form, objects, limbTints) {
     if (lenAcc > 1e-4) spineLen = lenAcc;
   }
 
-  // Collect eye world positions for restrained orbital framing on the head.
   const eyes = [];
   for (const part of form.parts) {
     if (!/(?:^| )eye(?: \d+)?$/.test(part.id)) continue;
@@ -832,7 +801,6 @@ export function createHideEvaluator(form, objects, limbTints) {
     });
   }
 
-  // Deterministic seed derived from creature palette & markings.
   const seedStr = `${skin.base}|${skin.accent}|${skin.pale}|${skin.markings?.seed ?? 0}`;
   let hideSeed = 0x51a7c3d1;
   for (let i = 0; i < seedStr.length; i++) {
@@ -855,8 +823,6 @@ export function createHideEvaluator(form, objects, limbTints) {
   const darkCountershade =
     skin.markings?.kind === "Countershade" && markLuma < baseLuma * 1.05;
 
-  // Derive harmonious deeper & mid tones per base hex so artist-recoloured parts
-  // keep their own hue rather than pulling toward skin.base.
   const toneCache = new Map();
   const deriveTones = (hex) => {
     let t = toneCache.get(hex);
@@ -901,7 +867,6 @@ export function createHideEvaluator(form, objects, limbTints) {
   const hasBirdLeg = form.origin.plan.limbs?.some(limb => limb.style === "bird");
 
 
-  // Precompile per-part colour/marking layers (respecting per-part artist edits!).
   const partMap = new Map(form.parts.map((p) => [p.id, p]));
   const partLayers = new Map();
   const markCache = new Map();
@@ -942,7 +907,7 @@ export function createHideEvaluator(form, objects, limbTints) {
   const scratchColor = new Color();
   const scratchVec = new Vector3();
   const wBuf = new Float64Array(3);
-  const baseOutA = new Float64Array(4); // r, g, b, markAlpha
+  const baseOutA = new Float64Array(4);
   const baseOutB = new Float64Array(4);
 
   function evalLayer(dst, layer, px, py, pz, nx, ny, nz) {
@@ -996,7 +961,6 @@ export function createHideEvaluator(form, objects, limbTints) {
       mAlpha = mAlpha * wA + baseOutB[3] * wB;
     }
 
-    // 1. Spine-relative dorsal/ventral coordinates (continuous across all parts).
     let tSpine = 0.5,
       vertical = 0,
       upAlign = ny;
@@ -1022,28 +986,22 @@ export function createHideEvaluator(form, objects, limbTints) {
       }
     }
 
-    // Macro organic 3D fBm (clean, low frequency — zero granite/speckle).
     const mf = 2.6 / scaleRef;
     const nMac1 = noise3(px * mf, py * mf, pz * mf, hideSeed ^ 0x19a3);
     const nMac2 = noise3(px * mf * 2.1, py * mf * 2.1, pz * mf * 2.1, hideSeed ^ 0x62b1);
     const fbmMac = 0.68 * nMac1 + 0.32 * nMac2 - 0.5;
 
-    // On the head/neck (which sit above upright spines), use world-up normal
-    // directly so the crown, brow ridge, and upper cheeks articulate clearly.
     const upMix = layerA.isHead ? ny * 0.78 + clamp(vertical, -1, 1) * 0.22 : upAlign * 0.54 + clamp(vertical, -1.2, 1.2) * 0.46;
     const dorsalCoord = upMix + fbmMac * 0.26;
     const dorsal = smoothstep(dorsalCoord, 0.08, 0.76);
     const ventral = smoothstep(-dorsalCoord, 0.22, 0.82);
     const shoulder = smoothstep(tSpine, 0.44, 0.72) * (1 - smoothstep(tSpine, 1.08, 1.48));
 
-    // Preserve authored markings strongly wherever a pattern mark is present.
-    // For Countershade, do not block dorsal articulation on the unshaded upper body.
     const markGuard =
       layerA.mark?.kind === "Countershade"
         ? 1 - 0.35 * mAlpha
         : 1 - 0.58 * mAlpha;
 
-    // 2. Continuous anatomical tonal depth (strongest on barely-patterned hides).
     const tones = layerA.tones;
     const dorsalStrength = (0.14 + 0.40 * flatBoost) * markGuard;
     const dMix = dorsal * dorsalStrength * (0.86 + 0.22 * shoulder);
@@ -1051,8 +1009,6 @@ export function createHideEvaluator(form, objects, limbTints) {
     g += (tones.dg - g) * dMix;
     b += (tones.db - b) * dMix;
 
-    // Soft pale throat/belly recovery ONLY when a dark Countershade (e.g. 12116)
-    // suppressed the pale belly undercoat. Avoid washing out already-pale Countershade (12115).
     if (darkCountershade && !layerA.under && skin.belly > 0.04) {
       const vLift = ventral * 0.28 * skin.belly;
       r += (softPaleCol.r - r) * vLift;
@@ -1060,11 +1016,8 @@ export function createHideEvaluator(form, objects, limbTints) {
       b += (softPaleCol.b - b) * vLift;
     }
 
-    // 3. Harmonious organic crown/shoulder/flank mottling & accent wash for barely-patterned
-    //    hides (12104, 12105, 12115, 12116, 12118, and unpatterned untouched draws).
     if (flatBoost > 0.42 && !layerA.isLimb) {
       const fb = clamp((flatBoost - 0.42) / 0.58, 0, 1);
-      // Organic flank/cheek transition band where dorsal mantle breaks into soft dapples.
       const flankBand =
         smoothstep(dorsalCoord, -0.26, 0.22) *
         (1 - smoothstep(dorsalCoord, 0.48, 0.92));
@@ -1073,7 +1026,6 @@ export function createHideEvaluator(form, objects, limbTints) {
         0.64 * noise3(px * df + fbmMac * 1.1, py * df, pz * df, hideSeed ^ 0x83d9) +
         0.36 * noise3(px * df * 1.95, py * df * 1.95, pz * df * 1.95, hideSeed ^ 0x2c47);
       const dapple = smoothstep(dNoise, 0.44, 0.65) * flankBand * fb * markGuard;
-      // Soft organic biological flecks near the dorsal-to-flank edge (3D Worley, zero blocks).
       const ff = 9.5 / scaleRef;
       worley3(wBuf, px * ff + fbmMac * 0.8, py * ff, pz * ff, hideSeed ^ 0x55a9);
       const fleck =
@@ -1082,19 +1034,16 @@ export function createHideEvaluator(form, objects, limbTints) {
         smoothstep(nMac1, 0.36, 0.62) *
         fb *
         markGuard;
-      // Cohesive tonal blend: deeper species hue + restrained accent wash on cheek/shoulder.
       const wMix = dapple * (0.36 + 0.18 * shoulder);
       r += (tones.mr - r) * wMix;
       g += (tones.mg - g) * wMix;
       b += (tones.mb - b) * wMix;
-      // Subtle deeper organic dapple flecks along the mantle border (visible at 128px & 320px).
       const fMix = fleck * (tones.veryPale ? 0.46 : 0.34);
       r += (tones.dr - r) * fMix;
       g += (tones.dg - g) * fMix;
       b += (tones.db - b) * fMix;
     }
 
-    // 4. Restrained orbital / eye-socket framing on the head (living brow/socket depth).
     if (eyes.length) {
       for (let e = 0; e < eyes.length; e++) {
         const eye = eyes[e];
@@ -1119,7 +1068,6 @@ export function createHideEvaluator(form, objects, limbTints) {
       }
     }
 
-    // Sample the material on the animal's own longitudinal and lateral axes.
     const layer = layerB && wA < 0.5 ? layerB : layerA;
     relief.px = px; relief.py = py; relief.pz = pz;
     relief.tSpine = tSpine; relief.sAlong = tSpine * spineLen;
@@ -1179,17 +1127,14 @@ export function createHideEvaluator(form, objects, limbTints) {
   };
 }
 
-// Rasterize all packed charts into albedo, roughness, height, and tangent-space normal maps.
 function rasterizeHideAtlas(charts, evaluator, size = HIDE_SIZE) {
   const count = size * size;
   const albedo = new Uint8ClampedArray(count * 4);
   const roughData = new Uint8ClampedArray(count * 4);
   const heightBuf = new Float32Array(count).fill(0.5);
-  const mppBuf = new Float32Array(count).fill(0.002); // metres per texel
+  const mppBuf = new Float32Array(count).fill(0.002);
   const filled = new Uint8Array(count);
 
-  // Fill background with creature's base skin colour & default roughness so
-  // even extreme mipmap levels can never show black or white bleeding halos.
   const bgCol = new Color(evaluator.skin.base);
   const bgR = toSrgbByte(bgCol.r),
     bgG = toSrgbByte(bgCol.g),
@@ -1216,7 +1161,6 @@ function rasterizeHideAtlas(charts, evaluator, size = HIDE_SIZE) {
     n2 = new Vector3();
   const nm = new Matrix3();
 
-  // Map each mesh's final atlas UV buffer so charts sharing one mesh write to the same attribute.
   const meshUvs = new Map();
   for (const ch of charts) {
     if (!meshUvs.has(ch.mesh)) {
@@ -1252,7 +1196,6 @@ function rasterizeHideAtlas(charts, evaluator, size = HIDE_SIZE) {
       const i1 = idx ? idx.getX(3 * t + 1) : 3 * t + 1;
       const i2 = idx ? idx.getX(3 * t + 2) : 3 * t + 2;
 
-      // Pixel coordinates in canvas space (y=0 at top, corresponding to uv.y = 1 in Three.js).
       const x0 = ix + locU[i0] * (iw - 1);
       const y0 = iy + (1 - locV[i0]) * (ih - 1);
       const x1 = ix + locU[i1] * (iw - 1);
@@ -1260,7 +1203,6 @@ function rasterizeHideAtlas(charts, evaluator, size = HIDE_SIZE) {
       const x2 = ix + locU[i2] * (iw - 1);
       const y2 = iy + (1 - locV[i2]) * (ih - 1);
 
-      // Write exact Three.js UVs [0..1] (with +0.5 texel center alignment!).
       finalUv[2 * i0] = (x0 + 0.5) / size;
       finalUv[2 * i0 + 1] = 1 - (y0 + 0.5) / size;
       finalUv[2 * i1] = (x1 + 0.5) / size;
@@ -1279,7 +1221,6 @@ function rasterizeHideAtlas(charts, evaluator, size = HIDE_SIZE) {
       if (Math.abs(det) < 1e-6) continue;
       const invDet = 1 / det;
 
-      // Metres per texel for this triangle (for physically consistent normal slope).
       const area3d = triangleArea3D(p0.x, p0.y, p0.z, p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
       const areaPx = 0.5 * Math.abs(det);
       const mpp = clamp(Math.sqrt(area3d / Math.max(0.25, areaPx)), 0.0004, 0.025);
@@ -1289,7 +1230,6 @@ function rasterizeHideAtlas(charts, evaluator, size = HIDE_SIZE) {
       const minY = Math.max(iy, Math.floor(Math.min(y0, y1, y2)));
       const maxY = Math.min(iy + ih - 1, Math.ceil(Math.max(y0, y1, y2)));
 
-      // Determine owner layers for this triangle.
       let lA = selfLayer,
         lB = null,
         sameOwner = true;
@@ -1316,8 +1256,6 @@ function rasterizeHideAtlas(charts, evaluator, size = HIDE_SIZE) {
           const b1 = (dx * (y2 - y0) - dy * (x2 - x0)) * invDet;
           const b2 = ((x1 - x0) * dy - (y1 - y0) * dx) * invDet;
           const b0 = 1 - b1 - b2;
-          // Small conservative edge tolerance (-0.015) prevents hairline cracks
-          // between adjacent triangles before dilation.
           if (b0 < -0.015 || b1 < -0.015 || b2 < -0.015) continue;
 
           const c0 = b0 < 0 ? 0 : b0;
@@ -1343,7 +1281,6 @@ function rasterizeHideAtlas(charts, evaluator, size = HIDE_SIZE) {
             layerB = lB,
             wA = 1;
           if (!sameOwner) {
-            // Interpolate dominant & secondary blend owner at boundary triangles.
             const dom = k0 >= k1 && k0 >= k2 ? i0 : k1 >= k2 ? i1 : i2;
             layerA = ownerLayers[owners.first[dom]];
             const sec = owners.second[dom];
@@ -1373,8 +1310,6 @@ function rasterizeHideAtlas(charts, evaluator, size = HIDE_SIZE) {
     mesh.geometry.setAttribute("uv", new Float32BufferAttribute(uvs, 2));
   }
 
-  // Dilate covered texels outward into chart gutters (6 passes) so bilinear
-  // filtering, mipmapping, and 24K Meshopt simplification never sample empty gutter.
   const nextFilled = new Uint8Array(filled);
   for (let pass = 0; pass < 6; pass++) {
     let any = false;
@@ -1427,8 +1362,6 @@ function rasterizeHideAtlas(charts, evaluator, size = HIDE_SIZE) {
     if (!any) break;
   }
 
-  // Derive physically scaled tangent-space normals from the dilated micro-height field.
-  // Matches game-surface.js heightNormals sign convention (+X right, +Y down in canvas).
   const normalData = new Uint8ClampedArray(count * 4);
   const bumpMetres = evaluator.profile.bumpMetres * evaluator.scaleRef;
 
@@ -1474,16 +1407,12 @@ function canvasFromPixels(data, size) {
   return c;
 }
 
-// Bake a unified, high-resolution continuous creature hide texture set
-// (albedo + tangent normal + roughness) shared by all organic hide parts of a
-// creature-plan form. Returns the Set of handled part IDs (empty if ineligible).
 export function bakeCreatureHide(form, objects, limbTints, fitWardrobe) {
   const handled = new Set();
   if (typeof document === "undefined") return handled;
   if (form.origin?.kind !== "creature plan" || !form.origin?.plan?.skin)
     return handled;
   const skin = form.origin.plan.skin;
-  // Older saved coats retain their original material and UVs.
   if (skin.coat && !skin.coat.graded && !skin.flankMarking && form.origin.plan.anatomyRevision !== 2) return handled;
 
   const entries = [];

@@ -1,7 +1,3 @@
-// Integer hashes and lattice noise for a creature's hide. Ported from
-// character-view/creature-hide.js and creature-relief.js at 2761eb1, which
-// share these definitions.
-
 export function hash3(x: number, y: number, z: number, seed: number): number {
   let h =
     Math.imul(x | 0, 73856093) ^
@@ -19,7 +15,6 @@ export function hash2(x: number, y: number, seed: number): number {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
-/** Smooth 3D value noise in [0, 1]. */
 export function noise3(x: number, y: number, z: number, seed: number): number {
   const ix = Math.floor(x);
   const iy = Math.floor(y);
@@ -61,7 +56,6 @@ export function noise2(x: number, y: number, seed: number): number {
   return a + (b - a) * ux + (c - a + (a - b - c + d) * ux) * uy;
 }
 
-/** Worley cell distances: `out` receives the nearest, the second nearest and the nearest cell's hash. */
 export function worley3(out: Float64Array, x: number, y: number, z: number, seed: number): void {
   const ix = Math.floor(x);
   const iy = Math.floor(y);
@@ -92,7 +86,6 @@ export function worley3(out: Float64Array, x: number, y: number, z: number, seed
   out[2] = cellId;
 }
 
-/** A Float64Array slot; the arrays here are fixed-size scratch buffers. */
 export function slot(a: Float64Array, i: number): number {
   return a[i] ?? 0;
 }

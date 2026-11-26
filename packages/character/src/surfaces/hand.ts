@@ -1,22 +1,13 @@
-// Hands: a palm and digit chains filled into one surface, with a rig of
-// three joints per digit. Ported from character-view/hands.js,
-// hand-surface.js and cylindrical-grip.js at 2761eb1, arithmetic in the same
-// order so the vertices match.
-
 import type { FigureHand } from "@irudd/document";
 import * as T from "three";
 import { MarchingCubes } from "three/addons/objects/MarchingCubes.js";
 import { mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
 
-/** [x, y, z, x radius, z radius] in metres. */
 type Row = [number, number, number, number, number];
 
-/** One digit's joint anchors in the part frame and the vertices it carries. */
 export interface Digit {
   readonly name: string;
-  /** Three anchors, the first at the knuckle, in the part's unit frame. */
   readonly anchors: ReadonlyArray<readonly [number, number, number]>;
-  /** Vertex indices of the digit and, for each, how far along its chain it sits (0–3). */
   readonly vertices: number[];
   readonly parameters: number[];
 }
@@ -29,7 +20,6 @@ export interface HandSurface {
 const at = (v: ArrayLike<number>, i: number): number => v[i] ?? 0;
 const row = (r: ReadonlyArray<number>): Row => [at(r, 0), at(r, 1), at(r, 2), at(r, 3), at(r, 4)];
 
-// The cylindrical handle crosses the palm along local X.
 const gripCentre = [0, -0.095, 0.026] as const;
 const gripRadius = 0.015;
 
@@ -105,8 +95,6 @@ function palmDistance(palm: ReadonlyArray<Row>, x: number, y: number, z: number)
 
 const fieldMaterial = new T.MeshBasicMaterial();
 
-// A rounded palm and tapered phalanges share one surface at the webbing.
-// Sample in metres so long, slim or curled fingers keep their cross sections.
 function handSurface(
   palm: ReadonlyArray<Row>,
   digits: ReadonlyArray<{ readonly name: string; readonly rows: Row[] }>,
@@ -125,8 +113,6 @@ function handSurface(
         hi[k] = Math.max(at(hi, k), at(a, k) + at(extent, k));
       }
     }
-  // MarchingCubes leaves boundary cells unused. At game density a fingertip
-  // or the wrist can reach that boundary despite the margin measured in metres.
   if (game)
     for (let axis = 0; axis < 3; axis++) {
       const margin = (2 * (at(hi, axis) - at(lo, axis))) / (n - 4);
@@ -225,8 +211,6 @@ function handSurface(
   return { geometry: g, digits: rig };
 }
 
-// The wrist is the pivot. Digit chains bend toward the palm in its local
-// frame, and the opposable thumb has its own plane of movement.
 export function handGeometry(grip: FigureHand, { game = false } = {}): HandSurface {
   const fingers = grip.fingers ?? 4;
   const curl = grip.curl ?? 0.15;
@@ -246,9 +230,6 @@ export function handGeometry(grip: FigureHand, { game = false } = {}): HandSurfa
       return [x * w * side, y * h, z * d, rx * w, rz * d];
     });
     if (!cylindrical && pad !== "hand") {
-      // A padded paw has a metacarpal cushion and short, thick toes.
-      // In a raptorial grasp the long distal phalanx curls toward the palm.
-      // Both use the same individual digit chains as the animator.
       for (const [i, p] of scaled.entries()) {
         const t = i / (scaled.length - 1);
         const toe = name && name !== "Thumb";
@@ -281,8 +262,6 @@ export function handGeometry(grip: FigureHand, { game = false } = {}): HandSurfa
       });
     else palm = scaled;
   };
-  // The little-finger edge rounds away first. The palm fans from a
-  // flatter wrist, with the thumb pad carried by the thumb's root.
   loft(
     relaxed
       ? [
@@ -326,8 +305,6 @@ export function handGeometry(grip: FigureHand, { game = false } = {}): HandSurfa
       ],
       [x + fan, -0.49 - length + curl * 0.145, 0.132 + curl * 0.68, thick * 0.46, 0.12],
     ];
-    // Preserve the bind shape of authored grasps. A hanging human hand
-    // has staggered knuckles and increasing flexion toward the little finger.
     if (relaxed) {
       const bend = curl * (0.77 + 0.79 * u);
       let y = -0.485 - 0.025 * Math.sin(Math.PI * u) + 0.055 * u;

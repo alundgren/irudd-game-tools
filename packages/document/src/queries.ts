@@ -1,5 +1,3 @@
-// Read-only views over a document state. None of these write.
-
 import { applyChanges, diff, pathKey, pathsOverlap, type Change, type Path } from "./changes.js";
 import type { Checked } from "./diagnostics.js";
 import { fail, ok, diagnostic } from "./diagnostics.js";
@@ -11,7 +9,6 @@ export function documentAt(state: DocumentState, revision: number): CharacterDoc
   return state.history[revision - 1]?.document;
 }
 
-/** Every revision after `revision`, oldest first, with its author and field changes. */
 export function changesSince(
   state: DocumentState,
   revision: number,
@@ -19,7 +16,6 @@ export function changesSince(
   return state.history.filter((r) => r.revision > revision);
 }
 
-/** The net field difference between two revisions. */
 export function diffRevisions(
   state: DocumentState,
   from: number,
@@ -38,7 +34,6 @@ export interface FieldAttribution {
   readonly author: Actor;
 }
 
-/** Who last changed each field path, keyed by `pathKey`. */
 export function attribution(state: DocumentState): ReadonlyMap<string, FieldAttribution> {
   const out = new Map<string, FieldAttribution>();
   for (const r of state.history)
@@ -58,15 +53,9 @@ export function lastChange(state: DocumentState, path: Path): FieldAttribution |
 
 export interface ProposalPreview {
   readonly proposal: Proposal;
-  /** The proposal applied to its own base: always reviewable, even when stale. */
   readonly preview: CharacterDocument;
   readonly changes: ReadonlyArray<Change>;
-  /** True when the head has moved past the proposal's base. */
   readonly stale: boolean;
-  /**
-   * The same changes against the current head, when none of the fields they
-   * touch changed since the base. A client can submit these as a refinement.
-   */
   readonly rebased: Checked<ReadonlyArray<Change>>;
 }
 

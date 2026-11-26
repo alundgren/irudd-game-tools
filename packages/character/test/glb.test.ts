@@ -35,7 +35,6 @@ test("a sweep's cross section scales with its knot radii", () => {
   assert.ok(Math.abs(width(0.2) / narrow - 2) < 1e-9);
 });
 
-/** A GLB whose BIN chunk holds `views` in order, with images pointing at `imageViews`. */
 function glbWith(views: number[][], imageViews: number[]): ReturnType<typeof readGlb> {
   const descriptions: { buffer: 0; byteOffset: number; byteLength: number }[] = [];
   const data: number[] = [];
@@ -64,7 +63,6 @@ function glbWith(views: number[][], imageViews: number[]): ReturnType<typeof rea
 }
 
 test("embedded images take a fixed place whatever order they were encoded in", () => {
-  // View 0 is geometry; images 0, 1 and 2 hold A, BB and CCC.
   const geometry = [9, 9, 9, 9];
   const [a, b, c] = [[0xa], [0xb, 0xb], [0xc, 0xc, 0xc]];
   const inOrder = glbWith([geometry, a, b, c], [1, 2, 3]);
@@ -74,7 +72,6 @@ test("embedded images take a fixed place whatever order they were encoded in", (
   assert.deepEqual(two.json, one.json);
   assert.deepEqual(two.rest, one.rest);
   assert.deepEqual(writeGlb(two.json, two.rest), writeGlb(one.json, one.rest));
-  // Each image still reads its own bytes.
   const bin = one.rest.subarray(8);
   const field = (value: unknown, ...keys: Array<string | number>): unknown =>
     keys.reduce<unknown>(

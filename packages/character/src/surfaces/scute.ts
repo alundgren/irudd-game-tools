@@ -1,9 +1,5 @@
-// Curved armour plates. Ported from scuteGeometry in character-view/scutes.js
-// at 2761eb1. Plates fitted over a painted carrier are not ported.
-
 import * as T from "three";
 
-/** A solid plate spanning ±0.5 of its frame, crowned forward and tapering to a tip. */
 export function scuteGeometry(): T.BufferGeometry {
   const pos: number[] = [];
   const uv: number[] = [];
@@ -31,7 +27,6 @@ export function scuteGeometry(): T.BufferGeometry {
       }
     }
   }
-  // Close the narrow ends as well, so the scute remains a solid plate.
   for (let i = 1; i < cols - 1; i++) {
     idx.push(0, i + 1, i);
     const end = rows * (cols + 1);

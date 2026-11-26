@@ -1,14 +1,3 @@
-// Pure numeric geometry over plain tuples. Document geometry never depends on a
-// rendering library: builders may convert these values into Three.js objects
-// behind the character boundary.
-//
-// Conventions: right-handed, +Y up, +Z forward. Rotations are unit quaternions
-// [x, y, z, w]. A part's position and rotation are expressed in its parent's
-// child basis; size is the part's extent along its own axes. In the core the
-// child basis is the parent's rigid metric frame, so size never propagates to
-// children. A family feature may declare a scaled child basis instead
-// (`FeatureDefinition.childBasis`); placement is then affine (see below).
-
 export type Vec3 = readonly [number, number, number];
 export type Quat = readonly [number, number, number, number];
 
@@ -24,11 +13,9 @@ export function sub(a: Vec3, b: Vec3): Vec3 {
 export function scale(a: Vec3, s: number): Vec3 {
   return [a[0] * s, a[1] * s, a[2] * s];
 }
-/** Component-wise product. */
 export function mul(a: Vec3, b: Vec3): Vec3 {
   return [a[0] * b[0], a[1] * b[1], a[2] * b[2]];
 }
-/** Component-wise quotient. */
 export function div(a: Vec3, b: Vec3): Vec3 {
   return [a[0] / b[0], a[1] / b[1], a[2] / b[2]];
 }
@@ -61,7 +48,6 @@ export function quatConjugate(q: Quat): Quat {
 export function quatNorm(q: Quat): number {
   return Math.hypot(q[0], q[1], q[2], q[3]);
 }
-/** Normalise and choose the representative with w >= 0 so equal rotations compare equal. */
 export function quatNormalize(q: Quat): Quat {
   const n = quatNorm(q);
   if (!(n > 0)) return identity;
@@ -74,20 +60,17 @@ export function quatFromAxisAngle(axis: Vec3, radians: number): Quat {
   const s = Math.sin(radians / 2) / n;
   return quatNormalize([axis[0] * s, axis[1] * s, axis[2] * s, Math.cos(radians / 2)]);
 }
-/** Rotate a vector by a unit quaternion. */
 export function rotate(q: Quat, v: Vec3): Vec3 {
   const u: Vec3 = [q[0], q[1], q[2]];
   const w = q[3];
   const t = scale(cross(u, v), 2);
   return add(add(v, scale(t, w)), cross(u, t));
 }
-/** Angle in radians between two rotations. */
 export function quatAngle(a: Quat, b: Quat): number {
   const d = Math.abs(a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]);
   return 2 * Math.acos(Math.min(1, d / (quatNorm(a) * quatNorm(b))));
 }
 
-/** A rigid frame: x_world = position + rotation · x_local. */
 export interface Frame {
   readonly position: Vec3;
   readonly rotation: Quat;
@@ -106,7 +89,6 @@ export function toFrame(frame: Frame, world: Vec3): Vec3 {
 export function fromFrame(frame: Frame, local: Vec3): Vec3 {
   return add(frame.position, rotate(frame.rotation, local));
 }
-/** Express a direction (no translation) in the frame. */
 export function directionToFrame(frame: Frame, world: Vec3): Vec3 {
   return rotate(quatConjugate(frame.rotation), world);
 }
@@ -118,18 +100,8 @@ export function vecNear(a: Vec3, b: Vec3, tolerance: number): boolean {
   return distance(a, b) <= tolerance;
 }
 
-// ── Affine transforms ───────────────────────────────────────────────────────
-//
-// A family may attach a part's children in a scaled basis (see
-// `FeatureDefinition.childBasis`). Nested rotations under a non-uniform basis
-// then shear, so world placement is an affine map, not a rigid frame. These
-// helpers are the one implementation of that math: renderers, world picks and
-// edit directions all compose and invert through them. Nothing is normalised
-// per level; `decomposeAffine` normalises its rotation once.
-
 type Mat3 = readonly [number, number, number, number, number, number, number, number, number];
 
-/** x' = linear · x + translation, with `linear` stored column-major. */
 export interface Affine {
   readonly linear: Mat3;
   readonly translation: Vec3;
@@ -137,7 +109,6 @@ export interface Affine {
 
 export const identityAffine: Affine = { linear: [1, 0, 0, 0, 1, 0, 0, 0, 1], translation: zero };
 
-/** Translate, then rotate, then scale along local axes: T · R · S, as Three.js composes. */
 export function affineFromTrs(position: Vec3, rotation: Quat, size: Vec3 = [1, 1, 1]): Affine {
   const [x, y, z, w] = rotation;
   const x2 = x + x;
@@ -173,7 +144,6 @@ export function affineFromFrame(frame: Frame): Affine {
   return affineFromTrs(frame.position, frame.rotation);
 }
 
-/** Scale the local axes: a · S(size). */
 export function affineScaled(a: Affine, size: Vec3): Affine {
   const m = a.linear;
   const [sx, sy, sz] = size;
@@ -206,7 +176,6 @@ export function affinePoint(a: Affine, p: Vec3): Vec3 {
   return add(affineDirection(a, p), a.translation);
 }
 
-/** a ∘ b: apply b, then a. */
 export function composeAffine(a: Affine, b: Affine): Affine {
   const n = b.linear;
   const c0 = affineDirection(a, [n[0], n[1], n[2]]);
@@ -223,7 +192,6 @@ export function affineDeterminant(a: Affine): number {
   return dot([m[0], m[1], m[2]], cross([m[3], m[4], m[5]], [m[6], m[7], m[8]]));
 }
 
-/** The inverse map, or undefined when the transform collapses a dimension. */
 export function invertAffine(a: Affine): Affine | undefined {
   const m = a.linear;
   const c0: Vec3 = [m[0], m[1], m[2]];
@@ -231,7 +199,6 @@ export function invertAffine(a: Affine): Affine | undefined {
   const c2: Vec3 = [m[6], m[7], m[8]];
   const det = dot(c0, cross(c1, c2));
   if (!Number.isFinite(det) || Math.abs(det) < 1e-300) return undefined;
-  // Rows of the inverse are the cross products of the columns over the determinant.
   const r0 = scale(cross(c1, c2), 1 / det);
   const r1 = scale(cross(c2, c0), 1 / det);
   const r2 = scale(cross(c0, c1), 1 / det);
@@ -240,7 +207,6 @@ export function invertAffine(a: Affine): Affine | undefined {
   return { linear, translation: scale(affineDirection(inverse, a.translation), -1) };
 }
 
-/** Lengths of the transformed unit axes: the metres one local unit spans along each axis. */
 export function affineAxisLengths(a: Affine): Vec3 {
   const m = a.linear;
   return [Math.hypot(m[0], m[1], m[2]), Math.hypot(m[3], m[4], m[5]), Math.hypot(m[6], m[7], m[8])];
@@ -252,11 +218,6 @@ export interface Trs {
   readonly size: Vec3;
 }
 
-/**
- * Split an affine map into translate, rotate and positive per-axis scale, or
- * undefined when it shears or mirrors beyond `tolerance` (the largest cosine
- * allowed between transformed axes).
- */
 export function decomposeAffine(a: Affine, tolerance = 1e-9): Trs | undefined {
   const size = affineAxisLengths(a);
   if (!size.every((s) => s > 0 && Number.isFinite(s))) return undefined;
@@ -266,7 +227,6 @@ export function decomposeAffine(a: Affine, tolerance = 1e-9): Trs | undefined {
   const w: Vec3 = [m[6] / size[2], m[7] / size[2], m[8] / size[2]];
   if (Math.abs(dot(u, v)) > tolerance || Math.abs(dot(v, w)) > tolerance) return undefined;
   if (Math.abs(dot(u, w)) > tolerance || dot(cross(u, v), w) <= 0) return undefined;
-  // Rotation matrix to quaternion (Shepperd), normalised once at the end.
   const [m00, m10, m20, m01, m11, m21, m02, m12, m22] = [...u, ...v, ...w];
   const trace = m00 + m11 + m22;
   let q: Quat;

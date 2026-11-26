@@ -7,7 +7,6 @@ function background(p,i) {
   return p[i] === 255 && p[i+1] === 255 && p[i+2] === 255 && p[i+3] === 255;
 }
 function depth(p,i) {
-  // Three.js RGBA depth packing stores the most significant byte in red.
   return p[i]/256 + p[i+1]/65536 + p[i+2]/16777216 + p[i+3]/(255*16777216);
 }
 export function compareDepthMaps(reference, candidate, clipRange) {
@@ -30,9 +29,6 @@ export function compareDepthMaps(reference, candidate, clipRange) {
   };
 }
 
-// Measure slopes on the same continuous surface pixels in all three captures.
-// The outer samples span approximately 5 mm. Cuts, background and depth jumps
-// have no defined surface normal across them, so exclude the entire stencil.
 export function compareViewContours(maps, width, height, range, pixelX, pixelY) {
   const stepX = Math.round(0.0025 / pixelX), stepY = Math.round(0.0025 / pixelY);
   if (Math.max(pixelX, pixelY) > 0.001 || Math.min(stepX, stepY) < 1) return null;
@@ -55,7 +51,6 @@ export function compareViewContours(maps, width, height, range, pixelX, pixelY) 
         if (!Number.isFinite(centre)) continue pixel;
         for (const [stride, count] of axes) {
           for (let k = -count; k < count; k++) {
-            // This test also rejects NaNs inside either arm of the stencil.
             if (!(Math.abs(z[i+(k+1)*stride] - z[i+k*stride]) <= 0.004)) continue pixel;
           }
         }
@@ -81,8 +76,6 @@ export function compareViewContours(maps, width, height, range, pixelX, pixelY) 
   }));
 }
 
-// Render all three surfaces with the current orthographic camera. Each frame uses
-// identical clip planes, depth encoding and pixel centres, including at high DPI.
 export function measureReferenceView(renderer, camera, reference, original, fitted) {
   const aspect = (camera.right-camera.left)/(camera.top-camera.bottom);
   const w = Math.max(1, Math.round(384*Math.min(1,aspect)));

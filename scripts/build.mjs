@@ -1,7 +1,6 @@
 import { build } from "esbuild";
 import { readFile, mkdir, writeFile, rm } from "node:fs/promises";
 import { localReferencesPlugin } from "./local-references.mjs";
-// Private comparison material found on this machine. All of it is optional.
 import { headFits, mhrFit, rigs, scanFits, workshopFits } from "../examples/local-references.js";
 
 await mkdir("dist", { recursive: true });
@@ -37,9 +36,9 @@ async function page(entry, template, destination, styles) {
   ]);
   const js = outputFiles[0].text.replaceAll(/<\/script/gi, "<\\/script");
   const content = html
-    .replace("<!-- STYLE -->", () => "<style>" + css + "</style>")
+    .replace("<template data-workshop-style></template>", () => "<style>" + css + "</style>")
     .replace(
-      "<!-- APP -->",
+      "<template data-workshop-app></template>",
       () =>
         "<!-- Three.js license\n" +
         license +
@@ -52,7 +51,6 @@ async function page(entry, template, destination, styles) {
   await writeFile(destination, content);
   console.log("Built " + destination);
 }
-// The standalone comparison embeds the reference rig, so it exists only where the rig does.
 const rigStudy = Boolean(mhrFit) && rigs.includes("mhr-rest");
 if (!rigStudy) await rm("dist/rig-study.html", { force: true });
 await Promise.all([

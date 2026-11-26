@@ -39,8 +39,6 @@ function tracedForm(atlas, height) {
   }
   return { add, pair, finish: () => bindParts(form, links) };
 }
-// Four-arm anatomy for a long-snouted biped. The upper arms project
-// behind the lower pair in profile. The swept tail exits through the coat split.
 function trader() {
   const { add, pair, finish } = tracedForm("trader", 1.81);
   add("coat and thorax", [
@@ -434,8 +432,6 @@ function human(atlas, height, gown) {
   let form = finish();
   const originalPaint = paintSources(form);
   const body = form.parts.find((p) => p.id === torso);
-  // Fit a skull and neck to the standing height. The body sheet still
-  // supplies the clothing, but its hair silhouette no longer defines the jaw.
   const skullHeight = height / (gown ? 7.15 : 7.65);
   const scale = skullHeight / 0.294;
   const crownAbovePivot = 1.76 - 1.42;

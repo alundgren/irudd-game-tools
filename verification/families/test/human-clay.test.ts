@@ -1,9 +1,3 @@
-// Fast regression for the seeded adult: seed 491 generates and exports at
-// clay to G0's own export, held by a digest of every accessor of G0's
-// reference, so it needs no reference cache. The heavy gate
-// (src/human-gate.ts) compares all eleven seeded adults whole against their
-// reference files.
-
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { humanSlot, seededHumanAdult } from "@irudd/character/human";
@@ -22,7 +16,6 @@ installNodeExporter();
 const body = await loadHumanBody();
 const store = adultStore(body);
 
-/** `accessorDigest` of .reference-cache/human-oracle/adult-491-clay.glb, G0's export. */
 const g0Adult491 = "033bd1559e8927f10f9360dc255ad8c8c8f77c476ce9f06c6e2974880d9bd90f";
 
 test("adult 491: the clay export carries G0's meshes, posture and clips", async () => {

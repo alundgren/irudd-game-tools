@@ -1,10 +1,3 @@
-// Build the offline player as one HTML file: dist/player.html.
-//
-//   node --import ../../packages/document/test/support/register.ts scripts/build.ts
-//
-// Vite+ bundles the page; the script and styles are then inlined so the file
-// opens from disk with no network access and no other files.
-
 import { readFileSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -20,7 +13,6 @@ function notices(): string {
   return `<!-- Three.js license\n${three}\n${project}\n-->`;
 }
 
-/** Replace the one tag in `html` that references `file` (with `prefix` before the path). */
 function replaceTag(html: string, file: string, open: string, close: string, body: string): string {
   const start = html.search(new RegExp(`${open}[^>]*["/]${file.replaceAll(".", "[.]")}"[^>]*>`));
   if (start < 0) throw new Error(`The page does not reference ${file}.`);
@@ -28,7 +20,6 @@ function replaceTag(html: string, file: string, open: string, close: string, bod
   return html.slice(0, start) + body + html.slice(end);
 }
 
-/** Inline the entry chunk and stylesheet into the page and drop the separate files. */
 function singleFile(): Plugin {
   return {
     name: "irudd-single-file",
@@ -76,6 +67,5 @@ await build({
   plugins: [singleFile(), bundleReport("player", outDir, { "index.html": "player.html" })],
 });
 
-// Vite names the page after its source; the distributable is player.html.
 renameSync(join(outDir, "index.html"), join(outDir, "player.html"));
 console.log("Built " + join(outDir, "player.html"));

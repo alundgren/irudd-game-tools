@@ -13,7 +13,6 @@ const surface = evaluateHuman({ height: 1.66, frame: -0.9 });
 const hair = (name, plain, game) =>
   libraryPieces(surface, { hair: name, fringe: "Swept right" }, material, plain, game).find((mesh) => mesh.userData.libraryHair);
 const triangles = (mesh) => mesh.geometry.index.count / 3;
-// The share of triangle edges that only one triangle uses.
 function openEdges(geometry) {
   const index = geometry.index.array, edges = new Map();
   for (let t = 0; t < index.length; t += 3)
@@ -37,7 +36,6 @@ test("library hair is tagged for the game exporter in every view", () => {
   for (const name of Object.keys(libraryHair))
     for (const [plain, game] of [[false, false], [true, false], [false, true], [true, true]])
       assert.equal(hair(name, plain, game).material.userData.hairCards, true, name);
-  // Callers that only measure hair pass stand-in materials without user data.
   const bare = libraryPieces(surface, { hair: "Rounded bob" }, () => ({ clone: () => ({}) }), true);
   assert.equal(bare.find((mesh) => mesh.userData.libraryHair).material.userData.hairCards, true);
 });
@@ -48,33 +46,27 @@ test("the game export draws whole hair cards and lets their map cut the outline"
     assert.ok(triangles(game) <= triangles(full), name + " has no more triangles than the trimmed cards");
     assert.equal(game.material.alphaTest, full.material.alphaTest, name);
     assert.equal(game.geometry.attributes.uv.count, game.geometry.attributes.position.count);
-    // Trimmed cards are slivers with their own corners; whole cards meet along their edges.
     if (name === "Loose waves")
       assert.deepEqual(game.geometry.index.array, full.geometry.index.array, "both use the same continuous subdivided ribbons");
     else assert.ok(openEdges(game.geometry) < openEdges(full.geometry), name + " cards share more of their edges");
-    // The cards stay where the trimmed hair is.
     const a = new T.Box3().setFromBufferAttribute(full.geometry.attributes.position), b = new T.Box3().setFromBufferAttribute(game.geometry.attributes.position);
     assert.ok(b.containsBox(a.clone().expandByScalar(-0.004)) && a.clone().expandByScalar(0.03).containsBox(b), name + " keeps its place");
   }
 });
 
 test("a plain game export keeps a geometric outline that can be thinned", () => {
-  // Trimmed slivers are joined where they meet.
   const full = hair("Rounded bob", true, false), game = hair("Rounded bob", true, true);
   assert.ok(game.geometry.attributes.position.count < 0.6 * full.geometry.attributes.position.count);
   assert.ok(triangles(game) > 0.95 * triangles(full) && triangles(game) <= triangles(full));
   assert.ok(Math.abs(area(game.geometry) / area(full.geometry) - 1) < 0.01);
-  // Curls trim into far more slivers than a game mesh can hold, so their half-covered cards stand in.
   const curls = hair("Natural curls", true, true), trimmed = hair("Natural curls", true, false);
   assert.ok(triangles(curls) < 3000 && triangles(trimmed) > 10 * triangles(curls));
   const ratio = area(curls.geometry) / area(trimmed.geometry);
   assert.ok(ratio > 0.8 && ratio < 1.3, "half-covered cards have about the area of the trimmed hair, got " + ratio.toFixed(2));
 });
 
-// A canvas that draws nothing, so the exporter can lay out its atlas without a browser.
 const blank = () => ({ width: 1, height: 1, getContext: () => ({ fillRect() {}, clearRect() {}, drawImage() {}, putImageData() {}, set fillStyle(v) {},
   createImageData: (w, h) => ({ data: new Uint8ClampedArray(w * h * 4) }), getImageData: (x, y, w, h) => ({ data: new Uint8ClampedArray(w * h * 4).fill(255) }) }) });
-// Curved strips that overlap like hair cards: open sheets with a free edge all round.
 function strips(count, across, along) {
   const pos = [], uv = [], index = [];
   for (let s = 0; s < count; s++) {

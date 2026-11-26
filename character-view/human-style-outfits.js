@@ -1,6 +1,3 @@
-// Whole outfits assembled from the garments in human-style-cloth.js. Each
-// returns parts: {piece, tone, type, region, name}. Tones come from one cloth
-// colour (main, dark, light, accent) plus leather, sole and metal.
 import { Piece, mix, smooth } from "./human-style-kit.js";
 import { band, belt, bootFastenings, box, button, caster, collar, foldRelief, garment, hood, patch, plate, roll, shaft, shoe, skirt, sleeveGuard } from "./human-style-cloth.js";
 import { apron, backpack, cape, helmet, pod } from "./human-style-gear.js";
@@ -34,7 +31,6 @@ export function boots(body, m, parts, { from = 1.5, ease = .011, cuff = .04, ...
 const highest = g => g.all.reduce((best, loop) => !best || meanY(g.s, loop) > meanY(g.s, best) ? loop : best, null);
 const meanY = (s, loop) => loop.reduce((t, i) => t + s.pos[i * 3 + 1], 0) / loop.length;
 
-/** Shell plus the usual raised edges. Widths are in metres before body scaling. */
 export function finish(g, k, { neck = 0, cuff = 0, hem = 0, legs = 0, waist = 0, rise = .0015, thickness } = {}) {
   const piece = new Piece().shell(g.s, { thickness });
   if (neck) band(piece, g.s, g.upper, { width: neck * k, rise: rise * k });
@@ -44,7 +40,6 @@ export function finish(g, k, { neck = 0, cuff = 0, hem = 0, legs = 0, waist = 0,
   if (legs) for (const loop of g.legs) band(piece, g.s, loop, { width: legs * k, rise: rise * k });
   return piece;
 }
-/** Extra room for a top where it lies over a waistband. */
 const overWaist = (m, room) => y => room * smooth(m.waistband + .04 * m.k, m.waistband + .012 * m.k, y);
 
 export function front(piece, cast, body, m, { top, bottom, width = .032, rise = .004, buttons = 0, x = 0, buttonTone = null }) {
@@ -56,7 +51,6 @@ export function front(piece, cast, body, m, { top, bottom, width = .032, rise = 
 }
 export function pocket(piece, cast, body, m, { x, y, width = .1, height = .11, facing = [0, 0, 1], across = [1, 0, 0], flap = true, rise = .0045, z = m.chest[2], skin = p => body.trunkAt(p) }) {
   const k = m.k, centre = [x, y, z];
-  // A pocket needs a flat place: over a full chest it would stand off like a shelf, so it is left out.
   const depth = dy => cast([x - facing[0] * .6, y + dy - facing[1] * .6, z - facing[2] * .6].map((c, n) => c + 2 * facing[n] * .6), facing.map(c => -c));
   const top = depth(height * k * .5), mid = depth(0), low = depth(-height * k * .5);
   if (![top, mid, low].every(Number.isFinite) || Math.abs(top - low) > height * k * .25 || (top + low) / 2 - mid > .005 * k) return;
@@ -153,12 +147,8 @@ export const outfits = {
     const skirtTop = seam + .015*k, skirtEnd = m.ankle + .045*k;
     const lower = skirt(body, m, { top: skirtTop, bottom: skirtEnd, ease: .013, flare: .075,
       fold: .031, folds: 8, cols: 84, shells: [bodice.s], yoke: .018, gores: true, drape: { cloth: "gown" } });
-    // Cut the three visible pieces to the same seam lines. An entire second
-    // skirt under the wrap breaks through it when both are independently reduced.
     const tau = Math.PI*2;
     const angle = (u,v) => { const gap = .12 + .69*v; return gap + u*(tau-2*gap) + .29 - .4*v; };
-    // The overskirt is caught at one hip. Its edge drops in a long
-    // curve around the back, revealing the separate front gore.
     const atHip = a => .5 + .5 * Math.cos(a - 1.2);
     const fall = a => .71 + .10*(1-Math.cos(a)) - .25*atHip(a)**3;
     const at = (d,a,lift=0) => lower.pointAt(d,a,lift*k);
@@ -167,7 +157,6 @@ export const outfits = {
       const gather = .5 + .5*Math.cos(25*v + 4*(1-Math.cos(a-1.2)) - 3*Math.sin(a));
       const swag = (.005 + .017*tuck*tuck) * gather**2 * Math.sin(Math.PI*v)**.7;
       const hanging = (.006 + .010*v) * (1 + Math.sin(a*7 - 1.9*v + .55*Math.sin(a*2)));
-      // The overskirt is sewn into the waist seam with the skirt, so it lies on it there and stands off lower down.
       return (swag + hanging) * Math.min(1, u*22, (1-u)*22) * smooth(1,.93,v) * smooth(0,.13,v);
     };
     const panel = (u,v) => {
@@ -197,7 +186,6 @@ export const outfits = {
     });
     wrap.clothGrid = [wrapRows+1,wrapColumns+1];
     sheet(edging,1,72,(u,v) => panel(u,.967+v*.033));
-    // The front gore follows the two diverging edges and runs down to the same hem.
     sheet(field,16,20,(u,v) => {
       const left = angle(1,v)-tau, right = angle(0,v);
       const a = mix(left,right,u);
@@ -209,7 +197,6 @@ export const outfits = {
         return at(d,a);
       };
       sheet(field,10,cols,hemPoint, (u,v) => { const a = mix(start,end,u); return lower.relief(mix(.012+fall(a),1,v), a); });
-      // The fabric turns back up inside the hem where a moving leg reveals it.
       sheet(field,2,cols,(u,v) => at(1-.024*v,mix(start,end,u),-.005*v));
     }
     if (lower.rig) for (const piece of [field, wrap, edging]) piece.clothJoints = lower.rig;
@@ -341,13 +328,11 @@ export const outfits = {
   },
   "Parka"(body, m) {
     const parts = [], k = m.k, seam = m.waist - .02 * k;
-    // Snow trousers go over the boots, so the boots are made first and the legs keep outside their shafts.
     const footwear = [], shafts = boots(body, m, footwear, { from: 1.55, cuff: 0, ease: .011, sole: .02, toe: .006 });
     const legs = garment(body, m, { waist: m.waistband, taper: .03, ease: .015, leg: 1.85, over: shafts });
     parts.push(part(new Piece().shell(legs.s), "dark", "pelvis", "Snow trousers"));
     const coat = garment(body, m, { sleeve: 1.96, hem: seam - .02 * k, ease: .03, fall: .04, tension: 1, span: 3, sleeveFall: .04, sleeveEase: .004, passes: 10, neck: {} });
     const piece = finish(coat, k, { cuff: .035, rise: .003 }), cast = caster([coat.s]);
-    // The skirt is full, so its top is gathered in under the coat and the drawcord lies on the join.
     const yoke = .016, tails = skirt(body, m, { top: seam + .012 * k, bottom: m.crotch - .1 * k, ease: .03, flare: .02, shells: [coat.s, legs.s], yoke });
     front(piece, cast, body, m, { top: m.neck[1] + .01 * k, bottom: seam + .02 * k, width: .04, rise: .004 });
     for (const sign of [1, -1]) pocket(tails.piece, caster([{ pos: tails.piece.pos, tri: tails.piece.tri }]), body, m, { x: sign * .11 * k, y: m.hip + .01 * k, width: .13, height: .13, rise: .004, z: m.pelvis[2], skin: tails.skin });
@@ -356,7 +341,6 @@ export const outfits = {
     belt(cord, body, m, [coat.s], seam + (.012 + yoke) * k, { height: .022, thick: .006, buckle: false });
     parts.push(part(cord, "dark", "spine_01", "Drawcord"));
     hood(piece, body, [coat.s], coat.s, coat.upper, m, { length: .2, thick: .03, stand: .024, front: .5 });
-    // The fur edges the hood's opening, which lies round the nape and comes forward over the collarbones.
     roll(trim, coat.s, coat.upper, m, { radius: .024, front: .6, drop: -.008, out: .012, flat: .8, lumps: .2, sides: 12 });
     parts.push(part(trim, "light", "spine_03", "Fur trim", "hair"));
     for (const side of ["l", "r"]) { const glove = sleeveGuard(body, m, side, { from: 1.86, ease: .007, passes: 4 }); parts.push(part(new Piece().shell(glove.s), "leather", "hand_" + side, "Glove", "leather")); }
@@ -416,5 +400,4 @@ export function buckle(piece, body, m, shells, y, height = .034) {
   for (const [dx, dy, sx, sy] of [[0, h, w + t, t], [0, -h, w + t, t], [w, 0, t, h], [-w, 0, t, h], [0, 0, t * .8, h]]) box(piece, [p[0] + dx, p[1] + dy, p[2]], [[sx, 0, 0], [0, sy, 0], [0, 0, t]], skin);
 }
 
-// The capsule's outfits (human-style-capsule.js) are listed after every earlier outfit, which keep their places.
 Object.assign(outfits, capsule);

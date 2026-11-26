@@ -1,9 +1,5 @@
-// Named bounds for the protocol model. The fast tier uses the small ones; the
-// g1-protocol gate uses all of them.
-
 import type { Bounds } from "./model.js";
 
-/** Two projects, one actor, two request IDs, revisions up to 3. */
 export const fast: Bounds = {
   name: "fast",
   receivers: ["A", "B"],
@@ -14,7 +10,6 @@ export const fast: Bounds = {
   maxRevision: 3,
 };
 
-/** One project and one actor, deep enough for an undo after a later edit. */
 export const fastDeep: Bounds = {
   name: "fast-deep",
   receivers: ["A"],
@@ -25,7 +20,6 @@ export const fastDeep: Bounds = {
   maxRevision: 5,
 };
 
-/** Two projects and two actors sharing request IDs, revisions up to 3. */
 export const pair: Bounds = {
   name: "pair",
   receivers: ["A", "B"],
@@ -36,11 +30,6 @@ export const pair: Bounds = {
   maxRevision: 3,
 };
 
-/**
- * One project, two actors and four request IDs: every interleaving of four
- * edits and undos, with stale, retried and reused requests between them.
- * Misdirected requests and isolation are covered by `pair`.
- */
 export const deep: Bounds = {
   name: "deep",
   receivers: ["A"],
@@ -51,7 +40,6 @@ export const deep: Bounds = {
   maxRevision: 5,
 };
 
-/** Random traces: both projects, three request IDs, no revision limit. */
 export const traces: Bounds = {
   name: "traces",
   receivers: ["A", "B"],
@@ -62,10 +50,6 @@ export const traces: Bounds = {
   maxRevision: 8,
 };
 
-/**
- * Drafts and policy at small bounds: one project, a person and an agent, one
- * draft ID, agents start without direct editing.
- */
 export const fastDrafts: Bounds = {
   name: "fast-drafts",
   receivers: ["A"],
@@ -79,10 +63,8 @@ export const fastDrafts: Bounds = {
   drafts: { ids: ["q"], maxVersion: 2 },
 };
 
-/** Drafts for exhaustive comparison with the reducer: three ordered request IDs. */
 export const draftDiff: Bounds = { ...fastDrafts, name: "draft-diff", orderedIds: true };
 
-/** Drafts for the gate: four requests, so two refinements race and the winner is accepted. */
 export const drafts: Bounds = {
   ...fastDrafts,
   name: "drafts",
@@ -90,11 +72,6 @@ export const drafts: Bounds = {
   orderedIds: true,
 };
 
-/**
- * Undo chains: deep enough for edit, undo, undo of the undo, undo again, edit
- * and undo of the redo (revision 7), the shortest trace that undoes a
- * revision twice when undo-of-undo is not checked.
- */
 export const chains: Bounds = {
   name: "chains",
   receivers: ["A"],
@@ -106,7 +83,6 @@ export const chains: Bounds = {
   orderedIds: true,
 };
 
-/** Random traces with drafts and policy: both projects, two draft IDs, no revision limit. */
 export const draftTraces: Bounds = {
   ...traces,
   name: "draft-traces",

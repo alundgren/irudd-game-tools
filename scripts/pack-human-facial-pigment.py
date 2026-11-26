@@ -104,7 +104,6 @@ def pack(archive, geometry, destination):
     xn = xx / (w - 1.0)
     yn = yy / (h - 1.0)
 
-    # Fade inside donor hairline/sideburns and strictly to zero before the rectangle border.
     hairline_keep = step(0.19, 0.30, xn) * (
         1.0 - step(0.76, 0.92, ((xn - 0.55) / 0.38) ** 2 + ((yn - 0.50) / 0.38) ** 2)
     )
@@ -159,14 +158,11 @@ def pack(archive, geometry, destination):
             dRG = inpaint_masked(dRG, inpaint_nonlip, sigma=9.5)
             dYB = inpaint_masked(dYB, inpaint_nonlip, sigma=9.5)
 
-            # Remove baked directional side-lighting (broad anti-symmetric component across y=0.5).
             for ch_arr, sig in [(dL, 34.0), (dRG, 40.0), (dYB, 40.0)]:
                 asym = 0.5 * (ch_arr - ch_arr[::-1, :])
                 broad_asym = ndimage.gaussian_filter(asym * clean_mask, sig) / np.maximum(ndimage.gaussian_filter(clean_mask, sig), 0.05)
                 ch_arr -= broad_asym * clean_mask
 
-            # Remove only mild ultra-broad vertical lighting tilt while preserving broad cheekbones,
-            # forehead centre, brow arch, nose bridge, chin, and lip highlights.
             w_keep = clean_mask * (1.0 - lips * 0.85)
             ultraL = ndimage.gaussian_filter(dL * w_keep, 105.0) / np.maximum(ndimage.gaussian_filter(w_keep, 105.0), 0.05)
             dL -= 0.32 * ultraL
@@ -182,11 +178,9 @@ def pack(archive, geometry, destination):
             dRG -= np.median(dRG[ref_ring])
             dYB -= np.median(dYB[ref_ring])
 
-            # Keep eye sockets awake and lips dimensional (preserve lower-lip highlight, soften dark centre).
             dL = np.where(dL < 0.0, dL * (1.0 - 0.36 * socket_w), dL)
             dL = np.where(dL < 0.0, dL * (1.0 - 0.28 * lip_w), dL)
 
-            # Asymmetric scale preserves full positive highlight resolution in [128..248] alongside clean shadows.
             normL = np.where(dL >= 0.0, np.tanh(dL / 0.24), np.tanh(dL / 0.34))
             packed = np.empty((h, w, 3), dtype="u1")
             packed[:, :, 0] = np.rint(np.clip(128.0 + 120.0 * normL * clean_mask, 0, 255)).astype("u1")

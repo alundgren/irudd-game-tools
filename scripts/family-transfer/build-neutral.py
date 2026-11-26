@@ -17,8 +17,8 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "human-benchmark"))
-from hb_mesh import write_glb  # noqa: E402
-from hb_mhr import RELEASE, Rig  # noqa: E402
+from hb_mesh import write_glb
+from hb_mhr import RELEASE, Rig
 
 COPYRIGHT = ("Derived from the Momentum Human Rig (MHR) v1.0.1, Copyright (c) Meta Platforms, Inc. "
              "and affiliates. Licensed under the Apache License 2.0. Modified: mean identity, posed, "

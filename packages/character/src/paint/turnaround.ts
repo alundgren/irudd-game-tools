@@ -1,14 +1,3 @@
-// Turnaround painting. Ported from character-view/turnaround.js at 2761eb1.
-//
-// An atlas is a two-by-two sheet of front, right, back and left views on a
-// magenta key. A painted part carries a binding: the region it was traced as,
-// the standing height of the sheet, its rest offset and rest cross sections.
-// Its texture is four projections of those rest sections baked into ordinary
-// UVs, so the paint stays attached when the part is moved or reshaped.
-// Regional visibility comes from every binding of the same sheet, including
-// occluders whose parts are gone, so a view past a moved sleeve still samples
-// the garment that sleeve covered in the picture.
-
 import * as T from "three";
 import type { Digest, FigurePaint, PortraitDepth } from "@irudd/document";
 import type { AssetResolver } from "../assets.js";
@@ -22,15 +11,11 @@ export { panelFromPixels, type Panel } from "./panel.js";
 
 export type Panels = readonly [Panel, Panel, Panel, Panel];
 
-/** A rest binding with the atlas it paints from: a painted part's or an occluder's. */
 export interface Binding extends FigurePaint {
   readonly atlas: Digest;
-  /** The traced front's depth, which the bake's rest takes as the part does. */
   readonly depth?: PortraitDepth;
 }
 
-// Dilation supplies the nearest foreground colour outside thin silhouettes.
-// It keeps the chroma key out of texture filtering at the edge of a claw.
 function preparePanel(raster: Raster, image: RasterImage, tile: number): Panel {
   const size = 640;
   const canvas = raster.canvas(size, size);
@@ -49,7 +34,6 @@ function preparePanel(raster: Raster, image: RasterImage, tile: number): Panel {
   return panelFromPixels(ctx.getImageData(0, 0, size, size).data, size);
 }
 
-/** Prepare the four views of a decoded sheet. */
 export function preparePanels(raster: Raster, image: RasterImage): Panels {
   if (image.width / image.height < 0.65 || image.width / image.height > 1.5)
     throw new Error("Use a two-by-two turnaround.");
@@ -61,15 +45,12 @@ export function preparePanels(raster: Raster, image: RasterImage): Panels {
   ];
 }
 
-/** Prepared sheets by digest, with the raster used for baking. */
 export interface PaintAtlases {
   readonly raster: Raster;
   readonly panels: (atlas: Digest) => Panels | undefined;
-  /** Atlases a binding named that did not resolve. */
   readonly missing: ReadonlyArray<Digest>;
 }
 
-/** Resolve and prepare every atlas `digests` names. Unresolvable atlases are listed, not thrown. */
 export async function loadPaintAtlases(
   raster: Raster,
   assets: AssetResolver,
@@ -107,8 +88,6 @@ interface RegionView {
 
 export type RegionViews = ReadonlyArray<RegionView | null>;
 
-// Estimate visibility in the original standing pose. A camera looking past a
-// sleeve must sample the adjacent garment, even after that sleeve is moved.
 function regionalViews(
   panels: Panels,
   bindings: ReadonlyArray<Binding>,
@@ -188,8 +167,6 @@ function regionalViews(
         for (let x = 0; x < width; x++) {
           const i = y * width + x;
           const source = (y + ymin) * n + x + xmin;
-          // Trim a few boundary pixels of other regions, which often contain
-          // antialiasing or imperfectly registered fingers on a garment.
           if (owner[source] !== index + 1 || !panel.mask[source]) continue;
           if (
             [source - 2, source + 2, source - 2 * n, source + 2 * n].some(
@@ -226,11 +203,6 @@ function unobscured(index: number, panel: Panel, region: RegionView | null | und
   return region.nearest[y * region.width + x] ?? -1;
 }
 
-/**
- * Regional views of every sheet, from the sources of one document: occluders
- * first, then painted parts, one binding per atlas and region (a later source
- * replaces an earlier one), regions sorted by name within each sheet.
- */
 export function paintRegions(
   atlases: PaintAtlases,
   sources: ReadonlyArray<Binding>,
@@ -254,7 +226,6 @@ export function paintRegions(
   return out;
 }
 
-/** Bake a binding's four projections into a UV texture of its rest sweep. */
 export function bakePaint(
   atlases: PaintAtlases,
   binding: Binding,
@@ -262,7 +233,6 @@ export function bakePaint(
 ): T.CanvasTexture | undefined {
   const panels = atlases.panels(binding.atlas);
   if (!panels) return undefined;
-  // A traced face bakes from a denser, sculpted rest so its features land on the texture.
   const sides = binding.portrait ? 80 : 20;
   const rest = portraitSurface(
     sweepGeometry(binding.rest, binding.frame !== "path", sides),
@@ -310,7 +280,6 @@ export function bakePaint(
         nz += normals.getZ(j) * w;
       }
       if (binding.portrait) {
-        // Faces choose views by the column's angle, not the sculpted normal.
         const a = ((x + 0.5) / canvas.width) * 2 * Math.PI;
         nx = Math.cos(a);
         nz = -Math.sin(a);
@@ -349,10 +318,6 @@ export function bakePaint(
   return texture;
 }
 
-/**
- * The whole sheet as one texture, its four views in a 2 × 2 grid, for painted
- * volumes. Ported from volumeMaterial in character-view/turnaround.js.
- */
 export function sheetTexture(atlases: PaintAtlases, atlas: Digest): T.Texture | undefined {
   const panels = atlases.panels(atlas);
   if (!panels) return undefined;
@@ -372,7 +337,6 @@ export function volumeMaterial(texture: T.Texture, color: string): T.MeshStandar
   return new T.MeshStandardMaterial({ map: texture, color, roughness: 0.85 });
 }
 
-/** The painted material of a part: the baked texture, dimmed, and the same texture as glow. */
 export function paintedMaterial(texture: T.Texture, color: string): T.MeshStandardMaterial {
   return new T.MeshStandardMaterial({
     color: new T.Color(color).multiplyScalar(0.46),

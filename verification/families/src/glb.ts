@@ -1,5 +1,3 @@
-// Decode a binary glTF for structural comparison: its JSON and every accessor's values.
-
 const componentTypes: Record<
   number,
   { readonly size: number; readonly read: (v: DataView, at: number) => number }

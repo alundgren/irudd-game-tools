@@ -1,9 +1,3 @@
-// irudd: the workshop command line.
-//
-// Every verb connects to the host that owns the project (the desktop app or
-// `irudd host`) and acts as the person signed in to this OS account. The CLI
-// never opens the project file itself.
-
 import fs from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";

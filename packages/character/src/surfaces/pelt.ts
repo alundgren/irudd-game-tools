@@ -1,25 +1,16 @@
-// Pelt locks: rooted guides grown from a fur undercoat, as a shag mantle
-// makes. At the game mesh budget their fibres become fewer, wider clumps,
-// and part of the budget roots short tufts over the undercoat between them.
-// Ported from character-view/creature-pelt.js at 2761eb1, arithmetic and
-// draws in the same order.
-
 import * as T from "three";
 import type { FigureFibres } from "@irudd/document";
 import { randomStream } from "../random.js";
 import type { BlendOwners } from "./blend.js";
 
 export const peltGame = {
-  /** Of the pelt triangles, the share spent on guard clumps. */
   guardShare: 0.6,
   clumpSpans: 7,
-  /** Of the mean lock length. */
   tuftLength: 0.34,
 } as const;
 export const clumpTriangles = (spans: number): number => 6 * spans + 2;
 const tuftTriangles = 9;
 
-/** Strands kept on one guide in a game build, the spans each keeps, and a pelt lock's clump width. */
 export interface FibreDetail {
   readonly count: number;
   readonly spans: number;
@@ -32,10 +23,6 @@ const at = <V>(list: ArrayLike<V>, i: number): V => {
   return v;
 };
 
-/**
- * Divide the triangles the strand budget gave the pelt between clumps per
- * lock and one tuft pool for the undercoats.
- */
 export function peltGameDetail(
   guides: ReadonlyArray<{ readonly id: string; readonly fibres: FigureFibres }>,
   triangles: number,
@@ -68,7 +55,6 @@ export function peltGameDetail(
   };
 }
 
-/** A pelt lock in world space, before its guide becomes fibres. */
 export interface PeltLock {
   readonly mesh: T.Mesh;
   readonly root: T.Vector3;
@@ -91,11 +77,6 @@ interface Facet {
   readonly cum: number;
 }
 
-/**
- * Short tapered tufts rooted on the undercoat, leaning with the nearest
- * locks. Each tuft is three-sided: a buried root ring, a mid ring and a
- * point. Returns per-lock arrays in the lock mesh's local frame.
- */
 export function undercoatTufts(
   undercoat: T.Mesh,
   locks: ReadonlyArray<PeltLock>,
@@ -126,7 +107,6 @@ export function undercoatTufts(
     const s = n.length() / 2;
     if (s < 1e-12) continue;
     n.normalize();
-    // The lower half of the undercoat sits inside the trunk.
     if (n.dot(up) < -0.15) continue;
     area += s;
     tris.push({
@@ -163,7 +143,6 @@ export function undercoatTufts(
       .copy(tri.a)
       .addScaledVector(new T.Vector3().subVectors(tri.b, tri.a), u)
       .addScaledVector(new T.Vector3().subVectors(tri.c, tri.a), v);
-    // Inverse-square blend of the lock directions near this root.
     flow.set(0, 0, 0);
     let nearest = first;
     let best = Infinity;
@@ -233,7 +212,6 @@ export function undercoatTufts(
   return out;
 }
 
-/** Append tufts to a lock's strand geometry; tuft vertices take the lock root's joint owners. */
 export function appendTufts(
   geometry: T.BufferGeometry,
   owners: BlendOwners | undefined,

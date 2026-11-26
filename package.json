@@ -7,16 +7,18 @@
     "build": "node scripts/build.mjs",
     "test": "node --test \"character-view/**/*.test.js\" \"examples/**/*.test.js\"",
     "references": "node scripts/local-references.mjs",
-    "check": "node tools/static/check.ts",
+    "check": "node scripts/check-comments.mjs && node tools/static/check.ts",
     "check:bundles": "node tools/static/bundles.ts",
     "check:fixtures": "node tools/static/fixtures.ts",
     "format": "node tools/static/check.ts --write-format",
-    "test:port": "pnpm --recursive --if-present test"
+    "test:port": "pnpm --recursive --if-present test",
+    "check:comments": "node scripts/check-comments.mjs"
   },
   "dependencies": {
     "three": "catalog:"
   },
   "devDependencies": {
+    "@ast-grep/cli": "catalog:",
     "@swc/core": "catalog:",
     "@types/node": "catalog:",
     "dependency-cruiser": "catalog:",

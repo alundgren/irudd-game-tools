@@ -1,28 +1,12 @@
-// Static architecture policy for the desktop port.
-//
-// Each project names its tsconfig programs, allowed libraries and ambient types, allowed package
-// dependencies and shipped entries. Graph rules are dependency-cruiser rules over the modules
-// reachable from those entries. RULES.md maps every rule to the mechanism that rejects a violation.
-
 import { builtinModules } from "node:module";
 
 export interface ProgramPolicy {
-  /** tsconfig path relative to the project directory. */
   readonly tsconfig: string;
-  /** Every `lib` entry must match. */
   readonly lib: RegExp;
-  /** Entrypoints that must be checked by this specific process program. */
   readonly entries?: readonly string[];
-  /** Exact set of allowed `types` entries. */
   readonly types: readonly string[];
-  /** Whether these sources are shipped and therefore must not see Node or DOM declarations. */
   readonly ambient: "none" | "node" | "dom" | "node+dom";
-  /** A recorded reason when declaration files cannot be checked under this program's lib. */
   readonly skipLibCheck?: Exemption & { readonly allowedDiagnostic?: RegExp };
-  /**
-   * Transitional JavaScript: the exact project-relative files a program may load with
-   * `allowJs` and `checkJs`. Every other first-party JavaScript file fails.
-   */
   readonly javascript?: Exemption & { readonly files: readonly string[] };
 }
 
@@ -33,32 +17,21 @@ export interface Exemption {
 }
 
 export interface ProjectPolicy {
-  /** Directory relative to the repository root, using forward slashes. */
   readonly dir: string;
-  /** Package name when the project is a workspace package. */
   readonly name?: string;
   readonly role: string;
-  /** Packaged main and its checked source. The build gate verifies the emitted file. */
   readonly bundledMain?: { readonly output: string; readonly source: string };
-  /** Required projects must exist now. Planned projects are checked once they appear. */
   readonly status: "required" | "planned";
   readonly programs: readonly ProgramPolicy[];
-  /** Package dependencies the project may declare (all through `catalog:` or `workspace:`). */
   readonly dependencies: readonly string[];
   readonly devDependencies: readonly string[];
-  /** Entries for projects that are not workspace packages (workspace entries come from `exports`). */
   readonly entries?: readonly string[];
 }
 
-// `esXXXX.full` libraries pull in DOM and are excluded.
 const esOnly = /^(?!.*\.full$)es(5|20\d\d|next)(\.[a-z0-9]+)*$/i;
 const esAndDom =
   /^((?!.*\.full$)es(5|20\d\d|next)(\.[a-z0-9]+)*|dom(\.iterable|\.asynciterable)?)$/i;
 
-/**
- * Compiler options every program inherits from tsconfig.base.json. A program may change only these;
- * every other base option must keep its base value in the effective (`--showConfig`) config.
- */
 export const overridableBaseOptions: readonly string[] = [
   "lib",
   "types",
@@ -66,7 +39,6 @@ export const overridableBaseOptions: readonly string[] = [
   "allowImportingTsExtensions",
 ];
 
-/** Flags implied by `strict: true`. Setting any of them to false weakens strict mode. */
 export const strictFamily: readonly string[] = [
   "noImplicitAny",
   "noImplicitThis",
@@ -79,10 +51,6 @@ export const strictFamily: readonly string[] = [
   "alwaysStrict",
 ];
 
-/**
- * Options that skip checking, write build state, widen globals or redirect resolution. `allowJs`
- * and `checkJs` are governed by a program's `javascript` exemption instead.
- */
 export const forbiddenOptions: readonly string[] = [
   "noCheck",
   "skipDefaultLibCheck",
@@ -106,8 +74,6 @@ const testProgram: ProgramPolicy = {
   ambient: "node",
 };
 
-// Electron publishes one declaration file across main and renderer. Keep Node-only globals
-// in these programs and still check every other library diagnostic in the static gate.
 const electronTypes = {
   owner: "desktop",
   reason: "Electron 46 alpha names four browser types in its shared electron.d.ts.",
@@ -176,7 +142,6 @@ export const projects: readonly ProjectPolicy[] = [
     devDependencies: [],
     entries: ["check.ts", "fixtures.ts"],
   },
-  // Planned layout from the port plan. Refine a definition when its package lands.
   {
     dir: "packages/character",
     name: "@irudd/character",
@@ -302,10 +267,6 @@ export const projects: readonly ProjectPolicy[] = [
   },
 ];
 
-/**
- * Modules that may use privileged process and host APIs. Every adapter is an exact directory with
- * the reason it needs the capability. Tooling and verification may start local processes.
- */
 export const privilegedAdapters: readonly { readonly path: string; readonly reason: string }[] = [
   {
     path: "^apps/desktop/scripts/(launch|qa|qa-player|qa-review|package|rehearse)\\.ts$",
@@ -316,8 +277,6 @@ export const privilegedAdapters: readonly { readonly path: string; readonly reas
   { path: "^apps/desktop/src/main/update/", reason: "Stage and activate managed source updates." },
 ];
 
-/** Each build emits its module inventory from all output chunks beside the runnable entry. */
-// Package exports that the bundler, rather than TypeScript, consumes.
 export const bundledStyles: ReadonlyMap<string, readonly string[]> = new Map([
   ["packages/player/src/player.css", ["renderer", "player"]],
 ]);
@@ -351,7 +310,6 @@ export const bundleProbes = [
   },
 ] as const;
 
-/** Additional artifacts produced by the Windows packaging step. */
 export const packagedBundleProbes = [
   {
     name: "irudd",
@@ -382,27 +340,18 @@ export const packagedBundleProbes = [
   },
 ] as const;
 
-// ---------------------------------------------------------------------------------------------
-// Dependency graph rules (dependency-cruiser "forbidden" rules).
-
 const nodeBuiltins = [
   ...new Set(builtinModules.map((name) => name.replace(/^node:/, "").replace(/\/.*$/, ""))),
 ].sort();
 const builtin = `^(node:)?(${nodeBuiltins.join("|")})(/|$)`;
-// `module` is privileged because createRequire and register load modules the graph cannot see.
 const privileged =
   "^(node:)?(child_process|cluster|worker_threads|vm|inspector|v8|repl|module)(/|$)";
-// A package resolved through pnpm's virtual store or a direct link, under any node_modules
-// directory (a linked store may resolve outside the checkout). dependency-cruiser rejects regexes
-// with nested quantifiers, so the two layouts are separate alternatives.
 const packageLayouts = (name: string): string[] => [
   `(^|/)node_modules/\\.pnpm/[^/]+/node_modules/${name}/`,
   `(^|/)node_modules/${name}/`,
 ];
 const pkg = (name: string): string => packageLayouts(name).join("|");
 const electron = `^electron$|${pkg("electron")}`;
-// effect's core modules (`effect`, `effect/Schema`, …) are the files directly under dist. Its
-// subpath families (http, process, socket, net, sql, workers, cluster, …) reach host protocols.
 const effectCore = packageLayouts("effect")
   .map((layout) => `${layout}dist/[A-Za-z0-9]+\\.js$`)
   .join("|");
@@ -513,7 +462,6 @@ export const graphRules: readonly GraphRule[] = [
   },
 ];
 
-/** Exact repository paths of transitional JavaScript files, as dependency-cruiser regexes. */
 function transitionalJavaScript(): string[] {
   return projects.flatMap((project) =>
     project.programs.flatMap((program) =>

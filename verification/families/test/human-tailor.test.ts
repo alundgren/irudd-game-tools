@@ -1,11 +1,3 @@
-// Fast regression for the dressed adult: G0's seed-491 look outfit (boots,
-// trousers, a short-sleeved top and a buttoned jacket) cut from the adult's
-// own body, its long centre-parted hair swept right, its teardrop pendant and
-// its upswept frames, held by digests of G0's own output so it needs no
-// reference cache. The outfit, the hair and its fringe are plain data in the
-// document's generation parameters, so a person or an agent edits them field
-// by field like any other parameter.
-
 import { createHash } from "node:crypto";
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -35,23 +27,8 @@ const seeded = seededHumanAdult(body, 491);
 const dressed: HumanAdultParams = dressedAdult(seeded, look491);
 const look491Tailor = { layers: look491.style.tailor?.layers ?? [] };
 
-/**
- * SHA-256 of G0's tailorParts (character-view/human-tailor.js at 2761eb1) on
- * seed 491's cage: every part's name, region, tone and type, its positions,
- * triangles and skin, and the skin points it hides.
- */
 const g0Parts = "ddd839d886ff407226fbbd639cfea520ef93a23b1ec7de904cda37e3fa2d6c54";
-/**
- * SHA-256 of G0's libraryPieces (character-view/human-library.js at 2761eb1)
- * for the look's hair on seed 491's cage, at clay: the trimmed cards'
- * positions, normals, chart points and triangles, then the roots' positions,
- * triangles and skin.
- */
 const g0Hair = "46e799bbdd7f10b846e8a9cad07de36b58fe178e6dd8156568e92e00904d3c89";
-/**
- * `surfaceDigest` of G0's adult-look-491 clay export over each piece of its
- * merged surface (g0LookPieces in src/human-dressed.ts).
- */
 const g0Look = {
   surface: "204908827f0b33dcb73476fad739be047e7038b999f2737e7e5eea350f426965",
   necklace: "64e1440f3fed9ba77ea4a16c4709430c0d6e1055ec91f616a1e5e5a6b4adc00f",
@@ -68,7 +45,6 @@ const g0Counts = {
 const generate = (params: HumanAdultParams) => store.generate(params, "Adult 491 in work clothes");
 
 test("the starter's look-491 is the look G0 froze", () => {
-  // G0 seeded/adult-look-491.form.json, canonical humanStyle fields supplied by the starter.
   assert.ok(isJson(look491.style));
   assert.equal(
     createHash("sha256").update(canonicalJson(look491.style)).digest("hex"),
@@ -176,7 +152,6 @@ test("a fringe edit combs the hair and an unfitted hair style is refused", async
     ops: [{ op: "generation.steer", params: parted }],
   });
   const combed = await hairOf();
-  // The same cards, combed the other way.
   assert.equal(combed.triangles, swept.triangles);
   assert.notEqual(combed.digest, swept.digest);
   assert.throws(() =>
@@ -216,9 +191,7 @@ test("an outfit edit steers the export while a held region edit stays", async ()
   const base = documentOf(s).generation?.base.slots.find((b) => b.slot === humanSlot("lowerarm_l"));
   assert.ok(held && base);
   assert.ok(Math.abs(held.position[0] - base.position[0] - 0.02) < 1e-9);
-  // Each button is a disc of 50 triangles.
   assert.equal((await triangles()) - before, 100);
-  // A field outside its piece's limits is refused with the piece's own message.
   const wrong = look491Tailor.layers.map((l) => (l["piece"] === "boots" ? { ...l, heel: 90 } : l));
   assert.throws(
     () =>

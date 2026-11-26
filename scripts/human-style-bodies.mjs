@@ -1,4 +1,3 @@
-// Figures used by the styling checks: shape controls for evaluateHuman.
 export const bodies = {
   f1: { height: 1.54, frame: -.86, weight: .20, muscle: .80, bust: -.38, shoulders: .35, legs: -.56, faceA: .9 },
   f2: { height: 1.84, frame: -.74, weight: -.65, muscle: .07, bust: -.18, legs: .64, faceB: .86 },

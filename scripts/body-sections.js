@@ -1,5 +1,3 @@
-// Cross-sections of the visible editor mesh, projected orthographically. Each
-// interval represents occupied space, including gaps between arms and torso.
 import { Vector3 } from "three";
 import { buildFigure } from "../character-view/figure.js";
 import { createCharacter, disposeCharacter } from "../character-view/model.js";
@@ -33,8 +31,6 @@ export function sections(figure, rows, angles) {
     Math.cos((angle * Math.PI) / 180),
     Math.sin((angle * Math.PI) / 180),
   ]);
-  // Intersect triangles with horizontal planes once, then project each
-  // intersection segment into every requested view.
   for (const { vertices, index } of meshes) {
     const count = index ? index.length : vertices.length;
     for (let i = 0; i < count; i += 3) {

@@ -1,7 +1,3 @@
-// The portable character package: save an editable character with its
-// artwork, history and undo, and open it offline in a different, fresh
-// project. A damaged or incompatible file is refused with diagnostics before
-// anything is written.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -39,7 +35,6 @@ const digestOf = (hex: string) => Schema.decodeUnknownSync(Digest)(`sha256:${hex
 const catalogDigest = digestOf("c");
 const catalog: ReadonlyArray<readonly [CatalogId, Digest]> = [[catalogId, catalogDigest]];
 
-/** A project with the installed catalog and a character using every portable piece. */
 async function character(dir: string) {
   return run(
     Effect.gen(function* () {
@@ -75,7 +70,6 @@ async function character(dir: string) {
           })),
         }),
       );
-      // A paint layer on a part, naming the first picture.
       yield* commit(
         request(2, {
           type: "edit",
@@ -118,7 +112,6 @@ async function character(dir: string) {
           ],
         }),
       );
-      // A mistaken rename, undone.
       yield* commit(rename(7, second.id, "Oops"));
       yield* commit(request(8, { type: "undo", target: 8 }));
       const journal = yield* project.journal(docId);
@@ -143,7 +136,6 @@ function json(bytes: Uint8Array | undefined): Mutable {
   assert.ok(isJson(value) && isJsonObject(value));
   return { ...value };
 }
-/** A mutable copy of an object member's array of objects. */
 function objects(parent: Mutable, key: string): Mutable[] {
   const list = parent[key];
   assert.ok(isJsonArray(list));
@@ -161,7 +153,6 @@ const member = (parent: JsonObject, key: string): JsonObject => {
 };
 const text = (value: unknown) => new TextEncoder().encode(JSON.stringify(value) + "\n");
 
-/** Write a changed copy of a package, as another tool or a damaged copy would. */
 function repack(
   source: string,
   change: (files: Map<string, Uint8Array>) => void,
@@ -179,7 +170,6 @@ function repack(
   return target;
 }
 
-/** Save the character from its project and return the file. */
 async function save(dir: string): Promise<string> {
   const target = path.join(tempDir("pkg-out"), "Marsh walker.irudd-character");
   const report = await run(
@@ -194,7 +184,6 @@ async function save(dir: string): Promise<string> {
   return target;
 }
 
-/** Open a file in a fresh project; return the outcome and what the project holds after. */
 async function openFresh(
   file: string,
   installed: ReadonlyArray<readonly [CatalogId, Digest]> = catalog,
@@ -229,7 +218,6 @@ test("a saved character opens offline in a fresh project with history, artwork a
   const made = await character(sourceDir);
   const file = await save(sourceDir);
 
-  // The file is a plain ZIP: manifest, document, history and one file per picture.
   const files = entries(file);
   assert.deepEqual(
     [...files.keys()].filter((n) => !n.startsWith("assets/")),
@@ -245,7 +233,6 @@ test("a saved character opens offline in a fresh project with history, artwork a
     const stored = files.get(`assets/${picture.digest.slice(7)}.png`);
     assert.equal(stored?.length, picture.byteLength);
   }
-  // A save never overwrites.
   const again = await failure(
     Effect.flatMap(openProject({ path: sourceDir, registry, catalog }), (p) =>
       p.saveCharacter(docId, file),
@@ -287,7 +274,6 @@ test("a saved character opens offline in a fresh project with history, artwork a
         assert.equal((yield* project.blob(picture.digest)).byteLength, picture.byteLength);
       const inspect = yield* project.inspect(docId);
       assert.equal(inspect.history.find((h) => h.revision === 8)?.undone, true);
-      // The opened character keeps working: redo the undone rename, then rename again.
       const session = yield* project.session({ actor: human });
       const redo = yield* session.apply(request(9, { type: "undo", target: 9 }));
       assert.equal(redo.kind, "committed");

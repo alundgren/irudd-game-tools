@@ -104,7 +104,6 @@ test("the receiver keeps their head art, and the garments bring their own", () =
     if (!poloSkin[y * side + x]) assert.equal(whole[(y * side + x) * 3 + k], polo[(y * side + x) * 3 + k], "the borrowed top's art");
     assert.equal(mixed[(y * side + x) * 3 + k], mine[(y * side + x) * 3 + k], "the receiver's own top");
   }
-  // The bottom's art sits half as tall in the quarter below the head. (Cloth: its bare skin takes the receiver's colour.)
   for (const y of [3, 60, 100]) for (const x of [10, 60]) for (let k = 0; k < 3; k++) {
     assert.equal(poloSkin[2 * y * side + x] + poloSkin[(2 * y + 1) * side + x], 0);
     const a = polo[(2 * y * side + x) * 3 + k], b = polo[((2 * y + 1) * side + x) * 3 + k];

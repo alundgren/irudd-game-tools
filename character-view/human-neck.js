@@ -1,27 +1,14 @@
-/* The neck and shoulder girdle of the adult human: collarbones, the pit of the neck, the
-   hollow above each collarbone and the trapezius slope from neck to shoulder, and the
-   soft tissue a heavier body carries there: a deeper neck, a fuller line from neck to
-   shoulder and a padded upper back.
 
-   The donor body joins neck and shoulders in a smooth cone. This adds the missing
-   landmarks as small displacements along the skin normal. Where each landmark lies is
-   worked out once, on the donor's rest mesh, from its joints and its own surface; every
-   body shares that topology, so the landmarks follow each identity. How strongly they
-   show depends on the body: fat covers bone, muscle fills the trapezius. */
-
-// Amplitudes in metres on a 1.72 m body.
 const depth = {
   collarbone: 0.0036,
   pit: 0.0046,
   hollow: 0.003,
   under: 0.0012,
   trapezius: 0.0072,
-  // Soft tissue. A full step is a heavy body, or the artist's control at 1.
   column: 0.012,
   pad: 0.011,
   back: 0.017,
 };
-// 1 is the shipped shape. Evaluation scripts set 0 to read the donor surface alone.
 export const neckSettings = { strength: 1 };
 
 const clamp = (x, low, high) => Math.min(high, Math.max(low, x));
@@ -54,7 +41,6 @@ function normals(positions, indices, triangles, out) {
   }
   return out;
 }
-// Closest point on a polyline: its position along the line, 0 to 1, and the offset to it.
 function along(line, x, y, z) {
   let best = { gap: Infinity };
   for (let k = 0; k < line.length - 1; k++) {
@@ -80,8 +66,6 @@ function along(line, x, y, z) {
 }
 
 let cache;
-/* Per-vertex share of each landmark, from the donor rest mesh. `layout` gives the rest
-   positions followed by the joints, the bone names, the body triangles and the counts. */
 export function neckFields({
   rest,
   names,
@@ -108,7 +92,6 @@ export function neckFields({
     skull = joint("head"),
     collar = joint("clavicle_l"),
     arm = joint("upperarm_l");
-  // How much of a vertex follows the head: the jaw, the chin and the skull keep their shape.
   const each = bones.length / (rest.length / 3 - names.length),
     headBone = names.indexOf("head");
   const headShare = (v) => {
@@ -125,7 +108,6 @@ export function neckFields({
     all,
     new Float32Array(bodyVertices * 3),
   );
-  // The girdle: from below the collar joints to the top of the neck, out to the shoulders.
   const girdle = [];
   for (let v = 0; v < bodyVertices; v++) {
     const x = Math.abs(rest[v * 3]),
@@ -137,7 +119,6 @@ export function neckFields({
     )
       girdle.push(v);
   }
-  // The pit of the neck is the deepest point of the front midline between the joints.
   let pit = null;
   for (const v of girdle) {
     const [x, y, z] = rest.subarray(v * 3, v * 3 + 3);
@@ -145,8 +126,6 @@ export function neckFields({
     if (y < collar[1] + 0.01 * u || y > neck[1] + 0.005 * u) continue;
     if (!pit || z < pit[2]) pit = [0, y, z];
   }
-  /* The skin point of the slice at `x0` that reaches farthest in a direction between
-     forward (0) and up (90 degrees): a soft maximum, so it sits on the surface. */
   function support(x0, degrees, cap) {
     const forward = Math.cos((degrees * Math.PI) / 180),
       up = Math.sin((degrees * Math.PI) / 180);
@@ -173,7 +152,6 @@ export function neckFields({
     }
     return sum.map((value) => value / total);
   }
-  // A point of the front skin where it passes a wanted distance from the midline and height.
   function front(x0, y0) {
     const sum = [0, 0, 0];
     let total = 0;
@@ -196,8 +174,6 @@ export function neckFields({
     crest = [];
   for (let k = 0; k <= steps; k++) {
     const t = k / steps;
-    /* The collarbone leaves the pit sideways along the front edge of the shoulder slope,
-       a finger below the level of the pit, and ends on top of the shoulder. */
     const x0 = collar[0] * 0.95 + (outer - collar[0] * 0.95) * t;
     let high = -Infinity;
     for (const v of girdle)
@@ -209,8 +185,6 @@ export function neckFields({
     collarbone.push(
       front(x0, Math.min(pit[1] - 0.012 * u + 0.004 * u * t, high - 0.003 * u)),
     );
-    /* The trapezius crest is the top of the slope from the side of the neck to the
-       shoulder: the line that draws the shoulders seen from the front. */
     const x1 = 0.05 * u + (outer - 0.05 * u) * t;
     crest.push(support(x1, 104, neck[1] + 0.035 * u));
   }
@@ -231,10 +205,8 @@ export function neckFields({
       z = rest[v * 3 + 2];
     const n = restNormals.subarray(v * 3, v * 3 + 3),
       size = Math.hypot(n[0], n[1], n[2]) || 1;
-    // Skin that faces forward or up carries the bony landmarks; the back does not.
     const facing = ease(-0.15, 0.35, (0.45 * n[1] + 0.89 * n[2]) / size);
     const c = along(collarbone, x, y, z);
-    // Above the collarbone is toward the root of the neck: up and back.
     const above = c.dy * 0.76 - c.dz * 0.62 - c.dx * 0.18 > 0;
     const row = {
       collarbone:
@@ -264,13 +236,9 @@ export function neckFields({
       trapezius: 0,
     };
     const k = along(crest, x, y, z);
-    // The muscle is thickest a hand's width from the midline and thins toward the shoulder.
     const reach =
       ease(0.04 * u, 0.085 * u, x) * (0.2 + 0.8 * ease(0.175 * u, 0.1 * u, x));
-    // Behind the crest it spreads down the back; in front it stops short of the collarbone.
     row.trapezius = reach * bell(k.gap, k.dz < 0 ? 0.04 * u : 0.012 * u);
-    /* Soft tissue. The neck column deepens: most at the throat, then at the nape, hardly at
-       the sides, measured around an axis that follows the neck joints. */
     const free = clamp(1 - 1.4 * headShare(v), 0, 1),
       rz =
         z -
@@ -279,7 +247,6 @@ export function neckFields({
           0.015 * u),
       radius = Math.hypot(x, rz) || 1,
       forward = rz / radius,
-      // The throat runs out over the top of the chest, so no step forms at the pit.
       front = Math.max(0, forward);
     row.column =
       free *
@@ -290,8 +257,6 @@ export function neckFields({
       ) *
       ease((0.1 + 0.04 * front) * u, 0.062 * u, radius) *
       (0.14 + 0.86 * front ** 1.5 + 0.61 * Math.max(0, -forward) ** 1.5);
-    /* The line from neck to shoulder fills from the corner where the neck meets the
-       shoulder, both the wall of the neck and the slope, and thins toward the joint. */
     row.pad =
       free *
       ease(-0.7, -0.15, n[1] / size) *
@@ -299,7 +264,6 @@ export function neckFields({
       (k.dz < 0 ? 1 : ease(0.03 * u, 0.055 * u, x)) *
       (1 - 0.75 * ease(0.09 * u, arm[0] - 0.01 * u, x)) *
       bell(k.gap, k.dz < 0 ? 0.06 * u : 0.035 * u);
-    // The upper back pads between the shoulder blades, most below the nape.
     row.back =
       free *
       ease(0.35, -0.25, n[2] / size) *
@@ -331,8 +295,6 @@ export function neckFields({
   return cache;
 }
 
-/* How strongly each landmark shows on a body. Fat covers the bone and fills the hollows,
-   muscle builds the trapezius and softens the bone, age thins the cover. */
 export function neckBuild({
   weight = 0,
   muscle = 0,
@@ -347,8 +309,6 @@ export function neckBuild({
   const heavy = Math.max(weight, 0),
     thin = Math.max(-weight, 0),
     strong = Math.max(muscle, 0);
-  /* How heavy the body is as a whole. The mass control alone reaches an ordinary build;
-     a heavy adult also carries a full waist and abdomen, so those count with it. */
   const mass = clamp(
     0.6 * weight +
       0.25 * Math.max(waist, 0) +
@@ -368,10 +328,7 @@ export function neckBuild({
       0.3,
       1.6,
     ),
-    /* Mass thickens the neck and fills the girdle; the skeleton and the head stay where
-       they are. The two controls add to it or take it away on any build. */
     column: mass,
-    // The artist's controls add to what mass does, up to a full pad and no further.
     pad: Math.min(0.6 * mass + shoulderLine, 1.2),
     back: Math.min(
       0.85 * mass + (upperBack < 0 ? 0.5 * upperBack : upperBack),
@@ -380,8 +337,6 @@ export function neckBuild({
   };
 }
 
-/* Shapes the girdle of an evaluated body in place. `vertices` are in metres with the
-   joints after the skin, before the limbs are posed. */
 export function shapeNeck(vertices, parameters, height, layout) {
   const amount = neckSettings.strength;
   if (!amount) return;

@@ -1,11 +1,3 @@
-// A service process that the crash tests kill. It reports progress as JSON lines
-// on stdout, written synchronously so a line that was written was sent.
-//
-//   hold          open the project, report "ready", then wait
-//   crash-before  apply one request and kill itself inside the append transaction
-//   crash-after   apply one request and kill itself after the commit, before replying
-//   stream        apply edits (every fifth a policy change) until killed,
-//                 reporting each request before it is sent and each commit after
 import { Effect } from "effect";
 import fs from "node:fs";
 import { openProjectWithHooks } from "../../src/service/project.js";
@@ -52,7 +44,6 @@ function requestOption(value: unknown): { request?: CommandRequest } {
     command === null
   )
     throw new Error("child: malformed request");
-  // The service decodes the command itself; the child only forwards it.
   return {
     request: {
       format,
@@ -115,7 +106,6 @@ const program = Effect.gen(function* () {
   const session = yield* project.session({ actor: human });
   say({ event: "ready", pid: process.pid });
   if (options.mode === "hold") {
-    // Effect.never holds no handle, so keep the event loop alive until killed.
     setInterval(() => undefined, 60_000);
     return yield* Effect.never;
   }

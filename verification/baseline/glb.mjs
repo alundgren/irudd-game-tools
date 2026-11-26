@@ -1,17 +1,3 @@
-// Offline GLB reader for the G0 baseline. No dependencies.
-//
-// glbSummary(bytes) returns the structure the port must keep (meshes, materials, skins,
-// morph targets, clips, scenes, provenance) plus integrity checks:
-//   - every POSITION/NORMAL/weight/morph value is finite
-//   - each skinned primitive's JOINTS_0/WEIGHTS_0 counts match POSITION
-//   - each morph target's attribute counts match POSITION and each mesh's weights match its targets
-//   - every animation channel targets an existing node and its sampler times increase
-// and an encoding-independent digest: SHA-256 over decoded accessor values and the glTF
-// JSON with buffer offsets, image bytes and generator text removed. Two exports that differ
-// only in PNG compression or buffer packing share the digest; embedded image pixels are
-// compared separately (compare.py exports, which decodes each image to RGBA).
-//
-// CLI: node verification/baseline/glb.mjs FILE.glb [...]  prints one JSON summary per file.
 import { createHash } from "node:crypto";
 
 const COMPONENT = { 5120: [Int8Array, 1], 5121: [Uint8Array, 1], 5122: [Int16Array, 2], 5123: [Uint16Array, 2], 5125: [Uint32Array, 4], 5126: [Float32Array, 4] };
@@ -95,7 +81,6 @@ export function glbSummary(bytes) {
     }
     return { name: s.name ?? null, joints: s.joints.length, jointNames: s.joints.map((j) => nodes[j]?.name ?? null) };
   });
-  // Joint indices must address the skin used by the node that draws the mesh.
   nodes.forEach((n, ni) => {
     if (n.mesh === undefined || n.skin === undefined) return;
     const limit = g.skins[n.skin].joints.length;
@@ -122,7 +107,6 @@ export function glbSummary(bytes) {
     const data = view ? bin.subarray(view.byteOffset ?? 0, (view.byteOffset ?? 0) + view.byteLength) : null;
     return { name: im.name ?? null, mimeType: im.mimeType ?? null, bytes: data?.length ?? 0, sha256: data ? createHash("sha256").update(data).digest("hex") : null, uri: im.uri ? im.uri.slice(0, 40) : null };
   });
-  // Encoding-independent digest: decoded accessors in index order, then the JSON minus packing.
   for (let i = 0; i < (g.accessors ?? []).length; i++) {
     const { values } = acc(i);
     digest.update(String(i) + ":" + values.constructor.name + ":");

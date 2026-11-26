@@ -36,8 +36,6 @@ export function pleat(
   return geometry;
 }
 
-/** Resample the surface into panels with a tapered opening at the front and back.
- * Inner faces and the hem edge give the cloth thickness in a silhouette or GLB. */
 export function splitHem(source, knots, { slit, slitHeight = 0.6 }) {
   if (!slit) return source;
   const original = source.attributes.position;
@@ -55,7 +53,6 @@ export function splitHem(source, knots, { slit, slitHeight = 0.6 }) {
       center.add(sample.fromBufferAttribute(original, row * (sides + 1) + i));
     centers.push(center.divideScalar(sides));
   }
-  // Keep a UV seam at zero so each quad interpolates within the painted sheet.
   for (const [start, end] of [
     [0, 0.25],
     [0.25, 0.75],

@@ -1,18 +1,3 @@
-// Steering: tell one paired agent what to do next, in the conversation it is
-// already in.
-//
-// The panel shows who receives a message before it is sent: the agent, its
-// current pairing and the exact conversation its route reaches, with the
-// host's last word on whether that route is up. Each sent message then shows
-// three separate facts as they become true: the host accepted it for that
-// conversation, the agent acknowledged it with its pairing, and the agent
-// linked the revision it applied. Waiting states (queued for an offline
-// route, inbox only, delivery unknown, refused) are shown as such; nothing
-// here starts a conversation or picks another one.
-//
-// With no paired agent the panel only says how to pair one; the editor and
-// project flows do not depend on it.
-
 import type {
   RecipientRoute,
   RecipientView,
@@ -25,20 +10,16 @@ import { button, el } from "./dom.js";
 
 export interface SteeringOptions {
   readonly host: Workshop;
-  /** The document on screen, which a message refers to unless the person unticks it. */
   readonly documentId: () => string | undefined;
   readonly failure: (error: unknown) => string;
 }
 
 export interface Steering {
-  /** Reload recipients and the active agent's messages. */
   refresh(): Promise<void>;
-  /** A project closed or changed: forget everything shown. */
   reset(): void;
   notice(notice: SteerNotice): void;
 }
 
-/** The exact conversation a route reaches, in the host's own identifiers. */
 export function describeRoute(route: RecipientRoute): string {
   switch (route.transport) {
     case "claude-channel":
@@ -74,7 +55,6 @@ function isStatus(value: string): value is SteeringStatus {
   return Object.hasOwn(statusText, value);
 }
 
-/** Field rows of the bind form, per transport. */
 type Transport = RecipientRoute["transport"];
 
 export function mountSteering(root: HTMLElement, options: SteeringOptions): Steering {
@@ -85,7 +65,6 @@ export function mountSteering(root: HTMLElement, options: SteeringOptions): Stee
   let note = "";
   let binding = false;
   let generation = 0;
-  /** Draft text survives re-renders. */
   let draft = "";
 
   function current(): RecipientView | undefined {
@@ -153,8 +132,6 @@ export function mountSteering(root: HTMLElement, options: SteeringOptions): Stee
       });
   }
 
-  // ── Rendering ─────────────────────────────────────────────────────────────
-
   const list = el("ol", { className: "steer-messages" });
 
   function render(): void {
@@ -189,7 +166,6 @@ export function mountSteering(root: HTMLElement, options: SteeringOptions): Stee
     renderMessages();
   }
 
-  /** Who exactly receives a message: agent, pairing, conversation and route state. */
   function identity(r: RecipientView): HTMLElement {
     const a = r.availability;
     const box = el("div", { className: "steer-identity" });
@@ -270,7 +246,6 @@ export function mountSteering(root: HTMLElement, options: SteeringOptions): Stee
     return input;
   }
 
-  /** Bind the agent's current pairing to one exact conversation. */
   function bindForm(r: RecipientView): HTMLElement {
     const form = el("div", { className: "steer-bind" });
     const transport = el("select");
@@ -438,11 +413,6 @@ export function mountSteering(root: HTMLElement, options: SteeringOptions): Stee
     return s;
   }
 
-  /**
-   * The last fact: a revision that changed the character, or where the
-   * person's review of the agent's proposal stands. A proposal is never shown
-   * as applied before the person accepts that exact version.
-   */
   function outcome(m: SteeringMessage): HTMLElement {
     const applied = m.applied;
     if (applied) {

@@ -85,7 +85,6 @@ test("plates keep their shape: each cuirass plate and shoulder plate moves as on
   const body = analyse(lean), parts = tailorParts(body, landmarks(body), armourSet(3, "Heavy fantasy"));
   for (const name of ["Cuirass", "Pauldron"]) {
     const { piece } = parts.find(part => part.name.startsWith(name)), seen = new Set();
-    // Connected plates share one set of weights, so no plate can stretch or crease when the figure moves.
     const parent = Array.from({ length: piece.count }, (_, i) => i), find = i => { while (parent[i] !== i) i = parent[i] = parent[parent[i]]; return i; };
     for (let t = 0; t < piece.tri.length; t += 3) for (let e = 1; e < 3; e++) parent[find(piece.tri[t])] = find(piece.tri[t + e]);
     const skins = new Map();
@@ -172,7 +171,6 @@ test("a mail standard hangs from a band at the base of the neck in cells of real
     assert.ok(uv.array.every(value => value >= 0 && value <= 1));
     assert.ok(lodAnchor.array.every(value => value === 1), "a game model keeps every cell line");
     const m = landmarks(analyse(skin)), at = i => [position.getX(i), position.getY(i), position.getZ(i)];
-    // Every face shows the whole cell picture, or the upper half of it along the brass hem, and the cell is near its real size, so the rings are.
     const wide = [], tall = [];
     for (let i = 0; i < index.length; i += 3) for (let e = 0; e < 3; e++) {
       const a = index[i + e], b = index[i + (e + 1) % 3], long = Math.hypot(...at(a).map((x, d) => x - at(b)[d])) / m.k;

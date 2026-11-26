@@ -9,8 +9,6 @@ function texture() {
   const c=canvas.getContext("2d");
   if (!c?.quadraticCurveTo) return null;
   const random=randomStream(1237);
-  // Four fans with irregularly separated tips. A tuft fades into its parent
-  // lock at the top of the swatch, then divides into fibres.
   for(let col=0;col<4;col++){
     for(let i=0;i<47;i++){
       const u=random(), root=col*48+6+36*u;
@@ -28,8 +26,6 @@ function texture() {
   return tipTexture;
 }
 
-// Geometry can split at a texture seam without cutting any hair. Match
-// edge endpoints in fitted space before tracing the actual perimeter.
 function outline(g) {
   const p=g.attributes.position, index=g.index?.array;
   const points = new Map(), ids=[];
@@ -68,8 +64,6 @@ export function hairLockTips(main, frame, tone, style) {
     along.normalize();third.fromBufferAttribute(p,other);
     perp.subVectors(mid,third);perp.addScaledVector(along,-perp.dot(along)).normalize();
     const at=frame.aim(mid.toArray());
-    // Skip crown partings, the underside inside the skull, and any edge
-    // already crossing the eye. The long ends behind the ears hang free.
     if(at.eps>1.12 || (Math.abs(at.phi)<.58 && mid.y<frame.eye[1]+.013*k) || perp.y>.57) continue;
     length+=edge;choices.push({i,j,edge,end:length,out:perp.clone()});
   }

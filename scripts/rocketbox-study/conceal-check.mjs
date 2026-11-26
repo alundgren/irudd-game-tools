@@ -1,8 +1,3 @@
-// Checks that leaving out covered skin and cloth opens no hole in a tailored study outfit.
-//   node scripts/rocketbox-study/conceal-check.mjs [rays per study, 3000] [--selftest]
-// Geometry only, nothing is drawn: rays are cast at the clothed figure from all round, and the first
-// surface each one meets must face the ray. A hole would show the inside of the far side instead.
-// --selftest cuts a band out of the trousers first; the check must then report back faces.
 import * as T from "three";
 import { evaluateHuman, smoothHumanSurface } from "../../character-view/human-surface.js";
 import { dressedHuman } from "../../character-view/human-wardrobe.js";
@@ -52,7 +47,6 @@ for (const study of await loadStudies()) {
   let hits = 0, back = 0;
   for (let r = 0; r < rays; r++) {
     const yaw = rnd() * Math.PI * 2, pitch = (rnd() - 0.5) * 1.2, d = [-Math.sin(yaw) * Math.cos(pitch), -Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch)];
-    // Aim at a point in the clothed part of the figure: below the chin, above the soles.
     const aim = [(rnd() - 0.5) * 0.9, 0.05 + rnd() * 1.4, (rnd() - 0.5) * 0.3], o = [aim[0] - d[0] * 3, aim[1] - d[1] * 3, aim[2] - d[2] * 3];
     const h = hit(P, tri, o, d);
     if (!Number.isFinite(h.best)) continue;

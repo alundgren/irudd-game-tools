@@ -1,7 +1,3 @@
-// The adult body pack: the MakeHuman / MPFB2 skin cage (CC0), its targets,
-// rig weights and subdivision, the identity and portrait fields, the
-// Rocketbox cast face fields (MIT) and the CC0 head-detail targets.
-
 import {
   ancestryMorphs,
   bodyAxes,
@@ -25,7 +21,6 @@ import { readPack, type EntrySpec, type Pack, type PackSpec } from "./pack.js";
 const field = (layout: { readonly shape: readonly [number, number, number] }) =>
   layout.shape[0] * layout.shape[1] * layout.shape[2] * 3;
 
-/** Names of every vertex target in the body pack. */
 export const bodyMorphNames: ReadonlyArray<string> = [
   ...bodyAxes.flatMap((a) => [`${a}0`, `${a}1`]),
   ...ancestryMorphs,
@@ -89,7 +84,6 @@ function capturedSpec(): PackSpec {
 }
 export const humanCapturedSpec = capturedSpec();
 
-/** Brow and lash strand cards from the CC0 MakeHuman system pack, traced and grown in G0. */
 export const strandNames = [
   "eyebrow001",
   "eyebrow003",
@@ -118,9 +112,6 @@ function faceSpec(): PackSpec {
     spec[`${name}.points`] = { kind: "u8", elements: 1 };
   }
   spec["eyelashes01.lower"] = { kind: "u8" };
-  // The face paint chart: the stored face rectangle, the four lid margins (upper
-  // left, upper right, lower left, lower right, as whole numbers of 1/65535 of the
-  // rectangle), the mouth lining's patch and each brow's strokes.
   spec["chart.rect"] = { kind: "u16", elements: 4 };
   spec["chart.mouthPatch"] = { kind: "f64", elements: 3 };
   for (let k = 0; k < 4; k++) spec[`chart.lid${k}`] = { kind: "u16" };
@@ -133,17 +124,12 @@ export const humanFaceSpec = faceSpec();
 
 export type BrowName = Exclude<StrandName, "eyelashes01">;
 export interface FaceChartData {
-  /** Left, top, right and bottom of the stored face rectangle, in 2048 px texture pixels. */
   readonly rect: readonly [number, number, number, number];
-  /** Centre x, centre y and half size of the mouth lining's square, in rectangle pixels. */
   readonly mouthPatch: readonly [number, number, number];
-  /** The lid margins as x, y pairs in shares of the rectangle, with whether each is a lower lid. */
   readonly lids: ReadonlyArray<{ readonly lower: boolean; readonly points: Float32Array }>;
-  /** A brow's strokes: three x, y points each, in shares of the rectangle. */
   readonly strokes: (name: BrowName) => Float32Array;
 }
 
-/** One strand card: proxy points bound to three skin vertices, and the strands' triangles over them. */
 export interface StrandCard {
   readonly refs: Uint16Array;
   readonly weights: Float32Array;
@@ -151,20 +137,14 @@ export interface StrandCard {
   readonly triRefs: Uint16Array;
   readonly triWeights: Float32Array;
   readonly triIndices: Uint32Array;
-  /** How far along its strand each vertex lies, 0 at the root to 255 at the tip. */
   readonly along: Uint8Array;
-  /** The first vertex of each vertex's strand. */
   readonly root: Uint16Array;
-  /** Lashes only: 1 on the lower lid. */
   readonly lower: Uint8Array | null;
-  /** Points along each strand's centre line. */
   readonly points: number;
 }
 
-/** The decoded body: typed arrays read once and shared by every evaluation. */
 export interface HumanBody {
   readonly arrays: Pack;
-  /** A vertex target, as whole numbers of 0.1 mm. */
   readonly morph: (name: string) => Int16Array;
   readonly patch: {
     readonly inner: Uint16Array;
@@ -178,18 +158,13 @@ export interface HumanBody {
     readonly delta: Int16Array;
   };
   readonly strands: (name: StrandName) => StrandCard;
-  /** The face paint chart's inputs. */
   readonly chart: FaceChartData;
-  /** Skin weights as shares of one, as the reference workshop derives them. */
   readonly floatWeights: Float32Array;
   readonly subFloatWeights: Float32Array;
-  /** The authored hair and facial hair grooms. */
   readonly grooms: HumanGrooms;
-  /** The clothed Rocketbox cast. */
   readonly cast: HumanCast;
 }
 
-/** Decode the body, captured-face, face strand, groom and cast packs. */
 export async function readHumanBody(
   body: Uint8Array,
   captured: Uint8Array,

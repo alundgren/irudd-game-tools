@@ -1,12 +1,3 @@
-// The dressed adult (G0's adult-look-491): the tailored outfit (boots,
-// trousers, a short-sleeved top and a buttoned jacket), the skin it hides, the
-// long centre-parted hair swept right with its roots, the teardrop pendant and
-// the upswept frames.
-//
-// G0's clay export merges skin, cloth and the hair's roots into the first
-// primitive of its "Character surface"; each other piece has a primitive of
-// its own. Their vertices follow one another in the order below.
-
 import { createHash } from "node:crypto";
 import { accessorValues, isRecord, records, type Glb } from "./glb.js";
 
@@ -29,12 +20,6 @@ const widths: Readonly<Record<string, number>> = {
   WEIGHTS_0: 4,
 };
 
-/**
- * SHA-256 of the merged surface's first primitive over the kept vertex runs
- * ([start, count] pairs), each value on a 1e-9 grid, and of its triangles
- * renumbered onto those runs. Triangles that touch a left-out vertex are left
- * out with it. Also returns how many vertices and triangles were kept.
- */
 export function surfaceDigest(
   glb: Glb,
   kept: ReadonlyArray<readonly [number, number]>,
@@ -63,7 +48,6 @@ export function surfaceDigest(
     hash.update(name);
     hash.update(new Uint8Array(Float64Array.from(out).buffer));
   }
-  // Every primitive of the surface shares its vertices.
   const triangles: number[] = [];
   for (const k of primitives) {
     const indices = accessorValues(glb, Number(all[k]?.["indices"]));
@@ -79,17 +63,9 @@ export function surfaceDigest(
   return { digest: hash.digest("hex"), vertices: renumber.size, triangles: triangles.length / 3 };
 }
 
-/**
- * G0's look-491 clay surface, piece by piece: its vertex runs and the
- * primitives holding their triangles.
- */
 export const g0LookPieces = {
-  /** Skin, cloth and the hair's roots. */
   surface: { runs: [[0, 63203]], primitives: [0] },
-  /** The teardrop pendant's setting and enamel bead. */
   necklace: { runs: [[63203, 592]], primitives: [1, 2] },
-  /** The long centre part's cards, trimmed to their outline. */
   hair: { runs: [[63795, 17579]], primitives: [3] },
-  /** The upswept frames. */
   eyewear: { runs: [[81374, 1183]], primitives: [4] },
 } as const;

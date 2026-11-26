@@ -1,19 +1,3 @@
-// Package the desktop app for a per-user Windows installation:
-//
-//   node --import ./packages/document/test/support/register.ts \
-//     apps/desktop/scripts/package.ts --out <dir> [--skip-build]
-//
-// Writes <dir>\Irudd Workshop\: the pinned Electron runtime renamed to
-// "Irudd Workshop.exe", and in resources\app the built window, the CLI, the
-// headless host and the stdio MCP server bundled for that runtime's Node, the
-// single-file offline player, install.ps1 and the native launchers. Nothing
-// else from the checkout ships: no sources, maps, node_modules or local
-// reference material. The installed app needs no Node, pnpm or Python.
-//
-// install.ps1 sets IRUDD_INSTALL_ROOT, IRUDD_REPOSITORY, IRUDD_BRANCH and
-// IRUDD_VP; the package then records its installation and must come from a
-// clean checkout. Without them the package is unmanaged (no updates).
-
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { builtinModules } from "node:module";
@@ -77,8 +61,6 @@ if (managed) {
   if (!env["IRUDD_VP"]) throw new Error("IRUDD_VP must name the Vite+ executable.");
 }
 
-// ── Build the window, the player and the clients ─────────────────────────────
-
 const node = (script: string, cwd: string): void => {
   execFileSync(process.execPath, ["--import", register, script], { cwd, stdio: "inherit" });
 };
@@ -97,7 +79,6 @@ const builtins = new Set(builtinModules.flatMap((name) => [name, `node:${name}`]
 const nodeExternal = (id: string): boolean =>
   builtins.has(id) || builtins.has(id.replace(/\/.*$/, ""));
 
-/** Bundle a Node entry for the packaged runtime: everything inlined except Node built-ins. */
 async function bundleNode(name: string, entry: string, outDir: string): Promise<void> {
   await build({
     configFile: false,
@@ -128,16 +109,12 @@ rmSync(join(dist, "update"), { recursive: true, force: true });
 await bundleNode("activate", join(appDir, "src/main/update/activate.ts"), join(dist, "update"));
 timings["clients bundle"] = Math.round(performance.now() - clientsAt);
 
-// The window, preload, player and these four bundles may load only allowed sources
-// and externals (tools/static/RULES.md). A package that fails is never assembled.
 time("bundle check", () =>
   execFileSync(process.execPath, [join(repository, "tools/static/bundles.ts"), "--packaged"], {
     cwd: repository,
     stdio: "inherit",
   }),
 );
-
-// ── Assemble the app directory ───────────────────────────────────────────────
 
 const stamp: unknown = JSON.parse(readFileSync(join(dist, "build.json"), "utf8"));
 const buildId =
@@ -152,7 +129,6 @@ const resources = join(bundle, "resources", "app");
 time("assemble", () => {
   rmSync(bundle, { recursive: true, force: true });
   mkdirSync(out, { recursive: true });
-  // Electron's documented manual distribution: its runtime with the app in resources\app.
   const runtime = resolve(electronExecutable(), "..");
   cpSync(runtime, bundle, { recursive: true });
   renameSync(join(bundle, "electron.exe"), join(bundle, `${appName}.exe`));
@@ -190,8 +166,6 @@ time("assemble", () => {
   );
 });
 
-// ── Native launchers ─────────────────────────────────────────────────────────
-
 time("launchers", () => {
   const bin = join(resources, "bin");
   mkdirSync(bin);
@@ -219,8 +193,6 @@ time("launchers", () => {
     );
   copyFileSync(join(appDir, "installer", "integration.ps1"), join(bin, "integration.ps1"));
 });
-
-// ── Contents: only the runtime and built outputs ─────────────────────────────
 
 const allowed = /\.(?:m?js|cjs|json|html|css|webp|png|ico|txt|exe|ps1)$|^LICENSE$/;
 const forbidden =
@@ -254,8 +226,6 @@ const problems = files.filter(
 );
 if (problems.length > 0)
   throw new Error(`Unexpected files in the package: ${problems.map((p) => p.path).join(", ")}`);
-
-// ── Smoke: the packaged runtime runs the clients and opens SQLite ─────────────
 
 const executable = join(bundle, `${appName}.exe`);
 const asNode = (args: string[]): string =>

@@ -1,7 +1,3 @@
-// The outfit pieces a tailored adult can wear, their fields and limits
-// (tailorPieces in character-view/human-tailor.js at 2761eb1). Plain data with
-// no geometry, so the document's schema can check an outfit anywhere.
-
 export type TailorField =
   | { readonly type: "colour"; readonly value: string; readonly label: string }
   | {
@@ -50,7 +46,6 @@ export interface TailorPiece {
   readonly fields: Readonly<Record<string, TailorField>>;
 }
 
-/** Every piece, its editable fields, their limits and starting values. Lengths in millimetres are before body scaling. */
 export const tailorPieces: Readonly<Record<string, TailorPiece>> = {
   top: {
     label: "Top or jacket",
@@ -139,7 +134,6 @@ export const tailorPieces: Readonly<Record<string, TailorPiece>> = {
 };
 export const tailorLimit = 12;
 
-/** One worn layer: its piece and a value for every field. */
 export type TailorLayer = { readonly piece: string } & Readonly<Record<string, string | number>>;
 export interface Tailor {
   readonly layers: ReadonlyArray<TailorLayer>;
@@ -149,7 +143,6 @@ const isRecord = (x: unknown): x is Record<string, unknown> =>
   typeof x === "object" && x !== null && !Array.isArray(x);
 const own = (o: object, key: string) => Object.hasOwn(o, key);
 
-/** A new layer with every field at its starting value. */
 export function tailorLayer(
   piece: string,
   values: Readonly<Record<string, string | number>> = {},
@@ -213,7 +206,6 @@ export function tailorProblems(tailor: unknown): string[] {
   return problems;
 }
 
-/** A tailor as data, or undefined when it is not a valid outfit. */
 export function readTailor(tailor: unknown): Tailor | undefined {
   if (tailorProblems(tailor).length || !isRecord(tailor)) return undefined;
   const layers = tailor["layers"];
@@ -228,7 +220,6 @@ export function readTailor(tailor: unknown): Tailor | undefined {
   };
 }
 
-/** A starting outfit to edit: shirt, trousers, belt and shoes. */
 export function defaultTailor(clothColor = "#6f7f86"): Tailor {
   return {
     layers: [

@@ -1,11 +1,3 @@
-// Outfit family: the outfit a character wears and the clothing role of each part.
-//
-//   outfit.wardrobe  document  the selected outfit
-//   outfit.wear      part      the body region a part dresses and the outfits it appears in
-//   outfit.fit       part      a garment eased outside the body it is worn on
-//   outfit.layers    document  how each fitted garment is worn: shown, dyed, layer order
-//   outfit.looks     document  saved outfits: a base outfit with its garment layers and tones
-
 import { Schema } from "effect";
 import { PartId } from "../schema.js";
 import { Tones } from "./appearance.js";
@@ -44,11 +36,8 @@ export const outfitWardrobe = family({
 });
 
 export const OutfitWear = Schema.Struct({
-  /** The body region this part dresses. Clothing fits and outfit visibility follow it. */
   role: Schema.optionalKey(OutfitRoleName),
-  /** Outfits in which the part is visible. Absent: every outfit. */
   visibleIn: Schema.optionalKey(Schema.Array(OutfitName).check(Schema.isMinLength(1))),
-  /** The part is the body's own skin, which garments for its role cover. */
   bare: Schema.optionalKey(Schema.Literal(true)),
 });
 export type OutfitWear = typeof OutfitWear.Type;
@@ -61,12 +50,6 @@ export const outfitWear = family({
   toJson: (v) => v,
 });
 
-/**
- * A garment fitted over its parent: after the parts are built, every vertex
- * that would sit inside the parent (and any garment fitted on it before) is
- * eased out to clear it. Ported from fitGarment in
- * character-view/garment-fit.js at 2761eb1. The builder requires a parent.
- */
 export const OutfitFit = Schema.Struct({});
 export type OutfitFit = typeof OutfitFit.Type;
 
@@ -78,12 +61,6 @@ export const outfitFit = family({
   toJson: (v) => v,
 });
 
-/**
- * How one fitted garment is worn. Ported from validLayerStyles in
- * character-view/outfit-sets.js at 2761eb1. `show` overrides the garment's
- * outfit visibility for it and everything it carries, `dye` multiplies its
- * textured colours, and `order` sets which garment is fitted over which.
- */
 export const LayerStyle = Schema.Struct({
   show: Schema.optionalKey(Schema.Boolean),
   dye: Schema.optionalKey(Hex),
@@ -91,7 +68,6 @@ export const LayerStyle = Schema.Struct({
 });
 export type LayerStyle = typeof LayerStyle.Type;
 
-/** Styles keyed by the fitted garment's part. */
 export const GarmentLayers = Schema.Record(PartId, LayerStyle).check(
   Schema.makeFilter(
     (layers: Readonly<Record<string, LayerStyle>>) =>
@@ -115,12 +91,6 @@ export const outfitLayers = family({
   references: (v) => layerReferences(v.layers, ["layers"]),
 });
 
-/**
- * A saved outfit. Ported from validOutfitSets and wearOutfit in
- * character-view/outfit-sets.js at 2761eb1: wearing it selects `base`, styles
- * each fitted garment from `layers` (hiding the ones it does not name) and
- * replaces the appearance's tones with its own.
- */
 export const OutfitLook = Schema.Struct({
   name: Schema.String.check(
     Schema.isMaxLength(64),

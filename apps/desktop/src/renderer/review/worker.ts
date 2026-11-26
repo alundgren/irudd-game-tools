@@ -1,14 +1,3 @@
-// The desktop's review worker: a hidden, sandboxed page with no bridge to the
-// project. Desktop main loads it in its own session and hands it one job at a
-// time. It exports the pinned revision with the same exportCharacter, raster
-// and texture loaders as the window, then inspects the bytes it produced with
-// the player's Inspector: its own OffscreenCanvas, WebGL context, stage,
-// camera and lights. Nothing here can reach the person's viewport, and it
-// never takes a screenshot.
-//
-// Main serves this page, the bundled sheets and each job's inputs from the
-// worker's own scheme, and receives the outputs the page uploads there.
-
 import {
   assetResolver,
   exportPaintSheets,
@@ -59,9 +48,7 @@ import type { RenderJob, RenderResult, RenderedImage, ReviewShot } from "@irudd/
 
 const raster = domRaster();
 const humanPack = (file: string): Promise<Uint8Array> => get(`/human/${encodeURIComponent(file)}`);
-/** The adult's body and the registry that generates it, read once from main's packs. */
 let adult: Promise<{ readonly body: HumanBody; readonly registry: Registry }> | undefined;
-/** The adult's prepared paint, read the first time a textured preset exports one. */
 let adultPaint: Promise<HumanPaintSources> | undefined;
 async function loadAdult(): Promise<{ readonly body: HumanBody; readonly registry: Registry }> {
   const body = await loadHumanPacks(humanPack);
@@ -76,7 +63,6 @@ async function loadAdult(): Promise<{ readonly body: HumanBody; readonly registr
 const lights = ["studio"] as const;
 const pixelRatios = [1, 2, 3];
 const maxEdge = 4096;
-/** Expression and clip images per job, so a large rig cannot make a job unbounded. */
 const maxExpressions = 16;
 const maxClips = 8;
 const motionTimes = [0, 0.25, 0.5, 0.75];
@@ -91,8 +77,6 @@ async function get(path: string): Promise<Uint8Array> {
 }
 
 async function put(jobId: string, name: string, bytes: Uint8Array): Promise<void> {
-  // A Blob body, not the bytes: DevTools inlines a byte body into each request
-  // event, and a textured export of a large figure outgrows a DevTools message.
   const response = await fetch(`/job/${jobId}/out/${name}`, {
     method: "POST",
     body: new Blob([new Uint8Array(bytes)]),
@@ -131,7 +115,6 @@ function webglRenderer(): { vendor: string; renderer: string; webgl: string; sof
 
 const gpu = webglRenderer();
 
-/** What this worker can draw, for the host's capabilities. */
 function info(): string {
   return JSON.stringify({
     gpu,
@@ -167,7 +150,6 @@ const slug = (text: string): string =>
     .replace(/^-|-$/g, "")
     .slice(0, 40) || "x";
 
-/** Share of pixels the ink silhouette covers, and their bounding box. */
 async function silhouetteOf(png: Uint8Array): Promise<NonNullable<RenderedImage["silhouette"]>> {
   const bitmap = await createImageBitmap(new Blob([new Uint8Array(png)], { type: "image/png" }));
   const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
@@ -184,7 +166,6 @@ async function silhouetteOf(png: Uint8Array): Promise<NonNullable<RenderedImage[
   for (let y = 0; y < height; y++)
     for (let x = 0; x < width; x++) {
       const i = (y * width + x) * 4;
-      // The ink surface is flat #203733 under neutral tone mapping; the floor and grid are far lighter.
       const dark =
         (data[i] ?? 255) < 90 && (data[i + 1] ?? 255) < 110 && (data[i + 2] ?? 255) < 105;
       if (!dark) continue;
@@ -311,7 +292,6 @@ async function run(jobId: string): Promise<string> {
     bundled: (asset: BundledAsset) => bundled.get(asset.file),
     project: (digest) => project.get(digest),
   });
-  // A failed read is tried again at the next job rather than remembered.
   const { body, registry } = await (adult ??= loadAdult().catch((error: unknown) => {
     adult = undefined;
     throw error;
@@ -386,8 +366,6 @@ async function run(jobId: string): Promise<string> {
     await inspector.load(exported.bytes, `${job.documentId}-r${job.revision}-${preset}.glb`);
     const model = inspector.info;
     const notes: string[] = [];
-    // The first frame compiles shaders and fills the shadow map; draw it twice
-    // and compare, so the manifest says whether the capture was settled.
     const warm = await inspector.shoot({ view: "threequarter" });
     const again = await inspector.shoot({ view: "threequarter" });
     const settled = (await sha256(warm.png)) === (await sha256(again.png));
@@ -415,8 +393,6 @@ async function run(jobId: string): Promise<string> {
       if (shot.view !== shot.requested)
         notes.push(`${name}: ${shot.requested} has no face to frame; drew ${shot.view}.`);
     }
-    // Clip movement and floor contact sample every vertex on the CPU (seconds
-    // on a large rig), so they are measured only with the motion sheet.
     const motion = !recipe.sheets.includes("motion")
       ? null
       : inspector.measure().map((m) => ({
@@ -475,14 +451,6 @@ const toBase64 = (bytes: Uint8Array): string => {
   return btoa(text);
 };
 
-/**
- * Art fits: draw a picture into a `size` square canvas as G0 does and return
- * its RGBA as base64. A depth pass is drawn whole from an ImageBitmap, as
- * G0's depth action draws it; a sheet quadrant (0 front, 1 the profile facing
- * left) is drawn from the decoded image as the paint bake prepares its
- * panels. Errors are returned, not thrown, so main can tell a picture the
- * canvas cannot read from a worker that stopped.
- */
 async function pixels(
   base64: string,
   mediaType: string,

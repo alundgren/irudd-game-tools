@@ -1,5 +1,3 @@
-// Plain-text rendering of host replies for a person at a terminal.
-
 import { isJsonObject, type Diagnostic } from "@irudd/document";
 import type {
   ApplyResult,

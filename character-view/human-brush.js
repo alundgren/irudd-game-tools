@@ -16,18 +16,13 @@ import {
   smoothHumanSurface,
 } from "./human-surface.js";
 
-// Corrections are metres on a 1.72 m body. A recipe holds at most 65.1 mm per anchor.
 const longest = 0.0649,
   strokeLimit = 0.05,
-  // One drag moves skin by at most this share of the brush size, which keeps slopes gentle.
   steepest = 0.22,
-  // A walk along the cage edges this much longer than the straight line is still a neighbour.
   detour = 1.2,
-  // Summed anchor shares a brush rests on before it stops widening.
   rest = 5;
 
 let graph, neutral;
-// Edges of the body cage. The topology is the same for every adult.
 function cageGraph(surface) {
   if (graph) return graph;
   const n = surface.bodyVertices,
@@ -46,7 +41,6 @@ function cageGraph(surface) {
   sets.forEach((set, i) => next.set([...set], start[i]));
   return (graph = { start, next });
 }
-// The same vertex on the other side of the body, found on the symmetric neutral cage.
 const twins = new Map();
 function twinVertex(vertex) {
   if (!twins.has(vertex)) {
@@ -69,8 +63,6 @@ function twinVertex(vertex) {
   return twins.get(vertex);
 }
 
-/* Distance along the skin from the seeds, out to `reach`. Walking the surface keeps a
-   touch on the ribs away from the arm that hangs beside them. */
 export function skinDistances(surface, seeds, reach) {
   const { start, next } = cageGraph(surface),
     p = surface.positions,
@@ -126,7 +118,6 @@ export function skinDistances(surface, seeds, reach) {
   return best;
 }
 
-// How far a cage vertex travels for one unit of the weighted anchors.
 function follow(vertex, weights, controls) {
   let sum = 0,
     total = 0;
@@ -136,11 +127,6 @@ function follow(vertex, weights, controls) {
   }
   return total ? sum / total : 0;
 }
-/* Share of every control anchor in a touch centred on `centre`. Distance is the
-   straight line, or the walk along the skin where that is much longer, which keeps a
-   hanging arm out of a touch on the ribs. Anchors are coarse and blend unevenly, so a
-   brush holding only a few of them leaves dents: it widens until it rests on enough
-   anchors, and the shares are scaled so the touched skin keeps up with the pointer. */
 export function brushWeights(surface, seeds, centre, reach, widen = true) {
   const controls = humanControls(),
     p = surface.positions,
@@ -186,16 +172,12 @@ export function fitFromVectors(vectors) {
   return controls.length ? { version: 1, strength: 1, controls } : undefined;
 }
 
-// The measured cage of a form, its stored corrections and the cage they give.
 export function brushBody(form) {
   if (!form?.human) throw new Error("Open an adult human before sculpting.");
   const bare = evaluateHuman(form.human),
     start = controlVectors(form.humanFit);
-  // The fine layer rides on the corrected cage: the brush moves anchors under it.
   return { bare, start, detail: form.humanDetail, fitted: applyHumanDetail(applyHumanControls(bare, start), form.humanDetail) };
 }
-/* One drag on the native skin of `form`. `touch` names the cage vertices under the
-   pointer and the touched point, both in the body's rest space. */
 export function brushStroke(
   form,
   touch,
@@ -216,7 +198,6 @@ export function brushStroke(
   const { weights: primary, used } = brushWeights(fitted, seeds, touch.point, reach);
   let twin = null;
   if (mirror) {
-    // The same touch on the other side: the twin corners, offset as the touch is from its own.
     const other = seeds.map((s) => ({ ...s, vertex: twinVertex(s.vertex) })),
       middle = (list, d) =>
         list.reduce((sum, s) => sum + p[s.vertex * 3 + d], 0) / list.length,
@@ -234,11 +215,8 @@ export function brushStroke(
     fitted,
     primary,
     twin,
-    // The reach the brush settled on, and the longest drag it follows, in metres.
     used,
     limit: limit * scale,
-    /* `offset` is the drag in rest-space metres. With "soften" it is instead the
-       share, 0 to 1, of the existing corrections to take away. */
     vectors(offset, mode = "move") {
       const out = start.slice(),
         v = new Vector3();
@@ -253,7 +231,6 @@ export function brushStroke(
         if (!share) continue;
         v.fromArray(out, i * 3);
         if (move) {
-          // Where both sides reach an anchor, sideways motion cancels instead of doubling.
           const side = twin ? (a - b) / (a + b) : 1;
           v.x += share * side * move.x;
           v.y += share * move.y;
@@ -297,9 +274,6 @@ const help = {
 };
 const others = ["pull-tool", "branch-tool", "place-branch", "direct"];
 
-/* Adds the skin brush to the adult anatomy controls and the canvas. `form` is the
-   displayed recipe, `idle` says whether editing is allowed, `release` returns the
-   figure to its bind pose. */
 export function humanBrush(
   canvas,
   camera,
@@ -342,7 +316,6 @@ export function humanBrush(
     if (on === value) return;
     on = value;
     if (on) {
-      // One canvas tool at a time: switch the others off through their own buttons.
       switching = true;
       for (const id of others)
         if ($(id)?.getAttribute("aria-pressed") === "true") $(id).click();
@@ -384,7 +357,6 @@ export function humanBrush(
     const part = parts.get(owner?.userData.partId);
     return part?.shape === "human region" && !part.humanSource ? part : null;
   };
-  // The nearest visible surface under the pointer, when it is this body's own skin.
   function pick(e) {
     const root = figure(),
       current = form();
@@ -431,7 +403,6 @@ export function humanBrush(
       const local = mesh.worldToLocal(found.point.clone()),
         radius = reach(),
         mirror = $("human-brush-mirror").checked;
-      // Each drawn face knows its corner in the smooth surface, whose parent is a cage quad.
       const body = brushBody(found.form),
         smooth = smoothHumanSurface(body.fitted),
         quad = smooth.parentFaces[tag.faces[found.faceIndex * 3] / 3];
@@ -468,7 +439,6 @@ export function humanBrush(
           .clone()
           .applyMatrix3(new Matrix3().getNormalMatrix(mesh.matrixWorld))
           .normalize(),
-        // Drags are made in the view and stored in the body's own rest frame.
         rest: new Matrix3().setFromMatrix4(mesh.matrixWorld).invert(),
         vectors: null,
       };
@@ -476,7 +446,6 @@ export function humanBrush(
         camera.getWorldDirection(new Vector3()),
         stroke.start,
       );
-      // The ring grows to the reach the brush settled on.
       mark(stroke.start, work.used);
       canvas.setPointerCapture(e.pointerId);
       orbit.enabled = false;
@@ -500,7 +469,6 @@ export function humanBrush(
           dy = next[v + 1] - smooth[v + 1],
           dz = next[v + 2] - smooth[v + 2],
           moved = dx || dy || dz;
-        // Offsets are added to what is drawn, so earlier surface pulls stay in place.
         p.array[i * 3] = position[i * 3] + dx;
         p.array[i * 3 + 1] = position[i * 3 + 1] + dy;
         p.array[i * 3 + 2] = position[i * 3 + 2] + dz;
@@ -539,7 +507,6 @@ export function humanBrush(
         ring.hidden = true;
         return;
       }
-      // One update a frame: smoothing the whole skin takes tens of milliseconds.
       pending = e;
       queued ||= requestAnimationFrame(() => {
         queued = 0;

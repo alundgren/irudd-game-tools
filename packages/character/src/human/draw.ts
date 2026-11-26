@@ -1,10 +1,3 @@
-// The seeded adult draw (randomHuman in character-view/human-surface.js and
-// drawHumanIdentity / generatedHuman in human-form.js at 2761eb14).
-//
-// A draw produces explicit values: every measurement, a posture, a skin
-// colour and the personal style choices. The document stores those values,
-// never the seed, so a saved adult is never redrawn.
-
 import {
   boneNames,
   boneParents,
@@ -40,7 +33,6 @@ function item<T>(list: ReadonlyArray<T>, i: number): T {
 
 export type Archetype = "any" | "male" | "female" | "neutral";
 
-/** The independent seeded draw of every measurement, shaped into one coherent person. */
 export function randomHuman(
   body: HumanBody,
   seed: number,
@@ -186,7 +178,6 @@ function balanceCheekDraw(spec: Spec, surface: HumanSurface): void {
 export const adultColourRanges = ["Mixed", "Natural", "Fantasy"] as const;
 export type ColourRange = (typeof adultColourRanges)[number];
 
-// Evening lilac, sea glass, terracotta and storm blue.
 const fantasyTones = [
   ["#705069", "#b891b1", "green"],
   ["#415f55", "#a4bb9c", "amber"],
@@ -229,7 +220,6 @@ export const browStyleDraws = [
   "Untrimmed",
 ] as const;
 
-/** Personal style a draw makes: the rest of a look comes from the wardrobe. */
 export interface DrawnStyle {
   armInk?: string;
   browStyle?: string;
@@ -239,7 +229,6 @@ export interface DrawnStyle {
   castSkin?: string;
 }
 
-/** Everything a seeded adult draw decides, in the reference workshop's terms. */
 export interface HumanDraw {
   readonly seed: number;
   readonly human: HumanMeasurements;
@@ -251,14 +240,12 @@ export interface HumanDraw {
   readonly faceMarks?: ReadonlyArray<FaceMark>;
 }
 
-/** generatedHuman(seed, archetype, colourRange) without the parts it derives. */
 export function drawAdult(
   body: HumanBody,
   seed: number,
   archetype: Archetype = "any",
   colourRange: ColourRange = "Mixed",
 ): HumanDraw {
-  // drawHumanIdentity
   const gesture = randomStream(seed ^ 0xaef228d3);
   const side = gesture() < 0.5 ? -1 : 1;
   const params = randomHuman(body, seed, archetype, { fitRestingLips: true });
@@ -300,7 +287,6 @@ export function drawAdult(
   const posture = drawPosture(seed, params);
   const eyeColor = palette?.eyeColor;
 
-  // generatedHuman
   const cast = drawCastIdentity(params, (seed ^ 0x1e18ae83) >>> 0);
   if (cast) {
     style.cast = cast;
@@ -344,8 +330,6 @@ export function drawAdult(
   };
 }
 
-// ── Regions ─────────────────────────────────────────────────────────────────
-
 const label: Readonly<Record<string, string>> = {
   pelvis: "pelvis",
   spine_01: "abdomen",
@@ -358,7 +342,6 @@ const label: Readonly<Record<string, string>> = {
   ball: "toes",
   clavicle: "collarbone",
 };
-/** The workshop's name for a bone's region: "left upper arm", "rib cage". */
 export function regionName(bone: string): string {
   const side = /_([lr])$/.exec(bone);
   if (!side) return label[bone] ?? bone;
@@ -369,13 +352,10 @@ export function regionName(bone: string): string {
 export interface Region {
   readonly bone: BoneName;
   readonly parent: BoneName | null;
-  /** Joint position relative to the parent's joint, in metres. */
   readonly position: readonly [number, number, number];
-  /** Extent of the skin a bone carries most, about its joint. */
   readonly bounds: readonly [readonly [number, number, number], readonly [number, number, number]];
 }
 
-/** Every bone region of an evaluated surface (makeParts in human-form.js). */
 export function surfaceRegions(surface: HumanSurface): Region[] {
   const low = boneNames.map(() => [Infinity, Infinity, Infinity]);
   const high = boneNames.map(() => [-Infinity, -Infinity, -Infinity]);

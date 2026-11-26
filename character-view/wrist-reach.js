@@ -16,8 +16,6 @@ function aim(bone, end, toward) {
   setWorldRotation(bone, turn.multiply(orientation(bone)));
 }
 
-// Sample both limb segments against the stationary arms. The radii and torso
-// ellipsoid are posing guides. The exported triangles can still intersect.
 function clearanceGuide(parts, root, chain, regions) {
   const spans = [],
     point = new Vector3(),
@@ -70,8 +68,6 @@ function clearanceGuide(parts, root, chain, regions) {
   let bodyTransform;
   if (torsoBox) {
     const part = root(torso.part);
-    // Centre and bounds are stored in rest-world metres. Carry the guide
-    // through any root or torso motion that was playing when posing began.
     if (part && torso.points?.[0]) {
       const q = orientation(part),
         pivot = at(part),
@@ -123,8 +119,6 @@ function clearanceGuide(parts, root, chain, regions) {
   };
 }
 
-// Two fixed segment lengths and the artist's initial elbow plane define the
-// circle of possible elbow positions. Only three part-root rotations change.
 export function wristReach(parts, bindings, id, regions) {
   const chain = armChain(parts, id);
   if (!chain) return null;
@@ -147,8 +141,6 @@ export function wristReach(parts, bindings, id, regions) {
   const pole = b.clone().sub(a);
   pole.addScaledVector(originalAxis, -pole.dot(originalAxis));
   if (pole.lengthSq() < 1e-6 * upper * upper) {
-    // A straight arm has no bend plane. Seed it behind the shoulder, using
-    // the character side when that direction lies along the arm.
     pole.set(0, 0, -1).applyQuaternion(orientation(shoulder.parent));
     if (Math.abs(pole.dot(originalAxis)) > 0.92)
       pole.set(1, 0, 0).applyQuaternion(orientation(shoulder.parent));

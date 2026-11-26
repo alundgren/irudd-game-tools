@@ -1,9 +1,3 @@
-// Mantles: one two-sided fabric panel that wraps an open neckline and falls
-// to a hem. Ported from mantleGeometry in character-view/mantle.js at 2761eb1,
-// arithmetic in the same order so the vertices match. The two surfaces share
-// sewn boundaries around the hem, the front opening and any armholes; the
-// first half of the vertices is the outer surface, the second the lining.
-
 import { armAccess, type ShoulderCut } from "@irudd/document";
 import * as T from "three";
 

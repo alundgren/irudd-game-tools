@@ -1,27 +1,3 @@
-// Heavy gate for review: the packaged desktop's isolated worker rendering for
-// real CLI processes, a real MCP SDK client and a person's connection, on the
-// hardware GPU. Take the GPU lock around it:
-//
-//   pnpm --filter @irudd/desktop build
-//   powershell -NoProfile -File verification/families/gpu-lock.ps1 \
-//     pnpm --filter @irudd/desktop qa:review [-- --keep] [--scale 2]
-//
-// Desktop owns the project: a painted (feline-worker, with embedded artwork)
-// and an unpainted (marsh-draw-3) subject, exported and inspected at every
-// preset from the CLI, with each file re-hashed against its manifest and its
-// PNGs decoded; repeat exports and inspections byte-identical; a revision
-// pinned while the person edits; a person's orbit during a review; no draw in
-// the person's viewport during a review; high-DPI images; and the MCP client's
-// GPU label and image payloads compared with files the CLI captured. The person
-// exports every saved outfit of field-wardrobe from the editor; the CLI and the
-// MCP client request the same wardrobe export and get the same bytes, one scene
-// per outfit, while the as-worn export stays a separate single-scene artifact.
-//
-// A headless host owns the project: review is unavailable with actions until
-// the desktop attaches and serves its worker, a desktop killed mid-render fails
-// the job with RendererLost, and a relaunched desktop serves again. Artifacts
-// issued for one project cannot be read from another. Nothing here ships.
-
 import assert from "node:assert/strict";
 import { execFile, spawn, type ChildProcess } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -54,12 +30,10 @@ const keep = values.keep === true;
 const scale = Number(values.scale ?? "2");
 if (!Number.isFinite(scale) || scale <= 0) throw new Error("--scale is a positive number.");
 
-/** Measured budgets: a step slower than this fails the gate. */
 const budgets = {
   workerReadyMs: 30_000,
   inspectMs: 30_000,
   exportMs: 20_000,
-  /** Three outfits at game, each built, fitted and optimised: about 14 s measured. */
   wardrobeExportMs: 40_000,
   mcpMs: 60_000,
 } as const;
@@ -117,8 +91,6 @@ const num = (value: unknown, ...keys: Array<string | number>): number =>
 const sha256 = (bytes: Uint8Array): string => createHash("sha256").update(bytes).digest("hex");
 const readJsonFile = (file: string): unknown => JSON.parse(readFileSync(file, "utf8"));
 const array = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
-
-// ── Processes ───────────────────────────────────────────────────────────────
 
 const children = new Set<ChildProcess>();
 const browsers = new Set<Browser>();
@@ -195,7 +167,6 @@ interface App {
   kill(): Promise<void>;
 }
 
-/** The packaged app, hidden, with a DevTools endpoint on an ephemeral loopback port. */
 async function launch(project: string, create: boolean): Promise<App> {
   const started = performance.now();
   const child = spawn(
@@ -244,7 +215,6 @@ async function launch(project: string, create: boolean): Promise<App> {
   });
   const browser = await chromium.connectOverCDP(endpoint);
   browsers.add(browser);
-  // The editor window by its URL, whichever page DevTools lists first.
   const page = await editorPage(browser);
   page.on("pageerror", (error) => problems.push(`pageerror: ${error.message}`));
   page.on("console", (message) => {
@@ -363,15 +333,12 @@ async function available(client: WorkshopClient, via: "in-process" | "attached")
   throw new Error("No renderer registered within 30 s.");
 }
 
-// ── Images and GLBs ─────────────────────────────────────────────────────────
-
 interface Decoded {
   readonly width: number;
   readonly height: number;
   readonly rgba: Uint8Array;
 }
 
-/** A minimal decoder for the 8-bit, non-interlaced RGB(A) PNGs the worker writes. */
 function decodePng(bytes: Uint8Array): Decoded {
   const buffer = Buffer.from(bytes);
   assert.equal(buffer.subarray(0, 8).toString("hex"), "89504e470d0a1a0a", "PNG signature");
@@ -435,7 +402,6 @@ function decodePng(bytes: Uint8Array): Decoded {
   return { width, height, rgba };
 }
 
-/** Share of pixels that differ from the top-left (background) pixel. */
 function drawnShare(image: Decoded): number {
   const [r, g, b] = [image.rgba[0] ?? 0, image.rgba[1] ?? 0, image.rgba[2] ?? 0];
   let drawn = 0;
@@ -450,7 +416,6 @@ function drawnShare(image: Decoded): number {
   return drawn / (image.width * image.height);
 }
 
-/** The GLB's glTF JSON, after checking its header against its size. */
 function glbJson(bytes: Uint8Array): unknown {
   const buffer = Buffer.from(bytes);
   assert.equal(buffer.readUInt32LE(0), 0x46546c67, "glTF magic");
@@ -460,10 +425,8 @@ function glbJson(bytes: Uint8Array): unknown {
   return JSON.parse(buffer.toString("utf8", 20, 20 + jsonLength));
 }
 
-/** The GLB's provenance stamp. */
 const glbStamp = (bytes: Uint8Array): unknown => field(glbJson(bytes), "asset", "extras", "irudd");
 
-/** The scene names of a GLB, in order. */
 const sceneNames = (bytes: Uint8Array): string[] =>
   array(field(glbJson(bytes), "scenes")).map((scene) => str(scene, "name"));
 
@@ -501,7 +464,6 @@ interface Inspection {
   readonly ms: number;
 }
 
-/** Check an `irudd inspect` output directory against its manifest and the request. */
 function checkInspection(
   dir: string,
   expect: Expect,
@@ -539,7 +501,6 @@ async function head(
 ): Promise<Expect & { doc: unknown }> {
   const current = await client.call("current", { documentId });
   assert.ok(current.document && current.documentDigest);
-  // The client derives the digest itself from the document it read.
   assert.equal(
     documentDigest(current.document),
     current.documentDigest,
@@ -554,9 +515,6 @@ async function head(
   };
 }
 
-// ── The person's window ─────────────────────────────────────────────────────
-
-/** Count WebGL draws and clears in the person's page from now on. */
 async function countDraws(page: Page): Promise<void> {
   await page.evaluate(() => {
     const key = "__reviewQaDraws";
@@ -586,7 +544,6 @@ async function countDraws(page: Page): Promise<void> {
 const draws = (page: Page): Promise<number> =>
   page.evaluate(() => Number(Reflect.get(globalThis, "__reviewQaDraws") ?? 0));
 
-/** What the person's viewport shows: redraw once and hash that frame. */
 async function viewportHash(page: Page): Promise<string> {
   const frame = await page.evaluate(async () => {
     const canvas = document.querySelector("#viewport canvas");
@@ -624,7 +581,6 @@ async function viewportHash(page: Page): Promise<string> {
   return frame.hash;
 }
 
-/** Move the person's camera: a drag, then a zoom. */
 async function orbit(page: Page): Promise<void> {
   const box = await page.locator("#viewport canvas").boundingBox();
   assert.ok(box);
@@ -646,8 +602,6 @@ async function revisionShown(page: Page, at: number): Promise<void> {
     { timeout: 20_000 },
   );
 }
-
-// ── The run ─────────────────────────────────────────────────────────────────
 
 const inspectDir = (name: string): string => join(scratch, "out", name);
 const inspections = new Map<string, Inspection>();
@@ -687,7 +641,6 @@ let host: ChildProcess | undefined;
 const clients: WorkshopClient[] = [];
 let failed = false;
 try {
-  // ── Desktop owns the project ──
   app = await step("launch the packaged desktop on a new project", () => launch(projectA, true));
   const page = app.page;
   const ownerA = await person(projectA);
@@ -730,7 +683,6 @@ try {
   );
 
   const starts = await step("start the painted and unpainted forms", async () => {
-    // The painted form through the editor's own menu, so the person's window shows it.
     await page.selectOption("#start", "feline-worker");
     await page.waitForSelector("#outliner [data-part]");
     await revisionShown(page, 1);
@@ -798,7 +750,6 @@ try {
     const expect = { ...starts.feline, preset: "game" as const };
     checkSource(manifest, expect);
     checkGlb(readFileSync(file), manifest, expect);
-    // The staged sheet is project art (no credit needed); the stamp names it and every origin.
     const artwork = array(field(manifest, "provenance", "artwork"));
     assert.ok(
       artwork.some((a) => str(a, "source") === "project" && staged.includes(str(a, "digest"))),
@@ -854,7 +805,6 @@ try {
     const reviewed = await pending;
     const done = Math.round(performance.now() - started);
     const after = await viewportHash(page);
-    // A hidden editor window gets about two frames a second, so its input is slow on its own.
     note("orbit", `input done at ${orbited} ms; review done at ${finished || done} ms`);
     assert.notEqual(after, before, "the orbit moved the person's view");
     const clay = inspections.get("feline-clay");
@@ -1087,7 +1037,6 @@ try {
     app = undefined;
   });
 
-  // ── A headless host owns the project; the desktop attaches ──
   host = await step("start a headless host with the shipped forms", () => startHeadless(projectB));
   const ownerB = await person(projectB);
   clients.push(ownerB);
@@ -1139,7 +1088,6 @@ try {
       preset: "full",
       sheets: ["body", "silhouette", "motion", "expressions"],
     });
-    // Settle now: the rejection arrives while the desktop is still exiting.
     const outcome = pending.then(
       () => undefined,
       (error: unknown) => error,

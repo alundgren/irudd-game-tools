@@ -1,10 +1,3 @@
-// Swept organic surfaces. Ported from character-view/surface.js at 2761eb1.
-//
-// Editable cross sections follow a centreline. Parallel-transported frames keep
-// fins slender and limbs round even as the spine bends around a corner.
-// Monotone cubic interpolation keeps section radii positive and gives adjacent
-// bands the same tangent; linear radii create false rings on cheeks and sleeves.
-
 import * as T from "three";
 import type { Knot } from "@irudd/document";
 
@@ -29,16 +22,10 @@ export interface SweepRing {
   readonly along: T.Vector3;
   readonly u: T.Vector3;
   readonly v: T.Vector3;
-  /** Width radius. */
   readonly w: number;
-  /** Depth radius. */
   readonly d: number;
 }
 
-/**
- * The rings of a sweep from its first knot to its last: the centre of each, the
- * two axes of its cross-section with their radii, and the path direction there.
- */
 export function sweepRings(knots: ReadonlyArray<Knot>, horizontal = false): SweepRing[] {
   const centers = knots.map(([x, y, z]) => new T.Vector3(x, y, z));
   const path = new T.CatmullRomCurve3(centers, false, "centripetal");
@@ -68,10 +55,6 @@ export function sweepRings(knots: ReadonlyArray<Knot>, horizontal = false): Swee
   return rings;
 }
 
-/**
- * Ground-contact cross sections, flatter underneath for a distinct heel and
- * toe box: a bare foot and a shoe upper underneath only, a sole all round.
- */
 export type FootSection = "sole" | "bare" | "upper";
 
 function sectionRadius(value: number, exponent: number): number {
@@ -123,7 +106,6 @@ export function sweepGeometry(
   geometry.setAttribute("uv", new T.Float32BufferAttribute(uv, 2));
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
-  // Average duplicate normals at the longitude seam.
   const normals = geometry.getAttribute("normal");
   for (let row = 0; row <= bands; row++) {
     const a = row * (sides + 1);

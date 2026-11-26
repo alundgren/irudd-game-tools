@@ -1,13 +1,3 @@
-// G0 baseline: inventory the reference workshop's user-visible entry points from source.
-//
-// usage: node verification/baseline/workflows.mjs [OUT_DIR]
-//
-// Static inventory, no browser: every editor tab, panel heading, button and file input in
-// character-view/index.html; the URL fragment routes of the editor and the standalone
-// player; the workshop server's GET files and POST agent endpoints; the editor's
-// randomness entry points (where a gesture draws a fresh seed); and the test modules that
-// cover each review and agent flow (flowCoverage). The port maps each row to a
-// new entry point or a recorded scope decision. Writes OUT_DIR/workflows.json.
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 
@@ -16,7 +6,6 @@ await mkdir(out, { recursive: true });
 const html = await readFile("character-view/index.html", "utf8");
 const text = (s) => s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 const tabs = [...html.matchAll(/<button data-tab="([^"]+)"[^>]*>([^<]*)</g)].map(([, id, label]) => ({ id, label: label.trim() }));
-// Split on panel sections so each control is attributed to its tab and heading.
 const panels = [];
 const sectionRe = /<section\b[^>]*data-panel="([^"]+)"[^>]*>([\s\S]*?)<\/section\s*>/g;
 for (const [, tab, body] of html.matchAll(sectionRe)) {
@@ -33,9 +22,6 @@ const server = await readFile("scripts/workshop.mjs", "utf8");
 const params = (src) => [...new Set([...src.matchAll(/params\.(?:get|has)\("([^"]+)"\)/g)].map((m) => m[1]))];
 const randomness = execFileSync("git", ["grep", "-nE", "Math\\.random|crypto\\.(getRandomValues|randomUUID)|Date\\.now\\(\\)", "--", "character-view/*.js", "examples/*.js", "scripts/*.mjs", ":!*.test.js"], { encoding: "utf8" })
   .trim().split("\n").map((l) => { const [file, line, ...rest] = l.split(":"); const code = rest.join(":").trim(); return { file, line: Number(line), source: /randomUUID|Date\.now/.test(code) ? "identity/time" : "seed draw at a gesture", code: code.slice(0, 160) }; });
-// Which test modules exercise each review and agent flow: modules that import the flow's
-// source file and modules that name one of its exports. browser.py flows drives the same
-// flows offline in the editor; this list says what the unit suite covers on its own.
 const testModules = execFileSync("git", ["ls-files", "*.test.js", "*.test.mjs"], { encoding: "utf8" }).trim().split("\n");
 const testText = new Map(await Promise.all(testModules.map(async (f) => [f, await readFile(f, "utf8")])));
 const flowModules = {
@@ -57,7 +43,6 @@ const flowCoverage = Object.fromEntries(await Promise.all(Object.entries(flowMod
     const naming = exported.length ? testModules.filter((t) => exported.some((name) => new RegExp(`\\b${name}\\b`).test(testText.get(t)))) : [];
     return { source: ref, exports: exported, testModulesImporting: importers, testModulesNamingExports: naming };
   }));
-  // A "file#name" source counts only the modules that name that export.
   const covering = rows.flatMap((r) => r.testModulesNamingExports.concat(r.source.includes("#") ? [] : r.testModulesImporting));
   return [flow, { modules: rows, testModules: [...new Set(covering)].sort() }];
 })));

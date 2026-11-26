@@ -1,11 +1,3 @@
-// G0 baseline: run the unmodified reference test suite and record counts and wall time.
-//
-// usage: node verification/baseline/run-suite.mjs LABEL [extra node --test arguments...]
-//
-// Writes .reference-cache/g0/suite/LABEL.{tap,json}. Run it from the repository root.
-// Pass a test file list after LABEL to time a focused subset; with none it runs the
-// default `npm test` discovery (`node --test`). WORKSHOP_REFERENCES is passed through,
-// so `WORKSHOP_REFERENCES=none` reproduces a fresh public checkout.
 import { spawn } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
@@ -28,7 +20,6 @@ const summary = Object.fromEntries(
     ([, k, v]) => [k, Number(v)],
   ),
 );
-// Top-level "not ok" and "# SKIP" lines name the failing and skipped tests.
 const notOk = [...text.matchAll(/^\s*not ok \d+ - (.*)$/gm)].map((m) => m[1]);
 const skipped = [...text.matchAll(/^\s*ok \d+ - (.*) # SKIP(.*)$/gm)].map((m) => (m[1] + " #" + m[2]).trim());
 const git = (...a) => execFileSync("git", a, { encoding: "utf8" }).trim();

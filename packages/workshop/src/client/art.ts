@@ -1,8 +1,3 @@
-// Client helpers for art requests: stage a picture in chunks, read a
-// request's files back with their digests checked, and recognise a picture
-// file's media type from its bytes. Shared by the CLI, the MCP server and
-// desktop main.
-
 import { createHash } from "node:crypto";
 import { artImageTypes, artLimits, type ArtPutResult } from "../wire/art.js";
 import type { MethodName, MethodParams, MethodResults } from "../wire/protocol.js";
@@ -16,7 +11,6 @@ export type ArtImageType = (typeof artImageTypes)[number];
 export const artDigest = (bytes: Uint8Array): string =>
   "sha256:" + createHash("sha256").update(bytes).digest("hex");
 
-/** PNG, JPEG or WebP by signature; undefined for anything else. */
 export function sniffArtImage(bytes: Uint8Array): ArtImageType | undefined {
   const at = (i: number) => bytes[i] ?? -1;
   if ([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every((b, i) => at(i) === b))
@@ -27,7 +21,6 @@ export function sniffArtImage(bytes: Uint8Array): ArtImageType | undefined {
   return undefined;
 }
 
-/** Stage a picture with art.put, in order, and return the host's verified record. */
 export async function uploadArt(
   client: Caller,
   bytes: Uint8Array,
@@ -49,7 +42,6 @@ export async function uploadArt(
   return last.stored;
 }
 
-/** Every byte of one file of an art request; the digest of what arrived must match. */
 export async function readArtFile(
   client: Caller,
   artId: string,
@@ -72,6 +64,5 @@ export async function readArtFile(
   return { bytes, mediaType };
 }
 
-/** A file extension for a picture's media type. */
 export const artExtension = (mediaType: string): string =>
   mediaType === "image/jpeg" ? "jpg" : mediaType === "image/webp" ? "webp" : "png";

@@ -1,7 +1,3 @@
-// Face hardware lifted clear of a fitted face. Ported from depthSampler and
-// clearFaceHardware in character-view/face-hardware.js at 2761eb1, arithmetic
-// in the same order so the vertices match.
-
 import * as T from "three";
 import { isMesh } from "../mesh.js";
 
@@ -18,10 +14,6 @@ interface Triangle {
   readonly vz: number;
 }
 
-/**
- * The foremost surface depth at face-local (x, y). Triangles are binned in
- * XY, so at overlapping surfaces a piece clears the foremost intersection.
- */
 function depthSampler(geometry: T.BufferGeometry): (x: number, y: number) => number {
   geometry.computeBoundingBox();
   const box = geometry.boundingBox ?? new T.Box3();
@@ -68,18 +60,12 @@ function depthSampler(geometry: T.BufferGeometry): (x: number, y: number) => num
   };
 }
 
-/** A face piece: its object, the anchor it shares and its clearance, if a front piece. */
 export interface FacePiece {
   readonly object: T.Object3D;
   readonly anchor: readonly [number, number, number];
   readonly clearance: number | undefined;
 }
 
-/**
- * Lift each group of hardware sharing an anchor clear of `face` by its front
- * pieces' clearance. The rigid front translates as one piece; supporting
- * strips taper so their rear ends keep contact with the head.
- */
 export function clearFaceHardware(face: T.Mesh, pieces: ReadonlyArray<FacePiece>): void {
   const groups = new Map<string, Array<{ object: T.Object3D; clearance: number | undefined }>>();
   for (const { object, anchor, clearance } of pieces) {

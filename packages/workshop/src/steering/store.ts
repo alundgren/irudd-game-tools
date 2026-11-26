@@ -1,13 +1,3 @@
-// The steering outbox: one SQLite file per project and OS account, next to the
-// host's endpoint and pairings (`hosts/<key>/steering.sqlite`), never in the
-// project directory. Routes name machine-local conversations, so a backup,
-// archive or copy of the project never carries them.
-//
-// Only the project's host opens it, and only while it owns the project, so
-// there is one writer. The file records the project ID it belongs to: a
-// project replaced at the same path gets a fresh outbox, and the old file is
-// kept aside, so no message is ever delivered on behalf of another project.
-
 import { Schema } from "effect";
 import fs from "node:fs";
 import path from "node:path";
@@ -92,8 +82,6 @@ const schema = [
    ) STRICT`,
 ];
 
-// ── Stored JSON ─────────────────────────────────────────────────────────────
-
 const Receipt = Schema.Struct({
   transport: Schema.Literals(["claude-channel", "inbox"]),
   hostMessageId: Schema.optionalKey(Schema.String),
@@ -137,7 +125,6 @@ const Applied = Schema.Struct({
   proposal: Schema.NullOr(ProposalRef),
   acceptedBy: Schema.NullOr(Actor),
 });
-/** Each document's journal sequence when the message was sent. */
 const Baseline = Schema.Record(Schema.String, Schema.Int);
 export type Baseline = typeof Baseline.Type;
 const Closed = Schema.Struct({
@@ -239,7 +226,6 @@ export interface NewMessage {
   readonly createdBy: Actor;
   readonly route: RecipientRoute;
   readonly delivery: "pending" | "inbox-only";
-  /** Each document's journal sequence at send: requests at or before it can never be linked. */
   readonly baseline: Baseline;
 }
 
@@ -261,7 +247,6 @@ export interface MessagePatch {
 
 export interface OpenedStore {
   readonly store: SteeringStore;
-  /** The file belonged to another project at this path; it was moved aside to this name. */
   readonly replaced: string | null;
 }
 
@@ -276,7 +261,6 @@ export class SteeringStore {
     this.now = now;
   }
 
-  /** Open (or create) the outbox of `projectId` in `directory`. */
   static open(options: {
     readonly directory: string;
     readonly projectId: string;
@@ -318,9 +302,6 @@ export class SteeringStore {
         const stored = db.prepare("SELECT value FROM meta WHERE key = 'version'").get();
         let storedVersion = stored ? Number(stored["value"]) : NaN;
         if (storedVersion === 1) {
-          // Version 1 counted a linked proposal as applied. Keep each link as an
-          // unresolved report with no baseline; the service re-checks it against the
-          // journal on start and never marks it applied without a real revision.
           for (const column of ["baseline", "report", "review"])
             db.exec(`ALTER TABLE messages ADD COLUMN ${column} TEXT`);
           db.exec(`UPDATE messages SET report = json_object(
@@ -341,6 +322,10 @@ export class SteeringStore {
           );
       }
     });
+    const supported =
+      "json_extract(route, '$.transport') IN ('inbox', 'claude-channel') AND json_extract(route, '$.host') IN ('agent', 'claude-code', 'codex') AND json_extract(route, '$.environment') = 'local'";
+    db.exec(`CREATE TEMP VIEW connected_messages AS SELECT * FROM messages WHERE ${supported}`);
+    db.exec(`CREATE TEMP VIEW connected_recipients AS SELECT * FROM recipients WHERE ${supported}`);
     if (fs.existsSync(file)) fs.chmodSync(file, 0o600);
     return { store, replaced };
   }
@@ -361,15 +346,16 @@ export class SteeringStore {
     }
   }
 
-  // ── Recipients ──────────────────────────────────────────────────────────
-
   recipient(agent: string): Recipient | undefined {
-    const row = this.db.prepare("SELECT * FROM recipients WHERE agent = ?").get(agent);
+    const row = this.db.prepare("SELECT * FROM connected_recipients WHERE agent = ?").get(agent);
     return row ? toRecipient(row) : undefined;
   }
 
   recipients(): ReadonlyArray<Recipient> {
-    return this.db.prepare("SELECT * FROM recipients ORDER BY agent").all().map(toRecipient);
+    return this.db
+      .prepare("SELECT * FROM connected_recipients ORDER BY agent")
+      .all()
+      .map(toRecipient);
   }
 
   bind(recipient: Recipient): void {
@@ -397,7 +383,9 @@ export class SteeringStore {
   }
 
   availability(agent: string): RouteAvailability | undefined {
-    const row = this.db.prepare("SELECT availability FROM recipients WHERE agent = ?").get(agent);
+    const row = this.db
+      .prepare("SELECT availability FROM connected_recipients WHERE agent = ?")
+      .get(agent);
     if (!row) return undefined;
     return decodeJson(optText(row, "availability"), Availability, "availability") ?? undefined;
   }
@@ -408,16 +396,16 @@ export class SteeringStore {
       .run(JSON.stringify(availability), agent);
   }
 
-  // ── Messages ────────────────────────────────────────────────────────────
-
   message(messageId: string): SteeringMessage | undefined {
-    const row = this.db.prepare("SELECT * FROM messages WHERE message_id = ?").get(messageId);
+    const row = this.db
+      .prepare("SELECT * FROM connected_messages WHERE message_id = ?")
+      .get(messageId);
     return row ? toMessage(row) : undefined;
   }
 
   byRequest(agent: string, requestId: string): SteeringMessage | undefined {
     const row = this.db
-      .prepare("SELECT * FROM messages WHERE agent = ? AND request_id = ?")
+      .prepare("SELECT * FROM connected_messages WHERE agent = ? AND request_id = ?")
       .get(agent, requestId);
     return row ? toMessage(row) : undefined;
   }
@@ -453,27 +441,24 @@ export class SteeringStore {
     });
   }
 
-  /** Each document's journal sequence when the message was sent; empty for version 1 messages. */
   baseline(messageId: string): Baseline | null {
     const row = this.db
-      .prepare("SELECT baseline FROM messages WHERE message_id = ?")
+      .prepare("SELECT baseline FROM connected_messages WHERE message_id = ?")
       .get(messageId);
     if (!row) return null;
     return decodeJson(optText(row, "baseline"), Baseline, "baseline");
   }
 
-  /** Messages with a linked request that is not applied, closed or finally decided. */
   unresolved(documentId?: string): ReadonlyArray<SteeringMessage> {
     const rows = this.db
       .prepare(
-        `SELECT * FROM messages WHERE report IS NOT NULL AND applied IS NULL AND closed IS NULL
+        `SELECT * FROM connected_messages WHERE report IS NOT NULL AND applied IS NULL AND closed IS NULL
            AND (? IS NULL OR json_extract(report, '$.documentId') = ?) ORDER BY seq`,
       )
       .all(documentId ?? null, documentId ?? null);
     return rows.map(toMessage).filter((m) => m.review?.state !== "discarded");
   }
 
-  /** Apply one change and record the resulting status, in one transaction. */
   update(messageId: string, patch: MessagePatch, detail: string | null = null): SteeringMessage {
     return this.transaction(() => {
       const sets: string[] = [];
@@ -527,23 +512,24 @@ export class SteeringStore {
     if (filter.unacknowledged) where.push("acknowledged IS NULL AND closed IS NULL");
     return this.db
       .prepare(
-        `SELECT * FROM messages WHERE ${where.join(" AND ")} ORDER BY seq LIMIT ${Math.max(1, Math.min(filter.limit ?? 500, 500))}`,
+        `SELECT * FROM connected_messages WHERE ${where.join(" AND ")} ORDER BY seq LIMIT ${Math.max(1, Math.min(filter.limit ?? 500, 500))}`,
       )
       .all(...values)
       .map(toMessage);
   }
 
   lastSeq(): number {
-    const row = this.db.prepare("SELECT COALESCE(MAX(seq), 0) AS last FROM messages").get();
+    const row = this.db
+      .prepare("SELECT COALESCE(MAX(seq), 0) AS last FROM connected_messages")
+      .get();
     return row ? int(row, "last") : 0;
   }
 
-  /** Each agent's oldest message that still waits for a push. */
   deliverable(): ReadonlyArray<SteeringMessage> {
     return this.db
       .prepare(
-        `SELECT * FROM messages m WHERE seq = (
-           SELECT MIN(seq) FROM messages o
+        `SELECT * FROM connected_messages m WHERE seq = (
+           SELECT MIN(seq) FROM connected_messages o
            WHERE o.agent = m.agent AND o.delivery_state = 'pending'
              AND o.acknowledged IS NULL AND o.closed IS NULL)
          ORDER BY seq`,
@@ -552,15 +538,13 @@ export class SteeringStore {
       .map(toMessage);
   }
 
-  /** Messages that were being sent when the host stopped. */
   inFlight(): ReadonlyArray<SteeringMessage> {
     return this.db
-      .prepare("SELECT * FROM messages WHERE delivery_state = 'dispatching' ORDER BY seq")
+      .prepare("SELECT * FROM connected_messages WHERE delivery_state = 'dispatching' ORDER BY seq")
       .all()
       .map(toMessage);
   }
 
-  /** Messages of an agent that are neither acknowledged nor closed. */
   open(agent: string): ReadonlyArray<SteeringMessage> {
     return this.list({ agent, unacknowledged: true });
   }
@@ -580,8 +564,6 @@ export class SteeringStore {
       }));
   }
 
-  // ── Manual-change cursors ──────────────────────────────────────────────
-
   cursor(agent: string, documentId: string, pairingId: string): number | undefined {
     const row = this.db
       .prepare("SELECT revision, pairing_id FROM cursors WHERE agent = ? AND document_id = ?")
@@ -590,7 +572,6 @@ export class SteeringStore {
     return int(row, "revision");
   }
 
-  /** Move the cursor forward (never back). */
   advanceCursor(agent: string, documentId: string, pairingId: string, revision: number): void {
     this.db
       .prepare(

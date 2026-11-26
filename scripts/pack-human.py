@@ -69,7 +69,6 @@ def pack(wheel, destination):
         - set(body_ids + eye_ids + lash_ids)
     )
     ids = body_ids + eye_ids + lash_ids + garment_helpers
-    # Keep triangle connectivity welded. Head-aligned eye helpers follow the lids.
     remap = {v: i for i, v in enumerate(ids)}
     triangles = np.array(
         [
@@ -135,8 +134,6 @@ def pack(wheel, destination):
     encode("bones", bone_ids, "u1")
     encode("weights", weights, "<u2")
 
-    # Smooth tightly spaced detail rings at the chest apex; the broader chest remains.
-    # The local chest point target identifies exactly the same vertices in all body shapes.
     def delta(target):
         raw = gzip.decompress(read("targets/" + target + ".target.gz")).strip()
         out = np.zeros_like(vs)
@@ -146,7 +143,6 @@ def pack(wheel, destination):
         return out
 
     def morph(key, a):
-        # 0.1 mm displacement resolution, including the centres of the moving joints.
         encode("m:" + key, np.rint(reduce(a) * 10000), "<i2")
 
     for sex in ["female", "male"]:
@@ -178,8 +174,6 @@ def pack(wheel, destination):
         )
         if expression == "Smile":
             average *= 0.72
-            # The narrowing at the lids and the raised cheek accompany the
-            # mouth corners. The fitted lashes receive the same displacement.
             for side in ("left", "right"):
                 for family in ("african", "asian", "caucasian"):
                     root = "expression/units/" + family + "/"
@@ -192,9 +186,6 @@ def pack(wheel, destination):
             average[:, 1] += 0.0036 * malar
             average[:, 2] += 0.0029 * malar
         morph(expression, average)
-    # Separate endpoints for the artist's smile control. Lip pressure and a
-    # quieter corner pull make a reserved smile. The open smile retracts the
-    # lip, raises the cheek and narrows the eye with bilateral muscle actions.
     def expression_unit(name):
         return sum(delta(f"expression/units/{family}/{name}")
                    for family in ("african", "asian", "caucasian")) / 3
@@ -211,9 +202,6 @@ def pack(wheel, destination):
         motion[:, 0] += np.sign(vs[:, 0]) * .0009 * cheek * malar
         motion[:, 1] += .0036 * cheek * malar
         motion[:, 2] += .0029 * cheek * malar
-        # The corner pull in isolation rises almost twice as far as it travels
-        # outwards. The risorius draws the commissure across the teeth. Share
-        # more of the gesture laterally while the central lip still uncovers them.
         x, y, z = vs.T
         commissure = np.exp(-(((np.abs(x) - .025) / .022) ** 2 +
                               ((y - .663) / .026) ** 2 + ((z - .144) / .034) ** 2))
@@ -308,8 +296,6 @@ def pack(wheel, destination):
     for i, name in enumerate(["nose-point-down", "nose-point-up"]):
         morph("noseTipAngle" + str(i), delta("nose/" + name))
     axes["noseTipAngle"] = None
-    # Resting contact and a small parting of the lips. The jaw and all
-    # expression clips remain independently controllable.
     def mouth_unit(name):
         return sum(delta(f"expression/units/{family}/{name}")
                    for family in ["african", "asian", "caucasian"]) / 3
@@ -318,14 +304,10 @@ def pack(wheel, destination):
     morph("lipParting1", 0.55 * part)
     axes["lipParting"] = None
     for i, (upper, lower) in enumerate([("decr", "incr"), ("incr", "decr")]):
-        # Independent vermilion balance. Retain the overall mouth width and
-        # leave its resting contact and the corner height to their own axes.
         volume = (delta("mouth/mouth-upperlip-volume-" + upper)
                   + delta("mouth/mouth-lowerlip-volume-" + lower))
         morph("lipBalance" + str(i), volume * np.array([0, .15, .92]))
     axes["lipBalance"] = None
-    # A slight pull of the mouth corner and adjacent cheek at rest. The centre
-    # of the lips stays closed. The two controls can also make a lopsided smile.
     pull = mouth_unit("mouth-corner-puller") + .35 * mouth_unit("mouth-upward-retraction")
     outer = np.clip((np.abs(vs[:, 0]) - .006) / .018, 0, 1)
     pull *= (.59 * outer * outer * (3 - 2 * outer))[:, None]
@@ -341,9 +323,6 @@ def pack(wheel, destination):
                 sum(delta(f"{folder}/{side}-{stem}") for side in ["l", "r"]),
             )
         axes[key] = None
-    # Confine cheek targets to the external face. Some source files contain
-    # entries beyond the cheek, and these controls should leave the eyes, lips
-    # and skeleton independent. Coordinates are those of the CC0 rest cage.
     x, y, z = vs.T
     side = np.abs(x)
     skin = np.zeros(len(vs))
@@ -374,8 +353,6 @@ def pack(wheel, destination):
         direction = 1 if i else -1
         movement = cheek("trans-" + ("up" if i else "down")) * (.80 * malar[:, None])
         morph("malarHeight" + str(i), movement)
-        # The lower pad grows across the edge of the mandible. Its fall is
-        # smaller than its outward displacement, so it keeps a smooth jawline.
         movement = cheek("volume-" + sign) * (.34 * lower[:, None])
         movement[:, 0] += direction * .0075 * np.sign(x) * jowl
         movement[:, 1] -= direction * .0030 * jowl
@@ -386,8 +363,6 @@ def pack(wheel, destination):
         morph("submentalFullness" + str(i), movement)
     axes.update({key: None for key in ("malarHeight", "jowlFullness", "submentalFullness")})
 
-    # Project small surface-detail zones onto a low-frequency patch fitted to the
-    # surrounding skin. The correction follows each identity's broad silhouette.
     patches = []
     points = vs[ids]
     lattice(
@@ -398,8 +373,6 @@ def pack(wheel, destination):
         adjacency[a].update((b, c))
         adjacency[b].update((a, c))
         adjacency[c].update((a, b))
-    # Use an area-weighted spatial low pass on the chest. The dense detail rings
-    # otherwise dominate an ordinary vertex average and leave a projecting point.
     from scipy.spatial import cKDTree
 
     tree = cKDTree(points[: len(body_ids)])

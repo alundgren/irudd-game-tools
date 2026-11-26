@@ -1,9 +1,3 @@
-// The neck and shoulder girdle of the adult (character-view/human-neck.js):
-// collarbones, the pit of the neck, the hollow above each collarbone, the
-// trapezius slope, and the soft tissue a heavier body carries there. Where
-// each landmark lies is worked out once on the donor's rest mesh; how strongly
-// it shows depends on the body.
-
 import { boneNames } from "./catalogue.js";
 
 const depth = {
@@ -73,7 +67,6 @@ interface Along {
   dy: number;
   dz: number;
 }
-// Closest point on a polyline: its position along the line, 0 to 1, and the offset to it.
 function along(line: ReadonlyArray<P3>, x: number, y: number, z: number): Along {
   let best: Along = {
     gap: Infinity,
@@ -107,7 +100,6 @@ export interface NeckLayout {
   readonly bodyVertices: number;
   readonly bodyTriangles: number;
   readonly indices: Uint16Array;
-  /** Index of the first joint marker in `rest`. */
   readonly joints: number;
   readonly bones: Uint8Array;
   readonly weights: Uint16Array;
@@ -340,7 +332,6 @@ export interface NeckBuildInput {
   readonly upperBack?: number;
 }
 
-/** How strongly each landmark shows on a body. */
 export function neckBuild({
   weight = 0,
   muscle = 0,
@@ -373,7 +364,6 @@ export function neckBuild({
   };
 }
 
-/** Shape the girdle of an evaluated body in place, before the limbs are posed. */
 export function shapeNeck(
   vertices: Float32Array,
   parameters: NeckBuildInput,

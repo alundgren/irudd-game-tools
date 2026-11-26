@@ -1,11 +1,3 @@
-// Textured presets in installed Chrome, the browser G0 exported with.
-//
-// Bundles src/browser/entry.ts, opens it in Chrome (channel "chrome", hardware
-// GPU, 1280 × 800 at device scale factor 1, as G0's sessions were) and exports
-// each request there. Run it under the shared GPU lock (see src/locked.ts). A
-// software renderer stops the run unless `allowSoftware` is set, and the
-// fallback is then recorded in the session.
-
 import { mkdirSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -53,7 +45,6 @@ function bundle(): string {
 
 async function route(page: Page, script: string): Promise<void> {
   const assets = join(repository, "packages", "character", "assets");
-  // A native adult's body, face and paint packs, which the page loads when it exports one.
   const packs = new Set([...humanPackFiles, humanPaintFile].map((p) => `assets/human/${p.file}`));
   await page.route(`${origin}/**`, async (r) => {
     const path = new URL(r.request().url()).pathname.slice(1);

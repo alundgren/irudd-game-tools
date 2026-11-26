@@ -1,10 +1,3 @@
-// Fitted garments. Ported from fitGarment in character-view/garment-fit.js at
-// 2761eb1, arithmetic and iteration in the same order so the vertices match.
-//
-// A garment may hold many overlapping panels. The covered body is sampled in
-// its own frame as rows of support functions, then any garment vertex that
-// would sit inside it is eased just outside.
-
 import * as T from "three";
 import { isMesh } from "../mesh.js";
 
@@ -16,15 +9,10 @@ const directions = Array.from(
 );
 
 export interface GarmentFit {
-  /** Garments fitted on the same host before this one, which it must also clear. */
   readonly inner?: ReadonlyArray<T.Object3D>;
-  /** Limb regions a mantle also covers, sampled without their waist. */
   readonly limbs?: ReadonlyArray<T.Object3D>;
-  /** A two-sided panel whose second half follows its first. */
   readonly pairedPanel?: boolean;
-  /** A skirt's fold relief, per vertex [x, z], kept through the fit and sewn at the waist. */
   readonly relief?: Float32Array;
-  /** Metres of ease at a skirt's waist. */
   readonly waistClearance?: number;
 }
 
@@ -43,7 +31,6 @@ interface WaistRow {
 
 const supportAt = (s: ReadonlyArray<number> | undefined, n: number) => s?.[n] ?? 0;
 
-/** Ease `garment` (and every mesh under it) outside `host`. */
 export function fitGarment(host: T.Object3D, garment: T.Mesh, options: GarmentFit = {}): void {
   const { inner = [], limbs = [], pairedPanel = false, relief, waistClearance } = options;
   host.updateWorldMatrix(true, true);
@@ -127,7 +114,6 @@ export function fitGarment(host: T.Object3D, garment: T.Mesh, options: GarmentFi
       T.MathUtils.clamp(Math.round(((p.y - low) / (high - low)) * (bins - 1)), 0, bins - 1)
     ]?.push(p);
   const sections: Section[] = rows.map((_, i) => {
-    // Neighbouring bands bound sparse tessellation and keep shoulders continuous.
     let samples = rows.slice(Math.max(0, i - 1), Math.min(bins, i + 2)).flat();
     if (!samples.length) {
       let distance = 2;
@@ -165,7 +151,6 @@ export function fitGarment(host: T.Object3D, garment: T.Mesh, options: GarmentFi
   garment.traverse((mesh) => {
     if (!isMesh(mesh)) return;
     const fabricRelief = mesh === garment ? relief : undefined;
-    // The source geometry may also be used by another copy of this component.
     const sourcePositions = mesh.geometry.getAttribute("position");
     const geometry = mesh.geometry.clone();
     mesh.geometry = geometry;
@@ -234,7 +219,6 @@ export function fitGarment(host: T.Object3D, garment: T.Mesh, options: GarmentFi
     geometry.computeBoundingBox();
     geometry.computeBoundingSphere();
 
-    /** Ease from the sewn waist into the room the hips need. */
     function sewWaist(i: number): void {
       const rowCount = waistSections.length - 1;
       const f = T.MathUtils.clamp((waistY - point.y) / waistDepth, 0, 1) * rowCount;
@@ -286,10 +270,6 @@ interface Ring {
   original: number;
 }
 
-/**
- * Ease the side seams together along a fitted pattern. When the stance needs
- * more room at the knee, keep the hip and hem curves.
- */
 function preserveSkirtOutline(
   geometry: T.BufferGeometry,
   pattern: T.BufferAttribute | T.InterleavedBufferAttribute,

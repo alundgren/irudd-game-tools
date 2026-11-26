@@ -1,12 +1,3 @@
-// Garments for the human surface (character-view/human-style-cloth.js at
-// 2761eb1). Each one is cut from the body it dresses, so it fits every build,
-// keeps the body's skin weights and follows the same anatomical lines (mid
-// upper arm, natural waist, ankle) on everyone.
-//
-// Skirts, rolls, hoods worn as cloth, straps and plates come with the outfits
-// that use them; this module holds what tops, trousers, belts, gloves, shoes
-// and boots are made from.
-
 import type { Ray } from "../../game/raycast.js";
 import { crease, type CreaseOptions } from "./folds.js";
 import {
@@ -75,7 +66,6 @@ export function landmarks(body: DressBody): Landmarks {
   };
 }
 
-/** A shell's open edges: sleeve ends, leg ends, and its highest and lowest other loops. */
 export interface Edges {
   readonly sleeves: number[][];
   readonly legs: number[][];
@@ -117,7 +107,6 @@ export function classify(s: Shell): Edges {
   return { sleeves, legs, upper, lower, all };
 }
 
-/** A raised band along an open edge: cuffs, hems, neckbands and waistbands. It is a second layer of the cloth itself. */
 export function band(
   piece: Piece,
   s: Shell,
@@ -125,8 +114,6 @@ export function band(
   { width = 0.02, rise = 0.003 }: { readonly width?: number; readonly rise?: number } = {},
 ): void {
   if (!loop) return;
-  // A turned hem or a ribbed cuff is two or three layers of cloth: it stands far enough off the cloth beside it
-  // to keep its own edge and shadow when the model is seen whole or reduced for a game.
   rise = Math.max(rise * 1.4, 0.0042);
   const n = s.count,
     near = Array.from({ length: n }, (): number[] => []),
@@ -136,7 +123,6 @@ export function band(
     for (let a = 0; a < 3; a++)
       near[at(s.tri, t + a)]?.push(at(s.tri, t + ((a + 1) % 3)), at(s.tri, t + ((a + 2) % 3)));
   for (const i of loop) far[i] = 0;
-  // Distance over the cloth from the edge.
   for (let head = 0; head < queue.length; head++) {
     const i = at(queue, head);
     if (at(far, i) > width * 1.6) continue;
@@ -165,11 +151,6 @@ export function band(
   piece.shell(strip, { thickness: rise * 0.8 });
 }
 
-/**
- * How far the neck of this body stands from its own axis in each direction, measured just above its base.
- * A neck opening cut by height alone lands far out on the shoulders of a body whose shoulders slope up to a
- * thick neck; measured from the neck itself it is a ring round the neck on every body.
- */
 function neckColumn(body: DressBody, m: Landmarks): (x: number, z: number) => number {
   const k = m.k,
     z0 = m.neck[2],
@@ -235,9 +216,7 @@ function neckline(
     const x = at(s.anc, i * 3),
       y = at(s.anc, i * 3 + 1),
       z = z0 + clamp(at(s.anc, i * 3 + 2) - z0, -0.08 * k, 0.075 * k);
-    // The cut is highest beside the neck, lower at the nape and lowest at the throat; `wide` opens it into a boat neck.
     let f = base - tilt * (z - z0) - (bow * (z - z0) ** 2) / k - wide * Math.abs(x) - y;
-    // Cloth that lies on the slope of the shoulder stays, however high the slope climbs: the opening is a ring round the neck.
     if (column && !wide)
       f = Math.max(
         f,
@@ -253,7 +232,6 @@ function neckline(
   };
 }
 
-/** Moves cloth out to at least `room` beyond another shell on the same side of the body, measured along the skin's normal. */
 function outside(s: Shell, shell: Shell, room: number, sided = true): void {
   let low = Infinity,
     high = -Infinity,
@@ -272,25 +250,10 @@ function outside(s: Shell, shell: Shell, room: number, sided = true): void {
       n = s.normal(i),
       hit = cast(add(a, n, -start), n) - start,
       d = dot(sub(s.at(i), a), n);
-    // A hit far from the skin is some other part of the shell, across a gap.
     if (hit < 0.06 && d < hit + room) s.set(i, add(s.at(i), n, hit + room - d));
   }
 }
 
-/**
- * Cuts a garment from the body and lets it hang.
- *   sleeve  where sleeves end along the arm (0 shoulder, 1 elbow, 2 wrist)
- *   hem     world height of a top's lower edge, or null when it has legs
- *   leg     where legs end (0 hip, 1 knee, 2 ankle)
- *   waist   upper edge height for trousers and skirts' underlayers
- *   ease    cloth distance from the skin; `extra(y)` adds room over other layers
- *   fall    how quickly hanging cloth returns to the body below a prominence
- *   taper   the same along the legs: low values give straight wide legs
- *   folds   how strongly the cloth creases (0 smooth, 1 everyday cloth), or {amount, size, detail}
- *   over    shells this cloth is worn over, such as boot shafts under trouser legs: it stays outside them
- *   below   how far under its hem a top looks for a belly or a seat it has to stand out for, with `rise` the
- *           slope at which it comes back in above one
- */
 export interface GarmentOptions {
   readonly sleeve?: number;
   readonly hem?: number | null;
@@ -374,7 +337,6 @@ export function garment(body: DressBody, m: Landmarks, o: GarmentOptions = {}): 
       legEase * smooth(0.3, 0.8, s.value("wLeg", i)) * smooth(0.1, 0.4, s.value("leg", i)) +
       (extra ? extra(y(i), i, s) : 0)) *
     k;
-  // Cloth lies on a softened figure, so small anatomy does not print through, but never inside the real one.
   const chest = (py: number, pz: number, armed: number) =>
     waist !== null
       ? 0
@@ -394,7 +356,6 @@ export function garment(body: DressBody, m: Landmarks, o: GarmentOptions = {}): 
       least = Math.min(gap, ease) * k * (1 - 0.6 * front(i));
     s.set(i, d < least ? add(p, n, least - d) : p);
   }
-  // Left and right halves may meet on the centre plane but never cross it, however close to it they start.
   const apart = (i: number) => {
     if (
       s.value("wArm", i) < 0.3 &&
@@ -420,12 +381,10 @@ export function garment(body: DressBody, m: Landmarks, o: GarmentOptions = {}): 
     )
       torso.push(body.point(v));
   }
-  // Over the chest the cloth hangs from the softened figure, so it spans the breastbone and shows no points.
   if (waist === null)
     for (let i = 0; i < s.count; i++)
       if (s.value("wArm", i) < 0.35 && front(i) > 0.2)
         torso.push([at(figure, i * 3), at(figure, i * 3 + 1), at(figure, i * 3 + 2)]);
-  // Layers already worn count as part of the figure this garment hangs over.
   for (const layer of under)
     for (let i = 0; i < layer.pos.length; i += 3) {
       const py = at(layer.pos, i + 1);
@@ -433,7 +392,6 @@ export function garment(body: DressBody, m: Landmarks, o: GarmentOptions = {}): 
         torso.push([at(layer.pos, i), py, at(layer.pos, i + 2)]);
     }
   const depth = topY - bottom + 0.02 * k;
-  // The rings keep one centre line: a centre that followed the figure would hide how far the cloth falls back under a bulge.
   const env = new Envelope(
     [0, topY, m.chest[2]],
     [0, -1, 0],
@@ -501,14 +459,10 @@ export function garment(body: DressBody, m: Landmarks, o: GarmentOptions = {}): 
           room,
         );
     }
-  // Relaxing may span hollows but must not shrink the garment back onto the skin.
   const rest = Array.from({ length: s.count }, (_, i) =>
     dot(sub(s.at(i), s.anchor(i)), s.normal(i)),
   );
   for (let i = 0; i < s.count; i++) apart(i);
-  // Skin in the cleft of the seat and under it faces sideways or down, not outward. A hem hanging over it bridges the
-  // cleft, so cloth cut from there follows its neighbours. A gap kept along that skin would fold the cloth into the
-  // centre plane or hang it as a tongue below the seat.
   const bridged = (i: number) => {
     if (low === null || s.value("wArm", i) > 0.3 || y(i) > m.pelvis[1] + 0.03 * k) return false;
     const x = at(s.anc, i * 3),
@@ -546,8 +500,6 @@ export function garment(body: DressBody, m: Landmarks, o: GarmentOptions = {}): 
     for (let i = 0; i < s.count; i++) apart(i);
   }
   if (waist === null) {
-    // Fabric hangs from its neckline. Continuing the chest envelope up to
-    // that cut leaves a stiff standing rim even on a scoop-neck dress.
     const belowOpening = neckline(s, m, o.neck ?? {});
     for (let i = 0; i < s.count; i++) {
       const a = s.anchor(i);
@@ -566,7 +518,6 @@ export function garment(body: DressBody, m: Landmarks, o: GarmentOptions = {}): 
     }
   }
   for (const shell of over) outside(s, shell, 0.005 * k);
-  // Trouser legs join in a seam a little below the body, which closes the small opening under the seat.
   if (low === null)
     for (let i = 0; i < s.count; i++) {
       const x = at(s.pos, i * 3),
@@ -580,7 +531,6 @@ export function garment(body: DressBody, m: Landmarks, o: GarmentOptions = {}): 
   return { s, env, room, ...classify(s) };
 }
 
-/** Rays against one or more finished shells, for placing pockets, plackets and straps on cloth. */
 export function caster(shells: ReadonlyArray<Shell>, torsoOnly = false): Ray {
   const list = shells
     .map((s) => {
@@ -613,7 +563,6 @@ export interface PatchOptions {
   readonly skin?: (p: Vec) => Skin;
 }
 
-/** A raised panel projected onto cloth: pockets, plackets, flaps and patches. */
 export function patch(
   piece: Piece,
   cast: Ray,
@@ -652,7 +601,6 @@ export function patch(
     }
     rows.push(row);
   }
-  // A ray that slipped past the edge of a limb lands on whatever lies behind it; such a panel is left out.
   if (furthest - nearest > 0.6 * Math.max(width, height)) return false;
   piece.loft(rows, skin ?? ((p) => body.skinAt(p)), {
     closed: false,
@@ -661,7 +609,6 @@ export function patch(
   return true;
 }
 
-/** A small disc lying on cloth. */
 export function button(
   piece: Piece,
   cast: Ray,
@@ -695,7 +642,6 @@ export function button(
   });
 }
 
-/** A box, for buckles and clasps. `half` holds three half-extent vectors. */
 export function box(piece: Piece, centre: Vec, half: readonly [Vec, Vec, Vec], skin: Skin): void {
   const corner = (a: number, b: number, c: number) =>
     add(add(add(centre, half[0], a), half[1], b), half[2], c);
@@ -717,7 +663,6 @@ export function box(piece: Piece, centre: Vec, half: readonly [Vec, Vec, Vec], s
   }
 }
 
-/** The outline of whatever is worn at a height, measured around the torso. */
 export function girth(
   _body: DressBody,
   m: Landmarks,
@@ -739,8 +684,6 @@ export function girth(
     7,
     64,
   ).measure(points);
-  // A waist seam is a cross-section of the cloth at this height. Taking
-  // the widest vertex from adjacent rows can leave it hovering over a taper.
   const sections = shells.map((s) => {
     const tri: number[] = [];
     for (let i = 0; i < s.tri.length; i += 3) {
@@ -775,7 +718,6 @@ export function girth(
   return env.taut(1);
 }
 
-/** A belt over the clothes at a height, with an optional buckle. */
 export function belt(
   piece: Piece,
   body: DressBody,
@@ -833,7 +775,6 @@ export function belt(
   return env;
 }
 
-/** A fold-down or standing collar grown from a neck opening. */
 export function collar(
   piece: Piece,
   s: Shell,
@@ -860,15 +801,12 @@ export function collar(
     const p = s.at(i),
       out = unit([p[0], 0, p[2] - z0]),
       angle = Math.abs(Math.atan2(p[0], p[2] - z0));
-    // The collar closes to nothing at the centre front and is longest at its points.
     const open = smooth(0, gap, angle),
       point = 1 + 0.5 * smooth(1.2, 0.35, angle),
       h =
         Math.min(stand * k, Math.max(0.012 * k, m.neck[1] + 0.09 * k - p[1])) *
         (kind === "shirt" ? mix(0.55, 1, smooth(0.2, 1.4, angle)) : 1) *
         open;
-    // A collar stands the way the cloth it is sewn to runs: on a shoulder that slopes up to the neck it leans in
-    // with the slope, where one raised straight up would stand away from the neck as a funnel.
     const n = s.normal(i),
       along = dot([0, 1, 0], n),
       slope = unit([-n[0] * along, 1 - n[1] * along, -n[2] * along]),
@@ -885,7 +823,6 @@ export function collar(
         raise((0.024 + 0.014 * (point - 1)) * k * open, h - fall * k * point * open * 0.5),
       );
       ringAt(4).push(raise((0.033 + 0.016 * (point - 1)) * k * open, h - fall * k * point * open));
-      // The under side of the leaf, a few millimetres in: the collar has an edge and casts its own shadow.
       ringAt(5).push(
         raise(
           (0.029 + 0.016 * (point - 1)) * k * open,
@@ -912,7 +849,6 @@ export function collar(
   );
 }
 
-/** A hood worn down: its stand rises from the neck opening and its pouch lies on the cloth of the upper back. */
 export function hood(
   piece: Piece,
   body: DressBody,
@@ -939,7 +875,6 @@ export function hood(
     floor = top - (length + 0.05) * k,
     tri: number[] = [],
     pos: number[] = [];
-  // Only the cloth of the upper back can lie under the hood, which keeps the rays that find it cheap.
   for (const shell of shells) {
     const base = pos.length / 3;
     for (let i = 0; i < shell.pos.length; i++) pos.push(at(shell.pos, i));
@@ -958,16 +893,13 @@ export function hood(
       back = smooth(1, 2.5, Math.abs(Math.atan2(p[0], p[2] - z0)));
     const long = mix(0.02, length, back ** 1.5) * k,
       rise = stand * k * mix(0.4, 1, back);
-    // The hood is folded along the middle of the back, a little off centre, with a soft lobe to either side.
     const side = (p[0] - 0.005 * k) / k,
       crease = Math.exp(-((side / 0.02) ** 2)) * back,
       lobe = Math.exp(-(((Math.abs(side) - 0.055) / 0.03) ** 2)) * back * (side > 0 ? 1.15 : 0.9);
     const deep = thick * k * mix(front, 1, back);
-    // Where the hood lies at a depth below the opening: on the cloth behind it, found by a ray from outside.
     const rest = (d: number): Vec => {
       const origin: Vec = [p[0] + o[0] * 0.3, p[1] - d, p[2] + o[2] * 0.3],
         hit = cast(origin, [-o[0], 0, -o[2]]);
-      // A ray that misses, or that finds cloth further in than the opening itself, falls back to a line down from it.
       return Number.isFinite(hit) && hit < 0.3 + 0.02 * k
         ? [origin[0] - o[0] * hit, origin[1], origin[2] - o[2] * hit]
         : [p[0] + o[0] * d * 0.3, p[1] - d, p[2] + o[2] * d * 0.3];
@@ -1000,11 +932,9 @@ export function hood(
     [0, 0, 0, 0],
     [1, 0, 0, 0],
   ];
-  // The stand moves with the neck opening and the pouch with the back it lies on.
   piece.loft(rings, (_q, row, j) => (row < 4 ? skins[j] : under[j]) ?? none, { flip: true });
 }
 
-/** A strip of webbing or leather along a path of points with outward directions. */
 export function strap(
   piece: Piece,
   body: DressBody,
@@ -1028,10 +958,6 @@ export function strap(
   piece.loft(rings, (p) => body.skinAt(p), { closed: false });
 }
 
-/**
- * A band lying around the neck opening: a scarf or a fur trim. `flat` above 1 makes it taller than it is thick,
- * `lumps` makes it uneven like fur, and `wraps` winds shallow folds round it like wound cloth.
- */
 export function roll(
   piece: Piece,
   s: Shell,
@@ -1068,7 +994,6 @@ export function roll(
       o = unit([p[0], 0, p[2] - z0]),
       turn = Math.atan2(p[0], p[2] - z0),
       angle = Math.abs(turn);
-    // Unevenness follows the direction round the neck, so it stays the same however finely the opening is cut.
     const r =
       radius *
       k *
@@ -1097,7 +1022,6 @@ export function roll(
   piece.loft([...rings, rings[0] ?? []], (_p, _i, j) => skins[j] ?? none);
 }
 
-/** A fitted plate or pad over part of the body, such as a shoulder guard. */
 export function plate(
   body: DressBody,
   m: Landmarks,
@@ -1119,7 +1043,6 @@ export function plate(
   return { s, ...classify(s) };
 }
 
-/** Hands or forearms in fitted leather: gloves and bracers. One strapped on over a sleeve names that sleeve in `over` and lies outside it. */
 export function sleeveGuard(
   body: DressBody,
   m: Landmarks,
@@ -1159,7 +1082,6 @@ export interface ShoeOptions {
   readonly toe?: number;
 }
 
-/** A shoe lofted from convex slices of the foot, so toes merge into a toe box. */
 export function shoe(
   body: DressBody,
   m: Landmarks,
@@ -1290,7 +1212,6 @@ export function shoe(
     uvAt(row, around / 4);
     for (let col = 0; col < around; col++) uvAt(row, col);
   }
-  // The sole follows the outline of the upper seen from above.
   const print = hull2(
     rings.flatMap((r) =>
       r
@@ -1313,7 +1234,6 @@ export function shoe(
       r = reach2(print, centre, a) + lip;
     edge.push([centre[0] + Math.cos(a) * r, centre[1] + Math.sin(a) * r]);
   }
-  // The sole stands on the floor the bare foot stands on and wraps the rim of the upper, so a shod figure keeps its height and its ground contact.
   const rise = (t: number) =>
     body.floor +
     (sole + 0.004) * k +
@@ -1326,7 +1246,6 @@ export function shoe(
   return { upper, sole: slab, ground: body.floor };
 }
 
-/** Buckled leather straps seated on the finished shaft at each sampled height. */
 export function bootFastenings(
   body: DressBody,
   m: Landmarks,
@@ -1397,7 +1316,6 @@ export function bootFastenings(
   return { leather, metal };
 }
 
-/** A straight boot shaft from below the knee to the ankle, over the shoe. */
 export function shaft(
   body: DressBody,
   m: Landmarks,

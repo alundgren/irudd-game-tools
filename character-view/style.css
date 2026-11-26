@@ -990,7 +990,6 @@ textarea {
   margin: 8px 0 3px;
 }
 
-/* Drag handles on a body-plan creature. */
 .creature-handles {
   position: absolute;
   inset: 0;
@@ -1045,7 +1044,6 @@ textarea {
   transform: translate(-50%, -50%);
   cursor: grab;
 }
-/* The target is larger than the mark, so a fingertip finds it. */
 .creature-handle::after {
   content: "";
   position: absolute;

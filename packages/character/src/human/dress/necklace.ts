@@ -1,8 +1,3 @@
-// A necklace resting on the adult (character-view/human-necklace.js at
-// 2761eb1): on the fitted surface of the clothes and the skin beneath. Its
-// back crosses the nape, the sides ride the collarbones and the front hangs
-// lower. It moves with the skin under it.
-
 import * as T from "three";
 import { Piece, analyse, raycaster, type DressMesh, type Skin, type Vec } from "./kit.js";
 import type { HumanSurface } from "../surface.js";
@@ -32,7 +27,6 @@ function bead(
   piece.loft(rings, skin, { capStart: true, capEnd: true });
 }
 
-/** A convex shell with ribs radiating from the hinge. The edge turns at each scallop. */
 function fan(piece: Piece, at: T.Vector3, k: number, skin: Skin): void {
   const shell = (outset: number) =>
     Array.from({ length: 5 }, (_, i) =>
@@ -57,10 +51,6 @@ export interface NecklaceStyleFields {
   readonly metalColor?: string | undefined;
 }
 
-/**
- * The necklace's setting and beads, each with its own material. `clothes` are
- * the pieces already worn, in the body's frame; head pieces are passed over.
- */
 export function fittedNecklace(
   surface: HumanSurface,
   style: NecklaceStyleFields,
@@ -93,7 +83,6 @@ export function fittedNecklace(
     const dx = Math.sin(a),
       dz = Math.cos(a);
     const y = cy + k * (0.018 - 0.018 * Math.max(0, -dz) - frontDrop * Math.max(0, dz) ** 1.35);
-    // A slight downward slope brings the chain over the shoulders at the sides.
     const outer = 0.29 * k,
       rise = (0.22 + 0.49 * dx * dx) * outer;
     const from: Vec = [cx + dx * outer, y + rise, cz + dz * outer];
@@ -141,7 +130,6 @@ export function fittedNecklace(
     const at = point(0).clone(),
       skin = skins[0] ?? none;
     if (ornate) {
-      // A fluted scallop setting and a pearl at the hinge.
       fan(chain, at, k, skin);
       bead(
         stones,

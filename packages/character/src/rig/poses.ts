@@ -1,8 +1,3 @@
-// Authored joint poses as clips. Ported from character-view/poses.js at 2761eb1.
-//
-// Bones are addressed through the part whose region they skin and their place
-// in it, so a pose survives a change of outfit, which renumbers the skeleton.
-
 import * as T from "three";
 import type { JointPose, PoseJoint } from "@irudd/document";
 
@@ -18,7 +13,6 @@ const jointKey = (j: PoseJoint): string => key(j.part ?? "", j.station, j.digit)
 
 export const poseClipName = (name: string): string => "Pose · " + name;
 
-/** Each bone's address and rest transform, captured before any clip moves it. */
 export function bindPoseJoints(skeleton: T.Skeleton): Map<string, Binding> {
   const bindings = new Map<string, Binding>();
   for (const bone of skeleton.bones) {
@@ -71,11 +65,6 @@ export function authoredClips(
   });
 }
 
-/**
- * An ordinary clip that eases from the rest pose into `pose` and back, as
- * G0's dispatchActionClip in character-view/dispatch-pose.js at 2761eb1.
- * Its full-weight endpoint stays editable as the pose itself.
- */
 export function offerClip(
   bindings: ReadonlyMap<string, Binding>,
   pose: JointPose,

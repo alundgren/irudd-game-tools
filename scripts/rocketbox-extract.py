@@ -35,7 +35,6 @@ for fb in sorted(source.glob("*/*.fbx")):
         flush=True,
     )
     if fb.stem in ("Male_Adult_05", "Female_Adult_12"):
-        # Clothing retargeting needs the rest joints and the arm's share of each skin weight.
         armature = next(o for o in bpy.context.scene.objects if o.type == "ARMATURE")
         joints = {}
         for bone in armature.data.bones:

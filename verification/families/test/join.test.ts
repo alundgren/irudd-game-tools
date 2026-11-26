@@ -1,7 +1,3 @@
-// Surface joins seat roots on their carriers, and a join that names a patch
-// its part does not have is refused. The four-preset parity of the joined
-// forms (quayside-fitted, harbour-trader, merchant-counter) is the slow gate's.
-
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -16,7 +12,6 @@ type Mutable = { [key: string]: unknown };
 const isObject = (v: unknown): v is Mutable => typeof v === "object" && v !== null;
 const isMesh = (o: T.Object3D | undefined): o is T.Mesh => o instanceof T.Mesh;
 
-/** The quayside-fitted fixture with `edit` applied to every joined part's features. */
 function quayside(edit?: (features: Mutable, label: string) => void): CharacterDocument {
   const raw: unknown = JSON.parse(readFileSync(join(fixturesDir, "quayside-fitted.json"), "utf8"));
   assert.ok(isObject(raw) && Array.isArray(raw["parts"]));

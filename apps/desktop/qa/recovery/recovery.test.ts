@@ -1,10 +1,3 @@
-// Recovery of the installation after real process kills, live lock owners,
-// preview leftovers and launches racing a switch. Builds are fakes whose
-// runtime is this Node binary and whose CLI prints the build's commit; the
-// launchers are the real C# ones, compiled here with the inbox csc.exe. Each
-// kill is `taskkill /F` of an activator paused at a named step
-// (IRUDD_ACTIVATION_PAUSE), the same activate.ts install.ps1 runs.
-
 import assert from "node:assert/strict";
 import { execFileSync, spawn, type ChildProcess } from "node:child_process";
 import {
@@ -72,11 +65,6 @@ const commit = (n: number): string => String(n).repeat(40).slice(0, 40);
 let roots = 0;
 const newRoot = (): string => path.join(scratch, `root-${++roots}`);
 
-/**
- * A build whose runtime is Node and whose `irudd` prints its commit (or holds
- * on `hold`). `launcherMark` changes the launchers' bytes, as a new launcher
- * version would; the extra bytes trail the program and do not affect it.
- */
 function fakeBuild(root: string, id: string, launcherMark = "1"): string {
   const build = buildDirectory(root, id);
   const app = appDirectoryOf(build);
@@ -114,7 +102,6 @@ function fakeBuild(root: string, id: string, launcherMark = "1"): string {
   return build;
 }
 
-/** Run the root CLI launcher as an agent would. */
 function launch(root: string, ...args: string[]): Promise<{ code: number | null; out: string }> {
   return new Promise((done) => {
     const child = spawn(path.join(root, "bin", "irudd.exe"), args, { windowsHide: true });
@@ -134,7 +121,6 @@ function startActivator(args: string[], pause: string): ChildProcess {
   });
 }
 
-/** Start an activator and return once it is paused at `step`, still alive. */
 async function pausedAt(root: string, args: string[], step: string): Promise<ChildProcess> {
   const child = startActivator(args, step);
   let errors = "";
@@ -149,7 +135,6 @@ async function pausedAt(root: string, args: string[], step: string): Promise<Chi
   return child;
 }
 
-/** Kill an activator at `step` the way a crash or Task Manager would. */
 async function killAt(root: string, args: string[], step: string): Promise<void> {
   const child = await pausedAt(root, args, step);
   const exited = new Promise((done) => child.once("exit", done));
@@ -160,7 +145,6 @@ async function killAt(root: string, args: string[], step: string): Promise<void>
   rmSync(path.join(root, `.paused-${step}`), { force: true });
 }
 
-/** Leftovers a killed step may produce, which the next step must clear. */
 function leftovers(root: string): string[] {
   const found = readdirSync(root).filter(
     (entry) => /^\.(current|previous|prepared)-/.test(entry) || entry.startsWith(".installation-"),
@@ -183,7 +167,6 @@ function assertWhole(root: string, expected: InstallationState): void {
   }
 }
 
-/** Two activated builds and a third ready to activate, as after two updates. */
 async function installedTwice(root: string): Promise<string> {
   await activate(root, fakeBuild(root, commit(1), "a"));
   await activate(root, fakeBuild(root, commit(2), "b"));
@@ -210,10 +193,8 @@ test("a kill at any step of an activation leaves the old or the new build, and t
       ? { current: commit(3), previous: commit(2) }
       : { current: commit(2), previous: commit(1) };
     assert.deepEqual(readState(root), expected, `state after a kill at ${step}`);
-    // The person's next launch already starts the right build...
     const launched = await launch(root, "version");
     assert.deepEqual(launched, { code: 0, out: expected.current }, `launch after ${step}`);
-    // ...and the next update step finds the lock free and completes the switch.
     const started = performance.now();
     await repair(root, { wait: 0 });
     timings.push(`${step} ${Math.round(performance.now() - started)} ms`);
@@ -266,7 +247,6 @@ test("the preview's stale lock directory and half-switched junctions are repaire
     path.join(appDirectoryOf(a), "bin", "irudd.exe"),
     path.join(root, "bin", "irudd.exe"),
   );
-  // What the preview left when killed between its two renames of `current`.
   symlinkSync(a, path.join(root, "previous"), "junction");
   symlinkSync(b, path.join(root, ".current-11111111-2222-3333-4444-555555555555"), "junction");
   symlinkSync(a, path.join(root, ".current-11111111-2222-3333-4444-555555555555.old"), "junction");
@@ -290,7 +270,6 @@ test("launches racing switches always start a whole build; a running launcher is
   const holder = spawn(path.join(root, "bin", "irudd.exe"), ["hold"], { stdio: "pipe" });
   await new Promise((done) => holder.stdout.once("data", done));
   await activate(root, c);
-  // The running CLI launcher could not be replaced, and still starts build C.
   const placed = readFileSync(path.join(root, "bin", "irudd.exe"));
   assert.ok(!placed.equals(readFileSync(path.join(appDirectoryOf(c), "bin", "irudd.exe"))));
   assert.equal((await launch(root, "version")).out, commit(3));

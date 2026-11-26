@@ -1,5 +1,3 @@
-// Fast checks of the review verbs' argument parsing. Exports and inspections
-// against the real desktop renderer are covered by apps/desktop/scripts/qa-review.ts.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { UsageError } from "../src/commands.js";

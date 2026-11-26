@@ -1,6 +1,3 @@
-// Marks on an adult face (character-view/human-face-marks.js): what each kind
-// offers and the seeded draw of the marks that belong to the person.
-
 import { randomStream } from "./identity.js";
 
 export const faceMarkKindTable = {
@@ -109,7 +106,6 @@ function faceMark(
   return mark;
 }
 
-// sRGB bytes to linear light, held as Float32 as the reference table holds them.
 const decode = Float32Array.from({ length: 256 }, (_, i) => {
   const v = i / 255;
   return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
@@ -123,7 +119,6 @@ const smooth = (v: number, a: number, b: number) => {
   return t * t * (3 - 2 * t);
 };
 
-/** Marks that belong to the person, drawn from a seed. Most faces have none or one. */
 export function drawIdentityMarks(
   seed: number,
   { skin = "#b08566", age = 0 }: { skin?: string; age?: number } = {},

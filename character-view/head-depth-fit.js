@@ -2,9 +2,6 @@ import { Vector3 } from "three";
 
 const directions = [[0,0,1],[1,0,0],[-1,0,0]].map(d => new Vector3(...d));
 
-// One visible head vertex per small square, from the front and both profiles.
-// Choosing the outermost vertex before checking the normal excludes most
-// interior eyelid, nostril and mouth vertices from the projected constraints.
 export function headDepthSamples(surface, direction) {
   const head = surface.names.indexOf("head"), p = surface.positions;
   const spacing = 0.009 * surface.height / 1.72;

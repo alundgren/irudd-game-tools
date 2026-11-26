@@ -1,5 +1,3 @@
-// Offsets in the sweep's local metre frame. Row zero and the last row close
-// the fit into the original surface. Positive angles run from +Z toward +X.
 export function validRadialFit(fit) {
   return (
     fit &&

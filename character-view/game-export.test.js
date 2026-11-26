@@ -15,10 +15,8 @@ test("packed vertex colours and unused joint slots satisfy glTF bounds", () => {
   assert.deepEqual([...geometry.attributes.skinWeight.array], [.75, 0, .25, 0]);
 });
 
-// A canvas that draws nothing, so the exporter can lay out its atlas without a browser.
 const blank = () => ({ width: 1, height: 1, getContext: () => ({ fillRect() {}, clearRect() {}, drawImage() {}, putImageData() {}, set fillStyle(v) {},
   createImageData: (w, h) => ({ data: new Uint8ClampedArray(w * h * 4) }), getImageData: (x, y, w, h) => ({ data: new Uint8ClampedArray(w * h * 4).fill(255) }) }) });
-// One mesh with a material for each geometry, as a skinned character has, and the triangles each material is given.
 async function shares(pieces, target = 24000) {
   const geometry = mergeGeometries(pieces.map(([piece]) => piece), true);
   const materials = pieces.map(([, tag]) => Object.assign(new MeshStandardMaterial(), { userData: { ...tag } }));
@@ -108,7 +106,6 @@ test("a cast cutout uses square texels in the free quarter of the packed body ma
   const hair = new Mesh(new SphereGeometry(.2, 8, 6), new MeshStandardMaterial());
   body.material.userData.castBodySheet = true;
   hair.material.userData.castHairSheet = true;
-  // The body uses the left half. The cutout samples its whole source sheet.
   const bodyUV = body.geometry.attributes.uv;
   for (let i = 0; i < bodyUV.count; i++) bodyUV.setX(i, .5 * bodyUV.getX(i));
   globalThis.document = {createElement: blank};

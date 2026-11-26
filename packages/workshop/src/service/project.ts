@@ -1,16 +1,3 @@
-// The project service: the single authoritative writer of one project.
-//
-// Every write runs `reduce` on the document's current state, appends the
-// committed journal entry and the document header in one SQLite transaction,
-// and only then publishes the new state. A rejection or a replay writes
-// nothing. When the append fails, its outcome is unknown, so the cached state
-// is dropped and the next use recovers the document from disk; a retry with
-// the same request ID then commits once or replays the original receipt.
-//
-// Concurrency: one permit guards every write, every cache fill and backups.
-// Reads use the immutable published state without waiting. Across processes,
-// the store's exclusive file lock makes this service the only one.
-
 import {
   Actor,
   canonicalJson,
@@ -89,11 +76,6 @@ import { checkBlob, isDigest, sha256 } from "./blobs.js";
 import { headerCache, recoverDocument, referencedAssets, type Loaded } from "./recover.js";
 import { verifyStore } from "./verify.js";
 
-/**
- * Test-only fault points. `beforeCommit` runs inside the append transaction
- * after the rows are written; `afterCommit` runs after the commit and after the
- * new state is published, before the result is returned.
- */
 export interface ServiceHooks {
   readonly beforeCommit?: (documentId: string, sequence: number) => void;
   readonly afterCommit?: (documentId: string, sequence: number) => void;
@@ -136,20 +118,15 @@ function rejection(diagnostics: ReadonlyArray<Diagnostic>): ApplyResult {
 const sameActor = (a: Actor, b: Actor): boolean =>
   a.kind === b.kind && a.id === b.id && a.name === b.name;
 
-// ── Opening ─────────────────────────────────────────────────────────────────
-
-/** Create a new project directory and open it. The directory must not hold a project. */
 export const createProject = (
   options: CreateProjectOptions,
 ): Effect.Effect<Project, ProjectError, Scope.Scope> =>
   openWith(options, { create: options.label, inMemory: options.inMemory === true }, {});
 
-/** Open an existing project. Fails with `ProjectLocked` while another service owns it. */
 export const openProject = (
   options: OpenProjectOptions,
 ): Effect.Effect<Project, ProjectError, Scope.Scope> => openWith(options, {}, {});
 
-/** For tests: open with fault points. */
 export const openProjectWithHooks = (
   options: OpenProjectOptions & { readonly create?: string },
   hooks: ServiceHooks,
@@ -173,13 +150,10 @@ const openWith = (
       lockTimeoutMs: options.lockTimeoutMs ?? defaultLockTimeoutMs,
       durability: options.durability ?? "full",
     });
-    // Added after the store, so it runs first when the scope closes.
     let closed = false;
     yield* Effect.addFinalizer(() => Effect.sync(() => (closed = true)));
     return yield* makeProject(store, options, hooks, () => closed);
   });
-
-// ── The project ─────────────────────────────────────────────────────────────
 
 const makeProject = (
   store: Store,
@@ -214,7 +188,6 @@ const makeProject = (
         : Effect.void,
     );
 
-    /** Cached state, or recovery from disk. Call with the permit held. */
     const loadHeld = (documentId: DocumentId) =>
       Effect.suspend(() => {
         const known = cache.get(documentId);
@@ -242,7 +215,6 @@ const makeProject = (
           );
     };
 
-    /** A created document's state, for reads. */
     const existing = (documentIdText: string) =>
       Effect.gen(function* () {
         yield* open;
@@ -269,8 +241,6 @@ const makeProject = (
         journal: loaded.position,
       };
     };
-
-    // ── Writes ──────────────────────────────────────────────────────────────
 
     const apply = (
       caller: Caller,
@@ -313,23 +283,20 @@ const makeProject = (
                 return { kind: "replayed", receipt: outcome.receipt } as const;
               const entry = outcome.entry;
               const position: JournalPosition = { sequence: entry.sequence, digest: entry.digest };
-              yield* (
-                store
-                  .append(
-                    id,
-                    loaded.position,
-                    {
-                      sequence: entry.sequence,
-                      digest: entry.digest,
-                      requestId: entry.receipt.requestId,
-                      text: canonicalJson(journalJson(entry)),
-                    },
-                    headerCache(step.state),
-                    Effect.sync(() => hooks.beforeCommit?.(id, entry.sequence)),
-                  )
-                  // Failed or died: the commit's outcome is unknown, so recover from disk next time.
-                  .pipe(Effect.onError(() => Effect.sync(() => cache.delete(id))))
-              );
+              yield* store
+                .append(
+                  id,
+                  loaded.position,
+                  {
+                    sequence: entry.sequence,
+                    digest: entry.digest,
+                    requestId: entry.receipt.requestId,
+                    text: canonicalJson(journalJson(entry)),
+                  },
+                  headerCache(step.state),
+                  Effect.sync(() => hooks.beforeCommit?.(id, entry.sequence)),
+                )
+                .pipe(Effect.onError(() => Effect.sync(() => cache.delete(id))));
               cache.set(id, { state: step.state, position });
               hooks.afterCommit?.(id, entry.sequence);
               return {
@@ -346,7 +313,6 @@ const makeProject = (
     const putBlob: Session["putBlob"] = (input) =>
       Effect.gen(function* () {
         yield* open;
-        // Verify a private copy, so later changes to the caller's buffer cannot reach the store.
         const bytes = input.bytes instanceof Uint8Array ? new Uint8Array(input.bytes) : input.bytes;
         const check = checkBlob({ bytes, mediaType: input.mediaType, digest: input.digest });
         if (!check.ok)
@@ -405,8 +371,6 @@ const makeProject = (
             },
           },
         };
-        // A package's document.json is checked first against this build and
-        // project: features, part, pose and artwork references, catalogs.
         const checkHead = (raw: unknown, at: ReadonlyArray<string | number>) => {
           const checked = readDocument(raw, { registry: options.registry, environment: importEnv });
           if (checked.ok) return undefined;
@@ -546,8 +510,6 @@ const makeProject = (
         });
         return yield* importArchive(bytes);
       });
-
-    // ── Reads ───────────────────────────────────────────────────────────────
 
     const readBlob = (digest: string) =>
       Effect.gen(function* () {
@@ -811,12 +773,6 @@ const makeProject = (
     return project;
   });
 
-// ── Restore ─────────────────────────────────────────────────────────────────
-
-/**
- * Turn a backup file into a new project directory. The copy is verified in
- * full before it is moved into place; on any failure the directory is removed.
- */
 export const restoreProject = (
   options: RestoreProjectOptions,
 ): Effect.Effect<VerifyReport, ProjectError> =>
@@ -859,8 +815,6 @@ export const restoreProject = (
     );
   });
 
-/** Flush a finished file and move it into place. */
-/** Largest character file `openCharacter` reads into memory. */
 const maxCharacterBytes = 1024 * 1024 * 1024;
 
 const sealFile = (from: string, to: string) =>

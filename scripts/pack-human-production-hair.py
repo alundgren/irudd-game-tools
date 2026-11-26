@@ -138,17 +138,13 @@ for model, (name, edge) in styles.items():
     )
     card = np.array(texture)
     bottom = np.stack([gray(card, card[:, :, 3] / 255), card[:, :, 3]], axis=2)
-    # A band of skin-coloured roots tapers into the actual cap colour at the hairline.
     inside = distance_transform_edt(ah > 128)
-    # The ponytail's separate island ends in strands, with no skin at the tips.
     yy0, _ = np.indices(ah.shape)
     roots = np.uint8(np.clip(inside / 8.0, 0, 1) * 255)
     roots[yy0 > int(0.60 * 512)] = 255
     top = np.dstack((top, roots))
     bottom = np.dstack((bottom, np.full((512, 512), 255, "u1")))
     packed = np.vstack([top, bottom])
-    # Material 1 is the continuous skin and hair volume. Keep only faces reached by the hair mask.
-    # The opaque ponytail and sides have their own UV island in the lower right of female charts.
     soft = cv2.dilate(ah, np.ones((11, 11), "u1"))
     criterion = np.zeros(len(tri), bool)
     for weights in [
@@ -159,8 +155,6 @@ for model, (name, edge) in styles.items():
     cards = mat == 2
     cards &= uv.mean(1)[:, 1] < (0.84 if model.endswith("12") else 0.73)
     keep = (criterion & (mat == 1)) | cards
-    # Discard skin and necklace geometry below the jaw. Only the tied length
-    # behind the skull extends below the ear region in the source mesh.
     xyzMid = xyz[tri].mean(axis=1)
     keep &= (xyzMid[:, 1] > 1.634 - 0.065) | (xyzMid[:, 2] < -0.085)
 

@@ -1,11 +1,3 @@
-// Review verbs: export a named revision and inspect the GLB it produced.
-//
-// The project's host renders with the desktop app's isolated review worker.
-// The CLI reads every issued file back, checks its SHA-256 against the
-// manifest, and writes the files with that manifest beside them, so what
-// lands on disk is bound to the document, revision, digest and file SHA the
-// host reported.
-
 import fs from "node:fs";
 import path from "node:path";
 import { readArtifact, WorkshopError, type WorkshopClient } from "@irudd/workshop/client";
@@ -62,7 +54,6 @@ function out(context: Context): string {
   return path.resolve(value);
 }
 
-/** Renderer unavailable: say why and what to do, and exit as for an unavailable host. */
 async function guarded(context: Context, body: () => Promise<number>): Promise<number> {
   try {
     return await body();
@@ -78,7 +69,6 @@ async function guarded(context: Context, body: () => Promise<number>): Promise<n
   }
 }
 
-/** Parse `view=front,clip=Walk,time=0.5,surface=ink,morph=Smile,yaw=-30,pitch=10,gaze=0.5:0,light=studio`. */
 export function parseShot(raw: string): ReviewShot {
   const fields = new Map<string, string>();
   for (const part of raw.split(",")) {

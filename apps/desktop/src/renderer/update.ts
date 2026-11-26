@@ -1,7 +1,3 @@
-// The update control in the status bar of the installed app. Updates are
-// built in the background; the person chooses when to restart, can cancel a
-// build, retry after a failure and return to the previous version.
-
 import type { DesktopApi, UpdateAction, UpdateStatus } from "../shared/api.js";
 import { button, byId, el } from "./dom.js";
 

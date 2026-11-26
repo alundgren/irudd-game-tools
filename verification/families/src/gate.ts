@@ -1,25 +1,3 @@
-// G4a families gate: the corpus G0 exported, split into participating and pending forms.
-//
-//   node --import ../../packages/document/test/support/register.ts src/locked.ts src/gate.ts [--participating]
-//
-// The corpus is every form in G0's export-a/export.json: tracked examples and
-// seeded generator output, each checked against the SHA-256 G0 recorded. A form
-// participates when its prepared fixture is checked in. For it the gate
-// requires:
-//
-// - preparing the source again gives the same document as the fixture
-// - each preset exports with no structural difference, every accessor within
-//   tolerance and every embedded image pixel-identical to G0's export at the
-//   same preset; a preset that produces no GLB fails
-//
-// Clay runs in Node. Full, Game and Portrait run in installed Chrome with a
-// hardware GPU, the browser G0 exported with, under the shared GPU lock: run
-// this through src/locked.ts.
-//
-// Any other form is pending, listed with the fields that have no ported family.
-// A form that prepares cleanly without a checked-in fixture fails the gate, so
-// coverage cannot lag silently. The report goes to .reference-cache/g4a/gate.json.
-
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -55,7 +33,6 @@ import {
   type Row,
 } from "./run.js";
 
-/** Presets the new builders export. */
 const portedPresets: ReadonlyArray<Preset> = ["clay", ...texturedPresets];
 const pendingPresets: ReadonlyArray<Preset> = [];
 const tolerance = 1e-5;
@@ -108,7 +85,6 @@ function corpus(): Map<string, string> {
 }
 
 function locate(name: string): Source {
-  // G0 exported two raw examples from copies wrapped in the form envelope, which the workshop requires.
   const wrapped = join(g0Dir, "wrapped", name + ".form.json");
   if (existsSync(wrapped)) return { name, file: wrapped, origin: "example" };
   const example = join(examplesDir, name + ".form.json");
@@ -118,7 +94,6 @@ function locate(name: string): Source {
   throw new Error(`No source form for ${name}.`);
 }
 
-/** A field path without its part ID, so pending forms can be grouped by family. */
 const fieldKind = (field: string): string =>
   field.replace(/^parts\[[^\]]*\]\s?/, "part ").replace(/^part \./, "part.");
 
@@ -232,7 +207,6 @@ interface RepaintResult {
   readonly error?: string;
 }
 
-/** A body repainted with typed operations, exported beside its unchanged form. */
 interface RepaintCase {
   readonly base: Ready;
   readonly doc: CharacterDocument;
@@ -244,7 +218,6 @@ const bodyOf = (doc: CharacterDocument) => {
   return body;
 };
 
-/** feline-worker's body repainted from the bundled courier sheet. */
 function courierCase(base: Ready): RepaintCase {
   const courier = bundledAssetNamed("courier");
   if (!courier) throw new Error("The repaint check needs the bundled courier sheet.");
@@ -252,13 +225,6 @@ function courierCase(base: Ready): RepaintCase {
   return { base, doc: applyChecked(base.fixture, ops) };
 }
 
-/**
- * harbour-trader's body repainted with the sheet G0 accepted in its own
- * selected-body repaint (verification/baseline/paint.py). The typed
- * operations must give exactly the document that preparing G0's saved form
- * gives: the body's atlas, the new sheet's asset and every retained occluder.
- * A missing or mismatched recording fails, so the check cannot pass vacuously.
- */
 function oracleCase(base: Ready, failures: string[]): RepaintCase | undefined {
   const fail = (message: string): undefined => {
     failures.push(`repaint oracle: ${message}`);
@@ -311,12 +277,6 @@ function oracleCase(base: Ready, failures: string[]): RepaintCase | undefined {
   return { base, doc };
 }
 
-/**
- * Export each repainted case next to its unchanged form. Geometry and
- * structure must be identical and the body's texture must change: exactly one
- * baked image at Full (its neighbours keep theirs, because the old sheet keeps
- * the body as an occluder), and the shared atlas at Game.
- */
 async function repaintCheck(
   runner: TexturedRunner,
   cases: ReadonlyArray<RepaintCase>,
@@ -377,7 +337,6 @@ async function repaintCheck(
   );
 }
 
-/** Export every ready form at each preset: clay in Node, the rest in one Chrome session. */
 async function exportReady(
   ready: ReadonlyArray<Ready>,
   failures: string[],
@@ -394,8 +353,6 @@ async function exportReady(
     const runner = await openTextured();
     try {
       session = runner.session;
-      // An artist can choose Game as their first export after opening the app.
-      // Check the leather bump map before any other export warms the surface kit.
       const coldName = "moraine-mantle-repair";
       const cold = ready.find((r) => r.source.name === coldName);
       if (!cold) throw new Error(`Missing cold Game export fixture ${coldName}.`);
@@ -409,7 +366,6 @@ async function exportReady(
         ready.map((r) => ({
           name: r.source.name,
           doc: r.fixture,
-          // G0 also exported a wardrobe form's saved outfits; that export must verify too.
           presets: frozen(`${r.source.name}-${wardrobeTarget}.glb`)
             ? [...texturedPresets, wardrobeTarget]
             : texturedPresets,
@@ -475,7 +431,6 @@ if (import.meta.main) {
   const { values } = parseArgs({ options: { participating: { type: "boolean", default: false } } });
   const started = performance.now();
   const source = gateSource();
-  // The native adults are prepared against the adult body pack.
   await preparePacks();
   const failures: string[] = [];
   const checked: Array<Entry | Ready> = [];

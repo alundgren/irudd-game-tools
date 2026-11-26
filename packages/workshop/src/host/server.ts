@@ -1,5 +1,3 @@
-// The host's side of one connection: handshake, then calls.
-
 import { Effect } from "effect";
 import { randomBytes } from "node:crypto";
 import type net from "node:net";
@@ -24,7 +22,6 @@ import type { Caller, Dispatcher } from "./dispatch.js";
 import type { AgentLink } from "../steering/service.js";
 import type { ReviewJobEvent } from "../wire/review.js";
 
-/** A connection that called `subscribe`: people get commits and steering changes, agents commits. */
 export interface Subscriber {
   readonly role: "human" | "agent";
   readonly send: (event: HostEvent) => void;
@@ -75,7 +72,6 @@ export function serveConnection(socket: net.Socket, context: ConnectionContext):
 
   let subscriber: Subscriber | undefined;
   let link: AgentLink | undefined;
-  // This connection, for the review renderer an attached desktop may serve on it.
   const connection = {
     id: randomBytes(12).toString("hex"),
     write: (event: ReviewJobEvent): boolean => {

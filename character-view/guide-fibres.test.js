@@ -83,7 +83,6 @@ test("every strand root seats at the measured world depth on a scaled and rotate
   const normal = new Vector3(0, 0, 1).transformDirection(carrier.matrixWorld);
   for (let strandId = 0; strandId < style.count; strandId++) {
     const center = new Vector3();
-    // Five distinct sides and a repeated UV seam in the first cross-section.
     for (let j = 0; j < 5; j++)
       center.add(
         new Vector3().fromBufferAttribute(

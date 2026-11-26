@@ -1,11 +1,3 @@
-// Local tone for bare body skin (character-view/human-skin-tone.js at
-// 2761eb1). Hollows between tendons, knuckles and collarbones sit a little
-// deeper in the skin's own hue, and skin that differs on anybody (knuckle
-// creases, nails, the navel and the folds of a joint, measured from the CC0
-// MakeHuman skins) is darker or redder. It is held on the vertices of the
-// smooth surface the head and the body are both cut from, and fades out over
-// the neck before it reaches the painted face.
-
 import type * as T from "three";
 import { boneNames } from "./catalogue.js";
 import type { HumanPaint } from "./paint-data.js";
@@ -18,7 +10,6 @@ const smooth = (v: number, a: number, b: number) => {
 };
 const at = (a: ArrayLike<number>, i: number) => a[i] ?? 0;
 
-// How strongly a region flushes, by the joint that carries it.
 function flushOf(name: string): number {
   if (/_03_/.test(name)) return 1;
   if (/^(index|middle|ring|pinky|thumb)_/.test(name)) return 0.8;
@@ -77,12 +68,6 @@ function relax(
   return from;
 }
 
-/**
- * Where the surface is hollow (positive) or stands proud (negative), per
- * vertex, relative to the size of the form around it: a fine scale for
- * knuckles and tendons and a broad one for collarbones, the throat and the
- * hollow of a knee.
- */
 function skinRelief(surface: SmoothSurface, normals: ArrayLike<number>): Float32Array {
   const count = surface.positions.length / 3,
     corners = surface.bodyTriangles * 3;
@@ -110,21 +95,15 @@ function skinRelief(surface: SmoothSurface, normals: ArrayLike<number>): Float32
         span += Math.sqrt(x * x + y * y + z * z);
       }
       span /= at(near.start, v + 1) - at(near.start, v);
-      // The smoothed neighbourhood sets the scale, so a child and a giant shade alike.
       relief[v] = at(relief, v) + (weight * offset) / Math.max(span * Math.sqrt(until), 1e-6);
     }
   }
-  // A finger or an arm is round all over. Keep what differs from the form around it.
   const local = relax(relief, 1, near, 2),
     around = relax(local, 1, near, 14);
   for (let v = 0; v < count; v++) local[v] = at(local, v) - at(around, v);
   return local;
 }
 
-/**
- * Linear colour multipliers per vertex, never above one, for a body of this
- * skin colour. Vertices that move wholly with the head keep exactly one.
- */
 export function skinShade(
   surface: SmoothSurface,
   normals: ArrayLike<number>,
@@ -156,7 +135,6 @@ export function skinShade(
     const redder = packed
       ? Math.max(0, ((at(packed, v * 2 + 1) - 128) / 127) * warmRange - 0.02)
       : 0;
-    // A hollow is deeper and more saturated; blood shows where skin is thin over bone.
     const deep = body * Math.min(0.75, 0.42 * hollow + 2.2 * darker);
     const blood = body * Math.min(2.2, 0.45 * warm + 0.9 * proud * (0.4 + 0.6 * warm) + 7 * redder);
     for (let d = 0; d < 3; d++)

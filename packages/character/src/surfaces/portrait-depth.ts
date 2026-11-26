@@ -1,18 +1,9 @@
-// A traced front's depth: paired depth landmarks and a fitted grayscale depth
-// field. Ported from character-view/depth-pins.js and
-// character-view/portrait-depth.js at 2761eb1.
-
 import * as T from "three";
 import { depthFieldSize, type DepthField, type DepthPin, type FigurePaint } from "@irudd/document";
 import { unpack } from "./packed.js";
 
 const [width, height] = depthFieldSize;
 
-/**
- * Blend a fitted depth field into a traced face's front. One linear camera
- * maps the field's gray onto the face's own depth, fitted over its central
- * front, so the field's lighting never sets its scale.
- */
 export function applyPortraitDepth(
   geometry: T.BufferGeometry,
   paint: Pick<FigurePaint, "height" | "offset" | "rest">,
@@ -91,7 +82,6 @@ export function applyPortraitDepth(
   return geometry;
 }
 
-/** The frontmost surface depth at an exact XY position in the sweep's frame. */
 function frontDepth(geometry: T.BufferGeometry, x: number, y: number): number | undefined {
   const a = geometry.getAttribute("position");
   const indices = geometry.getIndex();
@@ -131,13 +121,11 @@ function frontDepth(geometry: T.BufferGeometry, x: number, y: number): number | 
   return Number.isFinite(best) ? best : undefined;
 }
 
-/** Wendland's compactly supported weight. */
 function weight(dx: number, dy: number, r: number): number {
   const t = Math.hypot(dx, dy) / r;
   return t >= 1 ? 0 : (1 - t) ** 4 * (4 * t + 1);
 }
 
-/** Gauss-Jordan elimination with partial pivoting of an augmented matrix. */
 function solve(matrix: number[][]): number[] {
   const n = matrix.length;
   const row = (i: number): number[] => {
@@ -165,10 +153,6 @@ function solve(matrix: number[][]): number[] {
   return matrix.map((r) => r[n] ?? 0);
 }
 
-/**
- * Move the front of a sweep so each paired landmark lands at its traced
- * depth, interpolating between them with compact radial weights.
- */
 export function fitDepth(
   geometry: T.BufferGeometry,
   pins: ReadonlyArray<DepthPin> | undefined,

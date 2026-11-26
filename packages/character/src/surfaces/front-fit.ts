@@ -1,14 +1,8 @@
-// A face warped to landmarks traced on a portrait. Ported from headFrame,
-// portraitAxes, applyFrontFit and carryFaceEdits in
-// character-view/front-fit.js at 2761eb1, arithmetic in the same order so the
-// vertices match.
-
 import type { FrontFitPass, FrontFitView } from "@irudd/document";
 import * as T from "three";
 import { isMesh } from "../mesh.js";
 import { sectionDepth, type SurfaceMove } from "./profile-fit.js";
 
-/** A face's bounds centre and its scale to head-height units. */
 export interface HeadFrame {
   readonly center: T.Vector3;
   readonly factor: T.Vector3;
@@ -33,7 +27,6 @@ interface Axes {
   readonly out: T.Vector3;
 }
 
-/** Orthonormal frame of an upright camera orbiting a head centred at the origin. */
 export function portraitAxes(yaw = 0, pitch = 0): Axes {
   const y = T.MathUtils.degToRad(yaw);
   const p = T.MathUtils.degToRad(pitch);
@@ -49,14 +42,8 @@ interface Pin {
   readonly shift: readonly [number, number];
 }
 
-/**
- * Fit a local 2D similarity at each projected vertex (moving least squares,
- * Schaefer, McPhail & Warren, 2006). Broad shifts can then narrow a whole jaw
- * without creating an indentation just under each selected point.
- */
 function frontalWarp(pass: FrontFitPass): (x: number, y: number, z: number) => [number, number] {
   const pins: Pin[] = [...pass.pins];
-  // Free boundary controls keep a sparse mouth/jaw fit from resizing the crown.
   for (const [x, y] of [
     [0, 0.49],
     [-0.32, 0.47],
@@ -113,18 +100,11 @@ function frontalWarp(pass: FrontFitPass): (x: number, y: number, z: number) => [
     }
     const local =
       1 - T.MathUtils.smoothstep(Math.sqrt(nearest), pass.radius * 0.65, pass.radius * 1.8);
-    // Side contours carry their nearby rear surface with them. The middle of
-    // the occiput stays behind the editing area.
     const depth = T.MathUtils.smoothstep(z + 0.55 * Math.abs(x), -0.52, -0.16);
     return [dx * local * depth * pass.amount, dy * local * depth * pass.amount];
   };
 }
 
-/**
- * A depth correction is a scalar field over the anatomical front plane.
- * Moving every point in the same column monotonically keeps a large nose
- * correction from folding the far eyelid or the underside of the nose.
- */
 function depthWarp(
   pass: FrontFitPass,
   view: FrontFitView,
@@ -165,10 +145,6 @@ function depthWarp(
   };
 }
 
-/**
- * Warp `mesh` by one front-fit pass, carrying what `owner` holds near the
- * face with it. `retainProfile` keeps a fitted side contour's depth.
- */
 export function applyFrontFit(
   mesh: T.Mesh,
   pass: FrontFitPass,
@@ -239,12 +215,6 @@ export function applyFrontFit(
   carryFaceEdits(mesh, owner, { center, factor }, move, (x, y, z) => keepDepth(...move(x, y, z)));
 }
 
-/**
- * Carry what `owner` holds through a face's warp. A spectacle rim, an ear and
- * its attached hair occupy different local frames: nearby vertices move
- * through the same field as the face, rigid face pieces follow their anchor,
- * and eye pieces and their keyed positions move in the face's own frame.
- */
 export function carryFaceEdits(
   mesh: T.Mesh,
   owner: T.Object3D,
@@ -307,8 +277,6 @@ export function carryFaceEdits(
       g.computeBoundingSphere();
     }
   });
-  // Eye patches and each keyed position live in the face's local coordinates.
-  // Warp both endpoints before reconstructing the relative gaze or blink.
   for (const eye of mesh.children) {
     if (!isMesh(eye) || !eye.userData["eyePiece"]) continue;
     const eg = eye.geometry;

@@ -1,23 +1,3 @@
-// The workshop wire protocol, "irudd.workshop-wire" version 1.
-//
-// A project host (desktop main or the headless host) serves one open project
-// over an OS-local endpoint: a named pipe on Windows, a Unix domain socket
-// elsewhere. Frames are UTF-8 JSON, one per line. Every frame a peer receives
-// is decoded with the schemas below before it is acted on.
-//
-//   client → host  hello      role, agent ID (agents only), client nonce
-//   host → client  challenge  host nonce and the host's proof of the shared key
-//   client → host  auth       the client's proof
-//   host → client  welcome    the actor the host bound to this connection
-//                  refused    a typed error, then the host closes
-//   client → host  call       {id, method, params}
-//   host → client  reply      {id, ok, value | error}
-//   host → client  event      a commit, after `subscribe`
-//
-// The client never names its actor. The host stamps the actor bound to the
-// credential into every command, so an agent connection cannot act as a person.
-// This module is client-safe: it reaches no storage code.
-
 import { Schema } from "effect";
 import {
   Actor,
@@ -67,12 +47,8 @@ export { AgentId, PairingId, SteeringMessageId } from "./ids.js";
 
 export const wireProtocol = "irudd.workshop-wire";
 export const wireVersion = 1;
-/** Largest frame either side accepts, in bytes of UTF-8 JSON. */
 export const maxFrameBytes = 32 * 1024 * 1024;
-/** A connection that has not authenticated within this time is closed. */
 export const handshakeTimeoutMs = 5000;
-
-// ── Handshake ───────────────────────────────────────────────────────────────
 
 const Nonce = Schema.String.check(
   Schema.isPattern(/^[A-Za-z0-9_-]{43}$/, { message: "Use 32 random bytes in base64url." }),
@@ -87,7 +63,6 @@ export const Hello = Schema.Struct({
   wire: Schema.Literal(wireProtocol),
   version: Schema.Literal(wireVersion),
   role: Schema.Literals(["human", "agent"]),
-  /** Agents name the pairing they authenticate with. */
   agent: Schema.optionalKey(AgentId),
   nonce: Nonce,
   client: Schema.Struct({ name: ShortText, version: ShortText }),
@@ -97,7 +72,6 @@ export type Hello = typeof Hello.Type;
 export const Challenge = Schema.Struct({
   t: Schema.Literal("challenge"),
   nonce: Nonce,
-  /** HMAC(key, "host" | client nonce | host nonce): the host holds the same key. */
   proof: Proof,
 });
 export type Challenge = typeof Challenge.Type;
@@ -107,10 +81,8 @@ export type Auth = typeof Auth.Type;
 
 export const HostIdentity = Schema.Struct({
   pid: Schema.Int,
-  /** Random per host start; a restarted host has a new instance. */
   instance: Schema.String,
   startedAt: Schema.Number,
-  /** `desktop` or `headless`. */
   kind: Schema.Literals(["desktop", "headless"]),
 });
 export type HostIdentity = typeof HostIdentity.Type;
@@ -129,7 +101,6 @@ export const Welcome = Schema.Struct({
 });
 export type Welcome = typeof Welcome.Type;
 
-/** A failure as it crosses the wire: the error's `_tag`, `message` and plain fields. */
 export interface WireErrorShape {
   readonly _tag: string;
   readonly message: string;
@@ -143,8 +114,6 @@ const ErrorValue = Schema.Unknown.pipe(
 );
 
 export const Refused = Schema.Struct({ t: Schema.Literal("refused"), error: ErrorValue });
-
-// ── Calls ───────────────────────────────────────────────────────────────────
 
 const CallId = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: Number.MAX_SAFE_INTEGER }));
 
@@ -183,37 +152,26 @@ export const CommitEvent = Schema.Struct({
 });
 export type CommitEvent = typeof CommitEvent.Type;
 
-/** Frames a host accepts after the handshake. */
 export const ClientFrame = Call;
-/** Events a host sends after `subscribe` (commits, steering changes) or `inbox.watch`. */
 export const HostEvent = Schema.Union([CommitEvent, SteerEvent, InboxEvent, ReviewJobEvent]);
 export type HostEvent = typeof HostEvent.Type;
-/** Frames a client accepts after the handshake. */
 export const HostFrame = Schema.Union([Reply, CommitEvent, SteerEvent, InboxEvent, ReviewJobEvent]);
 export type HostFrame = typeof HostFrame.Type;
-
-// ── Methods ─────────────────────────────────────────────────────────────────
 
 const Revision = Schema.Int.check(
   Schema.isBetween({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER }),
 );
 const Empty = Schema.Struct({});
 const Doc = Schema.Struct({ documentId: DocumentId });
-/** An absolute file path on the host's machine; the host and its clients share one OS account. */
 const FilePath = Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(4096));
 const StarterId = Schema.String.check(
   Schema.isPattern(/^[a-z0-9][a-z0-9.-]{0,63}$/, { message: "Use a starter ID from `starters`." }),
 );
 
-/** Parameter schemas for every method, shared by clients and the host. */
 export const methodParams = {
-  /** The open project and the host serving it. */
   "project.info": Empty,
-  /** The person's editor reads a verified project image for the head or a proposal. */
   "project.image": Schema.Struct({ digest: Digest, offset: Revision }),
-  /** The actor and role the host bound to this connection. */
   whoami: Empty,
-  /** Generators and presets this host's registry really provides. */
   starters: Empty,
   documents: Empty,
   current: Doc,
@@ -226,15 +184,7 @@ export const methodParams = {
   diff: Schema.Struct({ documentId: DocumentId, from: Revision, to: Revision }),
   draft: Schema.Struct({ documentId: DocumentId, proposalId: ProposalId }),
   receipt: Schema.Struct({ documentId: DocumentId, requestId: RequestId }),
-  /**
-   * One command envelope. `actor` is left out: the host stamps the connection's
-   * actor. An envelope that names an actor is refused with `forbidden`.
-   */
   apply: Schema.Struct({ request: JsonValue }),
-  /**
-   * Create a document from a starter: a registered generator with one of a
-   * preset, a seed or explicit parameters (default: the `default` preset).
-   */
   start: Schema.Struct({
     documentId: DocumentId,
     requestId: RequestId,
@@ -246,20 +196,12 @@ export const methodParams = {
     ),
     params: Schema.optionalKey(JsonValue),
   }),
-  /** Receive commit events on this connection. */
   subscribe: Empty,
-  /** People only: pair an agent and write its credential file. */
   "pair.agent": Schema.Struct({ agent: AgentId, name: Schema.optionalKey(Schema.String) }),
   "pair.list": Empty,
   "pair.revoke": Schema.Struct({ agent: AgentId }),
-  /** People only: full integrity check of the open project. */
   verify: Empty,
-  /**
-   * People only: save a character as an `.irudd-character` package (ZIP with
-   * document.json, history and artwork) at an absolute path that does not exist.
-   */
   "document.save": Schema.Struct({ documentId: DocumentId, path: FilePath }),
-  /** People only: open a saved character (package or JSON archive) into this project. */
   "document.open": Schema.Struct({ path: FilePath }),
   ...steeringParams,
   ...reviewParams,
@@ -271,7 +213,6 @@ export const methodNames = Object.keys(methodParams).filter(isMethodName);
 export type MethodParams = { readonly [M in MethodName]: (typeof methodParams)[M]["Encoded"] };
 export type DecodedParams = { readonly [M in MethodName]: (typeof methodParams)[M]["Type"] };
 
-/** Methods an agent connection may call. Everything else needs a person. */
 export const agentMethods: ReadonlySet<MethodName> = new Set<MethodName>([
   "project.info",
   "whoami",
@@ -291,7 +232,6 @@ export const agentMethods: ReadonlySet<MethodName> = new Set<MethodName>([
   ...artAgentMethods,
 ]);
 
-/** Commands the host never accepts from an agent, whatever the document policy says. */
 export const humanOnlyCommands: ReadonlySet<string> = new Set(["policy.set"]);
 
 export interface StarterPreset {
@@ -302,33 +242,18 @@ export interface StarterPreset {
 
 export interface Starter {
   readonly id: string;
-  /**
-   * `generator`: a registered generator with presets and, when `seeded`, seeds.
-   * `form`: a prepared document the host holds; `start` creates a copy under the new ID.
-   */
   readonly kind: "generator" | "form";
   readonly label: string;
-  /** The generator behind a `generator` starter; null for a prepared form. */
   readonly generator: {
     readonly id: string;
     readonly version: number;
     readonly label: string;
   } | null;
-  /**
-   * A reference generator exists to exercise the protocol with a real,
-   * deterministic generator. It is not a character family.
-   */
   readonly reference: boolean;
   readonly description: string;
   readonly presets: ReadonlyArray<StarterPreset>;
-  /** Whether `seed` derives parameters deterministically within the generator's ranges. */
   readonly seeded: boolean;
-  /** Feature families a prepared form uses. Empty for generator starters. */
   readonly features: ReadonlyArray<string>;
-  /**
-   * Artwork a prepared form declares: whether this host ships its bytes, with
-   * their origin and licence. `start` stages shipped bytes into the project.
-   */
   readonly artwork?: ReadonlyArray<{
     readonly digest: string;
     readonly shipped: boolean;
@@ -343,20 +268,17 @@ export interface Starter {
 
 export interface StartersView {
   readonly starters: ReadonlyArray<Starter>;
-  /** Registered family features: documents using them are created from a prepared form. */
   readonly families: ReadonlyArray<{ readonly id: string; readonly version: number }>;
 }
 
 export interface StartResult {
   readonly starter: string;
   readonly kind: "generator" | "form";
-  /** Null for a prepared form. */
   readonly generator: { readonly id: string; readonly version: number } | null;
   readonly preset: string | null;
   readonly seed: number | null;
   readonly params: unknown;
   readonly result: ApplyResult;
-  /** A prepared form's declared artwork, staged into the project before the document was created. */
   readonly artwork?: ReadonlyArray<{
     readonly digest: string;
     readonly stored: "new" | "existing";
@@ -370,14 +292,12 @@ export interface StartResult {
 
 export interface Pairing {
   readonly agent: string;
-  /** Changes whenever the agent is paired again; recipients and messages are bound to it. */
   readonly pairingId: string;
   readonly name: string | null;
   readonly createdAt: number;
 }
 
 export interface PairResult extends Pairing {
-  /** The credential file the MCP server reads. It never crosses the wire. */
   readonly credentialFile: string;
 }
 
@@ -385,7 +305,6 @@ export interface ProjectInfoView extends ProjectInfo {
   readonly host: HostIdentity;
 }
 
-/** What each method returns. */
 export interface MethodResults extends ReviewMethodResults, ArtMethodResults {
   readonly "project.info": ProjectInfoView;
   readonly "project.image": ArtReadView;
@@ -423,8 +342,6 @@ export interface MethodResults extends ReviewMethodResults, ArtMethodResults {
   readonly "inbox.pushed": SteeringMessage;
 }
 
-// ── Codecs ──────────────────────────────────────────────────────────────────
-
 export function isMethodName(name: string): name is MethodName {
   return Object.hasOwn(methodParams, name);
 }
@@ -447,15 +364,10 @@ export function decodeParams(
   return decodeWith(methodParams[method], params, ["params"]);
 }
 
-/** Encode one frame as a line. */
 export function encodeFrame(frame: unknown): string {
   return JSON.stringify(frame, (_key, value: unknown) => (Object.is(value, -0) ? 0 : value)) + "\n";
 }
 
-/**
- * Turn any failure into its wire shape. Tagged errors keep their plain fields;
- * `cause` and other non-JSON values are dropped.
- */
 export function toWireError(error: unknown): WireErrorShape {
   if (isWireError(error)) {
     const fields: Record<string, unknown> = {};
@@ -478,10 +390,6 @@ function isPlain(value: unknown, depth = 0): boolean {
   return false;
 }
 
-/**
- * Splits a byte stream into decoded JSON lines. A line longer than
- * `maxFrameBytes` or one that is not JSON is reported once and ends the stream.
- */
 export class FrameReader {
   private buffer = "";
   private failed = false;

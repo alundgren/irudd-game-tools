@@ -37,7 +37,6 @@ test("the resolver refuses bytes that do not hash to the digest", () => {
   tampered[tampered.length - 1] = (tampered.at(-1) ?? 0) ^ 1;
   assert.equal(assetResolver({ bundled: () => bytes }).resolve(asset.digest)?.source, "bundled");
   assert.equal(assetResolver({ bundled: () => tampered }).resolve(asset.digest), undefined);
-  // Project blobs are verified the same way.
   const blob = new Uint8Array([1, 2, 3]);
   const digest = digestBrand(sha256Digest(blob));
   const project = (bytes: Uint8Array) =>
@@ -134,6 +133,5 @@ test("project artwork carries the document's credit; bundled files keep their sh
   assert.equal(artwork[1]?.credit?.author, "Ada Weaver");
   assert.equal(artwork[1]?.credit?.submittedBy.id, "claude");
   assert.equal(artwork[2]?.credit?.summary, "Oilskin repaint");
-  // Only stated credits and licences become copyright lines.
   assert.deepEqual(creditsFor(artwork), ["turnaround artwork by Ada Weaver (CC-BY-4.0)"]);
 });

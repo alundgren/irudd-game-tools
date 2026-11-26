@@ -1,47 +1,3 @@
-// Hidden end-to-end run of the desktop's art panel on the hardware GPU, with
-// a local paired agent client standing in for the agent's conversation. Take
-// the GPU lock around it:
-//
-//   pnpm --filter @irudd/desktop build
-//   powershell -NoProfile -File verification/families/gpu-lock.ps1 \
-//     pnpm --filter @irudd/desktop qa:art [-- --keep] [--packaged "<Irudd Workshop directory>"] [--out DIR]
-//   pnpm --filter @irudd/verification-families gate:trace-desktop
-//
-// The person starts feline-worker, writes a turnaround brief for the body
-// with a captured editor view, and sends it to the paired agent. The agent
-// client reads the brief and its pictures, checks sizes, media types and
-// digests, and answers with the tracked courier sheet. The reply shows in the
-// panel with its file, becomes a proposal the person previews, accepts and
-// undoes, and the accepted document equals the person's own repaint from the
-// same sheet. A second brief is answered after the person edited the head:
-// the head stays, the reply is flagged stale and a repeat is marked as a
-// duplicate. The person then starts coastal-biologist, selects its traced
-// head and sends a depth brief with the head's sheet panels. The agent's own
-// CLI answers with a depth pass drawn over the front panel: the fit is
-// previewed, accepted and undone, a repeat is a duplicate, and the review
-// worker's clay exports show only the head's mesh moved. A trace brief is
-// answered with five face marks and two depth pairs measured on those panels,
-// plus a collar region: the face is calibrated, the pins are added, the
-// collar is named as not built, only the head moves in the export and the
-// worker draws the fitted portrait. A person's depth import becomes their
-// proposal, and cancelling refuses a later reply. Last the person sends a
-// trace brief that builds, on the body: the agent's CLI answers with regions
-// outlined on the body's real sheet (a volume, a loft, a membrane and a path
-// under it, the body itself and one region outside the subject). The
-// proposal is the character package's build of those panels, the region
-// outside is named as not built, the preview is
-// accepted as shown, the clay export keeps every existing vertex, the worker
-// draws the textured body with the new parts, and undo and redo follow. The
-// measured panels, the map and each built part's geometry and standing
-// position are saved to DIR (by default .reference-cache/g4a/trace-desktop)
-// as trace-build.json, where verification/families/src/trace-desktop.ts
-// builds the same map with G0's buildTraceMap and compares every part.
-// Throughout, the app's process tree holds only Electron's own processes: it
-// starts no model session.
-//
-// The brief goes to the agent's inbox route; no T3, Claude or Codex
-// conversation is reached. Nothing here ships.
-
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
 import {
@@ -123,7 +79,6 @@ const results: { step: string; ms: number; detail?: unknown }[] = [];
 const problems: string[] = [];
 
 let app: { page: Page; browser: Browser; pid: number; close(): Promise<void> } | undefined;
-/** What the app said and did before a failure: its stderr tail and how its page or process ended. */
 let appLog = "";
 const appEvents: string[] = [];
 let appExited: Promise<void> = Promise.resolve();
@@ -238,14 +193,11 @@ async function launch(): Promise<NonNullable<typeof app>> {
   };
 }
 
-/** Every process descended from the app, with its executable. */
 interface AppProcess {
   pid: number;
   name: string;
   path: string;
-  /** Chromium's process type (`browser` for Electron's main process). */
   type: string;
-  /** Working set in MB. */
   mb: number;
 }
 
@@ -289,7 +241,6 @@ function processTree(root: number, withRoot = false): ReadonlyArray<AppProcess> 
   return rows.filter((r) => tree.has(r.pid) && (withRoot || r.pid !== root));
 }
 
-/** The app's processes' working sets, to see which one grows before a failure. */
 function appMemory(label: string): void {
   if (!app) return;
   const tree = processTree(app.pid, true);
@@ -343,7 +294,6 @@ function ownRepaint(base: CharacterDocument, digest: string, byteLength: number)
   return checked.value;
 }
 
-/** The panel as the person sees it: its text and every picture it shows, decoded. */
 async function panelEvidence(page: Page, name: string): Promise<void> {
   const shown = await page.evaluate(async () => {
     const root = document.querySelector("#art");
@@ -365,7 +315,6 @@ async function panelEvidence(page: Page, name: string): Promise<void> {
   writeFileSync(join(evidence, `${name}.json`), JSON.stringify(shown, null, 2));
 }
 
-/** Sample the same editor camera after a draw, while the WebGL drawing buffer is valid. */
 async function editorPixels(page: Page): Promise<number[]> {
   return page.evaluate(async () => {
     const canvas = document.querySelector("#viewport canvas");
@@ -390,7 +339,6 @@ function changedPixels(a: number[], b: number[]): number {
   return changed;
 }
 
-/** A call through the window's own bridge, as the page makes it. */
 function windowCall(page: Page, method: string, params: unknown): Promise<unknown> {
   return page.evaluate(
     async ([m, p]) => {
@@ -420,7 +368,6 @@ async function waitRevision(page: Page, at: number): Promise<void> {
   );
 }
 
-/** Compose and send a brief in the panel, as the person does. */
 async function sendBrief(
   page: Page,
   brief: {
@@ -443,7 +390,6 @@ async function sendBrief(
     await art.locator("button:has-text('Add editor view')").click();
     await art.locator(".art-compose .art-figure").nth(i).waitFor({ timeout: 20_000 });
   }
-  // The direction box is drawn again after each capture; type it last.
   await art.locator('textarea[aria-label="Direction"]').fill(brief.direction);
   await art.locator('textarea[aria-label="Direction"]').dispatchEvent("input");
   await art.locator("button:has-text('Send brief')").click();
@@ -500,7 +446,6 @@ try {
       client: { name: "desktop-qa-art", version: "1" },
       stateDir,
     });
-    // The panel lists the new pairing.
     await page.waitForSelector('#art select[aria-label="Paired agent"] option[value="claude"]', {
       state: "attached",
     });
@@ -725,9 +670,6 @@ try {
     await panelEvidence(page, "art-panel-stale");
   });
 
-  // Depth and trace fits on a traced portrait. The agent's stand-in measures
-  // the sheet panels the brief carries, as a model reads them, and answers
-  // through the agent's own CLI.
   const portraitHead = "p-head-and-neck";
   const portraitId = await step("start coastal-biologist and select its traced head", async () => {
     await page.selectOption("#start", "coastal-biologist");
@@ -756,7 +698,6 @@ try {
   const baseHead = headOf(portraitDoc);
   assert.ok(baseHead.paint?.atlas, "the head is painted");
 
-  /** Compose a trace or depth brief for the head with its sheet views; whether the selection chose it. */
   async function sendFitBrief(kind: "depth" | "trace", direction: string): Promise<boolean> {
     const art = page.locator("#art");
     const before = await art.locator(".art-request").count();
@@ -784,7 +725,6 @@ try {
     return preselected;
   }
 
-  /** Preview the proposal in the panel, see the face change, accept it as previewed. */
   async function previewAndAccept(summary: string, at: number) {
     const before = await editorPixels(page);
     const card = page.locator(`#proposals .proposal:has-text('${summary}')`);
@@ -801,7 +741,6 @@ try {
     return { before, changed };
   }
 
-  /** Vertex positions by node name of the review worker's clay export of a revision. */
   async function clayPositions(at: number): Promise<Map<string, number[]>> {
     const exported = await paired.call("review.export", {
       documentId: portraitId,
@@ -841,7 +780,6 @@ try {
     return out;
   }
 
-  /** The exported nodes whose vertices moved between two revisions, with the largest move in metres. */
   async function movedNodes(from: number, to: number): Promise<Record<string, number>> {
     const a = await clayPositions(from);
     const b = await clayPositions(to);
@@ -858,7 +796,6 @@ try {
     return out;
   }
 
-  /** A sheet panel the brief attached, measured as the host measures its sheet. */
   async function measuredPanel(png: Uint8Array): Promise<Panel> {
     const rgba = await page.evaluate(
       async ([base64, size]) => {
@@ -882,7 +819,6 @@ try {
   const register = pathToFileURL(
     join(repository, "packages", "document", "test", "support", "register.ts"),
   ).href;
-  /** The agent's own CLI, run as its conversation runs it, with its paired credential. */
   function agentCli(...args: string[]): unknown {
     const out = execFileSync(
       process.execPath,
@@ -897,7 +833,6 @@ try {
     const parsed: unknown = JSON.parse(out);
     return parsed;
   }
-  /** A field of the submission a CLI call printed. */
   const replied = (result: unknown, field: string): unknown =>
     Reflect.get(Object(Reflect.get(Object(result), "submission")), field);
 
@@ -933,7 +868,6 @@ try {
   const depthRevision = await step(
     "the agent's CLI depth pass is previewed, accepted, exported, deduplicated and undone",
     async () => {
-      // The stand-in's depth tool: a grayscale pass on black over the front panel's subject.
       const pass = await page.evaluate(async (base64) => {
         const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
         const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
@@ -1065,8 +999,6 @@ try {
           join(evidence, `trace-${a.role}.png`),
           (await readArtFile(paired, r.artId, a.digest)).bytes,
         );
-      // The trace views carry G0's coordinate grid for a model to read; the
-      // stand-in measures the same sheet's plain panels, which the head kept.
       const now = (await paired.call("current", { documentId: portraitId })).document;
       assert.equal(headOf(now).paint?.atlas, baseHead.paint?.atlas);
       const [f, s] = depthBrief.panels;
@@ -1079,12 +1011,10 @@ try {
       const base = (first[1] + binding.offset[1]) / binding.height;
       const span = (last[1] + binding.offset[1]) / binding.height - base;
       const centre = portrait.frame?.centerX ?? 0;
-      /** A front mark for a point in the head's landmark frame. */
       const mark = (x: number, y: number): [number, number] => [
         (x * f.span + f.mid) / f.size,
         (f.feet - (y * span + base) * f.span) / f.size,
       ];
-      // Slightly wider pupils and lower lips than the head has now.
       const half = (portrait.width * 1.04 * 0.85 * span) / 2;
       const lips = portrait.mouth - 0.25 * (portrait.mouth - portrait.chin);
       const marks = [
@@ -1094,7 +1024,6 @@ try {
         mark(centre, lips),
         mark(centre, portrait.chin),
       ];
-      /** A depth pair: the front mark and the profile's leading edge at the same height. */
       const pair = (y: number): [number, number, number, number, number] => {
         const [fx, fy] = mark(centre, y);
         const sy = (s.feet - ((f.feet - fy * f.size) / f.span) * s.span) / s.size;
@@ -1205,7 +1134,6 @@ try {
       const r = await latest(paired, portraitId);
       const front = r.attachments[0];
       assert.ok(front);
-      // The person makes the file elsewhere from the saved front view, then imports it.
       const card = page.locator("#art .art-request", { hasText: "A front depth map" });
       await card.locator("input[type=file]").setInputFiles(join(evidence, "depth-pass.png"));
       const dialog = page.getByRole("dialog");
@@ -1252,7 +1180,6 @@ try {
       const body = before.parts.find((p) => p.id === "p-body");
       const atlas = body?.paint?.atlas;
       assert.ok(body && atlas, "the body is painted");
-      // The person picks a trace brief that builds, on the body's sheet.
       const art = page.locator("#art");
       const count = await art.locator(".art-request").count();
       await art.locator('select[aria-label="Kind of artwork"]').selectOption("trace");
@@ -1284,7 +1211,6 @@ try {
         "the agent's CLI sees the build",
       );
 
-      // The agent's stand-in measures the body's sheet as the host draws it: four 640 px quadrants.
       const asset = bundledAssets.find((a) => a.digest === atlas);
       assert.ok(asset, "the body paints from a shipped sheet");
       const sheet = readFileSync(join(repository, "packages", "character", "assets", asset.file));
@@ -1331,7 +1257,6 @@ try {
       );
       assert.ok(f && s && back && left, "the sheet has four views");
       const panels = [f, s, back, left] as const;
-      /** A point across and up the figure, in standing heights, as a fraction of a view. */
       const fp = (u: number, h: number): [number, number] => [
         (f.mid + u * f.span) / f.size,
         (f.feet - h * f.span) / f.size,
@@ -1420,7 +1345,6 @@ try {
       await page.waitForSelector("#proposals .proposal:has-text('Not built: ghost')", {
         timeout: 20_000,
       });
-      // The proposal is the character package's build on the panels the stand-in measured.
       const expected = traceBuildOperations(before, "p-body", regions, panels, 1.77);
       const proposalId = String(Reflect.get(Object(replied(submitted, "proposal")), "id"));
       const draft = await paired.call("draft", { documentId: portraitId, proposalId });
@@ -1429,16 +1353,12 @@ try {
       const added = (doc: CharacterDocument) =>
         doc.parts.filter((p) => !before.parts.some((q) => q.id === p.id));
       const byId = (a: { id: string }, b: { id: string }) => (a.id < b.id ? -1 : 1);
-      // As the document stores them: JSON, where -0 is 0.
       const stored: unknown = JSON.parse(JSON.stringify(expected.built.map((b) => b.part)));
       assert.deepEqual(
         added(proposed),
         Array.isArray(stored) ? stored.sort(byId) : stored,
         "the proposal is exactly the build of the measured sheet",
       );
-      // Save what G0 needs to build the same map: the measured panels at the body's sheet height,
-      // and what to compare: each built part's traced geometry and standing position, with the
-      // body's shift from its sheet point (G0 stands the anchor at that point).
       const placements = partPlacements(proposed, registry);
       const anchor = placements.get("p-body")?.frame;
       assert.ok(anchor);
@@ -1500,7 +1420,6 @@ try {
         before.parts,
         "every existing part stays",
       );
-      // The clay export keeps every existing vertex and adds the built parts'.
       const vertices = (meshes: Map<string, number[]>) => {
         const counts = new Map<string, number>();
         for (const values of meshes.values())
@@ -1521,7 +1440,6 @@ try {
       assert.equal(kept, total, "every existing exported vertex stays");
       const addedVertices = [...now.values()].reduce((a, b) => a + b, 0) - total;
       assert.ok(addedVertices > 1000, `the built parts add ${addedVertices} vertices`);
-      // The review worker draws the textured body before and after.
       const sheets = async (revisionAt: number) =>
         paired.call("review.inspect", {
           documentId: portraitId,
@@ -1541,7 +1459,6 @@ try {
         (image, i) => image.sha256 !== drawnBefore.images[i]?.sha256,
       ).length;
       assert.ok(differ > 0, "the drawn body shows the built parts");
-      // A repeat is a duplicate; undo removes the parts and redo brings them back.
       appMemory("after the body is drawn");
       appEvents.push(
         `full exports: ${drawnBefore.glb.byteLength} bytes before, ${drawnAfter.glb.byteLength} after the build`,

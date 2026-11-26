@@ -1,9 +1,5 @@
 import { MathUtils, Quaternion, Vector3 } from "three";
 
-// Posing several limbs as one. A limb is a chain of jointed regions hanging
-// from the body. Limbs of one kind share an edit: the change made to one
-// joint is carried to the matching joint of its mirror twin or of every limb
-// of that kind, each in its own direction around the body.
 const families = [
   ["leg", ["thigh", "shin", "foot"]],
   ["arm", ["upper arm", "forearm", "hand"]],
@@ -30,8 +26,6 @@ export function poseLimbs(regions, bindings) {
     if (!kind || family(regions.get(root.part.parent)?.role) === kind) continue;
     if (!root.points?.length) continue;
     const limb = { id: root.part.id, kind, root, joints: new Map(), parts: [] };
-    // Each region is addressed by the roles on the way down from the root,
-    // so the third claw of one foot matches the third claw of another.
     const walk = (region, path) => {
       limb.parts.push(region);
       owner.set(region.part.id, [limb, path]);
@@ -53,13 +47,10 @@ export function poseLimbs(regions, bindings) {
     limb.side = Math.abs(hip.x) < 0.004 ? 0 : Math.sign(hip.x);
     const out = (tip.x - hip.x) * (limb.side || 1),
       along = tip.z - hip.z;
-    // Limbs that hang straight down have no direction around the body.
     limb.bearing =
       Math.hypot(out, along) > 0.25 * reach ? Math.atan2(along, out) : null;
     limb.hip = hip;
     limb.reach = reach;
-    // A wing spar and its membrane, or a fin and its rays, hang from the body
-    // side by side. They are one limb and are posed as one.
     const whole = limbs.find(
       (l) =>
         l.kind === kind &&
@@ -135,16 +126,12 @@ export function poseLimbs(regions, bindings) {
   return limbs;
 }
 
-// The limbs that follow an edit made on one limb.
 export function followers(limbs, limb, scope) {
   if (!limb || scope === "one") return [];
   if (scope === "pair") return limb.twin ? [limb.twin] : [];
   return limbs.filter((other) => other !== limb && other.kind === limb.kind);
 }
 
-// Carry a joint turn or a move from one limb to another. A limb on the other
-// side receives the mirror image. Limbs that point in different directions
-// around the body receive the change turned to their own direction.
 export function carry(from, to) {
   const swing = new Quaternion();
   if (from.bearing !== null && to.bearing !== null)
@@ -165,8 +152,6 @@ export function carry(from, to) {
   };
 }
 
-// Apply the change a joint just received to the matching joints of the
-// following limbs. `before` holds the joint's local turn and place before it.
 export function spread(bindings, binding, before, limbs) {
   const turn = binding.bone.quaternion
       .clone()
@@ -207,9 +192,6 @@ function aim(bone, end, toward) {
   setFacing(bone, turn.multiply(facing(bone)));
 }
 
-// A two-joint solve in the current pose. The limb tip goes to a point in the
-// room, the middle joint keeps bending the way it bends now and the foot or
-// hand keeps the direction it faces.
 export function tipReach(limb) {
   if (!limb?.chain) return null;
   const [a, b, c] = limb.chain;
@@ -232,8 +214,6 @@ export function tipReach(limb) {
   }
   pole.normalize();
   const original = limb.chain.map((j) => j.quaternion.clone());
-  // The solve starts from joint turns relative to the carrier, so a body
-  // that moves afterwards carries the bend direction with it.
   const carrier = a.parent,
     inCarrier = facing(carrier).invert(),
     axisLocal = axis.clone().applyQuaternion(inCarrier),
@@ -278,7 +258,6 @@ export function tipReach(limb) {
   };
 }
 
-// Feet that stay where they stand while the body is posed.
 export function plantFeet(limbs, skip = []) {
   const feet = limbs
     .filter((l) => l.kind === "leg" && l.chain && !skip.includes(l))

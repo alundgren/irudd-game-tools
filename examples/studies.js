@@ -1,8 +1,6 @@
 import { bindParts, bindHumanoid } from "../character-view/rig.js";
 import { startingForm, anchors } from "../character-view/recipe.js";
 
-// Original editable studies. These authoring helpers produce ordinary form data
-// accepted by the same importer as an agent's proposal.
 function study(look, proportions, empty = false) {
   const form = startingForm(() => 0.5, false);
   Object.assign(form.appearance, look);
@@ -28,7 +26,6 @@ function study(look, proportions, empty = false) {
     p.visibleIn = ["Work clothes"];
     return p;
   }
-  // Accessories in body-local metres follow each study's chosen proportions.
   function fitted(p) {
     p.position = p.position.map((x, i) => x * proportions[i]);
     p.size = p.size.map((x, i) => x * proportions[i]);
@@ -51,7 +48,6 @@ function bindStudy(form, locate) {
       )
         p.headLayer = "hair";
     }
-  // Bind accessories first so anatomical parents are still in world space.
   return bindHumanoid(bindParts(form, links));
 }
 function ranger() {

@@ -9,7 +9,6 @@ import { eyeOpenings } from "./human-fit-eyes.js";
 
 const eyeSliders = ["eyeSize", "eyeSpacing", "eyeFold", "eyeTilt", "underEye"];
 
-// The outside of a head as an isolated scan: no lining of the mouth or the eye sockets.
 function headScan(surface, keep = () => true) {
   const exterior = exteriorSkin(surface),
     triangles = [];
@@ -29,14 +28,12 @@ test("the eye openings are read from the head's own build", () => {
   const surface = evaluateHuman({ height: 1.72 }),
     eyes = eyeOpenings(surface),
     { ids, refs, weights } = humanControls();
-  // Every anchor that moves an eyeball is kept, and so is its own skin.
   for (const group of surface.eyeGroups)
     for (const v of group)
       for (let j = v * 4; j < v * 4 + 4; j++) if (weights[j]) assert.equal(eyes.anchors[refs[j]], 1);
   const kept = Array.from(eyes.anchors.keys()).filter((i) => eyes.anchors[i]);
   assert.ok(kept.length >= 12 && kept.length <= 0.05 * ids.length);
   for (const i of kept) assert.equal(eyes.skin[ids[i]], 1);
-  // The lining wraps each eyeball, lies in both halves alike and is not skin a scan can see.
   const exterior = exteriorSkin(surface);
   let left = 0,
     right = 0;
@@ -49,9 +46,7 @@ test("the eye openings are read from the head's own build", () => {
   }
   assert.ok(left > 50);
   assert.equal(left, right);
-  // The lids stay observable: some kept anchors sit on skin a scan can see.
   assert.ok(kept.some((i) => exterior[ids[i]]));
-  // The same skin on a head of another build.
   assert.equal(eyeOpenings(evaluateHuman({ height: 1.9, frame: 1, age: 0.8, weight: 0.7 })), eyes);
 });
 
@@ -80,7 +75,6 @@ test("kept eye openings hold their anchors and an earlier sculpt while the rest 
     retained = [lid, 0, 0, 14];
   form.humanFit = { version: 1, strength: 1, controls: [retained] };
   const target = evaluateHuman({ ...form.human, cheeks: 0.55, eyeSize: 0.9, underEye: 0.8 });
-  // Once with the scan's eyes in place and once with holes where they were.
   for (const scan of [headScan(target), headScan(target, (v) => !eyes.skin[v])]) {
     const { fit, metrics } = fitHumanReference(form, scan, { region: "head", isolatedHead: true, keepEyeOpenings: true });
     assert.deepEqual(rowsOn(fit, eyes.anchors), [retained]);
@@ -97,7 +91,6 @@ test("kept eye openings leave the eye sliders where the artist set them", () => 
   const options = { region: "head", isolatedHead: true };
   const free = optimizeHumanMeasurements(form, scan, options).form.human,
     kept = optimizeHumanMeasurements(form, scan, { ...options, keepEyeOpenings: true }).form.human;
-  // Without the option the eyes are measured like the rest of the face.
   assert.ok((free.eyeSpacing ?? 0) > 0.1);
   assert.ok((free.underEye ?? 0) > 0.1);
   for (const key of eyeSliders) assert.equal(kept[key] ?? 0, form.human[key] ?? 0);

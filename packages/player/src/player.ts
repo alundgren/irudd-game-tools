@@ -1,9 +1,3 @@
-// The interactive player: one canvas, an orbiting camera and playback.
-//
-// It renders on demand and runs a frame loop only while a clip plays or the
-// orbit settles. The canvas follows its container's size at the device pixel
-// ratio, so the view is full resolution at any display scale.
-
 import * as T from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { gpuInfo, type GpuInfo } from "./gpu.js";
@@ -22,7 +16,6 @@ export interface PlayerState {
   readonly clip: string | null;
   readonly time: number;
   readonly playing: boolean;
-  /** The view last framed, or null once the person orbits away from it. */
   readonly view: View | null;
   readonly angle: Angle;
   readonly gaze: { readonly x: number; readonly y: number };
@@ -31,7 +24,6 @@ export interface PlayerState {
 
 export interface Pick {
   readonly node: string;
-  /** The workshop part ID stored on exported nodes, when the file has one. */
   readonly partId: string | undefined;
   readonly point: readonly [number, number, number];
 }
@@ -69,7 +61,6 @@ export class Player {
     this.orbit = new OrbitControls(this.camera, this.canvas);
     this.orbit.enableDamping = true;
     this.orbit.addEventListener("change", () => this.request());
-    // A drag leaves the named view; the view list shows it as unset.
     this.orbit.addEventListener("start", () => {
       this.framed = null;
       this.emit();
@@ -94,7 +85,6 @@ export class Player {
     };
   }
 
-  /** Called after every drawn frame that changed playback state. */
   subscribe(listener: (state: PlayerState) => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -107,7 +97,6 @@ export class Player {
 
   async load(bytes: Uint8Array, name: string): Promise<ModelInfo> {
     const info = await this.stage.load(bytes, name);
-    // A new file keeps the chosen view, as the legacy player does.
     this.view(this.framed ?? "threequarter");
     const first = info.clips[0];
     this.stage.setClip(first ? first.name : null);
@@ -122,7 +111,6 @@ export class Player {
     this.request();
   }
 
-  /** Switch wardrobe scene, keeping clip phase, expression, look and the camera. */
   showScene(index: number): void {
     this.stage.showScene(index);
     this.emit();
@@ -159,14 +147,12 @@ export class Player {
     this.request();
   }
 
-  /** Turn the eyes, each axis from -1 to 1. */
   setGaze(x: number, y: number): void {
     this.stage.setGaze(x, y);
     this.emit();
     this.request();
   }
 
-  /** Frame a named view. `angle` applies to the measured-angle portrait. */
   view(view: View, angle: Angle = this.angle): void {
     this.angle = angle;
     this.framed = this.stage.frame(this.camera, view, this.orbit.target, angle);
@@ -175,7 +161,6 @@ export class Player {
     this.request();
   }
 
-  /** What lies under a canvas position given in CSS pixels. */
   pick(x: number, y: number): Pick | undefined {
     const rect = this.canvas.getBoundingClientRect();
     const ray = new T.Raycaster();
@@ -213,7 +198,6 @@ export class Player {
     this.request();
   }
 
-  /** Drawing-buffer size in device pixels. */
   get drawingSize(): { width: number; height: number } {
     return { width: this.canvas.width, height: this.canvas.height };
   }

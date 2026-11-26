@@ -1,10 +1,3 @@
-// Test-only module resolution for running first-party TypeScript sources under node:test.
-//
-// Production sources use relative ".js" specifiers (TypeScript NodeNext). Node strips types
-// from ".ts" files but does not map "./x.js" to "./x.ts". This hook retries a failed relative
-// import with the ".ts" extension, only when the importer is a first-party source under
-// packages/, apps/ or the registered verification packages and only for ERR_MODULE_NOT_FOUND. Every other
-// resolution, and every other error, passes through unchanged.
 import { registerHooks } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";

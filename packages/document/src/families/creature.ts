@@ -1,8 +1,3 @@
-// Creature family: blended organic skin.
-//
-//   creature.blend  part      join this sweep or ellipsoid into one smooth skin
-//   creature.skin   document  the shared colour, finish and softness of that skin
-
 import { Schema } from "effect";
 import { bounded, family, Hex } from "./family.js";
 
@@ -20,7 +15,6 @@ export const creatureBlend = family({
 export const CreatureSkin = Schema.Struct({
   tint: Schema.optionalKey(Hex),
   surface: Schema.optionalKey(Schema.Literals(["plain", "scales"])),
-  /** Blur radius of the joined surface as a fraction of its largest extent. */
   softness: Schema.optionalKey(bounded(0.005, 0.045)),
 });
 export type CreatureSkin = typeof CreatureSkin.Type;

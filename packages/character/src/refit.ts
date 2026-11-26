@@ -1,22 +1,14 @@
-// A pressure suit's hard goods and a refitted sweep's eased knots. Ported
-// from addEquipment and fitWardrobe in character-view/wardrobe.js at 2761eb1.
-
 import * as T from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import type { Finish, Knot } from "@irudd/document";
 import type { RegionFit } from "./dress.js";
 import { sweepGeometry } from "./surfaces/sweep.js";
 
-/** A sweep's knots eased radially by `amount`. */
 export const easedKnots = (knots: ReadonlyArray<Knot>, amount: number): Knot[] =>
   knots.map(([x, y, z, a, b]) => [x, y, z, a * amount, b * amount]);
 
 const rubber = "#34413e";
 
-/**
- * Hard goods of a pressure suit, positioned against the fitted region's local
- * bounds, so turning a shoulder or moving a thorax carries its kit too.
- */
 export function addEquipment(
   mesh: T.Mesh,
   fit: RegionFit,

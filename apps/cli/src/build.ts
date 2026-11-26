@@ -1,8 +1,3 @@
-// The build this client belongs to. The installed app bundles the client into
-// dist/clients beside dist/build.json, the stamp the desktop window also
-// reads, so the app, CLI and MCP server report the same build. A source
-// checkout has no stamp.
-
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,8 +12,6 @@ export function buildId(): string {
     );
     if (typeof stamp === "object" && stamp !== null && "build" in stamp)
       return typeof stamp.build === "string" ? stamp.build : "unknown";
-  } catch {
-    // A source checkout.
-  }
+  } catch {}
   return "source";
 }

@@ -1,14 +1,6 @@
-// Where a limb root seats on an adult (scapulaSocket in
-// character-view/human-sockets.js at 2761eb1).
-
 import { boneNames } from "./catalogue.js";
 import type { HumanSurface } from "./surface.js";
 
-/**
- * A shoulder blade on the rear surface of the evaluated skin, relative to the
- * chest joint: a spar starts a little inside the back and leaves along the
- * swept shoulder. `side` 1 is the left blade, -1 the right.
- */
 export function scapulaSocket(surface: HumanSurface, side: 1 | -1): [number, number, number] {
   const chest = boneNames.indexOf("spine_03") * 3;
   const shoulder = boneNames.indexOf(side > 0 ? "upperarm_l" : "upperarm_r") * 3;
@@ -19,8 +11,6 @@ export function scapulaSocket(surface: HumanSurface, side: 1 | -1): [number, num
   const y = (joints[shoulder + 1] ?? 0) - 0.061 * k;
   const startZ = -3;
   let rear = Infinity;
-  // The ray points along +Z, so its projection is XY. Signed edge weights
-  // both test the projected triangle and interpolate its depth at the socket.
   for (let i = 0; i < surface.bodyTriangles * 3; i += 3) {
     const a = (indices[i] ?? 0) * 3;
     const b = (indices[i + 1] ?? 0) * 3;

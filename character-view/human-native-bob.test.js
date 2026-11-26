@@ -15,7 +15,6 @@ const heads = {
   old: { age: 1, weight: 0.5 },
 };
 const cardsOf = (surface, hair, extra = {}) => libraryPieces(surface, { hair, hairColor: "#72553d", ...extra }, material, false, true).find((mesh) => mesh.userData.libraryHair);
-// Median distance of each inner point of a shell from the middle of its neighbours, in millimetres: how rippled it is.
 function ripple(geometry) {
   const pos = geometry.attributes.position.array, index = geometry.index.array, id = [], first = new Map();
   for (let i = 0; i < pos.length / 3; i++) {
@@ -57,7 +56,6 @@ test("a bob is worn as a smooth shell on resting, wide, narrow and old heads", (
       const cards = cardsOf(surface, style), p = cards.geometry.attributes.position.array;
       assert.ok(p.every(Number.isFinite), `${label}, ${style}`);
       assert.equal(cards.material.userData.hairCards, true);
-      // The author's shells ripple by about half a millimetre; the per-triangle fit gave 1.7 to 2.2.
       assert.ok(ripple(cards.geometry) < 1.4, `${label}, ${style}: ${ripple(cards.geometry).toFixed(2)} mm`);
     }
   }

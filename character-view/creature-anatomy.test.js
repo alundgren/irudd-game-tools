@@ -12,8 +12,6 @@ import { validateForm } from "./recipe.js";
 import { checkCage } from "./control-cage.js";
 import { beakCage, footCage } from "./creature-anatomy.js";
 
-// A shoe can look closed in profile even when neighboring toe branches only
-// touch at a point, so inspect shared edges as well as validation.
 test("the six foot families build closed, editable soles at every digit count", () => {
   for (const end of ["paw", "hoof", "talons", "point", "pad", "paddle"])
     for (let digits = 0; digits <= 5; digits++) {
@@ -108,7 +106,6 @@ test("crowded drawn limbs gain distinct stations and wide paired paddles gain a 
   assert.ok(upright.spine.rear - upright.spine.front > 15);
   assert.equal(paddle.limbs[0].end, "paddle");
   assert.ok(paddle.limbs[0].splay >= 25);
-  // Artists can still deliberately make a vertical, radial body.
   const override = steerCreaturePlan(axial, {
     spine: { rear: 85, front: 88 },
     setLimbs: [{ index: 0, from: 0, to: 0.12 }],

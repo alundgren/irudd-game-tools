@@ -91,8 +91,6 @@ export function validPlateGrowthRest(rest) {
       k.slice(3).every(v=>within(v,.0005,4)) && (!i || k.slice(0,3).some((v,j)=>Math.abs(v-knots[i-1][j])>.00001)));
 }
 
-// Capture in the unreflected carrier frame: duplicated or mirrored branches
-// can carry this baseline without rewriting IDs, knot order or artist edits.
 export function plateGrowthRest(carrier,settings=carrier.plateGrowth) {
   return {
     knots:carrier.knots.map(([x,y,z,w,d])=>[settings?.mirrored ? -x : x,y,z,w,d]),
@@ -101,8 +99,6 @@ export function plateGrowthRest(carrier,settings=carrier.plateGrowth) {
   };
 }
 
-// Recover the transported ring axes from the workshop's own sweep. Measuring
-// the centreline in metres keeps the row pitch stable on unevenly spaced knots.
 function surfaceChart(rest, settings) {
   const geometry = sweepGeometry(rest.knots, rest.horizontal, 8);
   const positions = geometry.attributes.position,
@@ -151,8 +147,6 @@ function surfaceChart(rest, settings) {
     depth = middle.depth.clone().normalize();
   let outward = new Vector3(...directions[face]);
   if (Math.hypot(outward.dot(across), outward.dot(depth)) < 0.05) {
-    // An end-on direction is ambiguous. Select the most dorsal axis along
-    // this cross-section, falling back to its transported depth on a vertical.
     outward.set(0, 1, 0);
     if (Math.hypot(outward.dot(across), outward.dot(depth)) < 0.05)
       outward.copy(depth);
@@ -174,8 +168,6 @@ function surfaceChart(rest, settings) {
     if (n.dot(point(t, angle).sub(section(t).center)) < 0) n.negate();
     return n;
   }
-  // Given an angular displacement at one row, travel by actual distance
-  // around its ellipse. Equal spacing in angle crowds scales on its flats.
   const arcs = new Map();
   function arcMeridian(t, fraction) {
     const side = fraction < 0 ? -1 : 1,
@@ -199,7 +191,6 @@ function surfaceChart(rest, settings) {
       }
       arcs.set(key, table);
     }
-    // The outermost free tips can overhang the rooted angular field.
     const target = Math.min(table[36], Math.abs(fraction) * table[24]);
     let i = 1;
     while (i < 36 && table[i] < target) i++;
@@ -211,10 +202,7 @@ function surfaceChart(rest, settings) {
   return { length, point, normal, arcMeridian, mount };
 }
 
-// Each section is a closed cross-section of the plate, from its embedded heel
-// to its free tip. The ridge is a physical fold running down the centreline.
 const stations = [
-  // Length fraction, half-width envelope, ridge envelope, tip lift
   [0, 0.55, 0.12, 0],
   [0.1, 0.82, 0.39, 0.004],
   [0.2, 0.96, 0.69, 0.012],
@@ -243,8 +231,6 @@ const ring = [
 function makePlate(chart, settings, row, column) {
   const draw = stream(settings.seed, row, column),
     tip = stream(settings.tipSeed, row, column);
-  // Number sites from the spine outward so adding an outside pair preserves
-  // the centre plate and the identities of its neighbours.
   const rank = Math.ceil(column / 2) * (column % 2 ? -1 : 1);
   const phase =
     (Math.abs(rank) % 2 === 1 ? 0.16 : -0.12) + (draw() - 0.5) * 0.13;
@@ -299,7 +285,6 @@ function makePlate(chart, settings, row, column) {
   const rise = settings.rise ?? 1;
   for (const [t, envelope, ridge, lift] of stations) {
     const distal = MathUtils.smoothstep(t, 0.52, 1);
-    // Move the free blade along the surface normal and leave its heel seated.
     const free = MathUtils.smoothstep(t, 0.1, 0.95);
     const tilt = Math.max(0, rise - 1) * height * free * (0.35 + 0.8 * t);
     const flatten = 1 + Math.min(0, rise - 1) * free;
@@ -339,7 +324,6 @@ function makePlate(chart, settings, row, column) {
         b = r * k + n;
       faces.push([a, b, b + k, a + k]);
     }
-    // Defined lips retain a clean shadow under a scale after subdivision.
     for (const c of [0, 5]) creaselines.push([r * k + c, (r + 1) * k + c]);
     if (r > 0 && r < stations.length - 2)
       creaselines.push([r * k + 3, (r + 1) * k + 3]);
@@ -398,8 +382,6 @@ function updatePlate(plate, old, next) {
   const result = { ...plate, hornSwatch:plate.hornSwatch ?? next.hornSwatch };
   result.position = shifted(plate.position, old.position, next.position);
   if (plate.color === old.color) result.color = next.color;
-  // A plate may have been hand-sculpted. Apply only the parametric change to
-  // matching vertices. A new topology becomes a custom shell in this site.
   if (
     plate.cage.vertices.length === old.cage.vertices.length &&
     same(plate.cage.faces, old.cage.faces)
@@ -522,7 +504,6 @@ export function growPlateField(form, carrierId, patch = {}) {
           );
         const { id, parent, plateSite, ...body } = p,
           template = old.get(key);
-        // Retain hand-sculpted sites falling outside the new field as free plates.
         if (
           !template ||
           plateSite.tipSeed !== undefined ||
@@ -539,7 +520,6 @@ export function growPlateField(form, carrierId, patch = {}) {
     }
   }
   for (const [key, p] of next) {
-    // An omitted site inside the previous layout was deliberately removed.
     if (occupied.has(key) || old.has(key)) continue;
     const id = plateName(used, carrier.id, p.plateSite.row, p.plateSite.column);
     result.push({ ...p, id, parent: carrier.id });
@@ -550,8 +530,6 @@ export function growPlateField(form, carrierId, patch = {}) {
   return { form: { ...form, parts: result }, id: first ?? carrier.id };
 }
 
-// Reproject smoothed vertices to their source control faces. Geometry and
-// pigment then follow the same swept ridges through sculpting and reflection.
 function growthUv(geometry, cage) {
   const width = ring.length,
     count = stations.length,
@@ -627,7 +605,6 @@ export function finishPlateSurface(mesh, part, material) {
   const base = new Color(part.color),
     uv = g.attributes.uv,
     rgb = new Float32Array(3 * uv.count);
-  // Independent copies retain their source swatch after a refit or tip edit.
   const swatch=part.hornSwatch ?? 0;
   const tileX=swatch%2,tileY=Math.floor(swatch/2);
   for (let i = 0; i < uv.count; i++) {
@@ -639,7 +616,6 @@ export function finishPlateSurface(mesh, part, material) {
     rgb[i * 3 + 2] = base.b * shade;
   }
   g.setAttribute("color", new Float32BufferAttribute(rgb, 3));
-  // All sites share one atlas tile. The individual tones ride on the vertices.
   const shared = material("#ffffff", "horn");
   shared.vertexColors = true;
   shared.roughness = 0.72;

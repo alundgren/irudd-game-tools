@@ -1,8 +1,3 @@
-// Digit joints for hands. Ported from character-view/finger-rig.js at 2761eb1.
-//
-// Wrist and arm bones are already in the neutral world frame. Each digit gets
-// three pivots of its own so ordinary glTF animation can drive it.
-
 import * as T from "three";
 import type { Digit } from "../surfaces/hand.js";
 import type { Finger, Region } from "./region.js";

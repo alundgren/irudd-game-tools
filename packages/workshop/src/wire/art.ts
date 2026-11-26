@@ -1,22 +1,3 @@
-// Art direction: a person asks the paired agent for artwork with a typed,
-// versioned brief, and the agent answers in the same conversation.
-//
-//   art.capabilities  which kinds this host can turn into a proposal, and why not
-//   art.put           stage image bytes (editor views, a generated sheet) in chunks
-//   art.request       people: send a brief to one paired agent's conversation
-//   art.list/get      the requests, their attachments and every submission
-//   art.read          bytes of an attachment or submitted file of one request
-//   art.submit        the agent's reply (or a person's imported file)
-//   art.cancel        people: close a request; later replies are refused
-//
-// The host never generates anything and never starts a model session. Image
-// generation, tracing and depth estimation belong to the paired agent; when
-// it lacks a capability, the person can save the brief and import a file.
-// A reply becomes a proposal on the brief's revision, authored by whoever
-// submitted it, so it stays reviewable, discardable and undoable like any
-// other proposal, including when the person edited the head meanwhile.
-// Pure: no Node and no storage, so the desktop renderer may import it.
-
 import { Schema } from "effect";
 import {
   Actor,
@@ -34,22 +15,9 @@ export const artBriefFormat = "irudd.art-brief";
 export const artReplyFormat = "irudd.art-reply";
 export const traceMapFormat = "irudd.trace-map.v1";
 
-/**
- * - `variation`: new or changed geometry as document operations.
- * - `turnaround`: a 2x2 orthographic sheet (front, right, back, left on magenta) that repaints painted regions.
- * - `trace`: an `irudd.trace-map.v1` of corresponding front and profile regions.
- * - `depth`: a front-view grayscale depth image of a painted portrait.
- */
 export const artKinds = ["variation", "turnaround", "trace", "depth"] as const;
 export type ArtKind = (typeof artKinds)[number];
 
-/**
- * What a trace reply does, chosen by the person:
- * - `fit` (also every brief without an intent): the map's region for the one
- *   named painted part calibrates its face and adds depth pins.
- * - `build`: the map's regions become new editable parts, painted from the
- *   named part's sheet and placed under their parent regions.
- */
 export const traceIntents = ["fit", "build"] as const;
 export type TraceIntent = (typeof traceIntents)[number];
 
@@ -64,19 +32,15 @@ export const attachmentRoles = [
 ] as const;
 export type AttachmentRole = (typeof attachmentRoles)[number];
 
-/** Image media types a brief or reply may carry. */
 export const artImageTypes = ["image/png", "image/jpeg", "image/webp"] as const;
-/** Limits on staged art bytes and their pictures. */
 export const artLimits = {
   attachments: 8,
   attachmentBytes: 16 * 1024 * 1024,
   replyBytes: 32 * 1024 * 1024,
   minEdge: 64,
   maxEdge: 8192,
-  /** A turnaround sheet's shorter edge, and how far it may be from square. */
   sheetMinEdge: 512,
   sheetAspectTolerance: 0.02,
-  /** Chunk size for art.put and art.read, before base64. */
   chunkBytes: 4 * 1024 * 1024,
   operations: 512,
 } as const;
@@ -96,29 +60,22 @@ export type ArtId = typeof ArtId.Type;
 
 export const ArtAttachment = Schema.Struct({
   role: Schema.Literals(attachmentRoles),
-  /** A blob staged with art.put. */
   digest: Digest,
   label: Schema.optionalKey(Label),
 });
 export type ArtAttachment = typeof ArtAttachment.Type;
 
-/** What the person asks for. Version 1. */
 export const ArtBrief = Schema.Struct({
   format: Schema.Literal(artBriefFormat),
   version: Schema.Literal(1),
   kind: Schema.Literals(artKinds),
   documentId: DocumentId,
-  /** The committed revision the attached views show and the reply is drafted against. */
   revision: Revision,
   direction: Text(4000),
   attachments: Schema.Array(ArtAttachment).check(Schema.isMaxLength(artLimits.attachments)),
-  /** Turnaround: the painted regions to repaint, all from one sheet. Variation: the parts to change. */
   parts: Schema.optionalKey(Schema.Array(PartId).check(Schema.isMaxLength(128))),
-  /** Standing height (or the isolated part's height) in metres. */
   height: Schema.optionalKey(Height),
-  /** Trace: region IDs the new map keeps at matching places. */
   protected: Schema.optionalKey(Schema.Array(Text(64)).check(Schema.isMaxLength(32))),
-  /** Trace only: fit the named part (the default) or build the map's regions as new parts. */
   intent: Schema.optionalKey(Schema.Literals(traceIntents)),
 }).check(
   Schema.makeFilter(
@@ -130,11 +87,8 @@ export const ArtBrief = Schema.Struct({
 );
 export type ArtBrief = typeof ArtBrief.Type;
 
-/** The trace intent of a brief: `fit` unless it asks to build. */
 export const briefIntent = (brief: ArtBrief): TraceIntent | undefined =>
   brief.kind === "trace" ? (brief.intent ?? "fit") : undefined;
-
-// ── Trace map ───────────────────────────────────────────────────────────────
 
 const Point = Schema.Tuple([Unit, Unit]);
 const Outline = Schema.Array(Point).check(Schema.isMinLength(4), Schema.isMaxLength(12));
@@ -220,27 +174,18 @@ export const TraceMap = Schema.Struct({
 );
 export type TraceMap = typeof TraceMap.Type;
 
-// ── Replies ─────────────────────────────────────────────────────────────────
-
 const Summary = Text(400);
 const replyHeader = {
   format: Schema.Literal(artReplyFormat),
   version: Schema.Literal(1),
   summary: Summary,
-  /**
-   * What the submitter states about the picture's rights: credit text, a
-   * licence and a source. An accepted reply carries it, with its author, into
-   * the document's `irudd.asset-credits` and from there into exports.
-   */
   attribution: Schema.optionalKey(AssetAttribution),
 };
 
-/** What the agent answers. The image is a blob it staged with art.put. Version 1. */
 export const ArtReply = Schema.Union([
   Schema.Struct({
     ...replyHeader,
     kind: Schema.Literal("variation"),
-    /** Document operations against the brief's revision. */
     operations: Schema.Array(JsonValue).check(
       Schema.isMinLength(1),
       Schema.isMaxLength(artLimits.operations),
@@ -251,7 +196,6 @@ export const ArtReply = Schema.Union([
     kind: Schema.Literal("turnaround"),
     image: Digest,
     height: Schema.optionalKey(Height),
-    /** Wearables: open-front or strappy garments, or a fully covered front and back. */
     coverage: Schema.optionalKey(Schema.Literals(["open", "closed"])),
   }),
   Schema.Struct({ ...replyHeader, kind: Schema.Literal("trace"), traceMap: TraceMap }),
@@ -259,14 +203,10 @@ export const ArtReply = Schema.Union([
 ]);
 export type ArtReply = typeof ArtReply.Type;
 
-// ── Methods ─────────────────────────────────────────────────────────────────
-
 const Offset = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
 
-/** Parameter schemas of the art methods; `wire/protocol.ts` merges them into the method table. */
 export const artParams = {
   "art.capabilities": Schema.Struct({}),
-  /** Stage bytes in order. The last chunk verifies and stores them as a project blob. */
   "art.put": Schema.Struct({
     digest: Digest,
     mediaType: Schema.Literals(artImageTypes),
@@ -274,15 +214,12 @@ export const artParams = {
     total: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: artLimits.replyBytes })),
     base64: Schema.String.check(Schema.isMaxLength(Math.ceil(artLimits.chunkBytes / 3) * 4)),
   }),
-  /** People only. A repeated request ID for the same agent returns the same request. */
   "art.request": Schema.Struct({ agent: AgentId, requestId: RequestId, brief: ArtBrief }),
   "art.list": Schema.Struct({
     documentId: Schema.optionalKey(DocumentId),
-    /** Include cancelled requests (default: only open and answered ones). */
     all: Schema.optionalKey(Schema.Boolean),
   }),
   "art.get": Schema.Struct({ artId: ArtId }),
-  /** An attachment or submitted file of this request, in chunks. */
   "art.read": Schema.Struct({
     artId: ArtId,
     digest: Digest,
@@ -291,12 +228,7 @@ export const artParams = {
       Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: artLimits.chunkBytes })),
     ),
   }),
-  /**
-   * The agent's reply, or a person importing a file the agent could not make.
-   * `submissionId` makes a retry safe: the same ID and reply replay the result.
-   */
   "art.submit": Schema.Struct({ artId: ArtId, submissionId: RequestId, reply: ArtReply }),
-  /** People only: close the request. A delivered message stays in the conversation. */
   "art.cancel": Schema.Struct({ artId: ArtId }),
 } as const;
 
@@ -309,9 +241,6 @@ export const artAgentMethods = [
   "art.submit",
 ] as const;
 
-// ── Views ───────────────────────────────────────────────────────────────────
-
-/** A staged picture, as the host measured it from its bytes. */
 export interface ArtFile {
   readonly digest: string;
   readonly mediaType: string;
@@ -325,28 +254,19 @@ export interface ArtAttachmentView extends ArtFile {
   readonly label: string | null;
 }
 
-/** Whether this host turns a kind's reply into a proposal. */
 export interface ArtApply {
   readonly available: boolean;
-  /** The translator that makes the operations, such as `repaint`. */
   readonly translator: string | null;
-  /** When unavailable: why, and what a person can do. */
   readonly reason?: string;
   readonly actions?: ReadonlyArray<string>;
 }
 
 export interface ArtCapabilities {
-  /**
-   * Every kind's brief and reply are typed and validated; `apply` says
-   * whether a reply becomes a proposal here. For trace, `apply` is the
-   * default fit and `intents` says the same for each intent a brief can ask.
-   */
   readonly kinds: ReadonlyArray<{
     readonly kind: ArtKind;
     readonly apply: ArtApply;
     readonly intents?: ReadonlyArray<{ readonly intent: TraceIntent; readonly apply: ArtApply }>;
   }>;
-  /** Who makes the artwork: always the paired agent, in its own conversation. */
   readonly producer: "paired-agent";
   readonly limits: typeof artLimits;
   readonly formats: { readonly brief: string; readonly reply: string; readonly traceMap: string };
@@ -356,25 +276,16 @@ export interface ArtPutResult {
   readonly digest: string;
   readonly received: number;
   readonly total: number;
-  /** Set on the last chunk: the verified blob. */
   readonly stored: (ArtFile & { readonly stored: "new" | "existing" }) | null;
 }
 
-export type ArtSubmissionState =
-  /** The reply became a proposal on the brief's revision. */
-  | "proposed"
-  /** The reply is valid and kept, but this host has no translator for its kind. */
-  | "recorded"
-  /** The reply was invalid; nothing was proposed. */
-  | "rejected";
+export type ArtSubmissionState = "proposed" | "recorded" | "rejected";
 
 export interface ArtProposalLink {
   readonly id: string;
   readonly version: number;
-  /** The proposal.create request, in the document journal. */
   readonly requestId: string;
   readonly baseRevision: number;
-  /** Live from the journal: draft, accepted, discarded. */
   readonly status: string;
   readonly acceptedRevision: number | null;
 }
@@ -383,23 +294,17 @@ export interface ArtSubmissionView {
   readonly submissionId: string;
   readonly seq: number;
   readonly at: number;
-  /** Who submitted: the paired agent or a person importing a file. */
   readonly by: Actor;
   readonly via: "agent" | "person-import";
   readonly pairingId: string | null;
-  /** The reply exactly as submitted. */
   readonly reply: ArtReply;
-  /** SHA-256 of the reply's canonical JSON, for duplicate detection. */
   readonly replyDigest: string;
-  /** Files the reply names, measured from their verified bytes. */
   readonly files: ReadonlyArray<ArtFile>;
   readonly state: ArtSubmissionState;
   readonly diagnostics: ReadonlyArray<Diagnostic>;
-  /** Set when an earlier submission of this request carried the same reply. */
   readonly duplicateOf: string | null;
   readonly translator: string | null;
   readonly proposal: ArtProposalLink | null;
-  /** The brief's revision, the head when the reply arrived and whether the head had moved past it. */
   readonly source: {
     readonly baseRevision: number;
     readonly headAtSubmit: number;
@@ -415,7 +320,6 @@ export interface ArtRequestView {
   readonly agent: string;
   readonly pairingId: string;
   readonly requestId: string;
-  /** The steering message that carried the brief to the conversation. */
   readonly messageId: string;
   readonly steering: { readonly status: string } | null;
   readonly brief: ArtBrief;
@@ -424,7 +328,6 @@ export interface ArtRequestView {
   readonly createdBy: Actor;
   readonly state: ArtState;
   readonly closed: { readonly at: number; readonly detail: string } | null;
-  /** The document head now, and whether it moved past the brief's revision. */
   readonly head: number;
   readonly stale: boolean;
   readonly apply: ArtApply;
@@ -441,7 +344,6 @@ export interface ArtReadView {
 }
 
 export interface ArtSubmitResult {
-  /** `new`: stored now. `replayed`: this submission ID was seen with the same reply. */
   readonly outcome: "new" | "replayed";
   readonly submission: ArtSubmissionView;
   readonly request: ArtRequestView;

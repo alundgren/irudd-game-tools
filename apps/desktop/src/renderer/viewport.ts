@@ -1,12 +1,3 @@
-// The person's viewport: the built character at full resolution, orbit,
-// picking and transform gizmos.
-//
-// The viewport renders only for the person. It never waits on or draws for
-// an agent, and inspection images come from the player's own renderer. A
-// drag previews on the built scene; the gesture is turned into one
-// `part.transform` op when the drag ends, and the scene is rebuilt from the
-// committed document (or restored if the commit is refused).
-
 import * as T from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { TransformControls } from "three/addons/controls/TransformControls.js";
@@ -34,11 +25,8 @@ export type Transform =
   | { readonly kind: "scale"; readonly scale: [number, number, number] };
 
 export interface ViewportEvents {
-  /** The person clicked a part, or empty space (null). */
   readonly onPick: (partId: string | null) => void;
-  /** A drag on the gizmo began on this part. The page pins the document and revision it edits. */
   readonly onDragStart: (partId: string) => void;
-  /** The drag ended: with the change it made, or undefined when nothing moved. */
   readonly onDragEnd: (partId: string, transform: Transform | undefined) => void;
 }
 
@@ -55,7 +43,6 @@ const roughness: Record<Finish, number> = {
 };
 const metalness: Partial<Record<Finish, number>> = { metal: 0.85 };
 
-/** Viewport materials: the part colour with a roughness per finish. Not an export preset. */
 function viewportMaterials(): { source: MaterialSource; dispose(): void } {
   const cache = new Map<string, T.MeshStandardMaterial>();
   return {
@@ -191,27 +178,18 @@ export class EditorViewport {
     this.resize();
   }
 
-  /** Whether a gizmo drag is in progress. */
   get dragging(): boolean {
     return this.dragStart !== undefined;
   }
 
-  /**
-   * Abandon the drag in progress: nothing is reported when the pointer is
-   * released, and the next `show` puts the part back where the document has
-   * it. Returns whether a drag was cancelled.
-   */
   cancelDrag(): boolean {
     if (!this.dragStart) return false;
     this.dragStart = undefined;
-    // A detached gizmo ignores the rest of the held pointer; its release re-enables the orbit.
     this.gizmo.detach();
     this.request();
     return true;
   }
 
-  /** Rebuild from a document. Keeps the camera and, if the part still exists, the selection. */
-  /** The adult's body pack, once the window has read it; adults build only with it. */
   human: HumanBody | undefined;
 
   show(
@@ -220,7 +198,6 @@ export class EditorViewport {
     finish?: BuildOptions["finish"],
     humanPaint?: BuildOptions["humanPaint"],
   ): void {
-    // A rebuild ends any drag: its object is about to be replaced.
     this.dragStart = undefined;
     this.gizmo.detach();
     if (this.built) {
@@ -290,7 +267,6 @@ export class EditorViewport {
     this.gizmo.attach(part.object);
   }
 
-  /** Aim at the whole character. */
   frame(): void {
     const box = new T.Box3();
     if (this.built) box.setFromObject(this.built.group);
@@ -401,7 +377,6 @@ export class EditorViewport {
     this.request();
   }
 
-  /** Drawing-buffer size in device pixels and the CSS size it fills. */
   get resolution(): { width: number; height: number; cssWidth: number; cssHeight: number } {
     const canvas = this.renderer.domElement;
     return {
@@ -412,11 +387,6 @@ export class EditorViewport {
     };
   }
 
-  /**
-   * The view as a PNG, drawn now so the drawing buffer still holds it. `front`,
-   * `side` and `back` square the camera to that side of the character at the
-   * current distance; the selection box and gizmo are left out.
-   */
   capture(view: "current" | "front" | "side" | "back", frameHead: boolean): Promise<Uint8Array> {
     let camera: T.Camera = this.camera;
     if (view !== "current") {

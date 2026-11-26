@@ -95,9 +95,6 @@ export function sculptBuild(root, form) {
       after.copy(before);
       deform(after);
       if (smooth) {
-        // Joined triangles are split between independently editable regions.
-        // Carry the shared normal through the warp rather than shading each
-        // triangle independently and leaving a faceted line at the joint.
         normal.fromBufferAttribute(normals, i).normalize();
         tangent
           .crossVectors(Math.abs(normal.y) < 0.8 ? up : right, normal)

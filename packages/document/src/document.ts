@@ -1,16 +1,3 @@
-// Reading and validating a character document.
-//
-// `readDocument` is the single validator: untrusted JSON (a portable bundle, an
-// agent's replacement, a stored revision) and the result of every edit go
-// through it. It runs, in order:
-//   1. format and version check (newer formats are a capability error),
-//   2. feature version check and upgrade codecs, before structural decoding,
-//   3. the strict Effect Schema decode,
-//   4. family payload validation and feature declarations,
-//   5. graph and reference integrity,
-//   6. storage checks against the environment (assets, catalog), when given.
-// The output is canonical: entity arrays are sorted by identifier.
-
 import { Schema } from "effect";
 import {
   diagnostic,
@@ -50,7 +37,6 @@ const byKey =
     return x < y ? -1 : x > y ? 1 : 0;
   };
 
-/** Sort entity arrays so equal documents serialise identically. */
 export function canonicalize(doc: CharacterDocument): CharacterDocument {
   return {
     ...doc,
@@ -66,7 +52,6 @@ export function canonicalize(doc: CharacterDocument): CharacterDocument {
   };
 }
 
-/** Every decoded document is plain JSON by construction (see schema.ts). */
 export function documentJson(doc: CharacterDocument): Json {
   return doc;
 }
@@ -83,8 +68,6 @@ export function digestBrand(value: `sha256:${string}`): Digest {
 export function baseDigest(slots: ReadonlyArray<BaseSlot>): Digest {
   return digestBrand(digestJson(slots));
 }
-
-// ── Steps 1 and 2: format, required features and upgrade codecs ───────────
 
 function readRequirements(
   raw: JsonObject,
@@ -166,8 +149,6 @@ function readRequirements(
     });
   return ok({ upgraded });
 }
-
-// ── Step 4: family payloads and declared capabilities ─────────────────────
 
 function coreUses(doc: CharacterDocument): string[] {
   const used = ["core.parts"];
@@ -279,8 +260,6 @@ function checkFeatures(doc: CharacterDocument, registry: Registry): Checked<Char
   return diagnostics.length ? fail(diagnostics) : ok({ ...doc, features, parts });
 }
 
-// ── Step 5: graph and references ──────────────────────────────────────────
-
 function checkIntegrity(doc: CharacterDocument, registry: Registry): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
   const parts = new Map<string, Part>();
@@ -299,7 +278,6 @@ function checkIntegrity(doc: CharacterDocument, registry: Registry): Diagnostic[
       );
     assets.set(a.digest, a);
   });
-  /** Digests some binding names with the role it needs. */
   const bound = new Set<string>();
   const catalogs = new Set<string>();
   doc.catalog.forEach((c, i) => {
@@ -342,7 +320,6 @@ function checkIntegrity(doc: CharacterDocument, registry: Registry): Diagnostic[
     });
   });
 
-  /** A feature's references resolve; a role-typed asset binding names a raster of that role. */
   const checkReferences = (feature: string, payload: Json, prefix: DiagnosticPath): void => {
     for (const ref of registry.features.get(feature)?.references(payload) ?? []) {
       const path = [...prefix, ...ref.path];
@@ -482,7 +459,6 @@ function checkIntegrity(doc: CharacterDocument, registry: Registry): Diagnostic[
       );
   });
 
-  // The parent graph is a forest.
   for (const p of doc.parts) {
     const seen = new Set<string>([p.id]);
     let at = p.parent;
@@ -517,8 +493,6 @@ function checkIntegrity(doc: CharacterDocument, registry: Registry): Diagnostic[
   }
   return diagnostics;
 }
-
-// ── Step 6: storage environment ───────────────────────────────────────────
 
 export function checkEnvironment(doc: CharacterDocument, env: Environment): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
@@ -572,7 +546,6 @@ export function checkEnvironment(doc: CharacterDocument, env: Environment): Diag
   return diagnostics;
 }
 
-/** Check blob bytes against their declaration before storing or referencing them. */
 export function verifyAssetBytes(entry: AssetEntry, bytes: Uint8Array): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
   if (bytes.length !== entry.byteLength)
@@ -596,11 +569,8 @@ export function verifyAssetBytes(entry: AssetEntry, bytes: Uint8Array): Diagnost
   return diagnostics;
 }
 
-// ── Entry point ───────────────────────────────────────────────────────────
-
 export interface ReadOptions {
   readonly registry: Registry;
-  /** When given, every declared asset and catalog must be present and identical. */
   readonly environment?: Environment;
 }
 
@@ -637,7 +607,6 @@ export function readDocument(raw: unknown, options: ReadOptions): Checked<Charac
   return ok(doc);
 }
 
-/** Re-validate a typed document, for example the result of an edit. */
 export function validateDocument(
   doc: CharacterDocument,
   options: ReadOptions,

@@ -1,7 +1,5 @@
 import * as T from "three";
 
-// A folding silk fan. The painted outer leaf opens in alternate valleys and
-// ridges above the exposed bamboo sticks. The two longer guard sticks frame it.
 const fanName = "Painted folding fan";
 export const handProps = ["None", fanName];
 
@@ -38,7 +36,6 @@ function paintLeaf(style) {
   grad.addColorStop(1, colour(base, silk, 0.07));
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 512, 192);
-  // Tidal scallops with open space between the bands, hand-painted on the continuous cloth.
   ctx.lineWidth = 2.6;
   ctx.strokeStyle = colour(base, gold, 0.82);
   for (let level = 0; level < 3; level++)
@@ -111,7 +108,6 @@ export function fittedFan(surface, style, material, plain) {
       (i + 1) / (2 * folds),
     );
   }
-  // Each rib tapers from its shoulder to the rim and narrows again at the pivot.
   for (let i = 0; i <= folds; i++) {
     const a = angle(i * 2),
       guard = i === 0 || i === folds;
@@ -123,8 +119,6 @@ export function fittedFan(surface, style, material, plain) {
       [guard ? 0.23 : 0.222, guard ? 0.0034 : 0.0012],
     ];
     const depth = 0.0069 - i * 0.00023;
-    // A rib continues through the pivot: offset both sides in its transverse
-    // direction, even along the short length behind the rivet.
     const edge = (radius, offset, depth) =>
       grip
         .clone()
@@ -158,7 +152,6 @@ export function fittedFan(surface, style, material, plain) {
         );
     }
   }
-  // Brass pivot with a punched rim and a raised centre.
   for (let i = 0; i < 16; i++) {
     const a = (i * Math.PI) / 8,
       b = ((i + 1) * Math.PI) / 8;

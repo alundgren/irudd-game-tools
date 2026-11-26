@@ -1,7 +1,3 @@
-// One table of verbs for every caller of a host: wire connections from the CLI
-// and MCP, and the desktop window calling in-process. Authorization happens
-// here, against the role the host bound when the caller authenticated.
-
 import { Effect, Exit } from "effect";
 import {
   decodeWith,
@@ -39,9 +35,7 @@ export interface Caller {
   readonly actor: Actor;
   readonly role: "human" | "agent";
   readonly session: Session;
-  /** Agents: the pairing this connection authenticated with, and its link for inbox events. */
   readonly link?: AgentLink;
-  /** The wire connection this caller authenticated on; absent for desktop main in process. */
   readonly connection?: ConnectionLink;
 }
 
@@ -91,7 +85,6 @@ export class Dispatcher {
     this.context = context;
   }
 
-  /** A connection closed: forget its inbox watch. */
   connected(link: AgentLink): void {
     this.context.steering.connected(link);
   }
@@ -100,13 +93,11 @@ export class Dispatcher {
     this.context.steering.disconnected(linkId);
   }
 
-  /** A connection closed: a renderer it served leaves, failing its jobs. */
   connectionClosed(connectionId: string): void {
     this.context.review.connectionClosed(connectionId);
     this.context.art.connectionClosed(connectionId);
   }
 
-  /** Run one method for an authenticated caller. Never throws. */
   async call(caller: Caller, method: string, params: unknown): Promise<Outcome> {
     if (!isMethodName(method))
       return error("UnknownMethod", `The host has no method ${method}.`, { method });
@@ -231,7 +222,6 @@ export class Dispatcher {
             path: ["params", "path"],
           });
         if (method === "document.save") return run(project.saveCharacter(text("documentId"), file));
-        // Windows and clients learn of the new document as of a commit.
         const announce = (report: ImportReport) =>
           this.context.emit({
             t: "event",
@@ -253,7 +243,6 @@ export class Dispatcher {
     }
   }
 
-  /** The steering methods: people manage recipients and the outbox, agents their inbox. */
   private async steer(
     caller: Caller,
     method: MethodName,
@@ -374,7 +363,6 @@ export class Dispatcher {
     }
   }
 
-  /** Apply one envelope with the caller's actor stamped by the session. */
   async apply(caller: Caller, request: unknown): Promise<Outcome> {
     if (typeof request === "object" && request !== null && !Array.isArray(request)) {
       if ("actor" in request)
@@ -454,8 +442,6 @@ export class Dispatcher {
             ...(typeof customLabel === "string" ? { label: customLabel } : {}),
           }
         : source;
-      // Artwork goes into the verified blob store first, so the revision never
-      // references bytes the project does not hold.
       const staged = await stageFormArtwork(
         this.context.project,
         caller.session,
@@ -558,7 +544,6 @@ export class Dispatcher {
   }
 }
 
-/** Parameters as JSON, so a preset object reaches the reducer as plain data. */
 function toJson(value: unknown): Json {
   const parsed: unknown = JSON.parse(JSON.stringify(value ?? null));
   return isJson(parsed) ? parsed : null;

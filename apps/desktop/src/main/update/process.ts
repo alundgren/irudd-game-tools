@@ -1,9 +1,3 @@
-// The updater's only process adapter. It starts exactly four things, each
-// with fixed arguments: Git to read the branch head, the installed copy of
-// install.ps1 to build a commit, a build's own activator to switch to it, and
-// the root launcher to reopen the app.
-// Nothing here opens a model session or runs project content.
-
 import { spawn } from "node:child_process";
 import path from "node:path";
 import { stripVTControlCharacters } from "node:util";
@@ -28,7 +22,6 @@ interface RunOptions {
   readonly onOutput?: (tail: string) => void;
 }
 
-/** Run to completion; abort kills the whole process tree, as Scope's updater does. */
 function run(command: string, args: ReadonlyArray<string>, options: RunOptions): Promise<string> {
   options.signal.throwIfAborted();
   return new Promise((resolve, reject) => {
@@ -76,7 +69,6 @@ function run(command: string, args: ReadonlyArray<string>, options: RunOptions):
   });
 }
 
-/** The commit at the tip of `branch` on the source clone's origin. */
 export async function remoteHead(
   source: string,
   branch: string,
@@ -91,7 +83,6 @@ export async function remoteHead(
   return match[1];
 }
 
-/** Build `commit` into <root>\builds and point `prepared` at it, with the installed install.ps1. */
 export function prepareBuild(
   installer: string,
   commit: string,
@@ -121,10 +112,6 @@ export function prepareBuild(
   );
 }
 
-/**
- * Switch the installation to a prepared build with that build's own
- * activator, so the new version's code performs its own activation.
- */
 export function activateBuild(build: string, root: string): Promise<string> {
   return run(
     path.join(build, "Irudd Workshop", "Irudd Workshop.exe"),
@@ -142,10 +129,6 @@ export function activateBuild(build: string, root: string): Promise<string> {
   );
 }
 
-/**
- * Start the root launcher once this process has exited, so the new build
- * opens the project after the old one has released it.
- */
 export function relaunch(launcher: string, args: ReadonlyArray<string>): void {
   const child = spawn(launcher, ["--wait-pid", String(process.pid), ...args], {
     detached: true,

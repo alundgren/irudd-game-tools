@@ -1,14 +1,7 @@
-// The built-in faces' paint. Ported from loadFacePaint and skinTexture in
-// character-view/face.js at 2761eb1. The four original diffuse studies share
-// one sheet; each face's texture samples its portrait from the front and
-// carries its temple colour around the back of the skull, and a skin other
-// than the study's own is matched in linear light.
-
 import * as T from "three";
 import { context2d, type Raster, type RasterImage } from "../raster.js";
 import { builtinFaces, headContour } from "../surfaces/head.js";
 
-/** The prepared face textures, and the tinted copies made from them. */
 export interface FacePaint {
   readonly raster: Raster;
   readonly cells: ReadonlyArray<{
@@ -24,7 +17,6 @@ const item = <V>(list: ArrayLike<V>, i: number): V => {
   return v;
 };
 
-/** Prepare the four face textures from the bundled faces sheet. */
 export function prepareFacePaint(raster: Raster, image: RasterImage): FacePaint {
   const source = raster.canvas(image.width, image.height);
   const ctx = context2d(source, { willReadFrequently: true });
@@ -56,7 +48,6 @@ export function prepareFacePaint(raster: Raster, image: RasterImage): FacePaint 
         const v = 0.958 - t * 0.949;
         const off = (y * canvas.width + x) * 4;
         for (let k = 0; k < 3; k++) {
-          // A small forehead patch supplies skin grain around the unpainted rear.
           const rear = sample(
             0.48 + 0.052 * Math.sin(angle * 6),
             0.156 + 0.028 * Math.sin(t * 12),
@@ -76,7 +67,6 @@ export function prepareFacePaint(raster: Raster, image: RasterImage): FacePaint 
   return { raster, cells, tinted: new Map() };
 }
 
-/** The face texture of `cell` for `skin`: the study itself, or a copy matched to the skin. */
 export function faceTexture(paint: FacePaint, cell: 0 | 1 | 2 | 3, skin: string): T.CanvasTexture {
   const study = item(paint.cells, cell);
   const reference = item(builtinFaces, cell).skin;

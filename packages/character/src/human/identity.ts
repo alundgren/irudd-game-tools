@@ -1,15 +1,5 @@
-// A coherent face for a newly drawn adult (character-view/human-identity.js).
-//
-// randomHuman gives every measurement its own seeded draw; this turns them
-// into a person the way a character artist would block one in: the ancestry
-// of the skull, the outline of the face, one type each for nose, eyes, mouth
-// and brow, what age and body mass do to the soft tissue, a little
-// one-sidedness and a resting expression. `u(key)` is a uniform draw that
-// depends only on the seed and the key.
-
 export type Spec = Record<string, number>;
 
-/** The reference workshop's seeded stream (mulberry32). */
 export function randomStream(seed: number): () => number {
   let state = seed >>> 0;
   return () => {
@@ -228,7 +218,6 @@ function choose<R extends readonly [number, ...unknown[]]>(table: ReadonlyArray<
 
 const get = (spec: Spec, key: string) => spec[key] ?? 0;
 
-/** Reshape the face controls of `spec` in place and return the ancestry shares. */
 export function drawIdentity(
   spec: Spec,
   u: (key: string) => number,
@@ -444,7 +433,6 @@ export function drawIdentity(
   return { share };
 }
 
-/** How light the skin of a drawn adult is, 0 dark to 1 light. */
 export function skinLightness(share: readonly [number, number, number], at: number): number {
   const lean =
     (0.2 * share[0] + 0.62 * share[1] + 0.74 * share[2]) / (share[0] + share[1] + share[2]);

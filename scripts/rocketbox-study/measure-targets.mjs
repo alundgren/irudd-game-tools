@@ -1,4 +1,3 @@
-// Prints pose and size readings of the two targets with the workshop's own reference readers.
 import { poseReadings } from "../../character-view/human-reference-align.js";
 import { readGlb } from "./glb.mjs";
 import { need } from "./local.mjs";
@@ -13,7 +12,6 @@ for (const name of ["female-adult-04", "gardener-male-01"]) {
     for (let i = 0; i < p.positions.length; i++) { lo[i % 3] = Math.min(lo[i % 3], p.positions[i]); hi[i % 3] = Math.max(hi[i % 3], p.positions[i]); }
     console.log("  ", p.material, p.positions.length / 3, lo.map(x => x.toFixed(3)).join(" "), "|", hi.map(x => x.toFixed(3)).join(" "));
   }
-  // Half-widths and depths of everything within 0.25 m of the centre line, by height.
   const rows = [];
   for (let y = 0.05; y < 1.85; y += 0.1) {
     let x = 0, zf = -9, zb = 9, xin = 0;

@@ -1,12 +1,3 @@
-// One read-only command for port code: Oxfmt check, Oxlint, official tsc per program, TypeScript
-// program inspection and the dependency-cruiser graph from shipped entries.
-//
-//   node tools/static/check.ts [--root DIR] [--write-format] [--json FILE]
-//
-// --root checks another workspace (used by fixtures.ts) with this repository's tools.
-// --write-format applies Oxfmt before checking; every other step only reads.
-// --tsc substitutes the compiler script (fixtures use it to prove failure handling).
-
 import { spawn } from "node:child_process";
 import {
   existsSync,
@@ -63,11 +54,7 @@ interface Exception {
 const toolRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const vp = join(toolRoot, "node_modules/vite-plus/bin/vp");
 const defaultTsc = join(toolRoot, "node_modules/typescript/bin/tsc");
-// The check never writes: no emit and no incremental build state, whatever a tsconfig says.
 const readOnlyTsc = ["--noEmit", "--incremental", "false", "--composite", "false"];
-
-// ---------------------------------------------------------------------------------------------
-// Small typed helpers (no type assertions).
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -78,7 +65,6 @@ function readJson(file: string): unknown {
   return parsed;
 }
 
-/** Readable text for a JSON value from a tool report. */
 function text(value: unknown): string {
   if (typeof value === "string") return value;
   if (typeof value === "number" || typeof value === "boolean") return String(value);
@@ -126,9 +112,6 @@ function lines(text: string): string[] {
     .filter((line) => line.length > 0);
 }
 
-// ---------------------------------------------------------------------------------------------
-// Workspace discovery and manifests.
-
 function workspaceDirs(root: string, findings: Finding[]): string[] {
   const file = join(root, "pnpm-workspace.yaml");
   if (!existsSync(file)) {
@@ -173,6 +156,7 @@ function exportTargets(value: unknown, out: string[]): void {
 }
 
 const rootDependencies = new Set([
+  "@ast-grep/cli",
   "three",
   "@swc/core",
   "@types/node",
@@ -373,9 +357,6 @@ function discover(root: string): { active: ActiveProject[]; result: StepResult }
   return { active, result: { step: "manifests", ms: elapsed(start), findings, notes } };
 }
 
-// ---------------------------------------------------------------------------------------------
-// Format and lint through the Vite+ workspace CLI.
-
 async function format(root: string, write: boolean): Promise<StepResult> {
   const start = performance.now();
   const findings: Finding[] = [];
@@ -444,9 +425,6 @@ async function lint(root: string): Promise<StepResult> {
   }
   return { step: "lint", ms: elapsed(start), findings, notes };
 }
-
-// ---------------------------------------------------------------------------------------------
-// Official tsc per program, plus inspection of the files each program actually loads.
 
 function programDirsPresent(root: string, project: ActiveProject, program: ProgramPolicy): boolean {
   if (program.tsconfig === "tsconfig.json") return true;
@@ -537,7 +515,6 @@ async function typecheck(
           if (allowed?.test(posix(message))) allowedCount++;
           else findings.push({ step: "types", message });
         }
-        // A failing compiler always fails the check, even when its output cannot be read.
         if (compiled.code !== 0 && diagnostics.length === 0) {
           findings.push({
             step: "types",
@@ -564,7 +541,6 @@ async function typecheck(
       }),
   );
   await Promise.all(jobs);
-  // Every source in a project belongs to one of its programs; anything else tsc never sees.
   for (const file of files) {
     const local = rel(root, file);
     if (!sourceExtension.test(local) || checked.has(local)) continue;
@@ -580,7 +556,6 @@ async function typecheck(
   return { step: "types", ms: elapsed(start), findings, notes: notes.sort() };
 }
 
-/** Options from tsconfig.base.json that every program must keep, with their base values. */
 function baseInvariants(
   root: string,
   findings: Finding[],
@@ -609,8 +584,6 @@ function sameOption(actual: unknown, expected: unknown): boolean {
   return JSON.stringify(actual) === JSON.stringify(expected);
 }
 
-// Effective options emitted by the pinned compiler for the checked programs. TS also reports
-// preserveConstEnums when isolatedModules is enabled. New options need an explicit policy.
 const compilerOptions = new Set([
   ...overridableBaseOptions,
   ...strictFamily,
@@ -658,7 +631,6 @@ const optionHints: Readonly<Record<string, string>> = {
   typeRoots: "widens ambient declarations",
 };
 
-/** Effective compiler options from `tsc --showConfig` against policy and the base invariants. */
 function checkOptions(
   where: string,
   role: string,
@@ -756,7 +728,6 @@ function inspectProgram(
     }
     const lib = libFile.exec(lower);
     if (lib !== null) {
-      // es5 references the decorator libraries, which declare no host API.
       const name = lib[1];
       if (name === undefined)
         add(`the default lib.d.ts (ES5, DOM and host) leaks into the program (${file})`);
@@ -797,10 +768,6 @@ function inspectProgram(
   return loaded;
 }
 
-/**
- * Global augmentations and ambient module declarations in a module of a pure program. Module-local
- * declarations such as `declare const brand: unique symbol` stay private and are allowed.
- */
 function ambientDeclarations(file: string): string[] {
   let parsed: ReturnType<typeof parseSync>;
   try {
@@ -826,16 +793,11 @@ function ambientDeclarations(file: string): string[] {
   return out;
 }
 
-// ---------------------------------------------------------------------------------------------
-// Lint escapes must be narrow and explained, and project sources stay inside lint and format.
-
 const sourceExtension = /\.(ts|mts|cts|tsx|js|mjs|cjs|jsx)$/;
 
-// Lint, format and ignore configuration that would apply to part of a project instead of the root.
 const localConfig =
   /^(\.(git|prettier|eslint|oxlint|oxfmt)?ignore|\.?(oxlintrc|oxfmtrc|prettierrc|eslintrc)(\..+)?|\.editorconfig|(vite|vitest|oxlint|oxfmt|eslint|prettier)\.config\.[cm]?[jt]s)$/;
 
-// Rules that guard the type and graph checks themselves. An escape of one of them fails.
 const guardedRules = new Set([
   "ban-ts-comment",
   "triple-slash-reference",
@@ -846,7 +808,6 @@ const guardedRules = new Set([
   "no-implied-eval",
 ]);
 
-/** Every file under a project directory, without dependencies or Git metadata. */
 function walk(dir: string, out: string[], buildOutputs: readonly string[] = []): void {
   if (!existsSync(dir)) return;
   for (const name of readdirSync(dir)) {
@@ -900,11 +861,6 @@ function escapes(root: string, files: readonly string[]): StepResult {
   };
 }
 
-/**
- * Every source file of a policy project must be linted and formatted. Oxlint lists the files it
- * selects; Oxfmt walks with the same ignore files, so a source missing from that list is hidden
- * from both. Package-local configuration and tool-specific ignore files are rejected outright.
- */
 async function coverage(root: string, files: readonly string[]): Promise<StepResult> {
   const start = performance.now();
   const findings: Finding[] = [];
@@ -949,9 +905,6 @@ async function coverage(root: string, files: readonly string[]): Promise<StepRes
     notes: [`${sources} project sources, ${linted.size} files selected by lint`],
   };
 }
-
-// ---------------------------------------------------------------------------------------------
-// Resolved dependency graph from shipped entries.
 
 function loadExceptions(root: string, findings: Finding[]): Exception[] {
   const file = join(root, "tools/static/exceptions.json");
@@ -1096,8 +1049,6 @@ async function graph(root: string, active: readonly ActiveProject[]): Promise<St
   return { step: "graph", ms: elapsed(start), findings, notes };
 }
 
-// ---------------------------------------------------------------------------------------------
-
 interface Args {
   readonly root: string;
   readonly write: boolean;
@@ -1125,7 +1076,6 @@ async function main(): Promise<number> {
   const args = parseArgs(process.argv.slice(2));
   const start = performance.now();
   const { active, result: manifests } = discover(args.root);
-  // Writing formats first; the read-only check runs every step concurrently.
   const written = args.write ? await format(args.root, true) : undefined;
   const files: string[] = [];
   for (const project of active) {

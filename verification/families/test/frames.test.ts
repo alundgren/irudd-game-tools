@@ -1,10 +1,3 @@
-// One geometry for the renderer, world picks and edit directions.
-//
-// The built Three.js scene of a figure document and @irudd/document's
-// `partPlacement` must agree on every part, including sheared nesting under a
-// rotated non-uniform scale, and world-space gestures must round-trip through
-// the stored values in a real built scene. CPU only; part of check:fast.
-
 import assert from "node:assert/strict";
 import { readdirSync } from "node:fs";
 import { test } from "node:test";
@@ -55,10 +48,6 @@ function maxDifference(a: Affine, b: Affine): number {
   return Math.max(worst, distance(a.translation, b.translation));
 }
 
-/**
- * Largest disagreement between the built scene and the pure placements. A
- * build warp moves each pivot to the warped rest pivot and nothing else.
- */
 function sceneAgreement(doc: CharacterDocument, human?: HumanBody): number {
   const built = build(doc, human);
   const placements = partPlacements(doc, familyRegistry);
@@ -67,7 +56,6 @@ function sceneAgreement(doc: CharacterDocument, human?: HumanBody): number {
     const v = built.warp(new T.Vector3(...a.translation));
     return { linear: a.linear, translation: [v.x, v.y, v.z] };
   };
-  // Face hardware follows its face's fit, which placements do not model.
   const carried = (id: string | null): boolean => {
     const part = id === null ? undefined : built.parts.get(id)?.part;
     return Boolean(part && (part.faceAnchor || carried(part.parent)));
@@ -86,7 +74,6 @@ function sceneAgreement(doc: CharacterDocument, human?: HumanBody): number {
 
 const isMesh = (object: T.Object3D): object is T.Mesh => object instanceof T.Mesh;
 
-/** World positions of a built part's vertices, in its own geometry before any edit. */
 function worldVertices(built: BuiltCharacter, id: string): Vec3[] {
   const object = built.parts.get(id)?.object;
   assert.ok(object && isMesh(object));
@@ -118,11 +105,6 @@ function edit(doc: CharacterDocument, raw: unknown): CharacterDocument {
 
 const degrees = (axis: Vec3, d: number) => quatFromAxisAngle(axis, (d * Math.PI) / 180);
 
-/**
- * A rotated, non-uniformly scaled figure part with a rotated child in a legacy
- * frame size, a rigid grandchild without figure.assembly and a figure
- * great-grandchild, plus a rigid root with its own child.
- */
 function sheared(): CharacterDocument {
   const part = (
     id: string,
@@ -186,7 +168,6 @@ test("every fixture places every part where the built scene does", async () => {
   assert.ok(names.length >= 7);
   for (const name of names) {
     const doc = readFixture(name);
-    // A native adult builds from the body pack.
     const human = doc.generation?.generator === humanAdultId ? await loadHumanBody() : undefined;
     assert.ok(sceneAgreement(doc, human) < 1e-12, name);
   }
@@ -201,7 +182,6 @@ test("the left eye sits in the head's scaled frame, 0.214 m from the rigid core 
   const placed = partPlacement(doc, "p-left-eye", familyRegistry);
   assert.ok(placed);
   assert.ok(distance(placed.node.translation, [centre.x, centre.y, centre.z]) < 1e-12);
-  // The head is 1.93 m per unit with frameSize [1, 1, 1]; the rigid frame ignores that.
   const rigid = partFrame(doc, "p-left-eye");
   assert.ok(rigid);
   const gap = distance(rigid.position, placed.node.translation);
@@ -233,7 +213,6 @@ test("a world pick on a sheared part resolves and maps back to the same world po
   assert.ok(back);
   assert.ok(distance(back.at, world) < 1e-12);
   assert.ok(distance(back.offset, offset) < 1e-12);
-  // The built scene puts the stored point at the same place.
   const built = build(doc);
   const mesh = built.parts.get("p-d")?.object;
   assert.ok(mesh);
@@ -261,7 +240,6 @@ test("a world drag on a sheared part moves its built origin by exactly that delt
 
 const builtBefore = new WeakMap<CharacterDocument, BuiltCharacter>();
 
-/** Re-attach a part in place and measure how far its subtree moves in the built scene. */
 function reattachStays(doc: CharacterDocument, id: string, parent: string | null): number {
   const result = reattachInPlace(doc, id, parent, familyRegistry);
   assert.ok(result.ok, `${id} → ${parent}: ${result.ok ? "" : result.reason}`);
@@ -285,14 +263,10 @@ function reattachStays(doc: CharacterDocument, id: string, parent: string | null
 
 test("re-attaching marsh-draw-3 parts keeps them and their children in place", () => {
   const doc = readFixture("marsh-draw-3");
-  // The sample cradle (with its pod and seal) from the tail to the non-uniform body and to the root.
   assert.ok(reattachStays(doc, "p-left-sample-cradle", "p-body") < 1e-9);
   assert.ok(reattachStays(doc, "p-left-sample-cradle", null) < 1e-9);
-  // The left eye from the 1.93 m head basis to the body.
   assert.ok(reattachStays(doc, "p-left-eye", "p-body") < 1e-9);
-  // A rotated paddle under the head's uniform 1.93 m basis.
   assert.ok(reattachStays(doc, "p-left-front-paddle", "p-head") < 1e-9);
-  // Under the non-uniform body the same paddle would need a shear.
   assert.deepEqual(reattachInPlace(doc, "p-left-front-paddle", "p-body", familyRegistry), {
     ok: false,
     reason: "shear",
@@ -301,17 +275,14 @@ test("re-attaching marsh-draw-3 parts keeps them and their children in place", (
 
 test("re-attaching refuses a shear the part cannot store and a move of its children", () => {
   const doc = sheared();
-  // p-d is sheared by its ancestors; the world frame cannot hold it.
   assert.deepEqual(reattachInPlace(doc, "p-d", null, familyRegistry), {
     ok: false,
     reason: "shear",
   });
-  // p-e attaches p-f rigidly. Under p-a's scaled frame its rigid basis would scale too.
   const rotatedFree = edit(doc, [{ op: "part.set", part: "p-a", set: { rotation: [0, 0, 0, 1] } }]);
   assert.deepEqual(reattachInPlace(rotatedFree, "p-e", "p-a", familyRegistry), {
     ok: false,
     reason: "children",
   });
-  // A leaf has no children to move, so it may go there.
   assert.ok(reattachStays(rotatedFree, "p-f", "p-a") < 1e-9);
 });

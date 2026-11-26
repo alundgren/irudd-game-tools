@@ -1,14 +1,3 @@
-// Art requests through one host over its real OS-local endpoint: a typed
-// brief with picture attachments reaches only the bound conversation, and
-// the paired agent's reply becomes a proposal it authored on the brief's
-// revision. Covers attachments and their bytes, the steering link, accept,
-// discard and undo, a replayed and a duplicate reply, a reply after a manual
-// edit, invalid replies, cancellation, pairing checks, recorded kinds, a
-// person's import, and that the host launches no process for any of it.
-//
-// The T3 route is a FAKE transport that records the prompt it is handed. It
-// proves what the host sends and how it handles replies, not delivery into a
-// live conversation, and no model makes these pictures: they are fixtures.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createRequire, syncBuiltinESMExports } from "node:module";
@@ -46,8 +35,6 @@ import type { ArtBrief, MethodResults, RecipientRoute } from "@irudd/workshop/wi
 import { docId, generate, rename, request, requestId, tempDir } from "./support/fixtures.js";
 import { png } from "./support/png.js";
 
-// ── Child-process audit ─────────────────────────────────────────────────────
-// Every way Node starts a process is counted for the whole file.
 const require = createRequire(import.meta.url);
 const childProcess: unknown = require("node:child_process");
 assert.ok(typeof childProcess === "object" && childProcess !== null);
@@ -89,7 +76,6 @@ interface Rig {
   readonly agent: WorkshopClient;
   readonly credentialFile: string;
   readonly pairingId: string;
-  /** Close the clients and the host. */
   close(): Promise<void>;
 }
 
@@ -99,7 +85,6 @@ interface RigOptions {
   readonly shipped?: ReadonlyArray<string>;
 }
 
-/** Start a host on `root`. The first start creates the project, the document and the pairing; later ones reopen them. */
 async function openRig(root: string, o: RigOptions = {}, earlier?: Rig): Promise<Rig> {
   const project = path.join(root, "project");
   const stateDir = path.join(root, "state");
@@ -274,7 +259,6 @@ test("a brief with attachments reaches the bound conversation and the reply is t
       ],
     );
 
-    // Delivered to exactly the bound conversation, with art instructions instead of propose lines.
     await until(
       () => human.call("steer.get", { messageId: requested.messageId }),
       (m) => m.status === "host-accepted",
@@ -287,7 +271,6 @@ test("a brief with attachments reaches the bound conversation and the reply is t
     assert.match(prompt, new RegExp(front.digest));
     assert.doesNotMatch(prompt, /irudd propose /);
 
-    // The agent sees its request and reads the exact attachment bytes.
     const listed = await agent.call("art.list", {});
     assert.deepEqual(
       listed.requests.map((r) => r.artId),
@@ -320,7 +303,6 @@ test("a brief with attachments reaches the bound conversation and the reply is t
     assert.deepEqual(s.source, { baseRevision: 1, headAtSubmit: 1, stale: false });
     assert.equal(submitted.request.state, "answered");
 
-    // The journal holds the agent's proposal; the head did not move.
     const inspected = await human.call("inspect", { documentId: docId });
     assert.equal(inspected.revision, 1);
     const proposal = inspected.proposals.find((p) => p.id === s.proposal?.id);
@@ -329,7 +311,6 @@ test("a brief with attachments reaches the bound conversation and the reply is t
     assert.equal(linked.status, "proposed");
     assert.equal(linked.acknowledged?.agent, "claude");
 
-    // Accept, then undo: the art proposal is an ordinary revision.
     const accepted = committed(
       await human.call("apply", {
         request: request(1, {
@@ -394,7 +375,6 @@ test("a retried reply replays, a changed one conflicts and a repeated one is a d
     assert.equal(duplicate.submission.proposal?.id, first.submission.proposal?.id);
     const inspected = await human.call("inspect", { documentId: docId });
     assert.equal(inspected.proposals.length, 1, "a duplicate drafts nothing new");
-    // A repeated brief under the same request ID is the same request; a different one conflicts.
     const same = await human.call("art.request", {
       agent: "claude",
       requestId: r.requestId,
@@ -422,7 +402,6 @@ test("a reply after a manual edit is a stale proposal that leaves the head alone
       requestId: requestId("art"),
       brief: brief("variation", 1, [{ role: "front", digest: front.digest }]),
     });
-    // The person keeps sculpting while the agent works.
     committed(await human.call("apply", { request: rename(1, part, "Person's skull") }));
     const s = (
       await agent.call("art.submit", {
@@ -497,7 +476,6 @@ test("invalid replies are recorded with diagnostics and propose nothing", async 
     });
     assert.equal(badOp.submission.state, "rejected");
     assert.ok(badOp.submission.diagnostics.length > 0);
-    // A malformed reply fails the method's own schema, which the host decodes before anything else.
     assert.equal(decodeWith(ArtReply, { kind: "variation" }).ok, false);
     assert.equal((await human.call("inspect", { documentId: docId })).proposals.length, 0);
     assert.equal((await human.call("art.get", { artId: r.artId })).state, "open");
@@ -507,7 +485,6 @@ test("invalid replies are recorded with diagnostics and propose nothing", async 
       reply: variation(part, "Heron"),
     });
     assert.equal(good.submission.state, "proposed");
-    // Briefs are checked too: a missing attachment and a revision that does not exist.
     await failsWith(
       human.call("art.request", {
         agent: "claude",
@@ -588,7 +565,6 @@ test("only the brief's pairing sees and answers it", async () => {
     } finally {
       codex.close();
     }
-    // Re-pairing Claude revokes the old credential's connection for art too.
     await human.call("pair.agent", { agent: "claude" });
     await failsWith(
       agent.call("art.submit", {
@@ -657,7 +633,6 @@ test("turnaround, trace and depth replies are checked; without a translator they
       [[640, 640]],
     );
     assert.equal(recorded.request.apply.available, false);
-    // The person can read the submitted file back, byte for byte.
     assert.equal(
       (await readArtFile(human, depth.artId, gray.digest)).bytes.length,
       gray.byteLength,
@@ -712,7 +687,6 @@ test("turnaround, trace and depth replies are checked; without a translator they
     assert.equal(cycle.ok, false);
     assert.match(cycle.ok ? "" : (cycle.diagnostics[0]?.message ?? ""), /cycle/);
 
-    // A person imports a file when the agent cannot make one.
     const sheet = await uploadArt(
       human,
       png(1024, 1024, [255, 0, 255], { at: 200, size: 300, rgb: [40, 90, 60] }),
@@ -734,7 +708,6 @@ test("turnaround, trace and depth replies are checked; without a translator they
 });
 
 test("a trace brief's intent picks its translator; a brief without one fits as before", async () => {
-  // A host without translators says so for each intent.
   await withRig("intents-bare", async (rig) => {
     const trace = (await rig.agent.call("art.capabilities", {})).kinds.find(
       (k) => k.kind === "trace",
@@ -747,7 +720,6 @@ test("a trace brief's intent picks its translator; a brief without one fits as b
       ],
     );
     assert.match(trace?.intents?.[1]?.apply.reason ?? "", /no trace build translator/);
-    // Only a trace brief has an intent.
     const { front, side } = await views(rig);
     const attached = [
       { role: "front" as const, digest: front.digest },
@@ -818,7 +790,6 @@ test("a trace brief's intent picks its translator; a brief without one fits as b
           ["build", "fixture-build"],
         ],
       );
-      // A build brief is checked by the build translator, and refused without its anchor.
       await failsWith(
         human.call("art.request", {
           agent: "claude",
@@ -835,13 +806,16 @@ test("a trace brief's intent picks its translator; a brief without one fits as b
       });
       assert.equal(built.brief.intent, "build");
       assert.equal(built.apply.translator, "fixture-build");
-      await until(() => human.call("steer.get", {messageId:built.messageId}), m => m.status === "host-accepted", "build instructions");
+      await until(
+        () => human.call("steer.get", { messageId: built.messageId }),
+        (m) => m.status === "host-accepted",
+        "build instructions",
+      );
       const prompt = rig.fake.sent.at(-1)?.prompt ?? "";
       assert.match(prompt, /Intent: build/);
       assert.match(prompt, /Build guidance\./);
       assert.match(prompt, /becomes a new editable part/);
       assert.doesNotMatch(prompt, /Fit guidance\./);
-      // A brief without an intent is the fit it always was: no intent is added to it.
       const fitted = await human.call("art.request", {
         agent: "claude",
         requestId: requestId("art"),
@@ -849,7 +823,11 @@ test("a trace brief's intent picks its translator; a brief without one fits as b
       });
       assert.equal("intent" in fitted.brief, false);
       assert.equal(fitted.apply.translator, "fixture-fit");
-      await until(() => human.call("steer.get", {messageId:fitted.messageId}), m => m.status === "host-accepted", "fit instructions");
+      await until(
+        () => human.call("steer.get", { messageId: fitted.messageId }),
+        (m) => m.status === "host-accepted",
+        "fit instructions",
+      );
       assert.match(rig.fake.sent.at(-1)?.prompt ?? "", /Fit guidance\./);
       assert.doesNotMatch(rig.fake.sent.at(-1)?.prompt ?? "", /Intent: build/);
 
@@ -929,7 +907,6 @@ test("a registered turnaround translator drafts the repaint; a small or non-squa
     async (rig) => {
       const { human, agent } = rig;
       const { front } = await views(rig);
-      // The frame creature has no painted parts, so a repaint brief is refused before it is sent.
       await failsWith(
         human.call("art.request", {
           agent: "claude",
@@ -951,9 +928,6 @@ test("a registered turnaround translator drafts the repaint; a small or non-squa
   );
 });
 
-// ── Painted regions, credits and recovery ───────────────────────────────────
-
-/** A repaint stand-in: adds the sheet and paints the brief's regions from it. */
 const fixtureRepaint: ArtTranslator = {
   kind: "turnaround",
   id: "fixture-repaint",
@@ -980,13 +954,11 @@ const fixtureRepaint: ArtTranslator = {
 };
 
 let sheets = 0;
-/** A fresh square sheet each call, so every reply is new artwork. */
 const sheetPng = () => {
   sheets += 1;
   return png(1024, 1024, [255, 0, 255], { at: 100 + sheets * 7, size: 300, rgb: [30, 60, 90] });
 };
 
-/** The person paints the head region from a new sheet; returns the sheet and the new head. */
 async function paintHead(rig: Rig, revision: number) {
   const sheet = await uploadArt(rig.human, sheetPng());
   const part = await headPart(rig);
@@ -1059,7 +1031,6 @@ test("a turnaround brief's source sheet must be the sheet its regions paint from
       assert.match(wrong.message, new RegExp(first.sheet.digest));
       assert.equal((await turn(first.head, first.sheet.digest)).state, "open");
 
-      // Repainted from a second sheet: the rule follows the brief's revision, not the head.
       const second = await paintHead(rig, first.head);
       assert.equal((await turn(first.head, first.sheet.digest)).state, "open");
       await failsWith(turn(second.head, first.sheet.digest), "ArtRejected");
@@ -1074,7 +1045,6 @@ test("accepted artwork carries its credits through backup, restore and a portabl
   const backupDir = tempDir("art-credits-backup");
   const backup = path.join(backupDir, "copy.irudd-backup");
   const root = tempDir("art-credits");
-  // Bytes this build ships with their own origin.
   const bundled = sheetPng();
   const rig = await openRig(root, { translators: [fixtureRepaint], shipped: [artDigest(bundled)] });
   let archive: Uint8Array = new Uint8Array();
@@ -1110,7 +1080,6 @@ test("accepted artwork carries its credits through backup, restore and a portabl
       return { doc, credits: assetCredits(doc), stored: storedAssetCredits(doc) };
     };
 
-    // The paired agent's sheet: it submits the bytes and states who made them.
     const byAgent = await ask(painted.head, painted.sheet.digest);
     const made = await uploadArt(agent, sheetPng());
     const agentReply = await agent.call("art.submit", {
@@ -1124,11 +1093,9 @@ test("accepted artwork carries its credits through backup, restore and a portabl
       }),
     });
     assert.equal(agentReply.submission.state, "proposed", JSON.stringify(agentReply));
-    // Drafted, the credit is in the proposal but not in the head.
     assert.equal((await credits()).credits.size, 0);
     let head = await accept(rig, painted.head, agentReply.submission.proposal?.id);
 
-    // A person imports a sheet someone else made.
     const byPerson = await ask(head, made.digest);
     const imported = await uploadArt(human, sheetPng());
     const personReply = await human.call("art.submit", {
@@ -1159,7 +1126,6 @@ test("accepted artwork carries its credits through backup, restore and a portabl
     assert.equal(scan?.author, "Ada Weaver", "someone else made them");
     assert.equal(scan?.via, "person-import");
 
-    // Reusing a credited picture keeps its first credit; shipped bytes credit nobody.
     const reuse = await ask(head, imported.digest);
     const reused = await human.call("art.submit", {
       artId: reuse.artId,
@@ -1181,7 +1147,6 @@ test("accepted artwork carries its credits through backup, restore and a portabl
     assert.equal(kept.credits.has(shippedSheet.digest), false, "shipped bytes keep their origin");
     assert.ok(kept.doc.assets.some((a) => a.digest === shippedSheet.digest));
 
-    // A reply that only removes a credited picture drops its credit too.
     const removal = await ask(head, shippedSheet.digest, "variation");
     const removed = await agent.call("art.submit", {
       artId: removal.artId,
@@ -1203,7 +1168,6 @@ test("accepted artwork carries its credits through backup, restore and a portabl
       "the removed picture's credit is gone from the stored record",
     );
 
-    // A reply may not write the credits itself.
     const forged = await ask(head, shippedSheet.digest, "variation");
     const refused = await agent.call("art.submit", {
       artId: forged.artId,
@@ -1219,7 +1183,6 @@ test("accepted artwork carries its credits through backup, restore and a portabl
     assert.equal(refused.submission.state, "rejected");
     assert.match(refused.submission.diagnostics[0]?.message ?? "", /host writes/);
 
-    // Nothing private travels with the document.
     const text = JSON.stringify(after.doc);
     for (const secret of [
       rig.pairingId,
@@ -1273,7 +1236,6 @@ test("accepted artwork carries its credits through backup, restore and a portabl
   }
 });
 
-/** A turnaround brief for `parts`, painted from `sheet` at `revision`. */
 const repaintBrief = (
   rig: Rig,
   front: string,
@@ -1353,7 +1315,6 @@ test("concurrent repaints of different regions merge their credits; one region t
         (await repaintBrief(rig, front.digest, painted, s2.digest, [b])).artId,
         "Bo",
       );
-      // Control: a third repaint of the first region.
       const third = await reply(
         (await repaintBrief(rig, front.digest, painted, s1.digest, [a])).artId,
         "Cy",
@@ -1417,7 +1378,6 @@ test("a manual removal retires a picture's credit, undo restores it, and the sam
         reply: turnaround(made.digest, "first", { author: "Original Maker", license: "CC-BY-4.0" }),
       });
       let head = await accept(rig, painted.head, byAgent.submission.proposal?.id);
-      // A person's import of another sheet, credited and kept throughout.
       const scan = await uploadArt(human, sheetPng());
       const imported = await human.call("art.submit", {
         artId: (await repaintBrief(rig, front.digest, head, made.digest, [painted.part])).artId,
@@ -1484,7 +1444,6 @@ test("a record holding stale credits is compacted without losing the new one; an
         summary: "old",
         author,
       });
-      // As an earlier build left it: a full record of pictures removed since, one of them these bytes.
       const old = [
         stale(made.digest, "Stale Maker"),
         ...Array.from({ length: 63 }, (_, i) =>
@@ -1516,7 +1475,6 @@ test("a record holding stale credits is compacted without losing the new one; an
         "stale entries are compacted and the new credit replaces the stale one for its bytes",
       );
 
-      // An unreadable record: a reply adding a picture is refused, not allowed to overwrite it.
       const broken = { format: "irudd.asset-credits", version: 1, assets: "unreadable" };
       head = committed(await setRecord(head, broken));
       const other = await uploadArt(agent, sheetPng());
@@ -1528,7 +1486,6 @@ test("a record holding stale credits is compacted without losing the new one; an
       assert.equal(refused.submission.state, "rejected");
       assert.match(refused.submission.diagnostics[0]?.message ?? "", /cannot be read/);
       assert.deepEqual((await currentDoc(rig)).extensions[assetCreditsNamespace], broken);
-      // Control: a reply that adds no picture still proposes.
       const rename = await agent.call("art.submit", {
         artId: (
           await human.call("art.request", {
@@ -1601,11 +1558,6 @@ test("shipped bytes never take over a stale credit left for them", async () => {
 
 class Cut extends Error {}
 
-/**
- * Stop a reply at `point` by throwing there, then restart the host on the
- * same project and state. Returns the restarted rig, the request and the
- * submission that was cut.
- */
 async function cutReply(name: string, point: ArtCut) {
   const root = tempDir(`art-cut-${name}`);
   let armed = false;
@@ -1666,7 +1618,6 @@ test("a host stopped after the proposal commit links it on restart, and a fresh 
     const message = await rig.human.call("steer.get", { messageId: requested.messageId });
     assert.equal(message.status, "proposed", "the steering message follows the proposal");
 
-    // The agent never saw a reply: it retries with a new submission ID, then the old one.
     const fresh = await rig.agent.call("art.submit", {
       artId: requested.artId,
       submissionId: requestId("sub"),
@@ -1772,7 +1723,6 @@ test("an art log written before pending replies existed opens and keeps its requ
   });
   const log = path.join(first.host.files.dir, "art.sqlite");
   await first.close();
-  // Version 1 had no pending table.
   const db = new DatabaseSync(log);
   db.exec("DROP TABLE pending");
   db.exec("UPDATE meta SET value = '1' WHERE key = 'version'");
@@ -1839,14 +1789,12 @@ test("an orphaned brief is listed for recovery, sent only on its own retry and n
     assert.equal(rig.fake.sent.length, 0, "a restart sends no stored brief by itself");
     const [answered, waiting] = listed;
     assert.ok(answered && waiting);
-    // The agent finds the first among its requests and answers it.
     const reply = await rig.agent.call("art.submit", {
       artId: answered.artId,
       submissionId: requestId("sub"),
       reply: variation(part, "Answered without its message"),
     });
     assert.equal(reply.submission.state, "proposed");
-    // The person's retry of each listed request, by the request ID the list shows.
     const retry = (r: typeof answered) =>
       rig.human.call("art.request", { agent: r.agent, requestId: r.requestId, brief: r.brief });
     const noSend = await retry(answered);
@@ -1923,15 +1871,12 @@ test("after an older backup is restored, a reply whose proposal it lost is draft
       before.submissions.map((s) => s.proposal?.status),
       ["discarded", "missing", "missing"],
     );
-    // The same submission ID drafts the lost proposal again under its own IDs.
     const same = await submit(rig, sub.heron, "Heron");
     assert.equal(same.outcome, "replayed");
     assert.equal(same.submission.proposal?.id, heron.submission.proposal?.id);
     assert.equal(same.submission.proposal?.status, "draft");
-    // A fresh submission ID now finds it: a duplicate, no second proposal.
     const twin = await submit(rig, requestId("sub"), "Heron");
     assert.equal(twin.submission.duplicateOf, sub.heron);
-    // A fresh submission ID for the other lost reply drafts it afresh, once.
     const fresh = await submit(rig, requestId("sub"), "Egret");
     assert.equal(fresh.submission.duplicateOf, null);
     assert.equal(fresh.submission.proposal?.status, "draft");
@@ -1939,7 +1884,6 @@ test("after an older backup is restored, a reply whose proposal it lost is draft
     const replayed = await submit(rig, sub.egret, "Egret");
     assert.equal(replayed.outcome, "replayed");
     assert.equal(replayed.submission.proposal?.status, "missing", "recovered once, not twice");
-    // The discarded reply stays discarded.
     const again = await submit(rig, requestId("sub"), "Discarded");
     assert.equal(again.submission.duplicateOf, sub.discarded);
     assert.equal(again.submission.proposal?.status, "discarded");
@@ -1963,7 +1907,6 @@ test("a proposal an earlier host committed under the submission-derived request 
       requestId: requestId("art"),
       brief: brief("variation", 1, [{ role: "whole", digest: front.digest }], { parts: [part] }),
     });
-    // The journal request ID a host of the first art log version derived.
     const legacyId = (submissionId: string) =>
       `art.${createHash("sha256").update(`${r.artId}\u0000${submissionId}`).digest("hex").slice(0, 40)}`;
     const create = (
@@ -1987,7 +1930,6 @@ test("a proposal an earlier host committed under the submission-derived request 
           },
         },
       });
-    // What that host committed for the agent's reply before it stopped.
     const subA = requestId("sub");
     committed(await create(rig.agent, subA, `prop-${r.artId}-1`, "Heron"));
     const adopted = await rig.agent.call("art.submit", {
@@ -2002,7 +1944,6 @@ test("a proposal an earlier host committed under the submission-derived request 
     const message = await rig.human.call("steer.get", { messageId: r.messageId });
     assert.equal(message.status, "proposed", "the steering message follows the adopted proposal");
 
-    // Control: a proposal under that ID that someone else authored is not this reply's.
     const subB = requestId("sub");
     committed(await create(rig.human, subB, `prop-${r.artId}-7`, "Person's own"));
     const separate = await rig.agent.call("art.submit", {
@@ -2073,7 +2014,6 @@ test("an adopted earlier-host proposal lost to a restore is recovered once, whic
   );
   const rig = await openRig(root, {}, first);
   try {
-    // A fresh submission recovers it under the reply-derived ID ...
     const fresh = await rig.agent.call("art.submit", {
       artId: r.artId,
       submissionId: requestId("sub"),
@@ -2081,7 +2021,6 @@ test("an adopted earlier-host proposal lost to a restore is recovered once, whic
     });
     assert.equal(fresh.submission.duplicateOf, null);
     assert.equal(fresh.submission.proposal?.status, "draft");
-    // ... and the adopted submission's own retry does not draft it a second time.
     const again = await rig.agent.call("art.submit", { artId: r.artId, submissionId: subA, reply });
     assert.equal(again.outcome, "replayed");
     assert.equal((await artProposals(rig, r.artId)).length, 1);

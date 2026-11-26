@@ -44,10 +44,8 @@ export async function exportForm(
       if (motion) {
         entry.rig = skinCharacter(look, source, { coverage });
         if (wardrobe) {
-          // Importers need a distinct, non-joint parent for each skeleton.
           entry.rig.actor.name = name + " rig";
           scene.add(entry.rig.actor);
-          // A skinned mesh uses its joints’ world transforms in glTF.
           scene.add(...entry.rig.actor.children.filter((o) => o.isMesh));
         } else scene.add(...entry.rig.actor.children);
       } else {
@@ -77,8 +75,6 @@ export async function exportForm(
         }
         const creditedLooks = entries.flatMap(({look}) => [look, ...Object.values(look.humanSources ?? {})]);
         const nativeLooks = creditedLooks.filter(look => !wornCast(look));
-        // A cast body still follows source-derived measurements. Only the native route wears
-        // the saved native hair, complexion maps and wardrobe.
         const captureSources = [...new Set(creditedLooks.flatMap(look =>
           creditedCaptures(wornCast(look) ? {human: look.human} : look)))];
         if (captureSources.length) {

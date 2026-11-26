@@ -1,17 +1,3 @@
-// The desktop's review renderer: an isolated, hidden worker window.
-//
-// The worker is its own BrowserWindow in its own in-memory session
-// ("irudd-review"), with no preload and so no bridge to the project: it can
-// only fetch from its own scheme, which main serves from the built renderer
-// directory, the bundled sheets and the inputs of the job in hand. It draws
-// with its own WebGL context, stage and camera, so a review never writes to
-// or draws in the person's window. Main hands it one job at a time and checks
-// nothing itself: the project host verifies every output before issuing it.
-//
-// When this process owns the project the worker registers with the host in
-// process; when another process does, the link registers it over the
-// person's authenticated connection (`review.serve`).
-
 import { BrowserWindow, protocol, session } from "electron";
 import fs from "node:fs";
 import path from "node:path";
@@ -24,7 +10,6 @@ export const reviewScheme = "irudd-review";
 const partition = "irudd-review";
 const origin = `${reviewScheme}://worker`;
 
-/** Call before the app is ready: the worker's scheme fetches like https. */
 export function registerReviewScheme(): void {
   protocol.registerSchemesAsPrivileged([
     {
@@ -69,17 +54,11 @@ function isWorkerInfo(value: unknown): value is Pick<RendererInfo, "gpu" | "supp
 }
 
 export interface ReviewWorkerOptions {
-  /** dist/renderer: the worker page and its chunks. */
   readonly rendererDir: string;
-  /** dist/assets: the bundled sheets, and the adult's packs in human/. */
   readonly assetsDir: string;
   readonly build: string;
   readonly versions: RendererInfo["versions"];
   readonly log?: (line: string) => void;
-  /**
-   * The worker's window opens only once this settles, so the person's window
-   * is always the app's first page, also for tools attached over DevTools.
-   */
   readonly after?: Promise<unknown>;
 }
 
@@ -111,7 +90,6 @@ export class ReviewWorker implements ReviewRenderer, ArtRaster {
     };
   }
 
-  /** Start the worker and read what it can draw. Rejects when it cannot load. */
   async start(): Promise<RendererInfo> {
     const win = await this.open();
     const text: unknown = await win.webContents.executeJavaScript(
@@ -220,17 +198,14 @@ export class ReviewWorker implements ReviewRenderer, ArtRaster {
     }
     if (request.method !== "GET") return missing();
     if (segments[0] === "bundled" && segments.length === 2) {
-      // dist/assets holds exactly the bundled files the build copied.
       const name = segments[1] ?? "";
       if (!/^[a-z0-9][a-z0-9.-]{0,80}\.webp$/.test(name)) return missing();
       return this.file(path.join(this.options.assetsDir, name));
     }
     if (segments[0] === "human" && segments.length === 2) {
-      // The adult's body and paint packs, by their fixed names only.
       const pack = [...humanPackFiles, humanPaintFile].find((p) => p.file === segments[1]);
       return pack ? this.file(path.join(this.options.assetsDir, "human", pack.file)) : missing();
     }
-    // The worker page and the chunks it loads; never the window's own page.
     const relative = segments.join("/");
     if (
       relative === "index.html" ||
@@ -274,12 +249,6 @@ export class ReviewWorker implements ReviewRenderer, ArtRaster {
     }
   }
 
-  /**
-   * The art fits' raster: draw a picture with the worker's canvas and read
-   * its RGBA back. A worker that cannot start or stops is an `ArtError`, so
-   * the reply is translated again when it is retried; a picture the canvas
-   * cannot read is an ordinary error that rejects the reply.
-   */
   async pixels(
     bytes: Uint8Array,
     mediaType: string,

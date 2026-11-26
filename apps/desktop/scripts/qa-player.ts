@@ -1,11 +1,3 @@
-// Hidden player check on the hardware GPU.
-//
-//   pnpm --filter @irudd/desktop qa:player
-//
-// Builds apps/desktop/qa/player into apps/desktop/qa/dist (never part of the
-// app build or its dist), then runs it in a never-shown Electron window
-// against the tracked example GLBs. See qa/player/page.ts for what it checks.
-
 import { spawn } from "node:child_process";
 import { builtinModules } from "node:module";
 import { join } from "node:path";

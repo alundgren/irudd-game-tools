@@ -8,7 +8,6 @@ import { localReferencesPlugin } from "../scripts/local-references.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 
-// A machine that has the private files still has to prove the public case.
 test("every study list loads with the private reference files absent", () => {
   const script = `
     const [refs, human, scans, torso] = await Promise.all([

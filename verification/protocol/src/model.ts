@@ -1,28 +1,3 @@
-// An independent, executable model of the G1 revision protocol.
-//
-// Written from the protocol specification, not from the reducer: this file
-// imports nothing from @irudd/document. The document is abstracted to two
-// fields (x, y) with small integer values; the trace checker maps them onto
-// two real part labels.
-//
-// Semantics modelled, per project:
-//   - documentId routing (a request for another project is refused),
-//   - request IDs scoped to the project: same payload replays the original
-//     receipt, a different payload is refused,
-//   - per-document policy: only a person changes it; while it is off, agent
-//     document writes (edit, undo, accept) need a proposal and an agent
-//     discards only its own drafts,
-//   - optimistic concurrency: writes must name the head revision; drafts name
-//     a base revision, are refined against the version they last saw and are
-//     accepted only at their base,
-//   - edits that change nothing are refused,
-//   - undo appends a compensating revision, refuses creation, refuses (conflict)
-//     when a field it would restore has changed since, and refuses any undo
-//     after which some revision would have two undos in force (undoing an
-//     undo brings its target back, and with it the target's older undos),
-//   - revisions number 1, 2, 3 … with no gaps; an accepted draft credits the
-//     editor of its last version.
-
 export type Field = "x" | "y";
 export const fields: ReadonlyArray<Field> = ["x", "y"];
 export type Doc = Readonly<Record<Field, number>>;
@@ -45,13 +20,10 @@ export type ModelCommand =
   | { readonly type: "discard"; readonly id: string };
 
 export interface ModelEnvelope {
-  /** The project the request is delivered to. */
   readonly to: ProjectName;
-  /** The document the request names. */
   readonly doc: ProjectName;
   readonly actor: ActorName;
   readonly req: string;
-  /** The head for writes; the base revision for propose and refine. */
   readonly expected: number;
   readonly command: ModelCommand;
 }
@@ -66,7 +38,6 @@ export interface ModelRevision {
   readonly n: number;
   readonly kind: "create" | "edit" | "undo" | "proposal";
   readonly actor: ActorName | "init";
-  /** Who wrote the change: the last editor for an accepted draft, else the actor. */
   readonly author: ActorName | "init";
   readonly req: string;
   readonly changes: ReadonlyArray<FieldChange>;
@@ -92,10 +63,8 @@ export interface ProjectState {
   readonly doc: Doc;
   readonly history: ReadonlyArray<ModelRevision>;
   readonly receipts: ReadonlyMap<string, ModelReceipt>;
-  /** Whether agents may write directly. */
   readonly direct: boolean;
   readonly proposals: ReadonlyMap<string, ModelProposal>;
-  /** Committed requests that appended no revision. */
   readonly quiet: ReadonlyArray<string>;
 }
 
@@ -143,15 +112,10 @@ function commandKey(c: ModelCommand): string {
   }
 }
 
-/** What identifies a request's content: everything except where it was delivered. */
 export function payloadKey(e: ModelEnvelope): string {
   return `${e.doc}|${e.actor}|${e.req}|${e.expected}|${commandKey(e.command)}`;
 }
 
-/**
- * Deliberately broken rules. Each one breaks exactly one invariant, and the
- * gate requires exploration to find a counterexample for it.
- */
 export const mutations = [
   ["double-apply", "I1-one-effect"],
   ["reject-leaks", "I2-rejected-no-effect"],
@@ -172,7 +136,6 @@ export const mutations = [
 ] as const satisfies ReadonlyArray<readonly [string, InvariantId]>;
 export type Mutation = "none" | (typeof mutations)[number][0];
 
-/** undone(t) ⇔ some undo u targets t and u is not itself undone. */
 export function isUndone(
   history: ReadonlyArray<ModelRevision>,
   target: number,
@@ -182,7 +145,6 @@ export function isUndone(
   return history.some((u) => u.undoes === target && !isUndone(history, u.n, depth + 1));
 }
 
-/** Per target, how many undos are in force. */
 export function undosInForce(history: ReadonlyArray<ModelRevision>): Map<number, number> {
   const inForce = new Map<number, number>();
   for (const u of history)
@@ -191,7 +153,6 @@ export function undosInForce(history: ReadonlyArray<ModelRevision>): Map<number,
   return inForce;
 }
 
-/** The document as of revision `n`. */
 export function docAt(history: ReadonlyArray<ModelRevision>, n: number): Doc {
   return replayDoc(history.filter((r) => r.n <= n));
 }
@@ -225,7 +186,6 @@ export function step(
     if (e.expected < 1 || e.expected > p.head) return refuse("unknown-revision");
   } else if (e.expected !== p.head && mutation !== "accept-stale") {
     if (mutation !== "reject-leaks") return refuse("stale-revision");
-    // Broken: the refused request still claims its ID.
     const receipts = new Map(p.receipts);
     receipts.set(e.req, { payload: key, revision: p.head });
     return {
@@ -234,7 +194,6 @@ export function step(
     };
   }
 
-  // Commands that append no revision.
   const quiet = (next: Partial<ProjectState>) => {
     const receipts = new Map(p.receipts);
     receipts.set(e.req, { payload: key, revision: p.head });
@@ -337,7 +296,6 @@ export function step(
         return refuse("already-undone");
     }
     if (mutation === "undo-restores-snapshot") {
-      // Broken: return to the document as it was before the target.
       const before = replayDoc(p.history.filter((r) => r.n < target.n));
       changes = fields
         .filter((f) => before[f] !== p.doc[f])
@@ -365,13 +323,11 @@ export function step(
     actor: e.actor,
     author,
     req: e.req,
-    // Broken (unrecorded-undo): the undo changes the document but records nothing.
     changes: mutation === "unrecorded-undo" && kind === "undo" ? [] : changes,
     ...(undoes === undefined ? {} : { undoes }),
   };
   const receipts = new Map(p.receipts);
   receipts.set(e.req, { payload: key, revision: n });
-  // Broken (double-apply): the revision is appended a second time.
   const double = mutation === "double-apply";
   const history = double
     ? [...p.history, revision, { ...revision, n: n + 1, changes: [] }]
@@ -394,7 +350,6 @@ export function step(
   return { world: out, outcome: { kind: "committed", revision: n } };
 }
 
-/** The document obtained by applying every recorded change in order. */
 export function replayDoc(history: ReadonlyArray<ModelRevision>): Doc {
   let doc = initialDoc;
   for (const r of history) for (const c of r.changes) doc = { ...doc, [c.field]: c.after };
@@ -406,7 +361,6 @@ const keys = new WeakMap<ProjectState, string>();
 const sorted = <T>(m: ReadonlyMap<string, T>): Array<[string, T]> =>
   [...m].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
 
-/** A canonical string for a project state; equal states give equal keys. */
 export function projectKey(p: ProjectState): string {
   let key = keys.get(p);
   if (key === undefined) {
@@ -432,8 +386,6 @@ export function worldKey(w: WorldState): string {
   return projectKey(w.A) + "#" + projectKey(w.B);
 }
 
-// ── Invariants ──────────────────────────────────────────────────────────────
-
 export type InvariantId =
   | "I1-one-effect"
   | "I2-rejected-no-effect"
@@ -454,7 +406,6 @@ export interface Violation {
   readonly message: string;
 }
 
-/** State invariants, checked on every reachable state. */
 export function checkState(w: WorldState): Violation | undefined {
   for (const name of ["A", "B"] as const) {
     const p = w[name];
@@ -487,7 +438,6 @@ export function checkState(w: WorldState): Violation | undefined {
   return undefined;
 }
 
-/** Transition invariants, checked on every explored edge. */
 export function checkTransition(
   before: WorldState,
   e: ModelEnvelope,
@@ -502,7 +452,6 @@ export function checkTransition(
       invariant: "I7-projects-isolated",
       message: `a request delivered to ${e.to} changed ${other}`,
     };
-  // Request identity applies to requests that reach their own document.
   const seen = e.doc === e.to ? p.receipts.get(e.req) : undefined;
   if (
     seen &&
@@ -596,42 +545,26 @@ export function checkTransition(
   return undefined;
 }
 
-// ── Bounded universe and exhaustive exploration ────────────────────────────
-
 export interface Bounds {
   readonly name: string;
-  /** Projects that receive requests. */
   readonly receivers: ReadonlyArray<ProjectName>;
-  /** Documents a request may name; naming another project's is a misdelivery. */
   readonly documents: ReadonlyArray<ProjectName>;
   readonly actors: ReadonlyArray<ActorName>;
   readonly requestIds: ReadonlyArray<string>;
   readonly values: ReadonlyArray<number>;
-  /** Highest revision a project may reach; commits beyond it are pruned. */
   readonly maxRevision: number;
-  /** Whether agents start with direct editing; defaults to true. */
   readonly direct?: boolean;
-  /** Include policy changes in the universe. */
   readonly policy?: boolean;
-  /** Draft IDs and the highest draft version named; no drafts when absent. */
   readonly drafts?: { readonly ids: ReadonlyArray<string>; readonly maxVersion: number };
-  /**
-   * Clients allocate request IDs in order: a request uses an ID the project
-   * already holds a receipt for (a retry or a reuse) or the first unused one.
-   * Request IDs are interchangeable, so this removes their orderings from the
-   * state space without losing retries, reuses or rejections.
-   */
   readonly orderedIds?: boolean;
 }
 
-/** Whether a request is in the explored universe from `world`. */
 export function allowed(b: Bounds, world: WorldState, e: ModelEnvelope): boolean {
   if (!b.orderedIds) return true;
   const receipts = world[e.to].receipts;
   return receipts.has(e.req) || e.req === b.requestIds.find((id) => !receipts.has(id));
 }
 
-/** Every request a client could send within the bounds, including stale and misdirected ones. */
 export function universe(b: Bounds): ModelEnvelope[] {
   const commands: ModelCommand[] = [];
   for (const field of fields)
@@ -678,12 +611,6 @@ interface Node {
   readonly world: WorldState;
 }
 
-/**
- * Breadth-first exploration of every state reachable within the bounds. Each
- * reachable state is tried against the whole request universe; every
- * transition and every new state is checked. Stops at the first violation and
- * returns a shortest trace to it.
- */
 export function explore(b: Bounds, mutation: Mutation = "none"): ExplorationResult {
   const envelopes = universe(b);
   const start = initialWorld(b.direct ?? true);
@@ -743,7 +670,6 @@ export function explore(b: Bounds, mutation: Mutation = "none"): ExplorationResu
   return result();
 }
 
-/** Deterministic PRNG (mulberry32) so generated traces reproduce from a seed. */
 export function prng(seed: number): () => number {
   let s = seed >>> 0;
   return () => {

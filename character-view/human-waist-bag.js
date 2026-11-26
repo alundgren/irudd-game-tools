@@ -19,7 +19,6 @@ export function fittedWaistBag(surface, style, clothing, material, plain) {
         box.min.x > cx || box.max.x < cx) continue;
     casts.push(raycaster(p.array, g.index?.array ?? Array.from({length:p.count}, (_, i)=>i)));
   }
-  // On the way out of the torso the belt meets the waist before it meets a sleeve.
   function radius(a, y) {
     const dir = [Math.sin(a), 0, Math.cos(a)];
     let r = 0;
@@ -44,8 +43,6 @@ export function fittedWaistBag(surface, style, clothing, material, plain) {
   const y0 = height - (folio ? .056 : .024)*scale;
   const r0 = radius(angle,y0);
   const skin = body.trunkAt(around(angle,height,r0));
-  // Each closed contour is measured along the fitted waist. Curving its back in
-  // two directions keeps the corners seated on both broad and narrow figures.
   function panel(piece, x, y, width, tall, depth, base, power, pointed = 0) {
     const profile = [[.91,0],[1,.15],[1,.72],[.94,1]];
     const outline = Array.from({length:24}, (_,j) => {

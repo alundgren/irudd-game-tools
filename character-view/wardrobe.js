@@ -50,8 +50,6 @@ export function fitWardrobe(part, form) {
         : ["thigh", "upper arm", "torso"].includes(role)
           ? "#364b48"
           : "#535c58";
-  // A bare region is the body itself, so clothing sits on it with ease
-  // instead of being cut down from a clothed surface.
   const amount = preserve
     ? 1
     : part.bare
@@ -105,8 +103,6 @@ export function fitWardrobe(part, form) {
   };
 }
 
-// Hard goods are positioned against the fitted region's local bounds, so
-// turning a shoulder or moving a creature's thorax carries its kit too.
 export function addEquipment(mesh, fit, material) {
   if (!fit.suit || fit.hide || fit.role === "tail") return;
   mesh.geometry.computeBoundingBox();

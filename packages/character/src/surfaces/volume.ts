@@ -1,7 +1,3 @@
-// Painted volumes: a closed surface filled from a hull's traced front and side
-// silhouettes. Ported from character-view/volume.js at 2761eb1, arithmetic in
-// the same order so the vertices match.
-
 import type { FigureHull } from "@irudd/document";
 import * as T from "three";
 import { MarchingCubes } from "three/addons/objects/MarchingCubes.js";
@@ -11,7 +7,6 @@ type Runs = FigureHull["rows"][number][1];
 
 const at = (v: ArrayLike<number>, i: number): number => v[i] ?? 0;
 
-/** The hull's box in part coordinates, metres from its pivot. */
 export function volumeBounds(hull: FigureHull): [Vec3, Vec3] {
   let x0 = Infinity;
   let x1 = -Infinity;
@@ -76,8 +71,6 @@ function build(h: FigureHull): T.BufferGeometry {
   const membrane = h.membrane;
   const field = (row: Source, ix: number, iz: number): number => {
     if (!membrane) return section(row.x, row.z, ix, iz);
-    // Keep one unbroken membrane. Per-row depth fits turn a scalloped
-    // boundary into horizontal shelves wherever a notch opens or closes.
     const x = min0 + ix * step0;
     const z = min2 + iz * step2;
     const front = at(spans, 0) >= at(spans, 2);
@@ -142,8 +135,6 @@ function build(h: FigureHull): T.BufferGeometry {
       .normalize()
       .toArray(normals, 3 * i);
   }
-  // One UV projection per triangle permits independent side and back paint
-  // and a real untextured opening through the mesh.
   for (let i = 0; i < mc.count; i += 3) {
     sum.set(0, 0, 0);
     for (let j = 0; j < 3; j++) sum.add(n.fromArray(normals, (i + j) * 3));
@@ -169,7 +160,6 @@ function build(h: FigureHull): T.BufferGeometry {
   return g;
 }
 
-/** The hull's surface in part coordinates, with per-triangle sheet UVs. */
 export function volumeGeometry(hull: FigureHull): T.BufferGeometry {
   const result = build(hull);
   if (hull.mirrored) {

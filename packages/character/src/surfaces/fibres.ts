@@ -1,7 +1,3 @@
-// Shaped hair patterns: side parts, braids, locs and coils. Ported from
-// character-view/hair-fibres.js at 2761eb1, arithmetic in the same order and
-// the same draws from the groom's seeded sequence, so the strands match.
-
 import type { FigureGroom } from "@irudd/document";
 import * as T from "three";
 
@@ -9,14 +5,12 @@ const tau = Math.PI * 2;
 const up = new T.Vector3(0, 1, 0);
 const xAxis = new T.Vector3(1, 0, 0);
 
-/** Triangles of one groom layer as the legacy buffer collects them. */
 export interface StrandBuffer {
   point(v: T.Vector3, u: number, t: number): void;
   quad(a: number, b: number, c: number, d: number): void;
   readonly count: number;
 }
 
-/** The scalp, hairline and head clearance one groom's strands grow against. */
 export interface GroomFrame {
   readonly options: FigureGroom;
   readonly h: number;
@@ -67,7 +61,6 @@ function tube(
   }
 }
 
-/** How far a coiled cap stands off the scalp at one point. */
 export function coilLift(phi: number, edge: number, options: FigureGroom, phase: number): number {
   const margin = 1 - T.MathUtils.smoothstep(phi / edge, 0.76, 1);
   const sx = Math.sin(phi) * Math.sin(phase);
@@ -285,7 +278,6 @@ function spiral(f: GroomFrame): void {
   }
 }
 
-/** Grow a shaped pattern's strands into the three strand layers. */
 export function shapedFibres(f: GroomFrame): void {
   if (f.options.pattern === "Side part") sidePart(f);
   else if (f.options.pattern === "Braids") braids(f);

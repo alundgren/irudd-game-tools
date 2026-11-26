@@ -1,17 +1,3 @@
-// The Claude Code channel: steering pushed into the session that started this
-// MCP server.
-//
-// Claude Code (2.1.x) accepts `notifications/claude/channel` with
-// {content, meta} from an MCP server that declares the experimental
-// `claude/channel` capability, but only in a session started with
-// `--channels server:<name>` (or `--dangerously-load-development-channels
-// server:<name>` for a server outside the approved list). The notification has
-// no reply, so "pushed" means this process wrote it to Claude Code's stdin
-// pipe; the agent's acknowledgement is what proves the conversation saw it.
-//
-// Each server process has its own random instance ID. The person binds that
-// exact instance, so a restarted or second server never inherits the route.
-
 import { randomBytes } from "node:crypto";
 import type { WorkshopClient } from "@irudd/workshop/client";
 import type { HostConnection } from "./connection.js";
@@ -25,10 +11,8 @@ export function newChannelInstance(): string {
 export interface ChannelOptions {
   readonly host: HostConnection;
   readonly instance: string;
-  /** The server's name in the session's MCP config, as given with --server. */
   readonly server: string | undefined;
   readonly client: () => { readonly name: string; readonly version: string } | undefined;
-  /** Write one channel notification to Claude Code. */
   readonly notify: (content: string, meta: Record<string, string>) => Promise<void>;
   readonly log: (line: string) => void;
 }
@@ -40,7 +24,6 @@ export class ChannelBridge {
     this.options = options;
   }
 
-  /** Watch the inbox until stopped, reconnecting after the host restarts. */
   async run(): Promise<void> {
     let delay = 500;
     while (!this.stopped) {

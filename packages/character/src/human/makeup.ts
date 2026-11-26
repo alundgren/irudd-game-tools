@@ -1,10 +1,3 @@
-// Everyday makeup on the painted face (palettes, makeupPalette and mixMakeup
-// in character-view/human-makeup.js at 2761eb1). An everyday look is a
-// subtle multiplicative stain on the lips, lids and cheeks, mixed into the
-// face paint with its own lip gloss. The theatrical stage looks add a graphic
-// pass over the painted face that is not ported yet, so they are not offered.
-
-/** A makeup look's stains (linear multipliers), how strongly it is worn and its lip roughness. */
 export interface MakeupPalette {
   readonly lip: readonly [number, number, number];
   readonly shadow: readonly [number, number, number];
@@ -38,14 +31,12 @@ const palettes = {
 } as const satisfies Readonly<Record<string, MakeupPalette>>;
 
 export type MakeupName = keyof typeof palettes;
-/** The makeup an adult can wear: bare, or one of the everyday looks. */
 export const makeupStyles = ["None", "Rose stain", "Burnished copper", "Berry satin"] as const;
 
 const table: ReadonlyMap<string, MakeupPalette> = new Map(Object.entries(palettes));
 export const makeupPalette = (name: string | undefined): MakeupPalette | null =>
   (name === undefined ? undefined : table.get(name)) ?? null;
 
-/** Stain one face pixel's linear tints by the look's zones: lips, lids, the eye socket and the cheek. */
 export function mixMakeup(
   channels: number[],
   palette: MakeupPalette,

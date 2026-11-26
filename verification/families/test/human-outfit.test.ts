@@ -1,14 +1,3 @@
-// Fast regression for the adults G0 dresses in a preset outfit. The starter's
-// Day dress look exports G0's clay meshes, rig and clips: the bodice, sash and
-// skirt in the outfit's palette, and the skirt's drape joints with their motion
-// in every clip. Seed 8950's chore jacket (its look without the braid the port
-// does not grow) exports G0's too: trousers with cargo pockets, undershirt,
-// jacket with collar, placket, pockets and buttons, and work boots. G0's other
-// preset outfits, from the T-shirt and jeans to the leather armour, export G0's
-// clay on both bodies. The dress's colours are parameters a steer changes while a
-// held region edit stays (the textured gate checks the dyed cloth itself), and
-// an outfit the port has not built is refused.
-
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
@@ -29,9 +18,7 @@ installNodeExporter();
 const body = await loadHumanBody();
 const store = adultStore(body);
 
-/** `accessorDigest` of G0's adult-look-8973 clay export (.reference-cache/human-oracle). */
 const g0DayDress = "b5da0330415614ecaede9754b65d79c91c7f7b63f83cff1cbf4d9c9e92fc94b2";
-/** `accessorDigest` of G0's clay export of its frozen look-8950 with the hair set to None (.reference-cache/g0/derived). */
 const g0ChoreJacket = "77cf24d59fe57e267bb3857638ac60959250186b78dc3080e5cf2eab8cfa61bc";
 
 const lookParams = (id: string): HumanAdultParams => {
@@ -66,10 +53,6 @@ test("seed 8950's chore jacket exports G0's clay meshes, rig and clips", async (
   assert.equal(accessorDigest(glb), g0ChoreJacket);
 });
 
-/**
- * `accessorDigest` of G0's clay exports of look-8973 and of look-8950 without its braid, each with its outfit
- * changed to this one and nothing else (.reference-cache/g0/derived/outfits).
- */
 type Outfit = NonNullable<HumanAdultParams["style"]["outfit"]>;
 const g0Outfits: ReadonlyArray<readonly [Outfit, string, string]> = [
   [
@@ -169,7 +152,6 @@ test("the dress's colours steer the adult while a held region edit stays", async
   assert.ok(held && base);
   assert.ok(Math.abs(held.position[1] - base.position[1] - 0.01) < 1e-9, "the held edit stays");
   const after = parseGlb(await clayBytes(documentOf(s), body));
-  // Clay carries no colour: the cut stays and the textured gate checks the dyed cloth.
   assert.equal(accessorDigest(after), accessorDigest(before), "the same cut");
   assert.deepEqual(documentOf(s).generation?.params, steered, "the steer took");
 });

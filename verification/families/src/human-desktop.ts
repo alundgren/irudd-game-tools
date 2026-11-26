@@ -1,13 +1,3 @@
-// The seeded adult as the built desktop app exports it, against G0: the
-// revision-1 exports apps/desktop/scripts/qa-adult.ts saves from the real
-// app's review worker (Electron's Chromium on the hardware GPU), compared whole
-// with .reference-cache/human-oracle/adult-491-PRESET.glb: structure, every
-// accessor and every image by decoded pixels.
-//
-//   node --import ../../packages/document/test/support/register.ts src/human-desktop.ts [DIR]
-//
-// DIR defaults to .reference-cache/g4a/human-desktop. A missing export fails.
-
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { compareGlb, type ImageComparison } from "./compare.js";
@@ -18,19 +8,12 @@ import { outDir } from "./paths.js";
 const dir = resolve(process.argv[2] ?? join(outDir, "human-desktop"));
 const presets = ["clay", "full", "game"] as const;
 
-/**
- * Seed 491's face colour differs from G0 at the lash line by one level in at
- * most two pixels in some runs, as src/human-textured.ts records. Anything
- * beyond it fails.
- */
 const residual = { index: 1, maxChannel: 1, pixels: 2 };
 const within = (i: ImageComparison) =>
   i.index === residual.index &&
   i.maxChannel <= residual.maxChannel &&
   i.differingPixels <= residual.pixels;
 
-// G0 names each joint's region by the part label; the desktop's document by
-// stable part IDs, which the QA saves beside its exports.
 const regionsFile = join(dir, "regions.json");
 if (!existsSync(regionsFile))
   throw new Error(`No region map at ${regionsFile}; run the desktop QA.`);
@@ -40,7 +23,6 @@ if (typeof saved !== "object" || saved === null)
 const regions = new Map(
   Object.entries(saved).filter((e): e is [string, string] => typeof e[1] === "string"),
 );
-// The desktop's document holds the same parts as the seeded adult's.
 const doc = documentOf(adultStore(await loadHumanBody()).generated(491));
 const labels = doc.parts.map((p) => p.label).sort();
 if (JSON.stringify([...regions.keys()].sort()) !== JSON.stringify(labels))

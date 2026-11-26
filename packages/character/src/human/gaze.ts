@@ -1,9 +1,3 @@
-// The lids follow the eye up and down (followGaze in
-// character-view/human-lid-follow.js at 2761eb1). The two vertical gaze
-// targets also carry the opening: both lids move with the eye by the same
-// amount at each place across it, so the opening travels and a closed lid
-// stays closed whatever the gaze. Distances are millimetres on a 1.72 m adult.
-
 import * as T from "three";
 import { facialMorphNormals } from "./anatomy.js";
 import { eyeFitsOf, type EyeFit } from "./eyes.js";
@@ -69,10 +63,6 @@ function targets(geometry: T.BufferGeometry, fits: ReadonlyArray<EyeFit>, mm: nu
   return { up, down };
 }
 
-/**
- * Adds the lids' share of LookUp and LookDown to a built head group: the skin,
- * the lashes and the wet line on the lower lid.
- */
 export function followGaze(
   group: T.Group,
   scale: number,
@@ -101,7 +91,6 @@ export function followGaze(
     mesh.morphTargetDictionary = undefined;
     mesh.updateMorphTargets();
   }
-  // The tear line lies on the lower lid's edge and goes with it.
   const g = eyes.geometry,
     p = g.getAttribute("position"),
     uv = g.getAttribute("uv"),

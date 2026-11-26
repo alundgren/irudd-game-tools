@@ -1,9 +1,3 @@
-// Opaque sculpted hairstyles built directly on the edited human scalp.
-//   sculptedHair(surface, style, material, plain, skinColor, gameBudget) -> THREE.Mesh[]
-// Styles:
-//   - "Sculpted crop": layered short crop with beveled locks and a convincing temple/ear/nape taper
-//   - "Sculpted bob": swept chin-length sculpted bob with closed solid hanging ribbons
-//   - "Sculpted tie-back": swept-back tapered crown converging into a tie and layered hanging locks
 import * as T from "three";
 import {
   add,
@@ -30,8 +24,6 @@ const TAU = Math.PI * 2;
 
 export const sculptedStyles = ["Sculpted crop", "Sculpted bob", "Sculpted tie-back"];
 
-// ---------------------------------------------------------------------------------------------
-// Ear detection & ear-free scalp projection (adapted to each edited head)
 
 let earSource = null;
 function earSources() {
@@ -120,7 +112,6 @@ function curve(knots) {
   };
 }
 
-/** Anatomical hairline routed closely around the measured ear, temple, sideburn and nape. */
 function sideLine(ear, { forehead = 22.8, burnFrac = 0.45, nape = -48 } = {}) {
   const F = clamp(ear.front / DEG, 76, 96);
   const B = clamp(ear.back / DEG, F + 12, 118);
@@ -249,8 +240,6 @@ function scalpMap(body, f, ears) {
   };
 }
 
-// ---------------------------------------------------------------------------------------------
-// Combing direction field & subtle opaque brushed-strand texture
 
 const tangent = (q, v) => {
   const along = dot(q, v);
@@ -339,11 +328,6 @@ function makeTextureFromRGBA(data, size, name, srgb) {
   return tex;
 }
 
-/**
- * Cohesive procedural anisotropic hair strand maps (U across strands, V root to tip).
- * Symmetric at U=0 and U=1 so ping-pong UVs across a continuous shell have zero seam
- * while staying strictly inside [0, 1] for single-atlas game export.
- */
 function hairStrandMaps() {
   if (strandMapsCache) return strandMapsCache;
   const size = 256;
@@ -351,7 +335,6 @@ function hairStrandMaps() {
   const bump = new Uint8ClampedArray(size * size * 4);
   const rough = new Uint8ClampedArray(size * size * 4);
 
-  // Fine high-definition strand bundles (64 fine fibers + 12 medium tone streaks)
   const strandCount = 64;
   const strands = Array.from({ length: strandCount }, (_, i) => ({
     u: (i + 0.5) / strandCount + (hash1(i * 37 + 5) - 0.5) * (0.45 / strandCount),
@@ -372,11 +355,10 @@ function hairStrandMaps() {
   }));
 
   for (let y = 0; y < size; y++) {
-    const v = 1 - (y + 0.5) / size; // 0 root -> 1 tip
+    const v = 1 - (y + 0.5) / size;
     const vFade = smooth(0.0, 0.06, v) * smooth(1.0, 0.96, v);
     for (let x = 0; x < size; x++) {
       const u = (x + 0.5) / size;
-      // Symmetric edge damp so ping-pong UVs have zero derivative discontinuity at U=0/1
       const edgeSym = smooth(0.0, 0.03, u) * smooth(0.0, 0.03, 1 - u);
       let hVal = 0.16;
       let lum = 0.76;
@@ -397,7 +379,6 @@ function hairStrandMaps() {
       const tipDepth = mix(1.0, 0.90, smooth(0.84, 1.0, v));
       const finalLum = clamp(lum * rootDark * tipDepth, 0.42, 1.08);
       const finalH = clamp(0.10 + 0.80 * clamp(hVal * (0.55 + 0.45 * edgeSym), 0, 1.15), 0.04, 0.98);
-      // Silky hair-fiber specular roughness variation: glossy crests (0.34), matte grooves (0.68)
       const finalR = clamp(mix(0.68, 0.34, clamp(hVal, 0, 1)), 0.30, 0.74);
 
       const idx = (y * size + x) * 4;
@@ -421,10 +402,7 @@ function hairStrandMaps() {
   return strandMapsCache;
 }
 
-// ---------------------------------------------------------------------------------------------
-// Sleek beveled ribbon-lock builders (scalp-seated open-back & solid closed-section hanging locks)
 
-// 5-point beveled arch for scalp-seated locks (root and flanks tuck smoothly into the base mass)
 const PROFILE = [
   [-1.0, -0.34, 0.78, -0.68],
   [-0.50, 0.56, 0.96, -0.32],
@@ -433,7 +411,6 @@ const PROFILE = [
   [1.0, -0.34, 0.78, 0.68],
 ];
 
-// 6-point closed almond/diamond cross-section for free-hanging locks (solid from all angles, crisp ridge)
 const CLOSED_PROFILE = [
   [-1.0, 0.0, 0.76, -0.92, -0.10, 0.0],
   [-0.48, 0.68, 0.96, -0.38, 0.85, 0.25],
@@ -460,7 +437,6 @@ function makeHangSkin(body) {
   };
 }
 
-/** Append a scalp-seated beveled lock whose root emerges smoothly from inside the base cap (zero root sliver). */
 function appendLock(out, body, stations, opts) {
   const { width, thick, baseColor, shadeVar, rootShade = 0.78, tipShade = 1.06, roll = 0, bank = 0, edgeAO = 0.85, skinFn = null } = opts;
   const nSteps = stations.length - 1;
@@ -468,7 +444,6 @@ function appendLock(out, body, stations, opts) {
   const cols = PROFILE.length;
   const ringStarts = [];
 
-  // Tuck root apex cleanly inside the inner cap so no open root edge ever peels into the silhouette
   const root = stations[0];
   const nextRoot = stations[1];
   const rootRun = unit(sub(nextRoot.p, root.p));
@@ -546,12 +521,10 @@ function appendLock(out, body, stations, opts) {
   out.bones.push(...tipSkin[0]);
   out.weights.push(...tipSkin[1]);
 
-  // Root fan closing into first ring (outward normal)
   const firstRing = ringStarts[0];
   for (let j = 0; j + 1 < cols; j++) {
     out.index.push(rootIdx, firstRing + j, firstRing + j + 1);
   }
-  // Body quads
   for (let r = 0; r + 1 < ringStarts.length; r++) {
     const r0 = ringStarts[r];
     const r1 = ringStarts[r + 1];
@@ -560,14 +533,12 @@ function appendLock(out, body, stations, opts) {
       out.index.push(a, d, c, a, c, b);
     }
   }
-  // Tip fan closing from last ring
   const lastRing = ringStarts[ringStarts.length - 1];
   for (let j = 0; j + 1 < cols; j++) {
     out.index.push(lastRing + j, tipIdx, lastRing + j + 1);
   }
 }
 
-/** Append a fully closed 3D sculpted hanging lock ribbon (solid from front, side, and underneath). */
 function appendSolidLock(out, stations, opts) {
   const { width, thick, baseColor, shadeVar, rootShade = 0.74, tipShade = 1.08, roll = 0, bank = 0, skinFn, rootTaper = 0.45, tipTaper = 0.14 } = opts;
   const nSteps = stations.length - 1;
@@ -652,7 +623,6 @@ function appendSolidLock(out, stations, opts) {
   out.bones.push(...tipSkin[0]);
   out.weights.push(...tipSkin[1]);
 
-  // Closed cyclic ring connections (j wraps around cols)
   const firstRing = ringStarts[0];
   for (let j = 0; j < cols; j++) {
     const j1 = (j + 1) % cols;
@@ -674,7 +644,6 @@ function appendSolidLock(out, stations, opts) {
   }
 }
 
-/** Append a sculpted hair tie band (beveled torus ring around a point/axis) using vertex color. */
 function appendHairTie(out, center, axis, radius, tubeR, color, skinFn, segs = 14) {
   const ax = unit(axis);
   const e1 = unit(cross(ax, Math.abs(ax[1]) > 0.9 ? [1, 0, 0] : [0, 1, 0]));
@@ -713,8 +682,6 @@ function appendHairTie(out, center, axis, radius, tubeR, color, skinFn, segs = 1
   }
 }
 
-// ---------------------------------------------------------------------------------------------
-// Shared context, hairline & tapered under-layer
 
 function makeContext(surface, style, skinColor) {
   const body = surfaceBody(surface);
@@ -912,8 +879,6 @@ function lockTint(hair, seed, range = 0.012) {
   return { color: c, shadeVar: 0.93 + 0.15 * rnd(4) };
 }
 
-// ---------------------------------------------------------------------------------------------
-// Style 1: Sculpted crop
 
 function cropVolumeMm(at, far, partPhiDeg, look) {
   const top = smooth(8 * DEG, 46 * DEG, at.eps);
@@ -979,7 +944,6 @@ function buildSculptedCrop(ctx, game) {
   let id = 200;
   const specs = [];
 
-  // Layer 1: Lower nape & behind-ear tapered shingles
   for (let i = 0; i < 15; i++) {
     const phi = mix(-174, 174, i / 14);
     if (Math.abs(phi) < 100) continue;
@@ -1005,7 +969,6 @@ function buildSculptedCrop(ctx, game) {
     });
   }
 
-  // Layer 2: Temple, above-ear & sideburn tapered ribbons
   for (const side of [-1, 1]) {
     const ear = ears.sides[side > 0 ? 0 : 1];
     const F = ear.front / DEG;
@@ -1072,7 +1035,6 @@ function buildSculptedCrop(ctx, game) {
     }
   }
 
-  // Layer 3: Mid-back & parietal dense shingle tier
   const midCount = 19;
   for (let i = 0; i < midCount; i++) {
     const phi = mix(-174, 174, i / (midCount - 1));
@@ -1101,7 +1063,6 @@ function buildSculptedCrop(ctx, game) {
     });
   }
 
-  // Layer 4: Upper crown sweeping ribbons
   const crownCount = 18;
   for (let i = 0; i < crownCount; i++) {
     const phi = mix(-170, 170, i / (crownCount - 1));
@@ -1135,7 +1096,6 @@ function buildSculptedCrop(ctx, game) {
     });
   }
 
-  // Layer 5: Hero forehead & parting sweep locks
   const offFace = look === "Off the face";
   const fringeCount = 12;
   for (let i = 0; i < fringeCount; i++) {
@@ -1172,7 +1132,6 @@ function buildSculptedCrop(ctx, game) {
     });
   }
 
-  // Side-parietal fill ribbons for Off the face so the profile above the temple never shows a smooth gap
   if (offFace) {
     for (const side of [-1, 1]) {
       for (let i = 0; i < 4; i++) {
@@ -1200,7 +1159,6 @@ function buildSculptedCrop(ctx, game) {
     }
   }
 
-  // Light-side neatly tucked forehead corner & temple locks
   if (!offFace) {
     const lightSide = partPhi >= 0 ? 1 : -1;
     for (let i = 0; i < 6; i++) {
@@ -1229,7 +1187,6 @@ function buildSculptedCrop(ctx, game) {
     }
   }
 
-  // Layer 6: Sculptural top accent locks
   const accents = [
     { phi: partPhi - sweepSign * -10, eps: 66, len: 74, width: 17, thick: 3.8 },
     { phi: partPhi - sweepSign * -24, eps: 58, len: 66, width: 16, thick: 3.6 },
@@ -1268,8 +1225,6 @@ function buildSculptedCrop(ctx, game) {
   return { under, locks };
 }
 
-// ---------------------------------------------------------------------------------------------
-// Style 2: Sculpted bob (cohesive swept jaw-length sculpted mass + varied small clump relief)
 
 function bobVolumeMm(at, far, partPhiDeg, look) {
   const top = smooth(10 * DEG, 48 * DEG, at.eps);
@@ -1288,7 +1243,6 @@ function wrapDeg(deg) {
   return d;
 }
 
-/** Ping-pong UV coordinate in [0.02, 0.98] across `sectors` sectors around 360° (zero seam, game-atlas safe). */
 function pingPongU(frac, sectors = 6) {
   const s = frac * sectors;
   const k = Math.floor(s);
@@ -1297,11 +1251,6 @@ function pingPongU(frac, sectors = 6) {
   return 0.02 + 0.96 * clamp(u, 0, 1);
 }
 
-/**
- * Compute smooth area-weighted vertex normals for a newly appended index range in `out`,
- * then blend softly with the existing macro guide normals so sculpted clumps catch crisp light
- * without facet noise.
- */
 function smoothAppendedNormals(out, vertStart, vertCount, idxStart, guideBlend = 0.16) {
   const acc = new Float32Array(vertCount * 3);
   const P = out.position;
@@ -1339,10 +1288,6 @@ function smoothAppendedNormals(out, vertStart, vertCount, idxStart, guideBlend =
   }
 }
 
-/**
- * Multi-scale organic clump relief for the cohesive bob shell:
- * non-uniform warped clumps (no robotic sine repetition) with crisp valleys and rounded crests.
- */
 function bobClumpSample(aRad, t) {
   const warp =
     aRad +
@@ -1354,14 +1299,12 @@ function bobClumpSample(aRad, t) {
     0.055 * Math.sin(t * Math.PI * 1.15 + Math.sin(aRad * 3.0)) -
     Math.sign(aRad || 1) * 0.055 * sideMask * t * t;
 
-  // Macro sculptural flow clumps (~15 varied masses around the head)
   const mCoord = ((warp + flowBend) / TAU + 4) * 15;
   const mId = Math.floor(mCoord);
   const mf = mCoord - mId;
   const mRidge = Math.sin(Math.PI * mf) ** 0.72;
   const mStr = 0.62 + 0.56 * hash1(mId * 31 + 7);
 
-  // Fine secondary sub-clump ridges (~38 varied strands around the head)
   const fCoord = ((warp * 1.03 + flowBend * 1.2 + 0.035 * Math.sin(aRad * 11 + t * 2.5)) / TAU + 4) * 38;
   const fId = Math.floor(fCoord);
   const ff = fCoord - fId;
@@ -1372,10 +1315,6 @@ function bobClumpSample(aRad, t) {
   return { mRidge, mStr, fRidge, fStr, lockTintVar, mId };
 }
 
-/**
- * Evaluate the cohesive bob surface point, normal guide, and shade at destination azimuth `aDeg`
- * and normalized crown-to-hem fraction `t` in [0, 1].
- */
 function makeBobSurfaceModel(ctx, look) {
   const { body, f, k, mm, seat } = ctx;
   const cz = f.centre[2];
@@ -1390,7 +1329,6 @@ function makeBobSurfaceModel(ctx, look) {
     look === "Swept right" ? -1 :
     look === "As cut" ? -1 : 0;
 
-  // Adapt eye/temple clearance automatically to slim, broad, wide, and narrow edited heads
   const eyeOuterDeg = Math.max(...f.eyes.map((e) => (Math.abs(e.phi) + e.wide) / DEG));
   const eyeTopDeg = Math.max(...f.eyes.map((e) => (e.eps + e.tall) / DEG));
   const templeStartDeg = clamp(eyeOuterDeg + 9.5, 36, 50);
@@ -1403,7 +1341,6 @@ function makeBobSurfaceModel(ctx, look) {
   const qFront = aimAt(partPhiDeg * DEG, (offFace ? 30 : 35) * DEG);
   const qWhorl = aimAt(partPhiDeg * 0.28 * DEG, 74 * DEG);
 
-  // Forehead fringe target elevation (cleanly above brows/eyes, lush diagonal sweep across upper forehead)
   const fringeEndEpsDeg = (aDeg) => {
     if (offFace) {
       return 25.0 + 3.0 * smooth(0, 48, Math.abs(aDeg));
@@ -1412,9 +1349,6 @@ function makeBobSurfaceModel(ctx, look) {
       const d = Math.abs(wrapDeg(aDeg - partPhiDeg));
       return mix(safeBrowDeg + 8.0, safeBrowDeg + 2.2, smooth(0, 46, d) ** 0.85);
     }
-    // Side-swept ("Swept right", "Swept left", "As cut"):
-    // Heavy side arcs smoothly from the parting across the forehead to outer temple;
-    // light side parts softly and curves toward the light temple.
     const d = wrapDeg(aDeg - partPhiDeg);
     const onHeavy = sweepSign < 0 ? d <= 0 : d >= 0;
     const dist = Math.abs(d);
@@ -1424,24 +1358,20 @@ function makeBobSurfaceModel(ctx, look) {
     return mix(safeBrowDeg + 8.5, safeBrowDeg + 3.2, smooth(0, 32, dist) ** 0.85);
   };
 
-  // Designed crown/parietal/occipital volume lift (mm above bare skull)
   const crownLiftMm = (aDeg, u, isHeavy) => {
     const absA = Math.abs(aDeg);
     const isBack = smooth(95, 162, absA);
     const isFront = smooth(72, 16, absA);
     const dPart = Math.abs(wrapDeg(aDeg - partPhiDeg));
-    // Natural parting crease right at the part line, rising swiftly into asymmetric root volume
     const partCrease = offFace ? 1.0 : mix(0.32, 1.0, smooth(0, 13, dPart) ** 0.80);
     const asymBoost = offFace || look === "Parted" ? 1.0 : isHeavy ? 1.24 : 0.86;
     const frontArch = (offFace ? 15.0 : 18.5) * asymBoost * Math.sin(Math.PI * clamp(u * 0.92, 0.06, 0.95)) ** 0.68;
     const sideArch = (15.0 * asymBoost + 3.5 * isBack) * smooth(0.0, 0.32, u);
     const base = mix(sideArch, frontArch, isFront * 0.78);
-    // Natural rounded occipital dome (peaking around mid-upper back, smoothly tapering lower down)
     const occiputCurve = mix(1.0, 1.14, isBack * smooth(0.14, 0.48, u) * smooth(0.95, 0.52, u));
     return Math.max(4.5, (4.8 + base * occiputCurve) * mix(partCrease, 1.0, smooth(0.0, 0.42, u)));
   };
 
-  // Build one C2-smooth column profile from parting spine (t=0) down to hem (t=1)
   const sampleColumn = (aDeg, rows) => {
     const aRad = aDeg * DEG;
     const absA = Math.abs(aDeg);
@@ -1451,7 +1381,6 @@ function makeBobSurfaceModel(ctx, look) {
     const isBack = smooth(96, 162, absA);
     const curtainBlend = smooth(templeStartDeg, curtainFullDeg, absA);
 
-    // Start point along the parting spine (zero pole pinch!)
     const spineS = offFace
       ? smooth(0, 110, absA)
       : smooth(0, 118, absDPart);
@@ -1462,7 +1391,6 @@ function makeBobSurfaceModel(ctx, look) {
     ]);
     const startAt = f.aim(seat(qStart, 0).p);
 
-    // Soft organic hem height modulation (varied asymmetric clusters, NO giant shark teeth!)
     const clHem = bobClumpSample(aRad, 1.0);
     const clusterWave =
       (Math.sin(aRad * 5.0 + 0.4) * 0.55 + Math.cos(aRad * 8.0 - 0.9) * 0.45) * 4.0 * mm;
@@ -1473,7 +1401,6 @@ function makeBobSurfaceModel(ctx, look) {
     const fringeTipSeat = seat(aimAt(aRad, fEpsDeg * DEG), 4.8 * mm);
     const endY = mix(fringeTipSeat.p[1], rawCurtainEndY, curtainBlend ** 1.1);
 
-    // Leave equator follows the natural curved skull (lower at the back occiput so the back rounds in naturally!)
     const leaveEpsDeg = mix(8, -14, isBack);
     const leaveQ = aimAt(aRad, leaveEpsDeg * DEG);
     const leaveLiftMm = crownLiftMm(aDeg, 0.55, isHeavy) + mix(2.2, 3.0, isBack);
@@ -1487,7 +1414,6 @@ function makeBobSurfaceModel(ctx, look) {
     const domeArc = Math.max(0.04 * k, length(sub(leavePtBase, seat(qStart, 6 * mm).p)));
     const scalpFrac = hangs ? clamp(domeArc / (domeArc + hangDrop), 0.38, 0.78) : 1.0;
 
-    // Gentle forward cheek sweep on front sides; generous rounded C-tuck at the back nape
     const forwardSweepRad = absA < 96 ? -Math.sign(aDeg || 1) * 0.08 * smooth(48, 72, absA) * smooth(104, 72, absA) : 0;
     const tuckMm = mix(17.5, 29.0, isBack);
     const swellMm = mix(4.2, 2.2, isBack);
@@ -1535,7 +1461,6 @@ function makeBobSurfaceModel(ctx, look) {
         nGuide = unit([p[0], -0.22 * k * v, p[2] - cz]);
       }
 
-      // Rich artistic vertex-color depth (parting AO, clump grooves, crown sheen, root-to-tip warmth)
       const partAO = offFace ? 1.0 : mix(0.68, 1.0, smooth(0, 12, absDPart) + 0.65 * smooth(0.0, 0.35, t));
       const rootToTip = mix(0.78, 1.06, smooth(0.03, 0.78, t));
       const clumpAO = mix(0.80, 1.10, cl.mRidge) * mix(0.91, 1.06, cl.fRidge);
@@ -1545,7 +1470,6 @@ function makeBobSurfaceModel(ctx, look) {
       pts.push({ p, n: nGuide, t, shade, cl, hangs });
     }
 
-    // 3 passes of smooth Laplacian fairing along the column (eliminates any crease at leaveY!)
     for (let pass = 0; pass < 3; pass++) {
       const prev = pts.map((pt) => pt.p);
       for (let r = 1; r < rows; r++) {
@@ -1576,11 +1500,9 @@ function buildSculptedBob(ctx, game) {
   const locks = { position: [], normal: [], color: [], uv: [], index: [], bones: [], weights: [] };
   const cz = f.centre[2];
 
-  // -------------------------------------------------------------------------
-  // 1. Primary cohesive closed sculpted bob volume (outer sculpted shell + beveled hem + dark inner lining)
   const cols = game ? 64 : 88;
   const outerRows = game ? 12 : 18;
-  const innerRows = 4; // Hem lip + 3 upward inner lining rings
+  const innerRows = 4;
   const totalRings = outerRows + 1 + innerRows;
 
   const shellVertStart = locks.position.length / 3;
@@ -1592,14 +1514,12 @@ function buildSculptedBob(ctx, game) {
     colData.push({ aDeg, frac: j / cols, ...model.sampleColumn(aDeg, outerRows) });
   }
 
-  // Emit outer rings (r = 0..outerRows) + beveled hem lip & tucked inner lining (r = outerRows+1..outerRows+innerRows)
   const ringGrid = Array.from({ length: cols }, () => new Int32Array(totalRings));
   for (let j = 0; j < cols; j++) {
     const col = colData[j];
     const uCoord = pingPongU(col.frac, 6);
     const { color: colColor } = lockTint(hair, 500 + (col.pts[outerRows].cl.mId & 63), 0.010);
 
-    // Outer surface stations
     for (let r = 0; r <= outerRows; r++) {
       const st = col.pts[r];
       const idxV = locks.position.length / 3;
@@ -1617,7 +1537,6 @@ function buildSculptedBob(ctx, game) {
       locks.weights.push(...skinning[1]);
     }
 
-    // Hem bevel lip + inner underside lining (solid thickness + rich dark underside AO, zero neck/head clip!)
     const hemOuter = col.pts[outerRows];
     const innerSteps = [
       { backT: 0.97, insetMm: 4.0, upMm: 1.5, ao: 0.72 },
@@ -1637,7 +1556,6 @@ function buildSculptedBob(ctx, game) {
         ip = [dx * ((rad - inset) / rad), ref.p[1] + cfg.upMm * mm, cz + dz * ((rad - inset) / rad)];
         ip = body.clear(ip, 0.0042 * k);
       } else {
-        // Forehead fringe edge: compact rounded return tucked safely above forehead skin
         const stAt = f.aim(ref.p);
         const hIn = ir === 0 ? 2.4 : 1.4;
         ip = body.clear(seat(stAt.q, hIn * mm).p, 0.0014 * k);
@@ -1661,7 +1579,6 @@ function buildSculptedBob(ctx, game) {
     }
   }
 
-  // Stitch periodic shell quads with OUTWARD winding (j runs -180° -> +180°, r runs crown -> hem -> inner lining)
   for (let j = 0; j < cols; j++) {
     const j1 = (j + 1) % cols;
     for (let r = 0; r + 1 < totalRings; r++) {
@@ -1673,15 +1590,11 @@ function buildSculptedBob(ctx, game) {
     }
   }
 
-  // Recompute smooth area-weighted normals over the cohesive bob shell so sculpted clumps catch real 3D light!
   smoothAppendedNormals(locks, shellVertStart, locks.position.length / 3 - shellVertStart, shellIdxStart, 0.14);
 
-  // -------------------------------------------------------------------------
-  // 2. Varied slender sculpted accent clumps (natural fringe feathering, cheek taper & subtle profile layers)
   const seg = (full, lo) => (game ? lo : full);
   let id = 800;
 
-  // Helper: sample a slender lock hugging the cohesive bob surface with small positive relief
   const traceSurfaceAccent = (aStartDeg, aEndDeg, t0, t1, reliefMm, steps, endDropMm = 0) => {
     const stations = [];
     for (let s = 0; s <= steps; s++) {
@@ -1701,7 +1614,6 @@ function buildSculptedBob(ctx, game) {
         mix(col.pts[i0].n[1], col.pts[i1].n[1], fr),
         mix(col.pts[i0].n[2], col.pts[i1].n[2], fr),
       ]);
-      // Root tucks inside the cohesive shell (-1.6mm), crests softly in mid-span, feathers neatly back at tip!
       const arch = Math.sin(Math.PI * u ** 0.78);
       const liftMm = -1.5 * (1 - smooth(0, 0.22, u)) + reliefMm * arch - 0.6 * u * u;
       let p = add(pBase, nBase, liftMm * mm);
@@ -1711,7 +1623,6 @@ function buildSculptedBob(ctx, game) {
     return stations;
   };
 
-  // 2a. Feathered forehead fringe accent locks (break up the fringe edge naturally without exposing any cap)
   if (!model.offFace) {
     const fringeSpecs =
       look === "Parted"
@@ -1723,13 +1634,11 @@ function buildSculptedBob(ctx, game) {
             { a0: 26, a1: 44, t0: 0.20, t1: 0.98, w: 15, th: 2.4, rel: 2.1 },
           ]
         : [
-            // Heavy-side diagonal swept bangs (varied widths & staggered feathered ends)
             { a0: model.partPhiDeg - model.sweepSign * -4, a1: model.partPhiDeg + model.sweepSign * 18, t0: 0.12, t1: 0.94, w: 17, th: 2.8, rel: 2.2 },
             { a0: model.partPhiDeg + model.sweepSign * 4, a1: model.partPhiDeg + model.sweepSign * 34, t0: 0.14, t1: 0.98, w: 20, th: 3.0, rel: 2.6 },
             { a0: model.partPhiDeg + model.sweepSign * 14, a1: model.partPhiDeg + model.sweepSign * 48, t0: 0.16, t1: 0.96, w: 14, th: 2.4, rel: 2.1 },
             { a0: model.partPhiDeg + model.sweepSign * 26, a1: model.partPhiDeg + model.sweepSign * 62, t0: 0.18, t1: 0.98, w: 18, th: 2.7, rel: 2.4 },
             { a0: model.partPhiDeg + model.sweepSign * 42, a1: model.partPhiDeg + model.sweepSign * 74, t0: 0.20, t1: 0.95, w: 13, th: 2.3, rel: 2.0 },
-            // Light-side tucked temple sweep
             { a0: model.partPhiDeg - model.sweepSign * 4, a1: model.partPhiDeg - model.sweepSign * 18, t0: 0.16, t1: 0.94, w: 16, th: 2.4, rel: 1.9 },
             { a0: model.partPhiDeg - model.sweepSign * 12, a1: model.partPhiDeg - model.sweepSign * 28, t0: 0.22, t1: 0.96, w: 14, th: 2.3, rel: 1.9 },
           ];
@@ -1750,7 +1659,6 @@ function buildSculptedBob(ctx, game) {
     }
   }
 
-  // 2b. Slender face-framing cheek taper wisps (soft staggered jaw frame, NEVER giant pendants!)
   for (const side of [-1, 1]) {
     const cheekSpecs = [
       { a0: side * 56, a1: side * 54, t0: 0.26, t1: 0.88, w: 13, th: 2.6, rel: 2.0, drop: -4 },
@@ -1775,7 +1683,6 @@ function buildSculptedBob(ctx, game) {
     }
   }
 
-  // 2c. Asymmetric slender profile & back surface breakup clumps (subtle layered movement, cohesive silhouette!)
   const layerSpecs = [
     { a0: -162, a1: -165, t0: 0.24, t1: 0.88, w: 16, th: 2.0, rel: 1.5 },
     { a0: -134, a1: -137, t0: 0.22, t1: 0.94, w: 14, th: 1.9, rel: 1.6 },
@@ -1804,21 +1711,18 @@ function buildSculptedBob(ctx, game) {
   return { under, locks };
 }
 
-// ---------------------------------------------------------------------------------------------
-// Style 3: Sculpted tie-back (tapered swept-back crown + sculpted tie + layered hanging tail)
 
 function tieBackVolumeMm(at, far, tieQ) {
   const sideGrad = smooth(0, 14, far) ** 0.85;
   const top = smooth(10 * DEG, 50 * DEG, at.eps);
   const frontLift = smooth(0.25, 0.85, at.q[2]) * smooth(16 * DEG, 52 * DEG, at.eps);
   const nearTie = smooth(0.55, 0.96, dot(at.q, tieQ));
-  // Sleek tapered sides (2.4mm), gentle crown lift (6.5mm), gathered swell right at the tie base (+4mm)
   return Math.max(0.45, mix(0.45, mix(2.6, 6.2, top) + 2.2 * frontLift + 4.2 * nearTie, sideGrad));
 }
 
 function buildSculptedTieBack(ctx, game) {
   const { body, f, k, mm, ears, hair, look, seat, hangSkin } = ctx;
-  const tieQ = unit([0, 0.24, -0.97]); // Flattering mid-back ponytail anchor
+  const tieQ = unit([0, 0.24, -0.97]);
   const tieFlow = (q) => {
     const toTie = sub(tieQ, q.map((x) => x * dot(q, tieQ)));
     return length(toTie) > 1e-4 ? unit(toTie) : tangent(q, [0, -1, 0]);
@@ -1832,11 +1736,8 @@ function buildSculptedTieBack(ctx, game) {
   const seg = (full, lo) => (game ? lo : full);
   let id = 600;
 
-  // 1. Sleek, cleanly stratified swept-back crown & nape ribbons (no z-fighting cross-hatch)
   const rings = [
-    // Forehead & temples sweeping cleanly back to the tie anchor
     { count: 13, phiMin: -80, phiMax: 80, epsFn: (a) => mix(23, 12, a / 85), len: 175, width: 36, thick: 2.2, relief: 0.8, ao: 0.44 },
-    // Lower above-ear & nape ribbons sweeping upward into the tie anchor
     { count: 10, phiMin: -168, phiMax: 168, epsFn: (a) => mix(0, -26, smooth(84, 168, a)), len: 96, width: 28, thick: 2.0, relief: 0.8, minAbsPhi: 84, ao: 0.45 },
   ];
 
@@ -1849,7 +1750,6 @@ function buildSculptedTieBack(ctx, game) {
       const wide = i % 2 === 0;
       const epsDeg = ring.epsFn(absPhi) + (rnd(1) - 0.5) * 2.0;
 
-      // March smoothly along tieFlow directly into the tie anchor with clean radial stratification
       let q = aimAt(phiDeg * DEG, epsDeg * DEG);
       const steps = seg(8, 6);
       const stations = [];
@@ -1865,7 +1765,6 @@ function buildSculptedTieBack(ctx, game) {
         const far = Math.max(0, hl.margin(atC.phi, atC.eps));
         const baseMm = heightFn(atC, far);
         const arch = Math.sin(Math.PI * t ** 0.78);
-        // Distinct radial offset for alternating ribbons eliminates cross-hatch z-overlap on the crown
         const tierOff = wide ? 0.0 : 1.3;
         const hMm = Math.max(1.2, baseMm + tierOff + (wide ? ring.relief : ring.relief + 0.5) * arch + 0.8 * t * t);
         stations.push(seat(q, hMm * mm));
@@ -1891,7 +1790,6 @@ function buildSculptedTieBack(ctx, game) {
     }
   }
 
-  // 2. Smooth temple-over-ear sweep connecting front temple cleanly backward into the tie
   for (const side of [-1, 1]) {
     const ear = ears.sides[side > 0 ? 0 : 1];
     const F = ear.front / DEG;
@@ -1921,7 +1819,6 @@ function buildSculptedTieBack(ctx, game) {
     id++;
   }
 
-  // Subtle sculpted side-swept forehead accent when parted/swept
   if (look !== "Off the face") {
     const sweepSign = look === "Swept left" ? 1 : -1;
     for (let i = 0; i < 4; i++) {
@@ -1954,25 +1851,20 @@ function buildSculptedTieBack(ctx, game) {
     }
   }
 
-  // 3. Sculpted hair tie ring seated flush into the gathered back hair (zero floating gap on any head size)
   const tieSeat = seat(tieQ, 10 * mm);
   const tieOut = unit([tieSeat.n[0], tieSeat.n[1] * 0.85, tieSeat.n[2]]);
   const tieCenter = add(tieSeat.p, tieOut, 1.5 * mm);
   const tieColor = new T.Color("#322c2a");
   appendHairTie(locks, tieCenter, tieOut, 16 * mm, 5.2 * mm, tieColor, hangSkin, game ? 12 : 16);
 
-  // 4. Layered sculpted hanging tail: 10 distinct overlapping solid 3D beveled lock ribbons!
   const tailStrands = [
-    // Inner core ribbons (full, slightly longer, darker interior shadow)
     { ox: -10, oy: -4, spreadX: -18, outZ: 28, len: 178, w: 28, th: 6.5, shade: 0.90 },
     { ox: 0, oy: -5, spreadX: 0, outZ: 30, len: 188, w: 30, th: 7.0, shade: 0.88 },
     { ox: 10, oy: -4, spreadX: 18, outZ: 28, len: 178, w: 28, th: 6.5, shade: 0.90 },
-    // Outer upper-crest cascading ribbons (brighter sunlit flow, S-wave curvature)
     { ox: -12, oy: 6, spreadX: -28, outZ: 42, len: 162, w: 25, th: 6.0, shade: 1.02 },
     { ox: -4, oy: 10, spreadX: -10, outZ: 48, len: 176, w: 27, th: 6.4, shade: 1.06 },
     { ox: 4, oy: 10, spreadX: 10, outZ: 48, len: 176, w: 27, th: 6.4, shade: 1.06 },
     { ox: 12, oy: 6, spreadX: 28, outZ: 42, len: 162, w: 25, th: 6.0, shade: 1.02 },
-    // Accent side framing tail tips (break up silhouette cleanly in 3/4 and profile)
     { ox: -14, oy: 1, spreadX: -34, outZ: 36, len: 138, w: 19, th: 4.8, shade: 1.04 },
     { ox: 14, oy: 1, spreadX: 34, outZ: 36, len: 138, w: 19, th: 4.8, shade: 1.04 },
     { ox: 0, oy: 12, spreadX: 2, outZ: 54, len: 152, w: 20, th: 5.0, shade: 1.10 },
@@ -2007,9 +1899,7 @@ function buildSculptedTieBack(ctx, game) {
       let p = [0, 1, 2].map(
         (c) => u * u * u * p0[c] + 3 * u * u * t * p1[c] + 3 * u * t * t * p2[c] + t * t * t * p3[c],
       );
-      // Add subtle organic wave along the lower half
       p[0] += Math.sin(t * Math.PI * 1.8 + rnd(1) * 3) * 4.5 * mm * t;
-      // Clear neck and upper back/collar cleanly
       if (s > 1) p = body.clear(p, 0.012 * k);
       const nrm = unit([stSpec.spreadX * 0.014, 0.28 * (1 - t), -1.0]);
       stations.push({ p, n: nrm, v: -1 });
@@ -2034,8 +1924,6 @@ function buildSculptedTieBack(ctx, game) {
   return { under, locks };
 }
 
-// ---------------------------------------------------------------------------------------------
-// Mesh assembly & public entry point
 
 function meshOf(part, material, name) {
   const g = new T.BufferGeometry();
@@ -2055,7 +1943,6 @@ function meshOf(part, material, name) {
   return mesh;
 }
 
-/** Build opaque sculpted hairstyle meshes, or [] when style.hair is not a sculpted style. */
 export function sculptedHair(surface, style, material, plain = false, skinColor = "#96735d", gameBudget = 0) {
   if (!sculptedStyles.includes(style?.hair)) return [];
   const ctx = makeContext(surface, style, skinColor);

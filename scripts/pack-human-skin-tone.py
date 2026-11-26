@@ -52,7 +52,6 @@ def main(library, human, destination, preview=None):
     draw = ImageDraw.Draw(cover)
     for a, b, c in faces:
         draw.polygon([tuple(points[a]), tuple(points[b]), tuple(points[c])], fill=255)
-    # The paint of a skin stops short of the border of an island. Read a little inside it.
     inside = ndimage.binary_erosion(np.asarray(cover) > 127, iterations=3).astype(float)
     corners = unpack(packet, "subIndices", "<u4")
 

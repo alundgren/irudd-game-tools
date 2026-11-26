@@ -1,13 +1,4 @@
 import {flightCap} from "./human-aviator.js";
-// Hats for the adult human, cut on the head that wears them.
-//   hatStyles                     the names a style may give as `hat`
-//   fittedHat(surface, style, hair, material, plain) -> THREE.Mesh[]
-//   drawHat(seed, direction, look, hair) -> { hat, hatColor? } for a new look
-//   hatHead(frame)                the head a hat is fitted to: the hair frame with the ears taken off the skull
-// Every hat is measured from the wearer's own skull through the head frame hair uses: its band is an oval round
-// that head above the ears, its crown stands clear of the scalp everywhere, and the hair it covers is pressed
-// flat beneath it. Hair below the band is left as it was, easing out from under the edge, so a bob, a tail or
-// long lengths still show. A hat is rigid on the head joint and is one more piece of the wardrobe to the exporter.
 import {knitCap} from "./human-watch-cap.js";
 import * as T from "three";
 import { Piece, add, clamp, cross, mix, noise3, smooth, sub, unit } from "./human-style-kit.js";
@@ -17,8 +8,6 @@ import { randomStream } from "./random.js";
 export const hatStyles = ["None", "Bucket hat", "Beret", "Flat cap", "Ribbed watch cap", "Flying cap and goggles"];
 const DEG = Math.PI / 180, TAU = 2 * Math.PI;
 
-// Where each hat's band lies, as elevation above the cranium centre at the front, over the ears and at the back
-// (degrees), and how far the whole line is tipped to the wearer's right. `gap` is the room left for hair in metres.
 const cuts = {
   "Flying cap and goggles": {front:18,side:-23,back:-30,tip:0,gap:.003,cloth:"leather"},
   "Ribbed watch cap": { front: 15, side: 8, back: -9, tip: 0, gap: .0065, cloth: "knit" },
@@ -27,23 +16,12 @@ const cuts = {
   "Flat cap": { front: 15, side: 8, back: -9, tip: 0, gap: .006, cloth: "tweed" },
 };
 
-/**
- * The head as a hat meets it: the frame hair uses, with the ears taken off the skull. The frame's own reach
- * counts an ear as head, and a band measured on it would stand out round the ear like a second brim.
- *   direction(phi, eps)  unit direction of an azimuth and an elevation
- *   place(phi, eps, h)   the point at a height above the skull
- *   over(p)              `phi`, `eps`, distance `r`, direction `u` and height `h` above the skull of a point
- *   earTop               the elevation of the top of the higher ear
- */
 export function hatHead(f) {
   const turn = (u, a) => [u[0] * Math.cos(a) + u[2] * Math.sin(a), u[1], u[2] * Math.cos(a) - u[0] * Math.sin(a)];
-  // At the side of the head the skull is no further out than it is a little way forward and back of the ear.
   const sides = u => {
     const r = f.bone(u), flat = Math.hypot(u[0], u[2]) || 1e-9, w = smooth(.68, .86, Math.abs(u[0]) / flat) * smooth(.5, .34, u[1]);
     return w ? mix(r, Math.min(r, (f.bone(turn(u, 30 * DEG)) + f.bone(turn(u, -30 * DEG))) / 2), w) : r;
   };
-  // The frame's map of the head has few points right at the top and leaves gaps there, so the crown of the skull
-  // is taken as one smooth rise from the ring 70 degrees up to the measured top of the head.
   const crown = 70 * DEG, bone = u => {
     const high = Math.asin(clamp(u[1], -1, 1));
     if (high <= crown) return sides(u);
@@ -63,14 +41,12 @@ export function hatHead(f) {
   };
 }
 
-/** The band line of a cut on one head: elevation in radians at an azimuth, never lower than just above the ears. */
 function bandLine(f, cut) {
   const side = Math.max(cut.side * DEG, Number.isFinite(f.earTop) ? f.earTop + 5 * DEG : -1), front = cut.front * DEG, back = cut.back * DEG;
   const a = ((front + back) / 2 + side) / 2, b = (front - back) / 2, c = ((front + back) / 2 - side) / 2;
   return phi => a + b * Math.cos(phi) + c * Math.cos(2 * phi) + cut.tip * DEG * Math.sin(phi);
 }
 
-/** The scalp smoothed round the head, so a band is an even oval and not a cast of the skull. */
 function evenHead(f) {
   return (phi, eps, h) => {
     let sum = [0, 0, 0];
@@ -79,16 +55,13 @@ function evenHead(f) {
   };
 }
 
-/** A grid of points with texture coordinates, skinned to the head: rows[i][j], the last column repeating the first. */
 class Felt {
   constructor(skin) { this.piece = new Piece(); this.uv = []; this.skin = skin; }
-  /** `uv(i, j)` gives the coordinates of a point; a row is closed by repeating its first point. */
   loft(rows, uv, { capEnd = false, flip = false } = {}) {
     const closed = rows.map(row => [...row, row[0]]), n = closed[0].length;
     this.piece.loft(closed, this.skin, { closed: false, flip: !flip });
     closed.forEach((row, i) => row.forEach((_, j) => this.uv.push(...uv(i, j / (n - 1)))));
     if (capEnd) {
-      // The crown closes on one point, drawn with the coordinates of the last row.
       const last = closed.at(-1), centre = last.slice(0, -1).reduce((sum, p) => add(sum, p, 1), [0, 0, 0]).map(x => x / (n - 1));
       const hub = this.piece.vertex(centre, this.skin), base = this.piece.count - 1 - n;
       this.uv.push(...uv(rows.length, .5));
@@ -104,7 +77,6 @@ class Felt {
   mesh(material, name) {
     const mesh = this.piece.mesh(material, "head", name), g = mesh.geometry, normal = g.attributes.normal, p = g.attributes.position;
     g.setAttribute("uv", new T.Float32BufferAttribute(this.uv, 2));
-    // Points that share a place share a normal, so the seam at the back of a crown takes the light as one cloth.
     const seen = new Map();
     for (let i = 0; i < p.count; i++) {
       const key = Math.round(p.getX(i) * 2e4) + "," + Math.round(p.getY(i) * 2e4) + "," + Math.round(p.getZ(i) * 2e4);
@@ -115,7 +87,6 @@ class Felt {
       if (list.length < 2) continue;
       const n = new T.Vector3();
       for (const i of list) n.add(new T.Vector3().fromBufferAttribute(normal, i));
-      // A fold as sharp as a brim edge keeps its two sides.
       if (n.length() < list.length * .75) continue;
       n.normalize();
       for (const i of list) normal.setXYZ(i, n.x, n.y, n.z);
@@ -128,15 +99,12 @@ const cols = 40;
 const ring = make => Array.from({ length: cols }, (_, j) => make(-Math.PI + TAU * j / cols, j));
 const outward = (p, f) => unit([p[0] - f.centre[0], 0, p[2] - f.centre[2]]);
 
-/** Keep a point at least `gap` above the scalp, ears included. */
 function clear(f, p, gap) {
   const o = f.over(p);
   return o.h >= gap ? p : add(f.centre, o.u, o.r + gap - o.h);
 }
 
-// The cuts. Each gives its cloth pieces as { felt, tone, name } with tones "main", "trim" and "metal".
 const makers = {
-  // Soft cotton: a crown that stands a little off the head with a flat top, and a brim that slopes down all round.
   "Bucket hat"(f, line, cut, gap, skin) {
     const k = f.k, head = evenHead(f), felt = new Felt(skin), rows = [], band = ring(phi => head(phi, line(phi), gap));
     const brim = (phi, p, s, under) => {
@@ -144,7 +112,6 @@ const makers = {
       const wide = (.039 + .004 * Math.cos(phi)) * k, q = add(add(p, out, wide * s), [0, 1, 0], -(.018 * k) * s ** 1.25 + wave);
       return under ? add(add(q, [0, 1, 0], -.0028 * k), out, s < 1 ? 0 : -.001 * k) : q;
     };
-    // Inside the band, down the underside of the brim, round its edge, back up its top and over the crown.
     rows.push(ring(phi => clear(f, head(phi, line(phi) + 5 * DEG, .0012 * k), .0008 * k)), ring(phi => clear(f, head(phi, line(phi), .0012 * k), .0008 * k)));
     for (const s of [.02, .35, .7, 1]) rows.push(band.map((p, j) => brim(-Math.PI + TAU * j / cols, p, s, true)));
     for (const s of [1, .7, .35, .04]) rows.push(band.map((p, j) => brim(-Math.PI + TAU * j / cols, p, s, false)));
@@ -154,42 +121,33 @@ const makers = {
     felt.loft(rows, (i, u) => [u, v(i)], { capEnd: true });
     return [{ felt, tone: "main", name: "Bucket hat" }];
   },
-  // Felted wool on a narrow bound rim: it lies on the head like a cap and its fullness hangs over the rim, most
-  // on the wearer's right and a little back.
   "Beret"(f, line, cut, gap, skin) {
     const k = f.k, head = evenHead(f), felt = new Felt(skin), rim = new Felt(skin), lean = -105 * DEG;
     const full = phi => .5 + .5 * Math.cos(phi - lean), up = [0, 1, 0];
     const rows = [];
     for (const t of [0, .05, .12, .2, .3, .42, .55, .68, .8, .9, .96]) rows.push(ring(phi => {
       const w = full(phi), roll = Math.sin(Math.PI * Math.min(1, t / .46)) ** .75, p = head(phi, mix(line(phi), 90 * DEG, t), gap + k * (.003 + (.008 + .026 * w) * roll + .004 * w * (1 - t)));
-      // The overhang sags under its own weight.
       return clear(f, add(p, up, -k * (.004 + .016 * w) * roll * (1 - t)), gap);
     }));
     felt.loft(rows, (i, u) => [u, i / rows.length], { capEnd: true });
     const crest = clear(f, f.place(lean, 84 * DEG, 0), gap + .004 * k);
-    // The stalk at the crest.
     const tip = add(crest, up, .012 * k), stalk = new Felt(skin);
     stalk.loft([0, .5, 1].map(s => Array.from({ length: 6 }, (_, j) => add(add(mix3(add(crest, up, .003 * k), tip, s), [1, 0, 0], Math.cos(TAU * j / 6) * .0022 * k * (1 - .4 * s)), [0, 0, 1], Math.sin(TAU * j / 6) * .0022 * k * (1 - .4 * s)))), (i, u) => [u, .98], { capEnd: true });
-    // The bound rim, round where it grips the head.
     const grip = [[-.0045, .0012], [-.006, .004], [-.002, .0068], [.004, .0064], [.007, .0035], [.0065, .001]];
     rim.loft(grip.map(([rise, off]) => ring(phi => clear(f, head(phi, line(phi) + rise * k / f.size, gap * .2 + off * k), .0006 * k))), (i, u) => [u, i / grip.length], { flip: false });
     return [{ felt, tone: "main", name: "Beret" }, { felt: stalk, tone: "main", name: "Beret stalk" }, { felt: rim, tone: "trim", name: "Beret rim" }];
   },
-  // Tweed in one piece from the back of the head forward over a short stiff peak.
   "Flat cap"(f, line, cut, gap, skin) {
     const k = f.k, head = evenHead(f), felt = new Felt(skin), peak = new Felt(skin), ahead = phi => ((1 + Math.cos(phi)) / 2) ** 1.6;
     const forward = unit([0, -.2, 1]);
-    // Inside the band; under the front the cloth comes down to the peak from a little below where the peak starts.
     const rows = [ring(phi => clear(f, head(phi, line(phi) + 4 * DEG, .0012 * k), .0008 * k)), ring(phi => clear(f, head(phi, line(phi) - 2.5 * DEG * ahead(phi), .0012 * k), .0008 * k))];
     const lift = t => gap + k * (.002 + .009 * Math.sin(Math.PI * Math.min(1, t * 1.9)) * (1 - t) + .0015);
     for (const t of [0, .07, .16, .28, .42, .56, .7, .84, .95]) rows.push(ring(phi => {
       const reach = ahead(phi), body = head(phi, mix(line(phi), 90 * DEG, t), lift(t) + .005 * k * (1 - reach) * Math.sin(Math.PI * Math.min(1, t * 2.4)));
-      // The front of the cloth runs straight from the crown of the head to the peak.
       const p = add(add(body, forward, .04 * k * reach * (1 - t) ** 1.15), [0, 1, 0], -.004 * k * reach * (1 - t) * smooth(0, .3, t));
       return clear(f, p, gap);
     }));
     felt.loft(rows, (i, u) => [u, i / rows.length], { capEnd: true });
-    // The peak: a crescent from the band at the forehead, turned down a little at its sides.
     const across = 17, along = 6, reach = 64 * DEG, top = [], under = [];
     for (let i = 0; i < along; i++) {
       const s = i / (along - 1), a = [], b = [];
@@ -201,7 +159,6 @@ const makers = {
       top.push(a); under.push(b);
     }
     peak.sheet(top, under, (s, x) => [x, s]);
-    // The button where the panels meet.
     const button = new Felt(skin), at = clear(f, f.place(0, 80 * DEG, 0), lift(.9) + .001 * k), axis = unit(sub(at, f.centre)), a1 = unit(cross(axis, [1, 0, 0])), a2 = cross(axis, a1);
     button.loft([[.0055, 0], [.0052, .002], [.003, .0034]].map(([r, h]) => Array.from({ length: 8 }, (_, j) => add(add(add(at, axis, h * k), a1, Math.cos(TAU * j / 8) * r * k), a2, Math.sin(TAU * j / 8) * r * k))), (i, u) => [u, .99], { capEnd: true });
     return [{ felt, tone: "main", name: "Flat cap" }, { felt: peak, tone: "main", name: "Cap peak", flat: true }, { felt: button, tone: "main", name: "Cap button" }];
@@ -209,7 +166,6 @@ const makers = {
 };
 const mix3 = (a, b, t) => [mix(a[0], b[0], t), mix(a[1], b[1], t), mix(a[2], b[2], t)];
 
-// Cloth drawn for a hat: colour in one map and the height of the yarn in another, both over the whole piece.
 const maps = new Map();
 function clothMaps(cloth, name, colour) {
   if (typeof document === "undefined") return null;
@@ -224,17 +180,14 @@ function clothMaps(cloth, name, colour) {
     const v = 1 - y / h;
     let light = 1, yarn = .5;
     if (cloth === "tweed") {
-      // Herringbone: diagonal ribs that turn at every stripe, with flecks of a paler yarn.
       const stripe = Math.floor(x / 10), rib = ((stripe % 2 ? x + y : x - y) % 4 + 4) % 4 < 2;
       const fleck = hash(x >> 1, y >> 1);
       light = (rib ? 1.16 : .8) * (fleck > .93 ? 1.5 : fleck < .08 ? .7 : 1) * (.95 + .1 * hash(x, y));
       yarn = rib ? .68 : .34;
     } else if (cloth === "felt") {
-      // Felted wool: a soft, even nap.
       const nap = hash(x, y) * .5 + hash(x >> 1, y >> 1) * .3 + hash(x >> 2, y >> 2) * .2;
       light = .9 + .2 * nap; yarn = .35 + .3 * nap;
     } else {
-      // Cotton twill with rows of stitching round the brim and one where the top panel is set in.
       const cord = ((x + y * 2) % 4 + 4) % 4 < 2;
       light = (cord ? 1.06 : .93) * (.97 + .06 * hash(x, y)); yarn = cord ? .6 : .42;
       const rows = name === "Bucket hat" ? [.13, .18, .23, .3, .35, .4, .83] : [], near = rows.some(r => Math.abs(v - r) < .006);
@@ -254,22 +207,16 @@ function clothMaps(cloth, name, colour) {
   return maps.get(key);
 }
 
-/** The colour a hat takes when the style names none: the second cloth of the outfit, or a quiet brown. */
 export function hatColour(style = {}) {
   return style.hatColor ?? style.clothSecond ?? "#5a4a3c";
 }
 
 const balding = new Set(["None", "Buzz cut"]);
-/**
- * Press the hair a hat covers flat under its crown. Inside the band every point of hair comes to rest under the
- * cloth, keeping its order above the scalp; just below the band the hair eases back out to where it grew.
- */
 function tuckHair(f, line, gap, meshes, holdLength = false) {
   const limit = gap * .5, hold = 10 * DEG, ease = 30 * DEG;
   for (const mesh of meshes) {
     const position = mesh.geometry?.attributes?.position;
     if (!position) continue;
-    // A groom may be kept between builds, so the pressed hair is a copy.
     mesh.geometry = mesh.geometry.clone();
     const p = mesh.geometry.attributes.position;
     let moved = 0;
@@ -281,7 +228,6 @@ function tuckHair(f, line, gap, meshes, holdLength = false) {
       const pressed = limit * (1 - Math.exp(-o.h / limit)), h = mix(pressed, o.h, smooth(hold, ease, below));
       if (h >= o.h - 1e-5) continue;
       const r = o.r - o.h + h;
-      // Ear-covering headwear presses hanging lengths sideways without pulling up the tips.
       const y = holdLength && o.eps < 0 ? at[1] : f.centre[1] + o.u[1] * r;
       p.setXYZ(i, f.centre[0] + o.u[0] * r, y, f.centre[2] + o.u[2] * r);
       moved++;
@@ -290,16 +236,11 @@ function tuckHair(f, line, gap, meshes, holdLength = false) {
   }
 }
 
-/**
- * The hat a style names, fitted to `surface`, and the hair in `hair` (meshes in world space) pressed under it.
- * `material(colour, type)` is the wardrobe's material source; `plain` leaves the cloth undrawn.
- */
 export function fittedHat(surface, style, hair, material, plain = false) {
   const cut = cuts[style.hat];
   if (!cut) return [];
   const body = surfaceBody(surface), frame = surfaceFrame(surface), f = hatHead(frame);
   const flight = style.hat === "Flying cap and goggles";
-  // The ear cups sit below a cloth hat's band and press the side hair down with them.
   const line = flight ? phi => .35 - 1.12 * smooth(.32, 1.27, Math.abs(phi)) : bandLine(f, cut);
   const gap = (balding.has(style.hair ?? "None") ? .0032 : cut.gap) * f.k;
   tuckHair(f, line, gap, hair, flight);
@@ -319,7 +260,6 @@ export function fittedHat(surface, style, hair, material, plain = false) {
       if (drawn) { m.color.set(0xffffff); m.map = drawn[0]; m.bumpMap = drawn[1]; m.bumpScale = cut.cloth === "tweed" ? .0009 : .0006; }
     }
     m.side = T.DoubleSide;
-    // A brim and a peak are thin sheets: the exporter keeps their shape as it keeps wire and fibre.
     (m.userData ??= {}).fibreLOD = true;
     m.name = part.name;
     const mesh = part.felt.mesh(m, part.name);
@@ -327,7 +267,6 @@ export function fittedHat(surface, style, hair, material, plain = false) {
     return mesh;
   });
 }
-// Which hats go with which wardrobe, as [weight, hat] rows, and how often such a wardrobe wears one at all.
 const worn = {
   work: { chance: .3, hats: [[5, "Flat cap"], [1, "Bucket hat"]] },
   smart: { chance: .17, hats: [[3, "Beret"], [2.5, "Flat cap"]] },
@@ -342,13 +281,8 @@ const wardrobes = {
   "T-shirt and jeans": "casual", "Hoodie and joggers": "casual", "Track top and leggings": "casual", "separates": "casual", "Bomber and wide trousers": "casual", "Rolled bomber and cuffed trousers": "casual",
   "Explorer": "sun", "Running kit": "sun",
 };
-// Hair that is piled or stands high does not sit under a crown; such a head goes bareheaded in a new look.
 const piled = /bun|crown braid|natural curls|afro|coil|top knot|high/i;
 
-/**
- * The hat of a new look, from a stream of its own so nothing else about the look depends on it. `look` is what
- * `completeLook` gave; the hat takes a tone already in the outfit so it belongs to it.
- */
 export function drawHat(seed, direction, look, hair = "None") {
   const draw = randomStream((seed ^ 0x7a3c91e5) >>> 0), layers = look.style?.tailor?.layers ?? [];
   let kind = wardrobes[look.wardrobe];
@@ -377,14 +311,12 @@ export function drawHat(seed, direction, look, hair = "None") {
   for (const [weight, name] of rule.hats) if ((at -= weight) < 0) { hat = name; break; }
   const s = look.style ?? {}, tones = [s.clothSecond, s.accentColor, s.leatherColor, s.clothColor].filter(Boolean), pickTone = draw();
   const light = colour => { const c = new T.Color(colour); return .299 * c.r + .587 * c.g + .114 * c.b; };
-  // A cap is quiet cloth, a beret may carry the accent, a sun hat is pale or the second cloth.
   let colour;
   if (hat === "Flat cap") colour = quiet(tones.find(tone => light(tone) < .34) ?? "#4c463f", pickTone);
   else if (hat === "Beret") colour = pickTone < .5 && s.accentColor ? s.accentColor : tones.find(tone => light(tone) < .3) ?? "#2f2a33";
   else colour = pickTone < .45 ? s.clothLight ?? "#e2d8c3" : pickTone < .8 ? s.clothSecond ?? "#8f8662" : "#b9a37c";
   return { hat, hatColor: "#" + new T.Color(colour).getHexString() };
 }
-/** A colour taken most of the way to a grey-brown wool. */
 function quiet(colour, k) {
   const c = new T.Color(colour), hsl = c.getHSL({ h: 0, s: 0, l: 0 });
   return "#" + new T.Color().setHSL(hsl.h, hsl.s * (.3 + .3 * k), clamp(hsl.l * .9 + .08, .16, .42)).getHexString();

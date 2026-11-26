@@ -1,9 +1,3 @@
-// A painted face's relief on the game page (transferFaceNormals and
-// bakeFaceOcclusion in character-view/game-face-relief.js, with rasterTriangles
-// of portrait-plate.js, at 2761eb1). Simplifying the head loses the full
-// surface's normals and the shelter of its folds; both are written back into
-// the face's tile of the shared page at the same texture coordinates.
-
 import {
   Vector3,
   type BufferAttribute,
@@ -23,7 +17,6 @@ type Visit = (
   w: number,
 ) => void;
 
-/** Visit every pixel centre inside each triangle of `indices`, laid out at `xy`, with its barycentric weights. */
 export function rasterTriangles(
   indices: ArrayLike<number>,
   xy: Float32Array,
@@ -82,11 +75,6 @@ function layout(uv: Attribute, width: number, height: number): Float32Array {
   return xy;
 }
 
-/**
- * Restore the normals of the full surface (`highIndices`) to the reduced mesh
- * (`lowIndices`) at the same coordinates on its texture chart, rotating the
- * tile's tangent-space detail in `pixels` by the difference.
- */
 export function transferFaceNormals(
   pixels: Uint8ClampedArray,
   width: number,
@@ -142,8 +130,6 @@ export function transferFaceNormals(
     source.fromArray(high, k);
     if (source.lengthSq() < 0.8) return;
     mixAttribute(normalAt, normal, a, b, c, u, v, w).normalize();
-    // Opposing surfaces meet at the lids and the mouth. An overlapping island
-    // or a shrunken triangle must not transfer detail from the other side.
     if (source.dot(normalAt) < 0.72) return;
     mixAttribute(point, position, a, b, c, u, v, w);
     if (point.distanceToSquared(scratch.fromArray(high, k + 3)) > 0.004 ** 2) return;
@@ -176,8 +162,6 @@ export function transferFaceNormals(
     baked.set(source.dot(t), source.dot(bdir), source.dot(normalAt)).normalize();
     const q = pixel * 4;
     detail.set(byte(q) / 127.5 - 1, byte(q + 1) / 127.5 - 1, byte(q + 2) / 127.5 - 1).normalize();
-    // Rotate the existing pore or crease normal by the shortest rotation from
-    // the tangent-space pole to the full surface normal (Rodrigues' formula).
     axis.set(-baked.y, baked.x, 0);
     scratch.crossVectors(axis, detail);
     detail
@@ -190,8 +174,6 @@ export function transferFaceNormals(
   });
 }
 
-// Cosine-weight the visible hemisphere. Mirroring the samples about the
-// sagittal plane keeps a symmetric fold equally sheltered on both sides.
 const faceRays = Array.from({ length: 32 }, (_, i) => {
   const y = 1 - (2 * (i + 0.5)) / 32,
     horizontal = Math.sqrt(1 - y * y);
@@ -204,12 +186,6 @@ const faceRays = Array.from({ length: 32 }, (_, i) => {
   ] as const;
 }).flat();
 
-/**
- * The face carries a painted occlusion map, so its detail cannot use the
- * single contact value of the spare UV channel. Bake the visibility of the
- * full face into the red channel of its tile, before the lids and ears lose
- * detail.
- */
 export function bakeFaceOcclusion(
   pixels: Uint8ClampedArray,
   width: number,

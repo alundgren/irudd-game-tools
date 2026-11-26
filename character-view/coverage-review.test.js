@@ -14,9 +14,9 @@ test("detail checks count new skin inside clothes and exclude cuffs and the silh
   const full = new Uint8Array(49);
   for (let y = 1; y < 6; y++) for (let x = 1; x < 6; x++) full[y*7+x] = 3;
   const game = full.slice();
-  game[3*7+3] = 2; // Skin through the centre of the jacket.
-  game[3*7+1] = 2; // Its edge is within one pixel of the background.
-  game[4*7+4] = 1; // Accessory, outside the scope of the skin check.
+  game[3*7+3] = 2;
+  game[3*7+1] = 2;
+  game[4*7+4] = 1;
   assert.deepEqual(exposedSkinPixels(full, game, 7), { interiorClothingPixels: 9, exposedSkinPixels: 1 });
   const fullLabels = ["Other","Skin","Coat","Shirt"].map(name=>({name}));
   const gameLabels = ["Other","Skin","Shirt","Coat"].map(name=>({name}));

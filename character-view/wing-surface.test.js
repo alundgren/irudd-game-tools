@@ -44,14 +44,12 @@ test("a body plan saved before wings had a structure builds the wing it had", ()
     assert.ok(!(key in read), key);
   const form = buildCreature(old);
   assert.equal(surfaces(form).length, 0);
-  // The two sweeps of a plain wing: a spar and its membrane.
   for (const id of ["left wing 1", "left wing 1 membrane", "right wing 1", "right wing 1 membrane"]) {
     const part = form.parts.find((p) => p.id === id);
     assert.equal(part?.shape, "sweep", id);
     assert.equal(part.motionRole, "wing", id);
   }
   assert.deepEqual(buildCreature(withWings(glider, { structure: "plain" })).parts, form.parts);
-  // An edit that leaves the wing alone keeps it plain.
   const taller = rebuildCreature(form, { ...form.origin.plan, scale: 1.2 });
   assert.equal(surfaces(taller).length, 0);
 });
@@ -73,7 +71,6 @@ test("each wing structure builds a valid, mirrored, repeatable surface on its ar
       assert.equal(arm.motionRole, "wing");
       assert.equal(part.motionRole, "rigid");
       assert.ok(validWing(part.wing));
-      // The arm of the body plan is the arm the surface is built on.
       const knots = wingArmKnots(part.wing);
       assert.equal(arm.knots.length, knots.length);
     }
@@ -88,7 +85,6 @@ test("each wing structure builds a valid, mirrored, repeatable surface on its ar
       for (let i = 0; i < g.index.count; i++) assert.ok(g.index.getX(i) < count);
       assert.ok(g.attributes.color.array.every((v) => v >= 0 && v <= 1.0001));
     }
-    // The right wing is the left wing in a mirror, and still faces outward.
     assert.equal(a.attributes.position.count, b.attributes.position.count);
     const pa = a.attributes.position,
       pb = b.attributes.position;
@@ -104,7 +100,6 @@ test("each wing structure builds a valid, mirrored, repeatable surface on its ar
       return lift / n.count;
     };
     assert.ok(Math.abs(up(a) - up(b)) < 1e-4, structure + " " + up(a) + " " + up(b));
-    // Another seed is another individual with the same anatomy.
     const other = wingGeometry({ ...left.wing, seed: left.wing.seed + 1 }, left.color);
     assert.notDeepEqual(
       [other.attributes.position.count, ...other.attributes.position.array.slice(0, 60000)],
@@ -142,7 +137,6 @@ test("fingers, feathers and veins are counted, bounded and steerable", () => {
       readCreaturePlan(withWings(glider, { structure, ribs })).limbs.find((l) => l.kind === "wing").ribs;
     assert.equal(read(99), most);
     assert.equal(read(0), least);
-    // Every control at both ends of its range still builds.
     for (const pattern of wingPatterns)
       for (const edge of [0, 1]) {
         const form = buildCreature(
@@ -183,7 +177,6 @@ test("an assistant chooses and steers a wing structure through the body plan", (
     setLimbs: [{ index, structure: "bat", bend: 0.7, notch: 0.9, pattern: "eyespot", seed: 44 }],
   });
   let wing = plan.limbs[index];
-  // The feathers of the old wing are not the fingers of the new one.
   assert.equal(wing.structure, "bat");
   assert.equal(wing.ribs, 4);
   assert.equal(wing.bend, 0.7);
@@ -195,14 +188,12 @@ test("an assistant chooses and steers a wing structure through the body plan", (
   const form = buildCreature(plan);
   validateForm(form);
   assert.equal(surfaces(form)[0].wing.count, 5);
-  // A rebuild swaps the surface and keeps what was made by hand elsewhere.
   const before = buildCreature(glider);
   before.parts.find((p) => p.id === "body").color = "#123456";
   const after = rebuildCreature(before, plan);
   assert.equal(after.parts.find((p) => p.id === "body").color, "#123456");
   assert.equal(surfaces(after)[0].wing.structure, "bat");
   assert.ok(!after.parts.some((p) => p.id.endsWith(" feathers")));
-  // Wings added to a body that had none.
   const crawler = steerCreaturePlan(creaturePresets["Six-legged crawler"], {
     addLimbs: [{ kind: "wing", from: 0.6, length: 0.9, chord: 0.3, structure: "insect", ribs: 6 }],
   });
@@ -242,7 +233,6 @@ test("the surface of a wing is skinned to its arm and flies with it above the fl
       const names = form.parts.map((p) => p.id),
         mine = names.indexOf(surfaces(form).find((p) => p.id.startsWith("left")).id),
         armPart = names.indexOf("left wing 1");
-      // Every vertex of the surface hangs from the joints of its own arm.
       const tips = [];
       let checked = 0;
       rig.actor.traverse((mesh) => {

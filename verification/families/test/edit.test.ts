@@ -1,6 +1,3 @@
-// A typed edit to a prepared fixture reaches the fresh export, and every
-// export carries its provenance.
-
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { exportCharacter, readProvenance } from "@irudd/character";
@@ -23,7 +20,6 @@ installNodeExporter();
 const build = "test-build";
 const base = readFixture("marsh-draw-5");
 
-/** Decode and apply operations as a client sends them, then validate the result. */
 function edit(doc: CharacterDocument, raw: unknown): CharacterDocument {
   const ops = decodeOperations(raw);
   if (!ops.ok) throw new Error(JSON.stringify(ops.diagnostics));
@@ -140,7 +136,6 @@ test("a cage whose faces meet along equally wound edges is refused", () => {
   assert.ok(caged && cage);
   const [first, ...rest] = cage.faces;
   assert.ok(first);
-  // Flip one face of a closed or bordered cage; its shared edges now run the same way.
   const flipped = { ...cage, faces: [[...first].reverse(), ...rest] };
   assert.throws(() =>
     edit(fen, [{ op: "feature.set", feature: "figure.cage", part: caged.id, value: flipped }]),

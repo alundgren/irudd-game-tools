@@ -1,6 +1,3 @@
-// A small orthographic z-buffer renderer for checking styled humans without a browser.
-// It shades smooth clay with a key and fill light, darkens creases from the depth
-// buffer and tints back faces red so reversed winding is easy to spot.
 import { deflateSync } from "node:zlib";
 import { writeFileSync } from "node:fs";
 
@@ -16,11 +13,9 @@ function normals(positions, indices) {
   return n;
 }
 
-/** meshes: [{positions, indices, normals?, color:[r,g,b] in 0..1}] */
 export function render(meshes, { yaw = 0, pitch = 0, center = [0, .9, 0], span = 2, width = 400, height = 800, background = [.93, .93, .92], supersample = 2 } = {}) {
   const W = width * supersample, H = height * supersample, scale = H / span;
   const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
-  // Camera axes: yaw 0 looks at the front (+Z faces the camera).
   const right = [cy, 0, -sy], toward = [sy * cp, sp, cy * cp];
   const up = [toward[1] * right[2] - toward[2] * right[1], toward[2] * right[0] - toward[0] * right[2], toward[0] * right[1] - toward[1] * right[0]];
   const depth = new Float32Array(W * H).fill(-Infinity), color = new Float32Array(W * H * 3);
@@ -42,7 +37,6 @@ export function render(meshes, { yaw = 0, pitch = 0, center = [0, .9, 0], span =
       const x0 = sx[a], y0 = syy[a], x1 = sx[b], y1 = syy[b], x2 = sx[c], y2 = syy[c];
       const area = (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0);
       if (!area) continue;
-      // Screen y points down, so a front face has negative signed area here.
       const back = area > 0;
       const minX = Math.max(0, Math.floor(Math.min(x0, x1, x2))), maxX = Math.min(W - 1, Math.ceil(Math.max(x0, x1, x2)));
       const minY = Math.max(0, Math.floor(Math.min(y0, y1, y2))), maxY = Math.min(H - 1, Math.ceil(Math.max(y0, y1, y2)));
@@ -60,7 +54,6 @@ export function render(meshes, { yaw = 0, pitch = 0, center = [0, .9, 0], span =
         let nz = w0 * cn[a * 3 + 2] + w1 * cn[b * 3 + 2] + w2 * cn[c * 3 + 2];
         const l = Math.hypot(nx, ny, nz) || 1; nx /= l; ny /= l; nz /= l;
         if (back) { nx = -nx; ny = -ny; nz = -nz; }
-        // Lights are fixed to the camera so every turnaround view reads alike.
         const lx = nx * right[0] + nz * right[2], ly = nx * up[0] + ny * up[1] + nz * up[2], lz = nx * toward[0] + ny * toward[1] + nz * toward[2];
         const d = Math.max(0, lx * key[0] + ly * key[1] + lz * key[2]) * .78 + Math.max(0, lx * fill[0] + ly * fill[1] + lz * fill[2]) * .2
           + Math.max(0, lx * rim[0] + ly * rim[1] + lz * rim[2]) * .1 + .2 + .06 * ly;
@@ -69,7 +62,6 @@ export function render(meshes, { yaw = 0, pitch = 0, center = [0, .9, 0], span =
       }
     }
   }
-  // Depth-based crease darkening: nearer neighbours occlude a pixel.
   const out = new Uint8Array(width * height * 4), radius = Math.max(2, Math.round(.012 * scale));
   const taps = [[1, 0], [-1, 0], [0, 1], [0, -1], [.7, .7], [-.7, .7], [.7, -.7], [-.7, -.7]];
   for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
@@ -94,7 +86,6 @@ export function render(meshes, { yaw = 0, pitch = 0, center = [0, .9, 0], span =
 }
 function norm(v) { const l = Math.hypot(...v); return v.map(x => x / l); }
 
-/** Lay equally sized images out in rows. */
 export function sheet(images, columns) {
   const w = images[0].width, h = images[0].height, rows = Math.ceil(images.length / columns);
   const data = new Uint8Array(w * columns * h * rows * 4).fill(236);

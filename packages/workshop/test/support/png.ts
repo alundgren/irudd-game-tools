@@ -1,5 +1,3 @@
-// Real, decodable PNG pictures for art tests: a solid colour with an optional
-// square of a second colour, so each picture has distinct bytes.
 import { crc32, deflateSync } from "node:zlib";
 
 function chunk(type: string, data: Uint8Array): Buffer {
@@ -35,8 +33,8 @@ export function png(
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(width, 0);
   ihdr.writeUInt32BE(height, 4);
-  ihdr[8] = 8; // bit depth
-  ihdr[9] = 2; // truecolour
+  ihdr[8] = 8;
+  ihdr[9] = 2;
   return new Uint8Array(
     Buffer.concat([
       Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),

@@ -1,9 +1,3 @@
-// Swatch provenance: a bundled surface sheet is listed for an export only when
-// one of its swatches reaches a material of a visible exported mesh. Loading
-// the kit is not enough; a finish without a swatch, a materials override and
-// a hidden part claim none. The textured presets' own listing is the slow
-// gate's (marsh-tripod, relay-wardrobe).
-
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import * as T from "three";
@@ -26,7 +20,6 @@ const noRaster: Raster = {
   image: () => Promise.reject(new Error("No raster in node.")),
 };
 
-/** A kit whose canvas swatch is drawn from the surfaces sheet; nothing else has a swatch. */
 function kit(): { kit: SurfaceKit; sheet: string } {
   const surfaces = bundledAssetNamed("surfaces");
   assert.ok(surfaces);

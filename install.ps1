@@ -1,22 +1,4 @@
 param([ValidatePattern('^[0-9a-f]{40}$')][string]$Prepare)
-# Install or update Irudd Workshop for the current Windows user.
-#
-# The installer keeps its own clone of the repository, builds the pinned
-# branch commit on this computer from the frozen lockfile and switches the
-# Start menu entry and the `irudd` command to the new build. Without
-# -Prepare it installs, activates and opens the app. With -Prepare <commit>
-# (run by the app's updater) it only builds that commit and records it as
-# prepared; the app activates it when the person restarts. A failed or
-# canceled build never changes the active version.
-#
-# Environment (all optional):
-#   IRUDD_INSTALL_ROOT  installation folder (default %LOCALAPPDATA%\irudd-game-tools)
-#   IRUDD_REPOSITORY    Git origin (default https://github.com/alundgren/irudd-game-tools.git)
-#   IRUDD_BRANCH        branch to follow (default main)
-#   IRUDD_VP            an existing Vite+ executable; otherwise vp.exe on PATH or a new install
-#   IRUDD_START_MENU    folder for the Start menu shortcuts (default: the user's Programs folder)
-#   IRUDD_NO_PATH=1     leave the user PATH unchanged
-#   IRUDD_NO_LAUNCH=1   do not open the app after installing
 
 function Install-IruddWorkshop {
     $ErrorActionPreference = 'Stop'
@@ -53,7 +35,6 @@ function Install-IruddWorkshop {
         if ($LASTEXITCODE -ne 0) { throw "$([IO.Path]::GetFileName($Executable)) exited with code $LASTEXITCODE." }
     }
     function Invoke-Activator([string]$Build, [string]$Mode) {
-        # The app executable is a GUI-subsystem program, which `&` would not wait for.
         $start = [Diagnostics.ProcessStartInfo]::new((Join-Path $Build "$app\$app.exe"))
         $start.UseShellExecute = $false
         $start.Arguments = '"{0}" {1} "{2}" "{3}"' -f (Join-Path $Build "$app\resources\app\dist\update\activate.mjs"), $Mode, $root, $Build
@@ -65,7 +46,6 @@ function Install-IruddWorkshop {
     try {
         [IO.Directory]::CreateDirectory($builds) | Out-Null
         try {
-            # Windows releases and deletes this lock even when a cancel kills the build.
             $lock = [IO.FileStream]::new((Join-Path $root '.install-lock'), [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None, 4096, [IO.FileOptions]::DeleteOnClose)
         } catch { throw 'Another Irudd Workshop install or update is running. Wait for it to finish and retry.' }
         Get-ChildItem -LiteralPath $builds -Directory -Force -ErrorAction SilentlyContinue |
@@ -83,7 +63,6 @@ function Install-IruddWorkshop {
         Invoke-Native $git @('-C', $source, 'fetch', '--quiet', '--depth', '1', 'origin', $revision)
         $Commit = (& $git -C $source rev-parse FETCH_HEAD).Trim()
         if ($Commit -cnotmatch '^[0-9a-f]{40}$') { throw 'Git returned an invalid commit.' }
-        # The installer owns this clone; an interrupted checkout is repaired, ignored build output kept.
         Invoke-Native $git @('-C', $source, '-c', 'advice.detachedHead=false', 'checkout', '--quiet', '--force', '--detach', $Commit)
         Invoke-Native $git @('-C', $source, 'clean', '--quiet', '-fd')
 

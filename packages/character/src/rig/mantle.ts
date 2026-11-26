@@ -1,7 +1,3 @@
-// A mantle rests against the shoulders and arms. Ported from bindMantleArms
-// in character-view/mantle-rig.js at 2761eb1: each side of the panel takes
-// movement from the nearest arm joint, fading to the fixed neckline and back.
-
 import { armAccess } from "@irudd/document";
 import * as T from "three";
 import type { Region } from "./region.js";
@@ -20,11 +16,6 @@ interface Segment {
 
 const armRoles = new Set(["upper arm", "forearm", "hand"]);
 
-/**
- * Blend arm joints into the third and fourth influences of a fitted
- * mantle's world-space skin geometry. Both surfaces of the sewn panel then
- * share each station's joints.
- */
 export function bindMantleArms(
   region: Region,
   regions: ReadonlyMap<string, Region>,

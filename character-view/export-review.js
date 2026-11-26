@@ -18,8 +18,6 @@ export async function compareExportViews(previous, current) {
         }),
       );
       const sheet = document.createElement("canvas");
-      // Keep both views at their original resolution unless the server's JPEG
-      // limit requires a smaller sheet for a particularly detailed texture.
       for (const width of [768, 576, 384]) {
         const height = Math.round((width * images[0].height) / images[0].width);
         sheet.width = width;
@@ -130,7 +128,6 @@ export async function inspectGameExport(form, renderer, previous) {
     const directions = angles.map((a) =>
       new T.Vector3(...a.direction).normalize(),
     );
-    // Project the common posed/rest bounding box onto each camera's axes.
     let extent = 0.05,
       fitsPrevious = Boolean(previousFrame);
     const offset = previousFrame

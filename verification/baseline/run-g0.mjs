@@ -1,31 +1,3 @@
-// G0 baseline orchestrator: freeze the reference build's corpus, suite, exports and captures.
-//
-// usage: node PATH/TO/verification/baseline/run-g0.mjs [--skip-suite] [--skip-browser] [--quick]
-//
-// Run with a clean reference checkout (2761eb14 or a runtime-identical commit) as the current
-// directory, after `npm ci` there. The scripts can live in another checkout. Everything lands in
-// the ignored .reference-cache/g0/. Steps, in order:
-//   1. inventory.mjs            tracked forms, GLBs, fixtures, test modules, dependency pins
-//      workflows.mjs            editor and player entry points, flow-to-test coverage
-//   2. seeded.mjs twice         seeded generator digests (determinism across processes)
-//   3. run-suite.mjs            full suite cold, warm and with WORKSHOP_REFERENCES=none
-//   4. npm run build twice      build hashes (reproducibility); copy to g0/build
-//   5. browser.py export        every example at clay/full/game/portrait (+ all outfits),
-//                               bare examples as wrapped equivalents, seeded creature/figure
-//                               forms and the #adult=SEED&look=SEED route; run A forward,
-//                               run B reverse in a fresh browser
-//   6. compare.py exports/shipped   run A vs B and tracked GLBs vs fresh game exports
-//   7. browser.py capture       32 tracked GLBs x3 and fresh game exports x2 in the player
-//   8. compare.py captures      pixel variance envelopes; compare.py pixels decodes every
-//                               retained frame; compare.py reencode re-encodes r0 frames
-//   9. browser.py flows         offline AI tab (request, proposal, export review,
-//                               refinement, references) and hybrid starting forms
-//  10. references.mjs and       only when the private reference sets are installed here:
-//      browser.py references    what they switch on, against the public build
-//  11. manifest.json            commit, toolchain, hashes and the outcome of each step
-// Browser steps run under gpu-lock.ps1 on Windows. --quick limits exports to three forms,
-// captures to three GLBs and re-encoding to 24 frames for a smoke run. eol.mjs (LF and CRLF
-// clones) runs separately because it needs the source repository; see README.md.
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { copyFile, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
@@ -33,7 +5,6 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-// Scripts live beside this file; the reference tree is the current directory.
 const HERE = dirname(fileURLToPath(import.meta.url));
 const S = (name) => join(HERE, name);
 
@@ -58,7 +29,6 @@ const sha = async (f) => createHash("sha256").update(await readFile(f)).digest("
 const git = (...a) => execFileSync("git", a, { encoding: "utf8" }).trim();
 await mkdir(G0, { recursive: true });
 
-// 1-2
 sh(process.execPath, [S("inventory.mjs"), G0]);
 sh(process.execPath, [S("workflows.mjs"), G0]);
 const seededRuns = [];
@@ -66,13 +36,11 @@ for (let i = 0; i < 2; i++) {
   const out = execFileSync(process.execPath, [S("seeded.mjs"), G0], { encoding: "utf8" });
   seededRuns.push(JSON.parse(out.trim().split("\n").pop()));
 }
-// 3
 if (!flags.has("--skip-suite")) {
   sh(process.execPath, [S("run-suite.mjs"), "full-cold"]);
   sh(process.execPath, [S("run-suite.mjs"), "full-warm"]);
   sh(process.execPath, [S("run-suite.mjs"), "full-references-none"], { env: { ...process.env, WORKSHOP_REFERENCES: "none" } });
 }
-// 4
 const builds = [];
 for (let i = 0; i < 2; i++) {
   sh(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "build"], { shell: process.platform === "win32" });
@@ -82,8 +50,6 @@ await mkdir(`${G0}/build`, { recursive: true });
 for (const f of Object.keys(builds[1])) await copyFile(`dist/${f}`, `${G0}/build/${f}`);
 
 if (!flags.has("--skip-browser")) {
-  // 5: the editor's Open form accepts only the irudd.form.v1 envelope, so bare examples are
-  // exported from a wrapped copy that differs only by that envelope.
   await mkdir(`${G0}/wrapped`, { recursive: true });
   const inventory = JSON.parse(await readFile(`${G0}/inventory.json`, "utf8"));
   const forms = [];
@@ -91,17 +57,15 @@ if (!flags.has("--skip-browser")) {
     if (f.openableInEditor) { forms.push(f.file); continue; }
     const wrapped = `${G0}/wrapped/${f.name}.form.json`;
     await writeFile(wrapped, JSON.stringify({ format: "irudd.form.v1", form: JSON.parse(await readFile(f.file, "utf8")) }));
-    forms.push(f.file, wrapped); // the original records the editor's rejection
+    forms.push(f.file, wrapped);
   }
   const seededForms = ["plan-8950", "plan-8990", "figure-42", "creature-42", "human-42"].map((n) => `${G0}/seeded/${n}.form.json`);
   const all = quick ? forms.slice(0, 3) : [...forms, ...seededForms];
   py([S("browser.py"), "export", `${G0}/build`, `${G0}/export-a`, ...all, "--outfits"]);
   py([S("browser.py"), "export", `${G0}/build`, `${G0}/export-b`, ...all, "--outfits", "--reverse"]);
   py([S("browser.py"), "adult", `${G0}/build`, `${G0}/export-adult`, ...(quick ? ["42"] : ["1", "42", "491"])]);
-  // 6
   sh("python", [S("compare.py"), "exports", `${G0}/export-a`, `${G0}/export-b`, `${G0}/export-variance.json`]);
   sh("python", [S("compare.py"), "shipped", `${G0}/export-a`, `${G0}/shipped-vs-fresh.json`]);
-  // 7-8
   const shipped = inventory.glbs.map((g) => g.file);
   py([S("browser.py"), "capture", `${G0}/build`, `${G0}/capture-shipped`, ...(quick ? shipped.slice(0, 3) : shipped), "--repeat", "3"]);
   const fresh = (await readdir(`${G0}/export-a`)).filter((f) => f.endsWith("-game.glb")).sort().map((f) => `${G0}/export-a/${f}`);
@@ -111,9 +75,7 @@ if (!flags.has("--skip-browser")) {
     sh("python", [S("compare.py"), "pixels", dir]);
     sh("python", [S("compare.py"), "reencode", dir, `${dir}/reencode.json`, ...(quick ? ["24"] : [])]);
   }
-  // 9: the image is tracked project art, attached as a visual reference.
   py([S("browser.py"), "flows", `${G0}/build`, `${G0}/flows`, "character-view/armour-devices.webp"]);
-  // 10: private references stay at their ignored paths; only text reaches the cache records.
   if (existsSync("examples/mhr-reference.glb")) {
     sh(process.execPath, [S("references.mjs"), `${G0}/references-private`]);
     py([S("browser.py"), "references", "dist", `${G0}/references-private`]);
@@ -121,7 +83,6 @@ if (!flags.has("--skip-browser")) {
   py([S("browser.py"), "references", `${G0}/build`, `${G0}/references-public`]);
 }
 
-// 11
 const python = execFileSync("python", ["-c", "import sys,PIL,numpy;from importlib.metadata import version;print(sys.version.split()[0],PIL.__version__,numpy.__version__,version('playwright'))"], { encoding: "utf8" }).trim().split(" ");
 const manifest = {
   plan: "workshop-desktop-port · item inventory (G0) · check baseline",

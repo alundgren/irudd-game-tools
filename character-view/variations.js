@@ -341,7 +341,6 @@ export function applyOperations(
         }
         break;
       case "buildCreature": {
-        // Replace the whole form with a creature built from a body plan.
         if (
           action.preset !== undefined &&
           !Object.hasOwn(creaturePresets, action.preset)
@@ -370,8 +369,6 @@ export function applyOperations(
         delete form.humanStyle;
         delete form.humanFit;
         delete form.humanDetail;
-        // Replace the anatomy with a measured, jointed two-arm figure. Later
-        // operations in the same proposal can dress or reshape its parts.
         const built = buildFigure(action.figure);
         form = {
           ...form,
@@ -424,8 +421,6 @@ export function applyOperations(
         break;
       case "removePart":
         if (index < 0) throw new Error("Unknown part: " + id + ".");
-        // Defer graph validation until the whole transaction is applied so
-        // limbs may be reattached after the original trunk is removed.
         form.parts.splice(index, 1);
         break;
       case "setForm":

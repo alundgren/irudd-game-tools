@@ -1,8 +1,3 @@
-// Facial expressions: Blink, Smile and BrowLift morph targets on face
-// surfaces, and eyelids that close over the painted eyes. Ported from
-// character-view/expressions.js and eyelids.js at 2761eb1, arithmetic in the
-// same order so the targets match.
-
 import * as T from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import type { HeadSpace } from "../surfaces/face.js";
@@ -30,10 +25,6 @@ interface Triangle {
   readonly det: number;
 }
 
-/**
- * The frontmost surface point and its painted UV at (x, y). Spatial buckets
- * keep sampling the moving eyelids independent of the face's tessellation.
- */
 export function faceProjector(g: T.BufferGeometry): (x: number, y: number) => Probe | undefined {
   const pos = g.getAttribute("position");
   const uv = g.getAttribute("uv");
@@ -84,10 +75,6 @@ export function faceProjector(g: T.BufferGeometry): (x: number, y: number) => Pr
   };
 }
 
-/**
- * Add a strip of lid over each eye, textured from the skin just below it,
- * and the offsets that close it. Undefined when the face cannot carry them.
- */
 function addEyelids(
   mesh: T.Mesh,
   paint: HeadSpace | undefined,
@@ -159,7 +146,6 @@ function buildTargets(mesh: T.Mesh, paint: HeadSpace | undefined): void {
     if (!mesh.morphTargetDictionary) mesh.updateMorphTargets();
     return;
   }
-  // Fitted eyes carry their own lids, so the face itself does not blink.
   const fitted = Boolean(mesh.userData["fittedEyes"]);
   const lids = fitted ? undefined : addEyelids(mesh, paint);
   const geometry = mesh.geometry;
@@ -244,15 +230,10 @@ function buildTargets(mesh: T.Mesh, paint: HeadSpace | undefined): void {
   mesh.updateMorphTargets();
 }
 
-/** Give every face surface its expressions, once. */
 export function prepareExpressions(faces: ReadonlyMap<T.Mesh, HeadSpace | undefined>): void {
   for (const [mesh, paint] of faces) buildTargets(mesh, paint);
 }
 
-/**
- * The skin is exported in world coordinates. Transform pose displacements
- * as vectors and rebuild each normal delta against the transformed rest normal.
- */
 export function worldMorphs(geometry: T.BufferGeometry, source: T.Mesh): void {
   const positions = geometry.morphAttributes["position"];
   if (!positions?.length) return;

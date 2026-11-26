@@ -16,31 +16,25 @@ test("complexionProfile produces skin-tone-relative, age-relative and choice-con
   const medium = complexionProfile({ skin: "#ac7e62", age: 0.1, choice: "Fine" });
   const deep = complexionProfile({ skin: "#604031", age: 0.1, choice: "Fine" });
 
-  // Luminance & fairness ordering across light, medium and deep skin.
   assert.ok(light.fair > medium.fair && medium.fair > deep.fair);
   assert.ok(light.fair > 0.9 && deep.fair < 0.05);
 
-  // Every reflectance value is well below matte 0.78 while remaining physically bounded <= 0.80.
   for (const p of [light, medium, deep]) {
     assert.ok(p.bodyRoughness >= 0.58 && p.bodyRoughness <= 0.76, "body " + p.bodyRoughness);
     assert.ok(p.faceRoughness >= 0.52 && p.faceRoughness < p.bodyRoughness, "face " + p.faceRoughness);
     assert.ok(p.faceRoughness - p.shineDrop >= 0.40 && p.faceRoughness - p.shineDrop <= 0.58, "T-zone " + (p.faceRoughness - p.shineDrop));
     assert.ok(p.lipRoughness >= 0.35 && p.lipRoughness < p.faceRoughness, "lip " + p.lipRoughness);
   }
-  // Deep skin keeps a higher base & T-zone roughness than fair skin so dark albedo doesn't turn sweaty/plastic.
   assert.ok(deep.faceRoughness > light.faceRoughness + 0.05);
   assert.ok(deep.faceRoughness - deep.shineDrop > light.faceRoughness - light.shineDrop + 0.08);
-  // Deep skin uses restrained blush & deeper natural lip tint rather than pale pink.
   assert.ok(deep.blushG < light.blushG && deep.lipTint[0] < light.lipTint[0]);
 
-  // Age increases dryness and lowers T-zone sheen drop.
   const young = complexionProfile({ skin: "#ac7e62", age: 0.0, choice: "Fine" });
   const older = complexionProfile({ skin: "#ac7e62", age: 0.9, choice: "Fine" });
   assert.ok(older.faceRoughness > young.faceRoughness);
   assert.ok(older.bodyRoughness > young.bodyRoughness);
   assert.ok(older.shineDrop < young.shineDrop);
 
-  // Complexion choice controls pore/wrinkle relief and dryness smoothly.
   const smooth = complexionProfile({ skin: "#ac7e62", age: 0.2, choice: "Smooth" });
   const fine = complexionProfile({ skin: "#ac7e62", age: 0.2, choice: "Fine" });
   const weathered = complexionProfile({ skin: "#ac7e62", age: 0.2, choice: "Weathered" });
@@ -64,8 +58,6 @@ test("body skin shares one cloned skin-tone-relative material matching the face 
   }).bodyRoughness;
   assert.equal(body.roughness, expected);
 
-  // In humanRegions, all non-head regions share one body skin material while head gets its own,
-  // and plain/clay mode leaves base untouched.
   const build = humanRegions(form, () => base, false);
   const head = build(form.parts.find((p) => p.humanBone === "head")).children.find((m) => m.userData.faceSurface);
   const neck = build(form.parts.find((p) => p.humanBone === "neck_01")).children[0];
@@ -76,7 +68,6 @@ test("body skin shares one cloned skin-tone-relative material matching the face 
   assert.equal(neck.material.roughness, expected);
   assert.equal(base.roughness, 0.88);
 
-  // Without DOM (Node), faceMaterial still aligns roughness to bodyRoughness so there is no seam.
   assert.equal(faceMaterial(base, form).roughness, expected);
 
   const plainBuild = humanRegions(form, () => base, true);
@@ -130,12 +121,10 @@ test("pigmentTint preserves neutral border, allows positive highlights, and resp
   assert.deepEqual(pigmentTint(128, 128, 128, light, 1), [1, 1, 1]);
   assert.deepEqual(pigmentTint(128, 128, 128, deep, 1), [1, 1, 1]);
   assert.deepEqual(pigmentTint(128, 128, 128, fantasy, 1), [1, 1, 1]);
-  // Positive luminance texel lifts all three channels above 1.0 (no white clipping).
   for (const p of [light, deep, fantasy]) {
     const hi = pigmentTint(200, 128, 128, p, 1);
     assert.ok(hi.every((v) => v > 1.15 && v < 1.45), "positive highlight " + hi);
   }
-  // Fantasy skin keeps full luminance modeling while restraining warm human-red chroma shift.
   const warmHuman = pigmentTint(128, 210, 180, light, 1);
   const warmFantasy = pigmentTint(128, 210, 180, fantasy, 1);
   assert.ok(warmHuman[0] / warmHuman[1] > warmFantasy[0] / warmFantasy[1] + 0.08);
@@ -145,16 +134,13 @@ test("bare lips, sockets and the donor colour are painted strongly enough to rea
   const { complexionProfile, pigmentTint, portraitRead } = await import("./human-complexion.js");
   for (const skin of ["#f0c8ae", "#ac7e62", "#613f2f"]) {
     const p = complexionProfile({ skin, age: 0.3 });
-    // A bare lip is this skin a little deeper and redder, and it is not glossier than a lid.
     assert.ok(p.lipTint[0] > p.lipTint[1] + 0.06 && p.lipTint[1] > 0.72 && p.lipTint[0] < 1, skin + " lip " + p.lipTint);
     assert.ok(p.lipRoughness >= 0.5 && p.lipRoughness < p.faceRoughness, skin + " lip roughness " + p.lipRoughness);
     assert.ok(p.socketTint.every(v => v < 0.92 && v > 0.75), skin + " socket " + p.socketTint);
-    // The donor colour at its portrait strength moves a texel by more than a tenth, and still leaves the border alone.
     const dark = pigmentTint(100, 128, 128, p, portraitRead.pigment), bare = pigmentTint(128, 128, 128, p, portraitRead.pigment);
     assert.ok(dark[0] < 0.9 && dark[0] > 0.5, skin + " shade " + dark[0]);
     assert.deepEqual(bare, [1, 1, 1]);
   }
-  // A skin that is not a natural hue keeps its hue in the lip: no channel is pulled far from the others.
   const painted = complexionProfile({ skin: "#b98fd6" });
   assert.ok(Math.max(...painted.lipTint) - Math.min(...painted.lipTint) < 0.09, "fantasy lip " + painted.lipTint);
   assert.ok(portraitRead.browMass > 0 && portraitRead.lip <= 0.6);
@@ -168,7 +154,6 @@ test("the packed portrait finish has a donor for every age, depth and frame, and
   for (const age of [0, 1, 2]) for (const deep of [false, true]) for (const male of [false, true])
     assert.ok(finishData.donors.some(d => d.age === age && d.deep === deep && d.male === male), `donor for ${age} ${deep} ${male}`);
   assert.ok(finishData.credits.length >= 2 && finishData.credits.every(c => /CC0/.test(c.license) && /^https?:/.test(c.source)));
-  // Relief is read as a height at twice the old bump scale, with the older terms halved to keep their depth.
   assert.equal(finishRead.bumpScale * finishRead.legacyRelief, 0.00125);
 });
 
@@ -181,7 +166,6 @@ test("finishDonors matches age, depth and frame and cross-fades at every boundar
         const chosen = of({ skin, age, seed, ...look });
         assert.deepEqual(chosen, of({ skin, age, seed, ...look }), "repeatable");
         assert.ok(chosen.length >= 1 && chosen.length <= 2 && Math.abs(chosen.reduce((sum, [, share]) => sum + share, 0) - 1) < 1e-12);
-        // Away from the boundaries of depth and frame a face never reads a donor of the other kind.
         for (const [i, share] of chosen) assert.ok(share > 0 && donors[i].deep === deep && donors[i].male === male, `${skin} ${age} ${seed} chose ${donors[i].name}`);
       }
     }
@@ -189,7 +173,6 @@ test("finishDonors matches age, depth and frame and cross-fades at every boundar
   const band = age => total({ skin: "#ac7e62", age }, d => d.age);
   assert.equal(band(0), 0); assert.equal(band(0.25), 0); assert.equal(band(0.5), 1); assert.equal(band(0.8), 2); assert.equal(band(1), 2);
   assert.equal(of({ skin: "#ac7e62", age: 0.9 }).length, 1, "an old face reads one donor");
-  // Every slider moves the paint continuously: no step swaps a whole face.
   for (let age = 0; age < 1; age += 0.01) assert.ok(Math.abs(band(age + 0.01) - band(age)) < 0.06, "age step at " + age);
   const frame = v => total({ skin: "#ac7e62", age: 0.1, frame: v }, d => +d.male);
   for (let v = -1; v < 1; v += 0.01) assert.ok(Math.abs(frame(v + 0.01) - frame(v)) < 0.09, "frame step at " + v);
@@ -197,7 +180,6 @@ test("finishDonors matches age, depth and frame and cross-fades at every boundar
   const depth = grey => total({ skin: new T.Color(grey * 1.6, grey, grey * 0.7), age: 0.1 }, d => +d.deep);
   for (let v = 0.02; v < 0.4; v += 0.002) assert.ok(Math.abs(depth(v + 0.002) - depth(v)) < 0.1, "depth step at " + v);
   assert.equal(depth(0.03), 1); assert.equal(depth(0.3), 0);
-  // The seed chooses among equal donors, so two young pale women need not share one face of paint.
   assert.ok(new Set(Array.from({ length: 8 }, (_, i) => of({ skin: "#f0c8ae", age: 0.1, seed: i * 32 })[0][0])).size >= 3);
 });
 
@@ -206,13 +188,11 @@ test("finishTint leaves bare skin exact, keeps donor shade on any skin and restr
   assert.deepEqual(finishTint(60, 200, 90, 1, 0), [1, 1, 1]);
   const shade = finishTint(100, 100, 100), light = finishTint(170, 170, 170);
   assert.ok(shade.every(v => v < 0.75 && v > 0.6) && light.every(v => v > 1.25 && v < 1.4), shade + " " + light);
-  // A redder donor texel: full on a natural skin, mostly shade on a painted hue, grey with no chroma.
   const full = finishTint(150, 110, 105, 1), fantasy = finishTint(150, 110, 105, finishRead.fantasyChroma), grey = finishTint(150, 110, 105, 0);
   assert.ok(full[0] / full[1] > fantasy[0] / fantasy[1] + 0.1 && fantasy[0] / fantasy[1] > 1.05);
   assert.ok(Math.abs(grey[0] - grey[1]) < 1e-12 && Math.abs(grey[1] - grey[2]) < 1e-12);
   const mean = v => Math.log(v[0] * v[1] * v[2]);
   assert.ok(Math.abs(mean(full) - mean(grey)) < 1e-12, "chroma leaves the donor's light and shade alone");
-  // Half weight is half the shift in log light: two donors cross-fade without a dip.
   assert.ok(Math.abs(finishTint(100, 100, 100, 1, 0.5)[0] ** 2 - shade[0]) < 1e-12);
 });
 
@@ -231,10 +211,8 @@ test("headroomForSkin keeps the bare border exact at the wider gain a pale beard
 test("the skin under a beard takes the colour of its roots on light and deep skin, and a bare face takes none", () => {
   const decode = (b) => { const v = b / 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
   const light = new T.Color("#dbb79f"), deep = new T.Color("#5a4037"), dark = new T.Color("#2a1c16"), white = new T.Color("#d9d6cf");
-  // Stubble is too sparse to hide the skin: it keeps its multiplying tint and takes no root colour.
   for (const skin of [light, deep]) for (const hair of [dark, white]) for (const facial of [undefined, "None", "Stubble"]) assert.equal(beardRoot(skin, hair, facial), null);
   const luminance = (c) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2], rgb = (c) => [c.r, c.g, c.b];
-  // What the paint can hold of a root colour: nothing above the head base.
   const laid = (skin, hair, facial) => {
     const root = beardRoot(skin, hair, facial), { neutral, base } = headroomForSkin(skin, root.gain);
     rgb(skin).forEach((v, k) => assert.ok(Math.abs(decode(neutral[k]) * base[k] - v) < 1e-12, "bare skin stays exact beside a beard"));
@@ -242,7 +220,6 @@ test("the skin under a beard takes the colour of its roots on light and deep ski
     return rgb(root.tone).map((v, k) => Math.min(v, base[k]));
   };
   for (const facial of ["Moustache", "Short beard", "Full beard"]) {
-    // Dark hair covers light skin; pale hair lifts deep skin, which a tint that only multiplies the skin cannot do.
     assert.ok(luminance(laid(light, dark, facial)) < 0.45 * luminance(rgb(light)), facial + " dark on light");
     assert.ok(luminance(laid(deep, white, facial)) > 3 * luminance(rgb(deep)), facial + " white on deep");
     assert.ok(luminance(laid(light, white, facial)) > 0.3 * luminance(rgb(light)), facial + " white on light stays pale");
@@ -251,8 +228,6 @@ test("the skin under a beard takes the colour of its roots on light and deep ski
 });
 
 test("the beard's root colour keeps its own name inside the face painter", () => {
-  // A texel's under-eye density once hid the root colour of the same name, so beards stayed unpainted wherever that
-  // density was zero, which is the whole beard. Each of the two is declared once.
   const source = readFileSync(new URL("./human-complexion.js", import.meta.url), "utf8");
   const start = source.indexOf("function paint(look){"), body = source.slice(start, source.indexOf("export function skinMaterial", start));
   assert.ok(start > 0 && body.length > 2000);

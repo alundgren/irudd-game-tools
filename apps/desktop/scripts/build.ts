@@ -1,18 +1,3 @@
-// Build the desktop app into apps/desktop/dist:
-//
-//   main/main.js         Electron main (ESM), externals: electron and Node built-ins
-//   preload/preload.cjs  sandboxed preload (CommonJS), external: electron only
-//   renderer/index.html  the window, with its scripts and styles
-//   forms/*.json         the prepared form starters, from an explicit list (scripts/forms.ts)
-//   forms/artwork.json   the artwork those forms declare, with digest and origin
-//   assets/              the bundled sheets and swatches the review worker paints with
-//   licenses/            licence texts of embedded code and the artwork's origins
-//   build.json           the source commit the bytes came from
-//
-// Each bundle writes <name>.inputs.json listing every loaded module and external.
-//
-//   node --import ../../packages/document/test/support/register.ts scripts/build.ts
-
 import { execFileSync } from "node:child_process";
 import { builtinModules } from "node:module";
 import { copyFileSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
@@ -53,7 +38,6 @@ rmSync(dist, { recursive: true, force: true });
 
 const started = performance.now();
 
-// Renderer: an ordinary web page for a sandboxed, context-isolated window.
 await build({
   configFile: false,
   root: join(root, "src", "renderer"),
@@ -65,7 +49,6 @@ await build({
     target: "es2024",
     modulePreload: false,
     chunkSizeWarningLimit: 4096,
-    // The window, and the isolated review worker's page (served only on its own scheme).
     rolldownOptions: {
       input: {
         index: join(root, "src", "renderer", "index.html"),
@@ -76,7 +59,6 @@ await build({
   plugins: [bundleReport("renderer", join(dist, "renderer"))],
 });
 
-// Preload: one CommonJS file that may require only electron.
 await build({
   configFile: false,
   root,
@@ -95,7 +77,6 @@ await build({
   plugins: [bundleReport("preload", join(dist, "preload"))],
 });
 
-// Main: ESM for Electron's Node, with workspace packages bundled in.
 await build({
   configFile: false,
   root,
@@ -114,11 +95,8 @@ await build({
   plugins: [bundleReport("main", join(dist, "main"))],
 });
 
-// Prepared family documents the app offers as starters, with the artwork they
-// declare and its origin (scripts/forms.ts). The rest of verification/ never ships.
 const { forms } = stageForms(repository, join(dist, "forms"));
 
-// The review worker's surface swatches and sheets: every bundled file, by name.
 mkdirSync(join(dist, "assets"), { recursive: true });
 for (const asset of bundledAssets)
   copyFileSync(
@@ -126,7 +104,6 @@ for (const asset of bundledAssets)
     join(dist, "assets", asset.file),
   );
 
-// The adult's body and paint packs, verified by SHA-256 where they are read.
 mkdirSync(join(dist, "assets", "human"), { recursive: true });
 for (const pack of [...humanPackFiles, humanPaintFile])
   copyFileSync(
@@ -134,7 +111,6 @@ for (const pack of [...humanPackFiles, humanPaintFile])
     join(dist, "assets", "human", pack.file),
   );
 
-// Licence texts of the code the bundles embed, and the project's own.
 mkdirSync(join(dist, "licenses"), { recursive: true });
 copyFileSync(join(repository, "LICENSE"), join(dist, "licenses", "irudd-game-tools.txt"));
 for (const name of ["makehuman-cc0", "hsrd-100-cc-by-4.0"])

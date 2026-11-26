@@ -1,10 +1,3 @@
-// Heavy gate for the seeded adult: every seeded adult of the frozen G0
-// fixtures, exported fresh at clay and compared whole with its reference
-// (src/human-clay.ts says how the references are made). A missing or altered
-// reference fails the gate. The report goes to .reference-cache/g4a/human-gate.json.
-//
-//   node --import ../../packages/document/test/support/register.ts src/human-gate.ts
-
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";

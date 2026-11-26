@@ -145,7 +145,6 @@ def cmd_captures(root):
         "maxShare>8": max((r["share>8"] for r in ok), default=0),
         "maxShare>32": max((r["share>32"] for r in ok), default=0),
     }
-    # Rank by how many pixels changed, then by level, so identical shots sort last by name.
     worst = sorted(ok, key=severity)[:10]
     envelope["changed"] = [{"shot": r["shot"], "against": r["against"], "maxDiff": r["maxDiff"],
                             "pixels>0": round(r["share>0"] * r["size"][0] * r["size"][1])} for r in sorted(ok, key=severity) if not r["identical"]]
@@ -198,7 +197,6 @@ def cmd_exports(a, b, out):
 def cmd_shipped(export_dir, out):
     export_dir = Path(export_dir); repo = Path.cwd()
     shipped = sorted((repo / "examples").glob("*.glb"))
-    # A shipped GLB with several scenes was exported with all saved outfits.
     def fresh_for(s):
         g, _ = glb_parts(s); outfits = export_dir / f"{s.stem}-game-outfits.glb"
         return outfits if len(g.get("scenes", [])) > 1 and outfits.exists() else export_dir / f"{s.stem}-game.glb"

@@ -54,32 +54,15 @@ test("a revision can replace the entire anatomy and be nudged again", () => {
     [1, 1.1, 1],
   );
 });
-test("the local route passes a real brief and returns a validated candidate", async () => {
-  const server = workshopServer("<head></head>", async (req) => ({
-    format: "irudd.form-proposal.v1",
-    requestId: req.requestId,
-    revision: req.revision,
-    summary: "Broader",
-    form: req.preview,
-  }));
-  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+test("the web workshop serves the editor without launching an agent", async () => {
+  const server = workshopServer("<head></head>");
+  await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
   try {
     const url = "http://127.0.0.1:" + server.address().port;
-    const brief = makeBrief(
-      startingForm(() => 0.5),
-      "base",
-      null,
-      { ...neutral(), width: 8 },
-      "Broader",
-    );
-    const result = await fetch(url + "/variation", {
-      method: "POST",
-      headers: { Origin: url, "Content-Type": "application/json" },
-      body: JSON.stringify(brief),
-    });
-    assert.equal(result.status, 200);
-    assert.deepEqual((await result.json()).form, brief.preview);
+    assert.equal(await (await fetch(url)).text(), "<head></head>");
+    for (const route of ["/variation", "/turnaround", "/trace-map", "/portrait-depth"])
+      assert.equal((await fetch(url + route, {method:"POST"})).status, 404);
   } finally {
-    await new Promise((resolve) => server.close(resolve));
+    await new Promise(resolve => server.close(resolve));
   }
 });

@@ -1,12 +1,3 @@
-// Fixed-size inspection images, drawn by a renderer of their own.
-//
-// The inspector never reads the interactive canvas: it owns an offscreen
-// WebGL context at an exact pixel size and pixel ratio 1, so its images do
-// not depend on the window size, display scale or whether the window is
-// visible. It loads its own copy of the file into a stage of its own, so
-// taking a sheet never writes to the interactive player's scene, clip, time,
-// surface or materials, during playback or a drag, or when a shot fails.
-
 import * as T from "three";
 import { gpuInfo, type GpuInfo } from "./gpu.js";
 import {
@@ -24,21 +15,15 @@ import {
 
 export interface ShotRequest {
   readonly view: View;
-  /** Clip name, or null for the rest pose. */
   readonly clip?: string | null;
-  /** Fraction of the clip. */
   readonly time?: number;
   readonly surface?: Surface;
-  /** Expression shown at full weight, or none. */
   readonly morph?: string | null;
-  /** Camera turn and elevation for the measured-angle portrait. */
   readonly angle?: Angle;
-  /** Look, each axis from -1 to 1. */
   readonly gaze?: { readonly x: number; readonly y: number };
 }
 
 export interface Shot {
-  /** The view framed; a portrait request on a file without a face falls back to three-quarter. */
   readonly view: View;
   readonly requested: View;
   readonly angle: Angle | null;
@@ -51,7 +36,6 @@ export interface Shot {
   readonly height: number;
   readonly png: Uint8Array;
   readonly camera: { readonly position: number[]; readonly target: number[]; readonly fov: number };
-  /** Draw calls and triangles the renderer reported for this image. */
   readonly render: { readonly calls: number; readonly triangles: number };
 }
 
@@ -63,13 +47,8 @@ export interface InspectionSheet {
   readonly shots: ReadonlyArray<Shot>;
 }
 
-/** The whole-model views every sheet takes. */
 export const defaultShots: ReadonlyArray<ShotRequest> = bodyViews.map((view) => ({ view }));
 
-/**
- * The review recipe for a model: every body view, and for a file with a face
- * surface the three fixed portraits plus the measured angle.
- */
 export function reviewShots(
   info: ModelInfo | undefined,
   base: Omit<ShotRequest, "view"> = {},
@@ -82,7 +61,6 @@ export class Inspector {
   private readonly canvas: OffscreenCanvas;
   private readonly renderer: T.WebGLRenderer;
   private readonly camera = new T.PerspectiveCamera(34, 1, 0.01, 250);
-  /** The inspector's own stage. Nothing else draws or animates it. */
   private readonly stage = new Stage();
   readonly gpu: GpuInfo;
 
@@ -110,11 +88,6 @@ export class Inspector {
     this.gpu = gpuInfo(this.renderer);
   }
 
-  /**
-   * Load a file into the inspector's own stage. The interactive player is never
-   * touched: the inspector parses its own copy of the bytes, with its own
-   * scene, mixer and materials.
-   */
   async load(bytes: Uint8Array, name: string, scene = 0): Promise<void> {
     await this.stage.load(bytes, name);
     if (scene !== (this.stage.info?.scene ?? 0) && !this.stage.showScene(scene))
@@ -167,17 +140,14 @@ export class Inspector {
     };
   }
 
-  /** What the loaded file holds: size, face, expressions, gaze and clips. */
   get info(): ModelInfo | undefined {
     return this.stage.info;
   }
 
-  /** Clip movement and floor contact, measured on the inspector's own stage. */
   measure(): ClipMeasure[] {
     return this.stage.measureClips();
   }
 
-  /** Load a file and take every requested shot of it. */
   async sheet(
     bytes: Uint8Array,
     name: string,

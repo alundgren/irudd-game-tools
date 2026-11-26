@@ -1,15 +1,3 @@
-// Trace and depth replies fitted onto an existing painted part: the
-// character package's fit operations match G0's arithmetic and change the
-// exported geometry of that part only.
-//
-// The oracles are character-view at 2761eb14: depthFromPixels in
-// portrait-depth.js (G0's depth action), registerFace in portrait-frame.js
-// and pairDepth in turnaround.js (the trace editor's face marks and depth
-// points on a selected head). They run from the frozen source on the same
-// inputs. The pixels and panel frames here are synthetic; the desktop's art
-// QA (`pnpm --filter @irudd/desktop qa:art`) draws real sheets and a real
-// depth pass with the hardware canvas.
-
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { test } from "node:test";
@@ -45,7 +33,6 @@ const show = (file: string) =>
     encoding: "utf8",
   });
 
-/** Run frozen G0 source with `input` on stdin; `body` writes the JSON result. */
 function g0(source: string, body: string, input: unknown): unknown {
   const driver = `${source}
 let text = "";
@@ -62,7 +49,6 @@ ${body}`;
   return parsed;
 }
 
-/** A front depth pass on black: a lit ellipse, a few coloured and dim pixels G0 ignores. */
 function depthPass(size: number): Uint8ClampedArray<ArrayBuffer> {
   const rgba = new Uint8ClampedArray(size * size * 4);
   for (let y = 0; y < size; y++)
@@ -92,14 +78,12 @@ process.stdout.write(JSON.stringify(depthFromPixels(rgba, input.w, input.h)));`,
   );
   assert.deepEqual(ported, legacy);
   assert.equal(ported.mix, 0.88);
-  // A blank picture is no depth pass.
   assert.throws(
     () => depthFromPixels(new Uint8ClampedArray(size * size * 4), size, size),
     /grayscale depth pass/,
   );
 });
 
-/** G0's panel frames as preparePanel measures them; only the frame enters a fit. */
 const frames: readonly [PanelFrame, PanelFrame] = [
   { size: 640, mid: 321.5, feet: 611, span: 578 },
   { size: 640, mid: 318, feet: 609, span: 575 },
@@ -142,7 +126,6 @@ test("face marks and depth pairs register as G0's trace editor fits them", () =>
     { part: legacyPart, marks, panel: frames[0] },
   );
   assert.deepEqual(registerFace(b, marks, frames[0]), face);
-  // pairDepth reads the sheet's panels from turnaround.js's module state.
   const source = show("turnaround.js");
   const start = source.indexOf("export function pairDepth");
   const end = source.indexOf("// Match independent sight lines");
@@ -170,11 +153,9 @@ test("a sheet panel's frame is measured from its pixels", () => {
   for (let y = 100; y <= 600; y++)
     for (let x = 250; x <= 400; x++) pixels.set([120, 100, 90, 255], 4 * (y * size + x));
   const panel = panelFromPixels(pixels, size);
-  // The mask excludes two pixels of antialiased edge on every side.
   assert.deepEqual([panel.mid, panel.feet, panel.span], [325, 598, 496]);
 });
 
-/** POSITION values by node name, from a clay export. */
 async function positions(doc: CharacterDocument): Promise<Map<string, Float64Array>> {
   const result = await exportCharacter(doc, { preset: "clay", revision: 1, build: "art-fit" });
   const glb = parseGlb(result.bytes);
@@ -226,7 +207,6 @@ test("a depth pass reshapes the portrait's exported face and nothing else", asyn
     field,
   });
   const changes = moved(await basePositions(), await positions(fitted));
-  // Measured: the face mesh's vertices move up to 33 mm; nothing else moves.
   assert.deepEqual([...changes.keys()], ["Face_head_and_neck_1"]);
   for (const [name, most] of changes) {
     assert.ok(most > 0.005 && most < 0.05, `${name} moved ${most} m`);
@@ -270,12 +250,10 @@ test("a trace region's face marks and depth pairs fit onto the selected head", a
   assert.deepEqual(depth?.field, prior?.field, "the depth field stays");
   assert.equal(depth?.pins?.length, (prior?.pins?.length ?? 0) + 3);
   const changes = moved(await basePositions(), await positions(fitted));
-  // Measured: the face mesh's vertices move up to 46 mm; nothing else moves.
   assert.deepEqual([...changes.keys()], ["Face_head_and_neck_1"]);
   for (const [name, most] of changes)
     assert.ok(most > 0.005 && most < 0.08, `${name} moved ${most} m`);
 
-  // A region that fits nothing is refused with what it lacked.
   assert.throws(
     () =>
       traceFitOperations(
@@ -295,7 +273,6 @@ test("a trace region's face marks and depth pairs fit onto the selected head", a
       ),
     /fits nothing onto p-head-and-neck/,
   );
-  // A body region is no head: its marks do not calibrate a face there.
   assert.throws(
     () =>
       traceFitOperations(

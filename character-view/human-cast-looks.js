@@ -19,7 +19,6 @@ export function castSources(form) {
 export function wornCast(form) {
   const name = form.humanStyle?.cast;
   if (!castSubject(name) || form.outfit !== "Work clothes" || !form.parts) return null;
-  // Partial component bodies and replacement heads still use their individual regions.
   const regions = form.parts.filter(p => p.shape === "human region");
   if (regions.length !== catalog.bones.length ||
       regions.some(p => p.humanSource || p.nativePortrait)) return null;
@@ -37,8 +36,6 @@ export function drawCastIdentity(human, seed) {
   if (draw() >= .58 || Math.abs(human.frame ?? 0) < .18) return null;
   const rig = human.frame < 0 ? "female" : "male";
   const age = human.age ?? .3;
-  // Body warps preserve the photographed skin. Keep the native ageing system when
-  // the cast has no source in a comparable age range.
   const options = Object.entries(catalog.people).filter(([, person]) =>
     person.rig === rig && Math.abs(age - (person.home.age ?? .3)) <= .4);
   if (!options.length || (options.length === 1 && draw() < .5)) return null;

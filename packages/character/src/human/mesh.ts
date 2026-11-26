@@ -1,8 +1,3 @@
-// The adult body as region meshes (humanRegions in character-view/human-mesh.js
-// at 2761eb1). The smoothed skin is split by each triangle's strongest bone;
-// every region's piece sits in its joint's frame and carries its authored skin
-// weights. The head piece carries the Blink, Smile and BrowLift expressions.
-
 import * as T from "three";
 import {
   faceAnatomyFields,
@@ -51,18 +46,14 @@ import {
   type HumanSurface,
 } from "./surface.js";
 
-/** Authored skin weights of a piece, by bone index into `names`. */
 export interface HumanWeights {
   readonly boneIndices: ReadonlyArray<number>;
   readonly weights: ReadonlyArray<number>;
   readonly names: ReadonlyArray<string>;
-  /** The joints hanging cloth moves its lower weights to. */
   readonly clothJoints?: ClothJoints | undefined;
 }
 
-/** Pieces the rig binds by their authored weights instead of by region joints. */
 export const humanWeightsOf = new WeakMap<T.Object3D, HumanWeights>();
-/** The smoothed surface vertex behind each vertex of the head's skin. */
 const skinVertices = new WeakMap<T.Object3D, ReadonlyArray<number>>();
 
 interface Piece {
@@ -90,8 +81,6 @@ function geometry(
     weights: number[] = [],
     vertexIds: number[] = [],
     anchors: number[] = [];
-  // Triangles crossing the inside-arm seam lie wholly in the blank margin.
-  // Split only their chart coordinates so interpolation cannot mirror the design.
   let seam = false;
   const coordinates = new Map<number, readonly [number, number]>();
   const inkUV = (v: number, at: ArmInkChart) => {
@@ -132,7 +121,6 @@ function geometry(
           lid = p[tex * 4 + 1] ?? 0,
           mouth = p[tex * 4 + 2] ?? 0,
           nail = p[tex * 4 + 3] ?? 0;
-        // The registered skin already carries the vermilion colour of its donor.
         const lip = lipZone * (tint.paintedLips ? 0.22 : 1);
         const r = tint.shade[v * 3] ?? 1,
           g = tint.shade[v * 3 + 1] ?? 1,
@@ -155,7 +143,6 @@ function geometry(
   g.setAttribute("normal", new T.Float32BufferAttribute(normal, 3));
   g.setAttribute("uv", new T.Float32BufferAttribute(uv, 2));
   if (tint) g.setAttribute("color", new T.Float32BufferAttribute(colors, 3));
-  // The head and the body are reduced apart for a game. Both keep the points they share.
   if (joined) g.setAttribute("lodAnchor", new T.Uint8BufferAttribute(anchors, 1));
   g.setIndex(indices);
   return { geometry: g, vertexIds, humanWeights: { boneIndices, weights, names: boneNames } };
@@ -164,66 +151,47 @@ function geometry(
 export interface HumanRegions {
   readonly cage: HumanSurface;
   readonly surface: SmoothSurface;
-  /** The group for one region, in its joint's frame. */
   region(bone: BoneName): T.Group;
 }
 
 export interface HumanRegionOptions {
   readonly material: (color: string) => T.Material;
-  /** A worn piece's material by colour and type ("cloth", "leather", "metal", "hair" and so on). */
   readonly dressMaterial?: (color: string, type: string) => T.Material;
-  /** Clay: no paint, so the iris is cut in as a dish and the eyes carry no colour. */
   readonly plain: boolean;
-  /** Built for the game export: hair as whole cards and garment folds baked into the cloth. */
   readonly game?: boolean | undefined;
-  /** The face's look: the skin and age the whites of the eyes take a little of, and the brow card. */
   readonly face: {
     readonly skin: string;
     readonly age: number;
     readonly frame: number;
     readonly brow: BrowName;
-    /** Brow strokes a scar parts. */
     readonly parted: Uint8Array | null;
   };
-  /** The height the adult was drawn at, which sizes the eyes and teeth. */
   readonly height: number;
-  /** The painted skin, face and eyes of the textured presets; null for clay. */
   readonly paint: TexturedAdult | null;
-  /** What the adult wears over the skin. */
   readonly dress?: HumanDress | undefined;
-  /** The clothed cast member worn in place of the adult's own skin and dress. */
   readonly cast?: WornCast | undefined;
 }
 
-/** A cast member as worn: whose figure, in which skin and eye colour, and which fitted outfit. */
 export interface WornCast {
   readonly name: CastFigureName;
-  /** The skin colour the photographed picture is tinted to; the head's colour when unset. */
   readonly skin: string | undefined;
   readonly eyeColor: string | undefined;
   readonly style: CastStyle;
 }
 
-/** The adult's clothes and accessories, as the personal style names them. */
 export interface HumanDress {
-  /** An outfit tailored piece by piece, worn over the skin it hides. */
   readonly tailor?: Tailor | undefined;
-  /** A preset outfit and the tones of its palette, worn when nothing is tailored. */
   readonly outfit?: { readonly name: PresetOutfit; readonly tones: OutfitTones } | undefined;
-  /** Library or grown hair, its fringe and its colour. */
   readonly hair?: HairStyle | undefined;
-  /** The skin colour grown hair fades into at its hairline. */
   readonly skin?: string | undefined;
   readonly eyewear?: string | undefined;
   readonly necklace?: string | undefined;
   readonly clothAccent?: string | undefined;
   readonly metalColor?: string | undefined;
-  /** The weave of tailored cloth: the outermost top's design and the trousers'. */
   readonly clothDesign?: string | undefined;
   readonly secondDesign?: string | undefined;
 }
 
-/** A worn piece in the body's frame, with the skin it moves with when it carries its own. */
 interface Worn {
   readonly mesh: T.Mesh;
   readonly region: string;
@@ -234,11 +202,6 @@ interface Worn {
   };
 }
 
-/**
- * What the adult wears, in the reference's order: the tailored outfit, the
- * eyewear and the necklace (dressedHuman in character-view/human-wardrobe.js
- * at 2761eb1). Also the source ids of the skin the outfit hides.
- */
 function dressed(
   body: HumanBody,
   cage: HumanSurface,
@@ -289,7 +252,6 @@ function dressed(
           : undefined,
       )
     : null;
-  // A cut grown as strands follows the library hair (strandGroom in character-view/human-groom.js).
   const grownName = dress.hair?.hair;
   const grown =
     dress.hair && isGrownHairStyle(grownName)
@@ -309,7 +271,6 @@ function dressed(
           options.game ? Math.floor(0.4 * gameTriangleTarget) : 0,
         )
       : [];
-  // A game model is reduced below the detail the folds were shaped with, so they are baked into the cloth.
   const raster = options.paint?.sources.raster;
   const garments =
     options.game && !options.plain && raster
@@ -344,7 +305,6 @@ function dressed(
   return { worn, hidden };
 }
 
-/** What the textured presets paint an adult from. */
 export interface TexturedAdult {
   readonly sources: HumanPaintSources;
   readonly look: ComplexionLook;
@@ -352,9 +312,7 @@ export interface TexturedAdult {
   readonly eyeColor: string | undefined;
   readonly complexion: string | undefined;
   readonly browStyle: string | undefined;
-  /** Marks painted into the face. */
   readonly marks: ReadonlyArray<FaceMark>;
-  /** The arm ink style, if any. */
   readonly armInk: string | undefined;
 }
 
@@ -364,7 +322,6 @@ const triple = (a: ArrayLike<number>, k: number): readonly [number, number, numb
   a[k + 2] ?? 0,
 ];
 
-/** The native adult's region meshes for these measurements. */
 export function humanRegions(
   body: HumanBody,
   measurements: HumanMeasurements,
@@ -373,7 +330,6 @@ export function humanRegions(
 ): HumanRegions {
   const cage = evaluateHuman(body, measurements);
   const s = refineFaceForm(body, smoothHumanSurface(body, cage));
-  // A worn cast member is the whole adult: its meshes ride in the head's frame, the other regions stay empty.
   const member = options.cast;
   if (member)
     return {
@@ -413,7 +369,6 @@ export function humanRegions(
   full.computeVertexNormals();
   const normals = full.getAttribute("normal").array;
   const totals = new Float32Array(boneNames.length);
-  // Clothes are cut from the evaluated cage; the skin they cover is left out, a whole quad at a time.
   const { worn, hidden } = dressed(body, cage, options.dress, options);
   const skip = new Set<number>();
   if (hidden.size)
@@ -434,7 +389,6 @@ export function humanRegions(
     for (let i = 1; i < totals.length; i++) if ((totals[i] ?? 0) > (totals[best] ?? 0)) best = i;
     bins[best]?.push(c, c + 1, c + 2);
   }
-  // Points on the cut between the head and the neck, separate meshes in a game file.
   const headBin = boneNames.indexOf("head"),
     joined = new Uint8Array(s.positions.length / 3),
     onHead = new Uint8Array(joined.length);
@@ -446,7 +400,6 @@ export function humanRegions(
         if (onHead[v]) joined[v] = 1;
       }
   });
-  // Pin the eyelid margins and crease so game reduction keeps lid depth.
   const { lidAnchors, shade: faceShade } = faceAnatomyFields(body);
   for (let v = 0; v < joined.length; v++) if (lidAnchors[v]) joined[v] = 1;
   const paint = options.paint;
@@ -516,7 +469,6 @@ export function humanRegions(
             : null,
           chartKey ? (inkCharts.get(chartKey) ?? null) : null,
         );
-        // The face's own shading: shadow in skin is warm, so red is lost least.
         if (bone === "head" && paint) {
           const colour = piece.geometry.getAttribute("color");
           for (let i = 0; i < piece.vertexIds.length; i++) {
@@ -578,7 +530,6 @@ export function humanRegions(
   return regions;
 }
 
-/** The head's own pieces in the reference order: the mouth's lining and teeth, then the eyes. */
 function headPieces(
   body: HumanBody,
   group: T.Group,
@@ -593,12 +544,10 @@ function headPieces(
   const captured = paint?.complexion
     ? capturedAxes[capturedSkinNames.indexOf(paint.complexion)]
     : undefined;
-  // A captured skin's photograph can carry its own brows, painted in its face.
   const photoBrow =
     captured !== undefined &&
     paint?.sources.paint.capturedBrows(captured) === true &&
     (paint.browStyle ?? "As drawn") === "As drawn";
-  // The eyes and strand cards read the cage's own vertices, with the body's smoothed.
   const cage = s.cage,
     positions = cage.positions.slice();
   positions.set(s.positions.subarray(0, cage.bodyVertices * 3));
@@ -617,7 +566,6 @@ function headPieces(
     material,
   );
   const teeth = skin ? mouthInterior(skin, height, material, plain) : null;
-  // The face paint reads the head's texture coordinates as places in the face rectangle.
   if (paint && skin?.material instanceof T.Material && skin.material.userData["faceLayout"])
     fitFaceLayout(skin.geometry, paint.sources, body, mouthLining(skin.geometry));
   const textures = paint
@@ -644,6 +592,5 @@ function headPieces(
   group.add(fibres);
   if (teeth) group.add(teeth);
   const vertices = skin && skinVertices.get(skin);
-  // The lids travel with a look up or down.
   if (vertices) followGaze(group, s.height / 1.72, vertices);
 }

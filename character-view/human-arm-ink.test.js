@@ -24,7 +24,6 @@ test("armInkStyles preserves legacy marks, adds three coherent sleeves, and roun
   }
   assert.ok(!validAdultStyle({ armInk: "Unknown sleeve" }));
 
-  // Saved legacy forms and new sleeves both validate and round-trip cleanly via setForm proposals.
   const base = humanForm({}, 42);
   const legacy = { ...base, outfit: "Work clothes", humanStyle: { outfit: "T-shirt and jeans", armInk: "Diving swift" } };
   validateForm(legacy);
@@ -41,7 +40,6 @@ test("armInkStyles preserves legacy marks, adds three coherent sleeves, and roun
   assert.equal(updated.humanStyle.armInk, "Cartographic sleeve");
   assert.equal(updated.humanStyle.outfit, "T-shirt and jeans");
 
-  // UI selection helper keeps existing style fields intact when changing armInk.
   const nextStyle = chooseAdultStyle(legacy.humanStyle, { armInk: "Botanical sleeve" });
   assert.equal(nextStyle.armInk, "Botanical sleeve");
   assert.equal(nextStyle.outfit, "T-shirt and jeans");
@@ -113,7 +111,6 @@ test("humanRegions inks upper and lower arm with one shared sleeve material and 
     assert.ok(created.length === 1 && created[0].width === 512 && created[0].height === 768);
     assert.ok(created[0].ctx.ops.length > 50, "sleeve draws substantial original artwork");
 
-    // Plain/clay mode never attaches ink maps.
     const plainBuild = humanRegions(form, () => baseMat, true);
     assert.equal(plainBuild(form.parts.find((p) => p.humanBone === "upperarm_l")).children[0].material, baseMat);
   } finally {

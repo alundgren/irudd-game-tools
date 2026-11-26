@@ -1,9 +1,3 @@
-// Rooted hair: a cap that follows the head's own bounds and the strands that
-// grow from it. Ported from groomGeometry in character-view/groom.js at
-// 2761eb1, arithmetic in the same order and the same seeded draws, so the
-// cap and every lock match. The first geometry is the cap, the other three
-// are strand layers shaded apart.
-
 import type { FigureGroom } from "@irudd/document";
 import * as T from "three";
 import { coilLift, shapedFibres, type StrandBuffer } from "./fibres.js";
@@ -45,9 +39,6 @@ function buffer(): Buffer {
 
 type Clear = (v: T.Vector3, pad?: number) => T.Vector3;
 
-// Locks run over the crown, leave the hairline, then fall freely or gather at
-// a common point behind the scalp. The clearance keeps every point outside
-// the scalp's own radius in its row and sector, smoothed over neighbours.
 function headClearance(
   box: T.Box3,
   geometry: T.BufferGeometry,
@@ -104,8 +95,6 @@ function headClearance(
     const low = mix(read(j, k), read(j, k + 1), fk - k);
     const high = mix(read(j + 1, k), read(j + 1, k + 1), fk - k);
     const minRadius = mix(low, high, fy - j) + pad;
-    // A cropped cut also comes in to the skull where the cap stands off it,
-    // which keeps the fringe from overhanging the forehead.
     const near = smooth(Math.min(1, (rows - 1 - fy) / 3));
     if (r < minRadius || (hug > 0 && minRadius - pad > 0.2)) {
       const target = mix(r, minRadius, r < minRadius ? near : near * hug);
@@ -116,11 +105,6 @@ function headClearance(
   };
 }
 
-/**
- * The cap and three strand layers of a groom over a scalp with these local
- * bounds. `transform` places the scalp geometry in the bounds' frame when the
- * scalp is a child of the groomed part.
- */
 export function groomGeometry(
   box: T.Box3,
   options: FigureGroom,
@@ -142,8 +126,6 @@ export function groomGeometry(
   const cy = box.max.y - ry + h * (0.013 + 0.04 * volume);
   const cz = center.z - 0.012 * h;
   const clear = headClearance(box, geometry, transform, rx, rz, cz, options.nape ?? 0);
-  // A cropped cut carries the hairline down the back of the skull and a
-  // little way over the temples. Without it the hair ends above the ears.
   const nape = options.nape ?? 0;
   const edge = (a: number): number => {
     const front = (1 + Math.cos(a)) / 2;

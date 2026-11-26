@@ -1,15 +1,3 @@
-// One-off preparation of a G0 corpus form (a tracked example at 2761eb1 or a
-// seeded generator output G0 exported) as a canonical character document.
-//
-// This is not an importer for user files: it converts the repository's own
-// examples once, so they can be checked in as new-format fixtures. Any form
-// field without a ported family is reported, and the form is refused, rather
-// than carried as untyped data.
-//
-//   node --import ../../packages/document/test/support/register.ts src/prepare.ts NAME...
-//
-// Then run `pnpm format` so the fixture takes the repository's JSON layout.
-
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { bundledAssetNamed, bundledEntry } from "@irudd/character";
@@ -57,12 +45,10 @@ const loadedBody = (): HumanBody => {
     throw new Error("Preparing an adult needs the body pack: await preparePacks() first.");
   return humanBody;
 };
-/** Load the adult body pack once, for preparing the forms G0 drew as native adults. */
 export async function preparePacks(): Promise<void> {
   humanBody ??= await loadHumanBody();
 }
 
-/** The families and the adult generator, so adult documents read; generating one needs `preparePacks`. */
 export const familyRegistry = createRegistry({
   features: familyFeatures,
   generators: [humanAdultGenerator(loadedBody)],
@@ -86,7 +72,6 @@ function nums(value: unknown, what: string): number[] {
 }
 
 function asJson(value: unknown, what: string): Json {
-  // Legacy forms are JSON files; their values are JSON by construction.
   const text = JSON.stringify(value);
   const parsed: unknown = JSON.parse(text);
   const check = (v: unknown): v is Json =>
@@ -103,11 +88,6 @@ function asObject(value: Legacy, what: string): JsonObject {
   if (!isJsonObject(json)) throw new Error(`${what} is not an object.`);
   return json;
 }
-
-// ── Legacy movement roles, resolved once ─────────────────────────────────────
-// Ported from inferRole and movementRoles in character-view/skin.js. The new
-// document stores the result explicitly, so builders never infer roles from
-// part names.
 
 function inferRole(p: Legacy): string {
   const id = str(p["id"], "part id").toLowerCase();
@@ -164,9 +144,6 @@ function movementRoles(parts: ReadonlyArray<Legacy>): Map<string, string> {
 const isMotionRole = (role: string): role is MotionRoleName => motionRoles.some((r) => r === role);
 const isOutfitRole = (role: string) => outfitRoles.some((r) => r === role);
 
-// ── Parts ────────────────────────────────────────────────────────────────────
-
-/** Part fields each ported family reads. Anything else refuses the form. */
 const handledPartFields = new Set([
   "id",
   "shape",
@@ -233,7 +210,6 @@ const handledFormFields = new Set([
   "layerStyles",
   "outfitSets",
 ]);
-/** Form fields of a native adult (origin "human surface"), carried by the adult generator's parameters. */
 const adultFormFields = new Set([
   "human",
   "humanStyle",
@@ -242,9 +218,7 @@ const adultFormFields = new Set([
   "complexion",
   "faceMarks",
 ]);
-/** Part fields of a native adult: its regions, and hand-made parts seated on them. */
 const adultPartFields = new Set(["humanBone", "humanBounds", "scapulaMount", "nativePortrait"]);
-/** Fields of a legacy paint binding that figure.paint carries. */
 const paintFields = new Set([
   "atlas",
   "region",
@@ -255,7 +229,6 @@ const paintFields = new Set([
   "frame",
   "portrait",
 ]);
-/** Fields of a legacy hull that figure.hull carries; its atlas becomes core paint. */
 const hullFields = new Set([
   "atlas",
   "height",
@@ -267,7 +240,6 @@ const hullFields = new Set([
   "mirrored",
 ]);
 const coreShapes = new Set(["ellipsoid", "box", "cylinder", "cone"]);
-/** Legacy shapes a figure feature builds, and the core primitive each falls back to. */
 const figureShapes = new Map([
   ["sweep", "capsule"],
   ["scute", "box"],
@@ -278,7 +250,6 @@ const figureShapes = new Map([
   ["wing", "box"],
 ]);
 
-/** Motion roles the creature plan's hide, coat and limb painters look for. */
 const paintedRoles = new Set(["head", "hand", "foot", "thigh", "shin", "upper arm", "forearm"]);
 
 export function partId(legacy: string, used: Set<string>): string {
@@ -294,22 +265,17 @@ export function partId(legacy: string, used: Set<string>): string {
   return id;
 }
 
-/** Euler XYZ degrees as the unit quaternion Three.js derives for the same object. */
 export function quaternionFromDegrees(rotation: ReadonlyArray<number>): number[] {
   const [x = 0, y = 0, z = 0] = rotation.map(T.MathUtils.degToRad);
   const q = new T.Quaternion().setFromEuler(new T.Euler(x, y, z));
-  // The document keeps w >= 0. Every term of a rotation matrix is quadratic in
-  // the quaternion, so the negated quaternion gives a bit-identical transform.
   return q.w < 0 ? [-q.x, -q.y, -q.z, -q.w] : [q.x, q.y, q.z, q.w];
 }
 
 export interface Prepared {
   readonly document: CharacterDocument;
-  /** Project bytes the document declares, by digest: imported artwork from the form. */
   readonly blobs: ReadonlyMap<string, Uint8Array>;
 }
 
-/** A legacy atlas name or artwork ID as a content digest, with its project bytes if it is not bundled. */
 function resolveAtlas(
   id: string,
   artwork: Legacy,
@@ -339,11 +305,6 @@ function resolveAtlas(
   return digest;
 }
 
-/**
- * A legacy front (`face-`) or side (`side-`) portrait image, or a native
- * adult's baked portrait layer (`nativeportrait-`), as a portrait plate with
- * its project bytes.
- */
 function resolvePlate(
   id: unknown,
   kind: "face" | "side" | "nativeportrait",
@@ -385,12 +346,6 @@ function binding(paint: Legacy, what: string): Record<string, Json> {
 
 const jointedRoles = new Set(["upper arm", "forearm"]);
 
-/**
- * Game detail pins limb sections on jointed sweeps by their role: the legacy
- * builder reads the raw motionRole or outfitRole, the new one the stored
- * role. Parts where the two disagree are refused, so a resolved role never
- * changes game geometry silently.
- */
 function sectionRoleMismatches(
   parts: ReadonlyArray<Legacy>,
   roles: ReadonlyMap<string, string>,
@@ -431,7 +386,6 @@ export function prepareForm(name: string, raw: unknown): Prepared {
   for (const key of Object.keys(form))
     if (!handledFormFields.has(key) && !(adult && adultFormFields.has(key)))
       unsupported.push(`form.${key}`);
-  // Origin is provenance, a figure's recipe included; a creature plan shapes the build.
   const legacyOrigin = form["origin"];
   if (isRecord(legacyOrigin)) {
     for (const key of Object.keys(legacyOrigin))
@@ -446,7 +400,6 @@ export function prepareForm(name: string, raw: unknown): Prepared {
   const ids = new Map(
     legacyParts.map((p) => [str(p["id"], "part id"), partId(str(p["id"], "part id"), taken)]),
   );
-  // A creature plan's hide, coat and limb pigment follow its part names, resolved here.
   const plan =
     isRecord(legacyOrigin) && isRecord(legacyOrigin["plan"]) ? legacyOrigin["plan"] : undefined;
   if (plan?.["dress"] !== undefined) unsupported.push("form.origin.plan.dress");
@@ -462,7 +415,6 @@ export function prepareForm(name: string, raw: unknown): Prepared {
         roles,
       )
     : new Map<string, Record<string, Json>>();
-  // The plan's painters read the authored motion role, the build its inferred one.
   if (plan)
     for (const p of legacyParts) {
       const legacyId = str(p["id"], "part id");
@@ -470,10 +422,8 @@ export function prepareForm(name: string, raw: unknown): Prepared {
       const inferred = roles.get(legacyId);
       if (authored !== inferred && [authored, inferred].some((r) => r && paintedRoles.has(r)))
         unsupported.push(`parts[${legacyId}] inferred role ${String(inferred)} for a plan painter`);
-      // The hide compares each part's own surface, which G0 leaves unset where a build reads plain.
       if (p["surface"] === undefined) unsupported.push(`parts[${legacyId}] without a surface`);
     }
-  // Refuse unported fields before converting anything, so every gap is listed at once.
   const artwork = isRecord(form["artwork"]) ? form["artwork"] : {};
   const store = { assets: new Map<string, JsonObject>(), blobs: new Map<string, Uint8Array>() };
   for (const p of legacyParts) {
@@ -601,10 +551,6 @@ export function prepareForm(name: string, raw: unknown): Prepared {
       if (!paintFields.has(key)) unsupported.push(`form.occluders.${key}`);
     return { atlas: atlasOf(o, `form.occluders[${i}]`), source: o };
   });
-  // A turnaround sheet no binding uses, such as one a repaint replaced, stays
-  // declared: it is the author's artwork, kept with the document. Portrait
-  // images are declared through their fits; other artwork kinds have no
-  // family yet.
   for (const id of Object.keys(artwork))
     if (
       !store.assets.has("sha256:" + id.slice(id.indexOf("-") + 1)) &&
@@ -617,7 +563,6 @@ export function prepareForm(name: string, raw: unknown): Prepared {
       )
     : undefined;
   if (unsupported.length) throw new UnsupportedForm(name, unsupported);
-  // An adult's regions come from its generator; the rest of its parts were added by hand.
   const handMade = legacyParts.flatMap((p, order) =>
     p["shape"] === "human region" ? [] : [{ p, order }],
   );
@@ -711,7 +656,6 @@ export function prepareForm(name: string, raw: unknown): Prepared {
       features["figure.join"] = asJson(p["surfaceJoin"], `parts[${legacyId}].surfaceJoin`);
     if (p["seamGroup"] !== undefined)
       features["figure.seam"] = { group: str(p["seamGroup"], `parts[${legacyId}].seamGroup`) };
-    // An empty list pulls nothing, as G0 reads it.
     const pulls = p["pulls"];
     if (!Array.isArray(pulls) && pulls !== undefined)
       throw new Error(`parts[${legacyId}].pulls is not a list.`);
@@ -832,12 +776,10 @@ export function prepareForm(name: string, raw: unknown): Prepared {
       id: ids.get(legacyId) ?? "",
       label: legacyId,
       parent: typeof parent === "string" ? (ids.get(parent) ?? parent) : null,
-      // A figure shape's geometry comes from its feature; the core keeps a primitive.
       shape: figureShapes.get(shape) ?? (anatomyShapes.has(shape) ? "box" : shape),
       position: nums(p["position"], "position"),
       rotation: quaternionFromDegrees(nums(p["rotation"] ?? [0, 0, 0], "rotation")),
       size: nums(p["size"], "size"),
-      // A built-in piece is coloured by its look; the core records the skin.
       color: (p["color"] === undefined && anatomyShapes.has(shape)
         ? pieceSkin(p, form)
         : str(p["color"], "color")
@@ -857,14 +799,12 @@ export function prepareForm(name: string, raw: unknown): Prepared {
       frame: bodyFrameParts(legacyParts).map((p) => ids.get(str(p["id"], "part id")) ?? ""),
     };
   const origin = form["origin"];
-  // An adult's origin, outfit and appearance are its generator parameters.
   if (isRecord(origin) && !adult) {
     const { plan, ...provenance } = origin;
     features["character.origin"] = asJson(provenance, "origin");
     if (isRecord(plan)) features["creature.plan"] = asJson(plan, "origin.plan");
   }
   if (occluders.length)
-    // The family lists each sheet and region once, in canonical order.
     features["figure.occluders"] = {
       sources: occluders
         .map(({ atlas, source }) => ({
@@ -877,7 +817,6 @@ export function prepareForm(name: string, raw: unknown): Prepared {
         .sort((x, y) => occluderOrder(x.order, y.order))
         .map((x) => x.json),
     };
-  // Garment styles are keyed by the fitted part, which takes its new ID.
   const garmentLayers = (value: unknown, what: string): Json => {
     if (!isRecord(value)) throw new Error(`${what} is not a set of garment styles.`);
     return Object.fromEntries(
@@ -922,7 +861,6 @@ export function prepareForm(name: string, raw: unknown): Prepared {
   const poses = form["poses"];
   if (Array.isArray(poses) && poses.length)
     features["motion.poses"] = { poses: poses.map((pose) => jointPose(pose, ids)) };
-  // G0 animates a courier's presentation by name (hasDispatchAction in dispatch-pose.js).
   const tube = ids.get("gear dispatch tube");
   const tubeCarrier = legacyParts.find((p) => p["id"] === "gear dispatch tube")?.["parent"];
   if (
@@ -972,7 +910,6 @@ export function prepareForm(name: string, raw: unknown): Prepared {
 
 const anatomyShapes = new Set(["head", "torso", "left arm", "right arm", "left leg", "right leg"]);
 
-/** The appearance G0's humanForm gives every native adult, with the adult's skin. */
 const adultAppearance = (skin: unknown) => ({
   palette: "Clay",
   skin,
@@ -981,7 +918,6 @@ const adultAppearance = (skin: unknown) => ({
   hair: "Crop",
 });
 
-/** G0's movement role of a region (role in character-view/human-form.js). */
 const regionRole = (bone: string): string =>
   ({
     upperarm: "upper arm",
@@ -994,12 +930,6 @@ const regionRole = (bone: string): string =>
     spine_03: "torso",
   })[bone.replace(/_[lr]$/, "")] ?? "rigid";
 
-/**
- * A native adult as an adult generator document. G0's form fields become the
- * parameters, the generator materialises the regions and each region takes
- * the form's own transform and colour, so a region G0's editor moved or
- * turned keeps that edit over the generated base.
- */
 function adultRegions(
   form: Legacy,
   legacyParts: ReadonlyArray<Legacy>,
@@ -1051,8 +981,6 @@ function adultRegions(
     if (p["parent"] !== parent) unsupported.push(`parts[${legacyId}] re-parented region`);
     if (p["motionRole"] !== regionRole(region.bone))
       unsupported.push(`parts[${legacyId}] region role`);
-    // G0 caches each region's bounds for its graft tool; no build reads them, and the
-    // generator derives them from the measurements again.
     legacyOf.set(humanSlot(region.bone), p);
   }
   if (legacyOf.size !== evaluated.size) unsupported.push("form drops a region of the adult");
@@ -1090,7 +1018,6 @@ function adultRegions(
   return { parts, generation: asJson(generated.value.generation, "generation") };
 }
 
-/** The skin of a built-in piece's look, or of the form's appearance. */
 function pieceSkin(part: Legacy, form: Legacy): string {
   const look = isRecord(part["look"]) ? part["look"] : form["appearance"];
   if (!isRecord(look))
@@ -1098,7 +1025,6 @@ function pieceSkin(part: Legacy, form: Legacy): string {
   return str(look["skin"], "piece skin");
 }
 
-/** The parts bodyFrame in character-view/graft.js measures the body by. */
 function bodyFrameParts(parts: ReadonlyArray<Legacy>): Legacy[] {
   const candidates = parts.filter(
     (p) =>
@@ -1122,7 +1048,6 @@ function bodyFrameParts(parts: ReadonlyArray<Legacy>): Legacy[] {
   return carriers.length ? carriers : parts.filter((p) => !p["parent"]);
 }
 
-/** A legacy joint pose with its joints addressed by the new part IDs ("" is the root). */
 function jointPose(pose: unknown, ids: ReadonlyMap<string, string>): Json {
   if (!isRecord(pose) || !Array.isArray(pose["joints"])) throw new Error("A pose has no joints.");
   return {
@@ -1151,16 +1076,11 @@ export class UnsupportedForm extends Error {
   }
 }
 
-/** Canonical key order, indented for review. */
 export function fixtureText(document: CharacterDocument): string {
   const canonical: unknown = JSON.parse(canonicalJson(documentJson(document)));
   return JSON.stringify(canonical, null, 2) + "\n";
 }
 
-/**
- * The source G0 exported for a corpus form: its wrapped copy of a raw example,
- * the tracked example, or a seeded generator output in the G0 cache.
- */
 export function legacyForm(name: string): unknown {
   const file = [
     join(g0Dir, "wrapped", name + ".form.json"),

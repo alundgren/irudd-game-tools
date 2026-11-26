@@ -1,16 +1,3 @@
-// G0 baseline: inventory and build the reference in an LF and a CRLF clone.
-//
-// usage: node PATH/TO/verification/baseline/eol.mjs SOURCE_REPO WORK_DIR OUT_DIR [--build]
-//
-// Makes WORK_DIR/lf (core.autocrlf=false) and WORK_DIR/crlf (core.autocrlf=true) as shared
-// clones of SOURCE_REPO detached at 2761eb14, unless they already exist there at that commit,
-// and runs inventory.mjs in each. --build also runs `npm ci` where node_modules is missing
-// and `npm run build`, recording the dist hashes. Writes OUT_DIR/eol-lf/inventory.json,
-// OUT_DIR/eol-crlf/inventory.json and OUT_DIR/eol.json, which checks that
-//   - every gitBlob and canonicalSha256 agrees between the two clones,
-//   - LF working-tree hashes equal the canonical hashes,
-//   - CRLF working-tree hashes equal the frozen sha256 values in baseline.json,
-// and lists which hashes depend on the checkout's line endings.
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -52,7 +39,6 @@ for (const [mode, autocrlf] of [["lf", "false"], ["crlf", "true"]]) {
   clones[mode] = { dir, inventory, build };
 }
 
-// Every inventoried file record, keyed by path.
 const records = (inv) => new Map([...inv.forms, ...inv.glbs, ...inv.otherFixtures, ...inv.testModules, ...inv.licenses].map((r) => [r.file, r]));
 const lf = records(clones.lf.inventory), crlf = records(clones.crlf.inventory);
 const frozenSha = new Map([...frozen.corpus.forms, ...frozen.corpus.glbs, ...frozen.corpus.otherFixtures, ...(frozen.corpus.licenses ?? [])].map((r) => [r.file, r.sha256]));

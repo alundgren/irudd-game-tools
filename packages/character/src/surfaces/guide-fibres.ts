@@ -1,9 +1,3 @@
-// Rooted fibres grown along guide sweeps. Ported from readGuide,
-// gameFibreDetail, fibreStations, fibreGeometry and growGuideFibres in
-// character-view/guide-fibres.js at 2761eb1, arithmetic and draws in the same
-// order so the strands match. Pelt locks (rooted guides on a fur coat) spend
-// their game triangles on clumps and undercoat tufts, as in creature-pelt.js.
-
 import * as T from "three";
 import type { FigureFibres } from "@irudd/document";
 import { isMesh } from "../mesh.js";
@@ -41,11 +35,6 @@ interface Guide {
   readonly length: number;
 }
 
-/**
- * The rings of a fitted sweep: each section's centre, first vertex and
- * distance along the path. A moved guide, resized body or bent spine changes
- * the fibres without a second editable mesh.
- */
 function readGuide(g: T.BufferGeometry): Guide {
   const p = g.getAttribute("position");
   const uv = g.getAttribute("uv");
@@ -72,11 +61,6 @@ interface GuidePart {
   readonly fibres: FigureFibres;
 }
 
-/**
- * Spend a bounded part of the game mesh on continuous strands. If the whole
- * coat exceeds the budget, keep an evenly spaced selection on every guide.
- * Ties go by the part's name, as G0's ids.
- */
 function gameFibreDetail(
   guides: ReadonlyArray<GuidePart>,
   budget: number,
@@ -98,7 +82,6 @@ function gameFibreDetail(
   return new Map(shares.map((g) => [g.id, { count: g.count, spans }]));
 }
 
-/** The stations a strand keeps: all, or `spans` chosen greedily where dropping them errs most. */
 function fibreStations(
   line: ReadonlyArray<T.Vector3>,
   radii: ReadonlyArray<number>,
@@ -132,7 +115,6 @@ function fibreStations(
   return chosen;
 }
 
-/** The strands of one guide, and the joint ownership they take from its vertices. */
 function fibreGeometry(
   mesh: T.Mesh,
   settings: FigureFibres,
@@ -256,7 +238,6 @@ function fibreGeometry(
       if (Math.abs(along.dot(u)) > 0.94)
         u.set(0, Math.abs(along.y) < 0.8 ? 1 : 0, Math.abs(along.y) < 0.8 ? 0 : 1);
       u.addScaledVector(along, -u.dot(along)).normalize();
-      // A clump lies flat on the lock: wide across it, thin along its radius.
       if (clump) {
         const across = new T.Vector3().crossVectors(along, item(dirs, j));
         if (across.lengthSq() > 1e-10) u.copy(across.normalize());
@@ -282,7 +263,6 @@ function fibreGeometry(
         }
       }
     }
-    // Closed ends stay visible in a game that culls back faces.
     for (let k = 1; k < sides - 1; k++) {
       indices.push(base, base + k + 1, base + k);
       const end = base + (stations.length - 1) * (sides + 1);
@@ -308,11 +288,6 @@ function fibreGeometry(
   return { geometry: g, owners };
 }
 
-/**
- * Replace each visible guide sweep with its fibres. A finished build colours
- * them by vertex in `material`; a game build spends at most `gameBudget`
- * triangles on them, keeping their geometry through simplification.
- */
 export function growGuideFibres(
   view: BuildView,
   objects: ReadonlyMap<string, T.Object3D>,
@@ -331,7 +306,6 @@ export function growGuideFibres(
   }
   if (!guides.length) return;
   const details = options.gameBudget ? gameFibreDetail(guides, options.gameBudget) : null;
-  // Pelt locks spend the triangles their strands were given on clumps and undercoat tufts instead.
   const pelt = details
     ? guides.filter(
         (g) =>
@@ -360,7 +334,6 @@ export function growGuideFibres(
   }
   const peltIds = new Set(pelt.map((g) => g.part.id));
   const peltLocks = new Map<string, PeltLock[]>();
-  // Freeze the carrier surfaces before replacing any parent that is also a guide.
   const surfaces = new Map<T.Object3D, SurfaceIndex | undefined>();
   for (const { part, fibres } of guides) {
     const parent = part.parent === null ? undefined : objects.get(part.parent);

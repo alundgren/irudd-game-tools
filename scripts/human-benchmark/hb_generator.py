@@ -47,8 +47,6 @@ def snapshot(work):
 def source_hash(folder):
     digest = hashlib.sha256()
     files = source_files(folder)
-    # Older recorded runs used a human* digest. Keep those identifiers readable.
-    # Current fitters import helpers outside that prefix, so hash the full snapshot.
     if not (Path(folder) / "head-depth-fit.js").exists():
         files = [p for p in files if p.name.startswith("human")]
     for path in files:

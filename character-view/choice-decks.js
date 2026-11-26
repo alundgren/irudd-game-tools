@@ -1,5 +1,3 @@
-// Each user-defined field draws independently. Reordering fields and pinning a
-// material should leave a limb-count draw alone.
 export function parseDecks(text) {
   if (typeof text !== "string" || text.length > 3200)
     throw new Error("Keep your choices under 3,200 characters.");

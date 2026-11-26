@@ -1,22 +1,13 @@
-// Blended organic skin. Ported from character-view/blended-skin.js at 2761eb1.
-//
-// Sweeps and ellipsoids that opt in are voxelised, blurred and re-triangulated
-// with marching cubes into one smooth surface. Each part keeps the patch it
-// dominates, with its two strongest owners and their mix, so skinning can blend
-// joint weights across the joins.
-
 import * as T from "three";
 import { MarchingCubes } from "three/addons/objects/MarchingCubes.js";
 import type { Knot } from "@irudd/document";
 
-/** A part taking part in a join, with the mesh built for it. */
 export interface BlendEntry {
   readonly id: string;
   readonly knots: ReadonlyArray<Knot> | undefined;
   readonly mesh: T.Mesh;
 }
 
-/** Per-vertex ownership of a joined patch. Indices refer to `ids`. */
 export interface BlendOwners {
   readonly ids: ReadonlyArray<string>;
   readonly first: Uint8Array;
@@ -38,7 +29,6 @@ const fieldMaterial = new T.MeshBasicMaterial();
 const at = (values: ArrayLike<number>, i: number): number => values[i] ?? 0;
 const axisOf = (v: T.Vector3, axis: number): number => (axis === 0 ? v.x : axis === 1 ? v.y : v.z);
 
-// Blur occupancy in physical units. Separate small grids keep fine limbs cheap.
 function blur(
   data: ArrayLike<number> & { readonly length: number },
   size: Triple,
@@ -63,9 +53,6 @@ function blur(
   return out;
 }
 
-// For fitted surfaces the distance to the original triangles gives shoulders
-// and hips a smooth contour even when a sleeve spans few cells. Rasterise the
-// sign along Z and measure the distance in a narrow band.
 function figureLayer(
   points: Float32Array,
   index: T.BufferAttribute | null,
@@ -242,8 +229,6 @@ function voxelize(
     size,
     data: Uint8Array.from(data, (value) => Math.min(255, Math.round(value * gain * 255))),
   };
-  // A long fine limb can fit between adjacent voxels. Keep its original mesh if
-  // the reconstructed centreline would break before it reaches the foot.
   if (knots) {
     const path = knots.map((k) =>
       new T.Vector3(k[0], k[1], k[2]).applyMatrix4(mesh.matrixWorld).sub(min).divide(step),
@@ -423,8 +408,6 @@ function triangulate(
         }
       });
       if (band) {
-        // Marching cubes emits one crossing per grid edge. Reuse it within
-        // each region so a full-detail export shares its skinned vertices.
         let ix = Math.round(verts.x);
         let iy = Math.round(verts.y);
         let iz = Math.round(verts.z);
@@ -496,12 +479,6 @@ function triangulate(
   );
 }
 
-/**
- * The entries whose world bounds, grown by `reach`, overlap one another, directly or through
- * other entries, in entry order. Each cluster is joined on a grid of its own, so a part moved
- * far from the rest of its group neither joins them nor stretches their grid until its thin
- * parts vanish. A group whose parts all touch is one cluster and joins exactly as G0 does.
- */
 function clusters(entries: ReadonlyArray<BlendEntry>, reach: number): BlendEntry[][] {
   const boxes = entries.map(({ mesh }) => {
     mesh.geometry.computeBoundingBox();
@@ -527,7 +504,6 @@ function clusters(entries: ReadonlyArray<BlendEntry>, reach: number): BlendEntry
   return [...grouped.values()];
 }
 
-/** Join the meshes of `entries` into one surface. Returns each joined mesh's owners. */
 export function joinSurfaces(
   entries: ReadonlyArray<BlendEntry>,
   softness: number,
@@ -539,7 +515,6 @@ export function joinSurfaces(
   if (entries.length < 2) return owners;
   if (entries.length > 48) throw new Error("Join at most 48 skin regions at once.");
   for (const { mesh } of entries) mesh.updateWorldMatrix(true, false);
-  // Parts interact within the distance band plus about two blur widths of a 2 m figure.
   for (const cluster of clusters(entries, (band ?? 0) + 4 * softness))
     if (cluster.length > 1)
       for (const [mesh, o] of joinCluster(cluster, softness, commonMaterial, band, detail))

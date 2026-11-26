@@ -1,6 +1,3 @@
-// A beak or bill drawn as a horn sheath over its cage. Ported from
-// character-view/creature-bill.js at 2761eb1.
-
 import * as T from "three";
 import type { CreaturePlan } from "@irudd/document";
 import { context2d, type Raster } from "../raster.js";
@@ -15,11 +12,6 @@ export interface BillChart {
   readonly nostrils: boolean;
 }
 
-/**
- * Beak cages have seven cross sections from cere to tip and two cap centres.
- * The chart mirrors across the ridge and the underside, so each flank
- * carries one nostril.
- */
 export function billChart(part: BuildPart, head: CreaturePlan["head"]): BillChart | undefined {
   const half = part.organ.bill;
   const cage = part.cage;
@@ -59,8 +51,6 @@ function paintBill(
     for (let col = 0; col < width; col++) {
       const u = (col + 0.5) / width;
       const flank = (row + 0.5) / height;
-      // Soft wax at the foot of the upper bill gives way to a harder sheath.
-      // The shell darkens near the hooked tip and is worn lighter along its cutting edge.
       const cere = lower ? 0 : 1 - smoothstep(u + 0.06 * Math.cos(flank * 5), 0.25, 0.39);
       const tip = smoothstep(u, broad ? 0.81 : 0.66, 0.98);
       const seamAt = lower ? 0.32 : 0.66;
@@ -104,7 +94,6 @@ function paintBill(
   return { map, surface };
 }
 
-/** Bill finishes by their chart's kind, shared by every bill of a build. */
 export type BillFinishes = Map<string, BillFinish>;
 
 export function finishBill(

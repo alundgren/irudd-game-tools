@@ -1,10 +1,3 @@
-// Electron main for the hidden player check. Not part of the app: the QA
-// build writes it to apps/desktop/qa/dist, which the app build never reads.
-//
-// Serves the check page and the tracked example GLBs on a private qa://
-// scheme, runs the page in a window that is never shown, prints each result
-// line the page logs and exits with the page's verdict.
-
 import { readFile } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { app, BrowserWindow, protocol } from "electron";
@@ -30,7 +23,6 @@ function finish(code: number): void {
 
 async function start(): Promise<void> {
   protocol.handle("qa", async (request) => {
-    // One origin: the page's files, and the tracked example GLBs under examples/.
     const url = new URL(request.url);
     const parts = decodeURIComponent(url.pathname).split("/").filter(Boolean);
     if (

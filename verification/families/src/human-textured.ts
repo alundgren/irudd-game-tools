@@ -1,20 +1,3 @@
-// The seeded adult at the textured presets against G0, in installed Chrome
-// (hardware GPU, 1280 × 800 at device scale factor 1, as G0's sessions were).
-// Run it under the shared GPU lock:
-//
-//   node --import ../../packages/document/test/support/register.ts src/locked.ts \
-//     src/human-textured.ts [--preset full|game] [--allow-software] [SEED|look-SEED|VARIANT...]
-//
-// Without names it runs every required export: all eleven seeded adults at
-// Full, 491, 42 and 1 at Game, and the starter's looks (look-SEED) and the
-// variants below at both. A missing reference fails the run.
-//
-// Each document is generated here through the real reducer, exported
-// in the page (src/browser/human-entry.ts) and compared whole with
-// .reference-cache/human-oracle/adult-NAME-PRESET.glb: structure, every
-// accessor and every image by decoded pixels. Fresh exports and the report go
-// to .reference-cache/g4a/human-textured/.
-
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -46,10 +29,6 @@ const presetAt = flag("--preset");
 const chosen: Preset | undefined =
   presetAt >= 0 ? (argv[presetAt + 1] === "game" ? "game" : "full") : undefined;
 const allowSoftware = flag("--allow-software") >= 0;
-/**
- * A seeded adult or a dressed starter with one style field changed. Each
- * reference is G0's export of that same adult and change (.reference-cache/g0/derived).
- */
 const variants: Readonly<
   Record<
     string,
@@ -66,9 +45,6 @@ const variants: Readonly<
 const named = argv.filter(
   (a, i) => (/^(look-)?\d+$/.test(a) || Object.hasOwn(variants, a)) && argv[i - 1] !== "--preset",
 );
-// Every seeded adult of the frozen fixtures at Full; G0 exported Game for 491, 42, 1 and 491's look.
-// The looks the starter offers, at both: 491's tailored outfit, 8973's Day dress and the six worn cast
-// members.
 const required: ReadonlyArray<{ readonly name: string; readonly presets: ReadonlyArray<Preset> }> =
   [
     { name: "491", presets: ["full", "game"] },
@@ -90,15 +66,6 @@ const jobs = (
   .map((job) => ({ name: job.name, presets: job.presets.filter((p) => !chosen || p === chosen) }))
   .filter((job) => job.presets.length);
 
-/**
- * The differences from G0 that remain, both in the face colour (image 1 at
- * Full, its share of the page at Game). Seed 491's differs at the lash line by
- * one level in at most two pixels, in some runs and not others, while
- * re-exports of G0 repeat exactly; its dressed look paints the same face. The
- * Day dress look's (look-8973) differs by one level in one pixel at Full in
- * every run, while seed 8973's own face repeats G0 exactly. They are reported,
- * not hidden; anything beyond them fails.
- */
 function knownResidual(
   name: string,
   seed: number,
@@ -170,7 +137,6 @@ function isResponse(value: unknown): value is HumanExportResponse {
   );
 }
 
-/** Keep only one adult's GLBs in the browser-to-Node response at once. */
 async function* exportsFor(page: Page, requests: HumanExportRequest[]) {
   for (const request of requests) {
     const text = await page.evaluate(async (item) => {
@@ -189,7 +155,6 @@ async function* exportsFor(page: Page, requests: HumanExportRequest[]) {
 
 const body = await loadHumanBody();
 const store = adultStore(body);
-/** A seeded adult by its seed, a starter look by its id, or a variant by its name. */
 function generated(name: string) {
   const variant = Object.hasOwn(variants, name) ? variants[name] : undefined;
   if (variant) {

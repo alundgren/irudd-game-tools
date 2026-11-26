@@ -1,24 +1,3 @@
-// Paired depth and trace fits through the desktop's own host options: the
-// person's brief for one painted portrait, the paired agent's reply, the
-// desktop's depth and trace translators, and the person's preview, acceptance
-// and undo. Run on fitted-portrait, whose head is a traced face.
-//
-// The translators draw pictures with the desktop's raster (its review
-// worker). Here a stand-in raster draws the PNG depth pass this test makes
-// by nearest sampling, and gives the sheet's quadrants a synthetic subject
-// on magenta, so the panel frames are known; the hardware canvas runs in
-// `pnpm --filter @irudd/desktop qa:art`. The fit arithmetic is checked
-// against G0 in verification/families/test/art-fit.test.ts.
-//
-// Cases: a brief naming a part that cannot take the fit is refused when it
-// is sent; a raster that is not ready fails the submission without recording
-// it and the retry proposes; preview, accept and undo; a duplicate reply; a
-// reply after the person's unrelated edit is stale, keeps the head and, once
-// the agent refines it on the head, accepts with that edit kept; a cancelled
-// request refuses its reply; a trace map's region fits face landmarks and
-// depth pins and its other regions are named in the proposal, not built; a
-// trace brief that builds adds the map's regions as parts under their
-// parents, previewed, accepted, undone and redone exactly as proposed.
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -62,7 +41,6 @@ const headId = "p-head-and-neck";
 const characterAssets = path.join(repository, "packages", "character", "assets");
 const decodeDigest = Schema.decodeUnknownSync(Digest);
 
-/** Bytes of a digest from the fixtures or the shipped assets. */
 function bytesOf(digest: string): Uint8Array {
   const file = path.join(blobsDir, digest.replace(":", "-"));
   if (fs.existsSync(file)) return new Uint8Array(fs.readFileSync(file));
@@ -77,7 +55,6 @@ function json(value: unknown): Json {
   return copy;
 }
 
-/** An 8-bit RGB PNG of `size` square from a pixel function. */
 function png(size: number, pixel: (x: number, y: number) => readonly [number, number, number]) {
   const chunk = (type: string, data: Uint8Array) => {
     const len = Buffer.alloc(4);
@@ -105,7 +82,6 @@ function png(size: number, pixel: (x: number, y: number) => readonly [number, nu
   );
 }
 
-/** A front depth pass on black: a lit ellipse. */
 const depthPass = (shift: number) =>
   png(512, (x, y) => {
     const u = (x - 260 - shift) / 150;
@@ -115,7 +91,6 @@ const depthPass = (shift: number) =>
     return [g, g, g];
   });
 
-/** The stand-in raster: nearest-sampled PNGs this test made, and a known subject for sheets. */
 class TestRaster implements ArtRaster {
   ready = true;
   readonly calls: Array<{
@@ -128,7 +103,6 @@ class TestRaster implements ArtRaster {
     this.calls.push({ mediaType, size, quadrant: quadrant ?? null });
     const out = new Uint8ClampedArray(size * size * 4);
     if (quadrant !== undefined) {
-      // Magenta key with a subject: frames mid 325, feet 598, span 496 at 640 px.
       for (let i = 0; i < size * size; i++) out.set([255, 0, 255, 255], 4 * i);
       for (let y = 100; y <= 600; y++)
         for (let x = 250; x <= 400; x++) out.set([120, 100, 90, 255], 4 * (y * size + x));
@@ -208,7 +182,6 @@ async function withRig(body: (rig: Rig) => Promise<void>): Promise<void> {
       credential: { role: "agent", file: pair.credentialFile },
       stateDir,
     });
-    // The sheet's front and profile panels, as the art panel attaches them.
     const front = await uploadArt(
       human,
       png(640, () => [200, 160, 150]),
@@ -316,7 +289,6 @@ test("a paired depth pass fits the portrait: refusal, retry, preview, accept, un
         ["depth", "portrait-depth"],
       ],
     );
-    // The body is no portrait: the person hears so before anything is sent.
     await assert.rejects(brief(rig, "depth", 1, "p-body", "depth-body-0001"), (error: unknown) => {
       assert.match(
         String(Reflect.get(Object(error), "message")),
@@ -329,7 +301,6 @@ test("a paired depth pass fits the portrait: refusal, retry, preview, accept, un
     assert.equal(sent.apply.translator, "portrait-depth");
     const picture = depthPass(0);
 
-    // The raster is not ready: the submission fails and nothing is recorded.
     rig.raster.ready = false;
     await assert.rejects(
       submitDepth(rig, sent.artId, picture, "depth-reply-0001"),
@@ -347,7 +318,6 @@ test("a paired depth pass fits the portrait: refusal, retry, preview, accept, un
       quadrant: null,
     });
 
-    // The preview shows the fitted field; the head is untouched until the person accepts.
     const raster = new TestRaster();
     const field = depthFromPixels(
       await raster.pixels(picture, "image/png", depthCanvas),
@@ -374,7 +344,6 @@ test("a paired depth pass fits the portrait: refusal, retry, preview, accept, un
       ...figurePortraitDepth.read(head(base.doc).features),
       field,
     });
-    // Only the head's depth changed: every other part, the assets and the credits stay.
     assert.deepEqual(
       fitted.doc.parts.filter((p) => p.id !== headId),
       base.doc.parts.filter((p) => p.id !== headId),
@@ -384,14 +353,12 @@ test("a paired depth pass fits the portrait: refusal, retry, preview, accept, un
     assert.equal(view.submissions[0]?.proposal?.status, "accepted");
     assert.equal(view.submissions[0]?.proposal?.acceptedRevision, 2);
 
-    // The same reply again stands for the first; undo restores the old field.
     const again = (await submitDepth(rig, sent.artId, picture, "depth-reply-0002")).submission;
     assert.equal(again.duplicateOf, "depth-reply-0001");
     const undone = await command(rig, rig.human, "undo-depth-0001", { type: "undo", target: 2 });
     assert.equal(undone.kind, "committed", JSON.stringify(undone));
     assert.deepEqual(head((await current(rig)).doc), head(base.doc));
 
-    // A reply after the person moved a foot: drafted on the brief, the head keeps the move.
     const later = await brief(rig, "depth", 3, headId, "depth-head-0002");
     const foot = base.doc.parts.find((p) => p.id === "p-left-foot");
     assert.ok(foot);
@@ -420,7 +387,6 @@ test("a paired depth pass fits the portrait: refusal, retry, preview, accept, un
       version: 1,
     });
     assert.equal(refused.kind, "rejected");
-    // The agent refines it on the head; the person accepts, keeping the move.
     const refined = await command(rig, rig.agent, "refine-stale-0001", {
       type: "proposal.refine",
       proposal: stale.proposal?.id,
@@ -454,7 +420,6 @@ test("a paired depth pass fits the portrait: refusal, retry, preview, accept, un
     assert.deepEqual(figurePortraitDepth.read(head(both.doc).features), drafted);
     assert.notDeepEqual(drafted.field, figurePortraitDepth.read(head(base.doc).features)?.field);
 
-    // A cancelled request refuses its reply.
     const closed = await brief(rig, "depth", both.revision, headId, "depth-head-0003");
     await rig.human.call("art.cancel", { artId: closed.artId });
     await assert.rejects(
@@ -466,7 +431,6 @@ test("a paired depth pass fits the portrait: refusal, retry, preview, accept, un
 
 test("a paired trace map fits the head's face landmarks and depth pins and names what it did not build", async () => {
   await withRig(async (rig) => {
-    // A hull is no horizontal loft: the trace fit refuses it when the brief is sent.
     await assert.rejects(
       brief(rig, "trace", 1, "p-vest-folded-collar", "trace-collar-0001"),
       /not a painted horizontal loft/,
@@ -537,7 +501,6 @@ test("a paired trace map fits the head's face landmarks and depth pins and names
     const s = submitted.submission;
     assert.equal(s.state, "proposed", JSON.stringify(s.diagnostics));
     assert.equal(s.translator, "trace-fit");
-    // The translator measured the head's own sheet: its front and left-facing profile panels.
     assert.deepEqual(
       rig.raster.calls.map((c) => [c.mediaType, c.size, c.quadrant]),
       [
@@ -606,7 +569,6 @@ test("a trace brief that builds adds the map's regions as parts on the anchor's 
           parts: [part],
         },
       });
-    // An unpainted part has no sheet to build on: refused before anything is sent.
     const base = await current(rig);
     const unpainted = base.doc.parts.find((p) => !p.paint);
     if (unpainted)
@@ -617,7 +579,6 @@ test("a trace brief that builds adds the map's regions as parts on the anchor's 
     const sent = await send("p-body", "build-body-0001");
     assert.equal(sent.brief.intent, "build");
     assert.equal(sent.apply.translator, "trace-build");
-    // The stand-in sheet's subject spans x 0.39–0.63 and y 0.16–0.94 of each panel.
     const rect = (x0: number, x1: number, y0: number, y1: number) =>
       [
         [x0, y0],
@@ -686,12 +647,10 @@ test("a trace brief that builds adds the map's regions as parts on the anchor's 
     ).submission;
     assert.equal(s.state, "proposed", JSON.stringify(s.diagnostics));
     assert.equal(s.translator, "trace-build");
-    // The translator measured all four views of the body's own sheet.
     assert.deepEqual(
       rig.raster.calls.map((c) => [c.mediaType, c.size, c.quadrant]),
       [0, 1, 2, 3].map((q) => ["image/webp", panelCanvas, q]),
     );
-    // The proposal is exactly the character package's build on the same panels.
     const stand = new TestRaster();
     const panel = async (q: 0 | 1 | 2 | 3) =>
       panelFromPixels(
@@ -756,7 +715,6 @@ test("a trace brief that builds adds the map's regions as parts on the anchor's 
       base.doc.assets,
       "the parts paint from the sheet already declared",
     );
-    // Each built part is an ordinary editable part: the person moves the satchel and its strap follows.
     const moved = await command(rig, rig.human, "move-satchel-0001", {
       type: "edit",
       ops: [{ op: "part.transform", part: "p-satchel", translate: [0.03, 0, 0] }],
@@ -764,7 +722,6 @@ test("a trace brief that builds adds the map's regions as parts on the anchor's 
     assert.equal(moved.kind, "committed", JSON.stringify(moved));
     const undoMove = await command(rig, rig.human, "undo-move-0001", { type: "undo", target: 3 });
     assert.equal(undoMove.kind, "committed");
-    // Undo the build, then redo it by undoing that undo.
     const undone = await command(rig, rig.human, "undo-build-0001", { type: "undo", target: 2 });
     assert.equal(undone.kind, "committed", JSON.stringify(undone));
     assert.deepEqual(

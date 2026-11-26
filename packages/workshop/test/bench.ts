@@ -1,5 +1,3 @@
-// Timing for the project service on this machine: `pnpm --filter @irudd/workshop bench`.
-// Not part of the test suite; it prints one JSON summary to record in CONTRACT.md.
 import path from "node:path";
 import os from "node:os";
 import { Effect } from "effect";

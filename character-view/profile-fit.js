@@ -1,7 +1,5 @@
 import { MathUtils, Vector3 } from "three";
 
-// The first point is the brow. The last is the front of the lower chin.
-// Depth is measured forward from the brow in units of brow-to-chin height.
 export function profileTrace(points, facing = "right") {
   if (points.length < 4 || points.length > 96)
     throw new Error("Mark 4–96 points from the brow down to the chin.");
@@ -73,8 +71,6 @@ function sample(curve, t) {
     b = curve[i];
   return MathUtils.lerp(a[1], b[1], (t - a[0]) / (b[0] - a[0]));
 }
-// Sample intersections of triangle edges with horizontal planes. Projected
-// depth includes the nose tip or lips even on an irregular imported portrait.
 export function sectionDepth(
   geometry,
   bottom,
@@ -160,8 +156,6 @@ export function fitHeadProfile(mesh, fit) {
     halfWidth = (box.max.x - box.min.x) * 0.5;
   const finish = fit.stage === "finish";
   const dimension = (span * scale.y) / scale.z;
-  // Separate central features from the broader cheek plane: the whole cheek
-  // must not inherit every notch traced underneath a nose or lip.
   const nasalBase = [sample(fit.curve, 0.07), sample(fit.curve, 0.55)];
   const mouthBase = [sample(fit.curve, 0.56), sample(fit.curve, 0.8)];
   const gaussian = (v) => Math.exp(-v * v);
@@ -234,15 +228,11 @@ export function fitHeadProfile(mesh, fit) {
       -0.62 * (front - pivot),
       0.85 * (front - back),
     );
-    // A changed lip or nose edge should taper across the central face.
-    // Brow and jaw occupy more of the head width than the bridge and lips.
     const nasal = Math.exp(-(((t - 0.36) / 0.24) ** 2)),
       lip = Math.exp(-(((t - 0.65) / 0.12) ** 2));
     const width = 0.65 - 0.41 * nasal - 0.2 * lip;
     const x = Math.abs(px - midX) / Math.max(halfWidth, 1e-6);
     const lateral = Math.exp(-((x / width) ** 2));
-    // A finishing trace constrains the visible outline, including off-centre
-    // high points. A monotone depth map keeps the surface ordered after a retraction.
     const weight = finish ? fraction : fraction * fraction * lateral;
     let adjusted = z + shift * weight;
     if (fit.relief)

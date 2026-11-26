@@ -38,8 +38,6 @@ const atlases = new Map(),
   viewsByAtlas = new Map();
 export const hasTurnaround = (id) => atlases.has(id);
 
-// Dilation supplies the nearest foreground colour outside thin silhouettes.
-// It keeps the chroma key out of texture filtering at the edge of a claw.
 function preparePanel(image, tile) {
   const size = 640;
   const canvas = document.createElement("canvas");
@@ -75,7 +73,6 @@ function preparePanel(image, tile) {
   }
   for (let i = 2 * size + 2; i < mask.length - 2 * size - 2; i++) {
     if (!subject[i]) continue;
-    // Exclude antialiased key-colour spill before extending surface colours.
     if (
       !subject[i - 2] ||
       !subject[i + 2] ||
@@ -97,8 +94,6 @@ function preparePanel(image, tile) {
       "Each view needs a visible subject on magenta or transparency.",
     );
   const filled = mask.slice();
-  // Fine hair resamples saturated key pixels into pastel fringe colours.
-  // Extend clean neighbours through that narrow fringe without changing its silhouette.
   let clean = 0;
   for (let j = 0; j < tail; j++) {
     const i = queue[j],
@@ -340,7 +335,6 @@ export function pairDepth(part, pairs) {
   }
   return { ...part, paint: { ...b, depthPins: pins } };
 }
-// Match independent sight lines. An uncertain point should not discard the other matches.
 export function withDepthPairs(part, pairs) {
   if (!Array.isArray(pairs)) return part;
   const pins = [];
@@ -348,7 +342,6 @@ export function withDepthPairs(part, pairs) {
     try {
       pins.push(...pairDepth(part, [pair]).paint.depthPins);
     } catch {
-      /* A profile point may be hidden or at another height. */
     }
   }
   return pins.length
@@ -368,7 +361,6 @@ export function guidePosition(atlas, view, h) {
   const p = atlases.get(atlas)[view];
   return (p.feet - h * p.span) / p.size;
 }
-// The same landmarks, measured in both pictures, define a curved axis in metres.
 export function tracePath(id, atlas, height, spine) {
   const panels = atlases.get(atlas);
   if (!panels || !Array.isArray(spine) || spine.length < 2 || spine.length > 48)
@@ -558,7 +550,6 @@ function projected(panel, horizontal, height) {
   );
   return py * panel.size + px;
 }
-// Occupied horizontal intervals in standing-height units, independent of image padding.
 export function silhouetteRuns(atlas, view, height, bridge = 0.011) {
   const p = atlases.get(atlas)?.[view];
   if (!p) throw new Error("Choose a loaded turnaround.");
@@ -586,8 +577,6 @@ function section(panel, low, high, y, reverse = false) {
   return a < b ? [a, b] : null;
 }
 
-// A track describes a body region in calibrated front and profile views.
-// Each row holds height, left, right, rear and fore limits in standing-height units.
 export function traceRegion(id, atlas, height, track, parent, options = {}) {
   const panels = atlases.get(atlas);
   if (!panels) throw new Error("The turnaround is still loading.");
@@ -616,8 +605,6 @@ export function traceRegion(id, atlas, height, track, parent, options = {}) {
   }
   if (knots.length < 2)
     throw new Error("A region must cover at least two visible cross sections.");
-  // A few source pixels can move a silhouette sideways at a hair tip or an
-  // overlapping plate. Regularise the cross sections before fitting the loft.
   for (let pass = 0; pass < (options.smooth ?? 2); pass++) {
     const prev = knots.map((v) => v.slice());
     for (let i = 1; i < knots.length - 1; i++)
@@ -653,8 +640,6 @@ export function traceRegion(id, atlas, height, track, parent, options = {}) {
   };
 }
 
-// Estimate visibility in the original standing pose. A camera looking past a
-// sleeve must sample the adjacent garment, even after that sleeve is moved.
 function regionalViews(panels, bindings) {
   const result = new Map(bindings.map((b) => [b.region, []]));
   for (let view = 0; view < 4; view++) {
@@ -739,8 +724,6 @@ function regionalViews(panels, bindings) {
         for (let x = 0; x < width; x++) {
           const i = y * width + x,
             source = (y + ymin) * n + x + xmin;
-          // Trim a few boundary pixels of other regions, which often contain
-          // antialiasing or imperfectly registered fingers on a garment.
           if (owner[source] !== index + 1 || !panel.mask[source]) continue;
           if (
             [source - 2, source + 2, source - 2 * n, source + 2 * n].some(
@@ -815,8 +798,6 @@ function unobscured(index, panel, region) {
   return region.nearest[y * region.width + x];
 }
 
-// Bake four projections into an ordinary UV texture. The result survives
-// export and remains attached when the artist moves or reshapes the part.
 export function paintedMaterial(part) {
   const binding = part.paint,
     panels = atlases.get(binding.atlas);

@@ -1,8 +1,3 @@
-// Player controls shared by the offline web player and the desktop library.
-//
-// Builds plain DOM with text content only. File names, clip names and
-// metadata come from files the user opened, so nothing is parsed as HTML.
-
 import type { Player, PlayerState } from "./player.js";
 import { Inspector, reviewShots, type InspectionSheet, type ShotRequest } from "./inspect.js";
 import {
@@ -62,16 +57,12 @@ function slider(label: string): HTMLInputElement {
 
 export interface Controls {
   readonly root: HTMLElement;
-  /** Load bytes into the player and update every control. Errors are shown, not thrown. */
   load(bytes: Uint8Array, name: string): Promise<ModelInfo | undefined>;
-  /** Take the default multi-angle inspection sheet at a fixed size. */
   inspect(width?: number, height?: number): Promise<InspectionSheet | undefined>;
 }
 
 export interface ControlsOptions {
-  /** Called with each finished inspection sheet. */
   readonly onSheet?: (sheet: InspectionSheet) => void;
-  /** Size of inspection images in pixels. */
   readonly sheetSize?: readonly [number, number];
 }
 
@@ -252,7 +243,6 @@ export function mountControls(
   clip.onchange = () => player.setClip(clip.value || null);
   playing.onchange = () => player.setPlaying(playing.checked);
   time.oninput = () => player.setTime(Number(time.value));
-  /** The bytes of the file on show, so inspection loads its own copy. */
   let current: { readonly bytes: Uint8Array; readonly name: string } | undefined;
 
   function size(width?: number, height?: number): [number, number] {
@@ -279,11 +269,6 @@ export function mountControls(
     }
   };
 
-  /**
-   * The review recipe at the live state (clip, time, surface, expression,
-   * look and measured angle): every body view, and the portraits when the
-   * file has a face surface.
-   */
   function liveShots(): ShotRequest[] {
     const state = player.state;
     return reviewShots(state.info, {

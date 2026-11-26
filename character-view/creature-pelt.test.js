@@ -68,14 +68,12 @@ test("undercoat tufts root on the exposed coat, lean with the locks and replay",
   assert.deepEqual(a.pos, b.pos);
   assert.equal(a.pos.length, 120 * 7 * 3);
   assert.equal(a.idx.length, 120 * tuftTriangles * 3);
-  // Tips sit above the lower half of the sphere, which a trunk would hide,
-  // and trail along the lock direction from their roots.
   let along = 0;
   for (let t = 0; t < 120; t++) {
     const ring = [0, 3, 6].map((k) => new Vector3(...a.pos.slice(t * 21 + k, t * 21 + k + 3)));
     const root = ring[0].add(ring[1]).add(ring[2]).divideScalar(3).add(target.position),
       tip = new Vector3(...a.pos.slice(t * 21 + 18, t * 21 + 21)).add(target.position);
-    assert.ok(root.y > -0.08, `root ${root.y}`); // one facet band below the equator at most
+    assert.ok(root.y > -0.08, `root ${root.y}`);
     along += tip.z - root.z < 0 ? 1 : 0;
   }
   assert.ok(along > 90, `${along} tufts lean with the locks`);

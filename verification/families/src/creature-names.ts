@@ -1,14 +1,7 @@
-// G0 decided a creature plan's hide, coat and limb pigment from part names
-// (character-view/creature-hide.js, creature-coat.js, creature-limb-colour.js,
-// creature-face-coat.js and creature-bill.js at 2761eb1). Preparing a form
-// resolves each name once into the typed creature.organ and
-// creature.limb-chain features, so the builders never read a label.
-
 import type { Json } from "@irudd/document";
 
 const coreHide = /^(?:body|head|neck|muzzle|jaw|tail|shoulders|pelvis)(?: \d+)?$/;
 
-/** The creature.organ feature for a part with this legacy ID, or none when the name says nothing. */
 export function creatureOrgan(id: string): Record<string, Json> | undefined {
   const organ: Record<string, Json> = {};
   if (coreHide.test(id)) organ["hide"] = "core";
@@ -44,11 +37,6 @@ interface PlanLimb {
 
 const limbRoles = new Set(["upper arm", "forearm", "hand", "thigh", "shin", "foot"]);
 
-/**
- * The creature.limb-chain feature of each limb's first part, by legacy ID.
- * A plan limb is numbered per side and kind ("left leg 2"), as the plan
- * named the parts it built.
- */
 export function creatureLimbChains(
   partIds: ReadonlyArray<string>,
   limbs: ReadonlyArray<PlanLimb>,

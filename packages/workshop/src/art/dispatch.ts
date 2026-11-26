@@ -1,7 +1,3 @@
-// The art verbs of the host's dispatcher. People send and cancel briefs; the
-// paired agent reads its own requests and submits replies. Both may stage
-// pictures and read a request's files.
-
 import { decodeWith } from "@irudd/document";
 import { toWireError, type DecodedParams, type MethodName } from "../wire/protocol.js";
 import { artParams } from "../wire/art.js";

@@ -25,8 +25,6 @@ test("sculpted hairstyles are opt-in in adultStyles and never change random seed
   for (const mode of facePlaneStyles) {
     assert.ok(adultStyles.facePlanes.includes(mode) && validAdultStyle({ hair: "Sculpted crop", facePlanes: mode }), mode);
   }
-  // Each seed still draws the haircut it always drew and wears it as itself or as a fitted groom listed for it.
-  // A sculpted style is never one of them, and the draw is the same every time.
   for (const [seed, drawn, fitted] of [
     [8710, "Bob", "Blunt bob"],
     [8711, "Crown braid"],
@@ -42,7 +40,6 @@ test("sculpted hairstyles are opt-in in adultStyles and never change random seed
     assert.ok(hairWornFor(drawn).includes(hair), `seed ${seed} wears ${hair}, not a groom of ${drawn}`);
     assert.ok(!sculptedStyles.includes(hair), `seed ${seed} did not draw a sculpted style`);
     assert.equal(wear(), hair, `seed ${seed} draws the same hair again`);
-    // A look saved with either name keeps it through a later change of clothes.
     for (const saved of [drawn, fitted].filter(Boolean)) assert.equal(chooseAdultStyle({ hair: saved }, { outfit: "Parka" }).hair, saved);
   }
   for (let seed = 8600; seed < 8660; seed++) {

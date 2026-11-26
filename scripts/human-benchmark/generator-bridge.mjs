@@ -1,17 +1,8 @@
-// Serves the editable human generator to the Python benchmark over stdio.
-// Usage: node generator-bridge.mjs [folder holding human-surface.js]
-// Requests are single JSON lines:
-//   {"describe":true}
-//   {"recipes":[{...}, ...], "fits":[fit or null, ...]}     surfaces for recipes
-//   {"refine":{"human":{...}, "positions":base64 f32, "indices":base64 u32, "region":"whole"}}
-// Replies are one JSON line. A recipes reply is followed by the raw little-endian
-// float32 positions of every surface back to back.
 import { createInterface } from "node:readline";
 import { pathToFileURL } from "node:url";
 
 const base = process.argv[2] ? pathToFileURL(process.argv[2] + "/") : new URL("../../character-view/", import.meta.url);
 const { evaluateHuman, humanRange, ...surface } = await import(new URL("human-surface.js", base));
-// The benchmark searches the measurements it was recorded with; later identity controls stay out.
 const humanAxes = surface.humanFitAxes ?? surface.humanAxes;
 
 function describe() {

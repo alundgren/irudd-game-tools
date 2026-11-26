@@ -1,20 +1,8 @@
-// The G0 oracle for trace builds: buildTraceMap from character-view at
-// 2761eb14, run from the frozen source on given sheet panels.
-//
-// buildTraceMap reads its sheet's panels from turnaround.js's module state,
-// so the driver assembles the functions it calls from the frozen files
-// (traceOutline, traceHull, tracePath, traceRegion, silhouetteRuns,
-// withDepthPairs and calibrateFace from turnaround.js, registerFace from
-// portrait-frame.js, bindParts from rig.js and the role lists) and puts the
-// panels in that state. startingForm and validateForm only frame the form
-// around the parts and are left out; G0 has no hair regions here.
-
 import { execFileSync } from "node:child_process";
 import { repository } from "./paths.js";
 
 const frozen = "2761eb14";
 
-/** A sheet panel as G0 holds it: its subject mask and frame. */
 export interface G0Panel {
   readonly size: number;
   readonly mask: ArrayLike<number>;
@@ -24,9 +12,7 @@ export interface G0Panel {
 }
 
 export interface G0TraceBuild {
-  /** The bound form's parts, as buildTraceMap returns them. */
   readonly parts: ReadonlyArray<Record<string, unknown>>;
-  /** Regions its tolerant build left out. */
   readonly missed: ReadonlyArray<string>;
 }
 
@@ -49,11 +35,9 @@ function array(source: string, name: string): string {
   return source.slice(at, source.indexOf("];", at) + 2);
 }
 
-/** A JSON object, as G0's parts and their features are. */
 export const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
 
-/** A JSON object field's object value, which must be there. */
 export function record(v: unknown, key: string): Record<string, unknown> {
   const value = isRecord(v) ? v[key] : undefined;
   if (!isRecord(value)) throw new Error(`G0's ${key} is not an object.`);
@@ -88,10 +72,6 @@ function source(): string {
   return driver;
 }
 
-/**
- * G0's tolerant buildTraceMap (the one its art flow falls back to, which
- * leaves out regions it cannot trace) on a sheet's four panels.
- */
 export function g0BuildTraceMap(
   panels: ReadonlyArray<G0Panel>,
   map: unknown,
@@ -128,7 +108,6 @@ process.stdout.write(JSON.stringify({ parts: form.parts, missed }));`;
   return { parts: parts.filter(isRecord), missed: missed.map(String) };
 }
 
-/** A G0 part's standing position before binding: bindParts kept every rotation and size neutral. */
 export function g0World(
   parts: ReadonlyArray<Record<string, unknown>>,
   id: string,

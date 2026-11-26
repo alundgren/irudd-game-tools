@@ -17,7 +17,6 @@ import {
   validPosture,
 } from "./human-posture.js";
 
-// The rendered and skinned character, as the editor preview and the export build it.
 function character(form) {
   const material = new T.MeshStandardMaterial(),
     root = new T.Group();
@@ -98,7 +97,6 @@ test("each adult draws its own posture, the same every time, and people differ",
     assert.ok(form.posture.arms >= 0.78);
     styles.add(form.posture.style);
     sides.add(Math.sign(form.posture.weight));
-    // The fitting surface no longer carries a walking stance.
     assert.equal(form.human.footLead ?? 0, 0);
     assert.equal(form.human.armLead ?? 0, 0);
   }
@@ -117,7 +115,6 @@ test("a form without a posture rests and moves exactly as it did", () => {
   for (const b of before.skeleton.bones) if (b.name !== "Root") assert.ok(b.quaternion.angleTo(new T.Quaternion()) < 1e-9, b.name + " rests turned");
   const again = character(plain);
   assert.deepEqual(again.clips.map((c) => [c.name, c.duration, c.tracks.length]), before.clips.map((c) => [c.name, c.duration, c.tracks.length]));
-  // The same body with a posture keeps every bone, every clip name and the fitted surface.
   const posed = character(drawn);
   assert.deepEqual(posed.skeleton.bones.map((b) => b.name), before.skeleton.bones.map((b) => b.name));
   assert.deepEqual(posed.clips.map((c) => c.name), before.clips.map((c) => c.name));
@@ -138,10 +135,8 @@ test("a standing adult carries its weight on one leg, in balance, with the arms 
     const lead = mirrored ? -1 : 1,
       support = lead > 0 ? R.left : R.right,
       free = lead > 0 ? R.right : R.left;
-    // The standing knee is all but straight and the free knee is slack.
     assert.ok(kneeFlex(support) < 12, label + " standing knee " + kneeFlex(support));
     if (style !== "Upright") assert.ok(kneeFlex(free) > kneeFlex(support) + 4, label + " free knee " + kneeFlex(free));
-    // The mass sits between the feet, nearer the standing one, and over the soles.
     const centre = massCentre(R),
       feet = [support, free].map((s) => world(s.footBone)),
       toes = [support, free].map((s) => world(s.toeBone));
@@ -150,18 +145,15 @@ test("a standing adult carries its weight on one leg, in balance, with the arms 
     assert.ok(centre.x > lo && centre.x < hi, label + " mass centre " + centre.x + " outside " + lo + ".." + hi);
     if (style !== "Upright") assert.ok(Math.abs(centre.x - feet[0].x) < Math.abs(centre.x - feet[1].x), label + " leans on the free leg");
     assert.ok(centre.z > Math.min(feet[0].z, feet[1].z) - 0.03 && centre.z < Math.max(toes[0].z, toes[1].z) + 0.03, label + " mass centre fore and aft");
-    // The pelvis drops on the free side and the shoulders answer the other way.
     const hips = world(R.left.hipBone).y - world(R.right.hipBone).y,
       shoulders = world(R.left.shoulderBone).y - world(R.right.shoulderBone).y;
     if (style === "Hip-shot") {
       assert.ok(lead * hips > 0.008, label + " hips " + hips);
       assert.ok(lead * shoulders < hips * lead, label + " shoulders " + shoulders);
     }
-    // The feet are on the floor the fitting pose stood on, and nearer each other.
     const floor = R.mesh.geometry.boundingBox.min.y;
     assert.ok(Math.abs(lowest(rig) - floor) < 0.004, label + " lowest point " + lowest(rig) + " against " + floor);
     assert.ok(Math.abs(feet[0].x - feet[1].x) < 2 * R.half + 1e-6, label + " feet");
-    // Arms never stand further from the body than they were fitted, and usually hang nearer.
     R.sides.forEach((s, i) => assert.ok(offVertical(s) <= degrees(fitted.sides[i].fitted) + 1.5, label + " arm " + offVertical(s)));
     for (const b of rig.skeleton.bones) assert.ok(Math.abs(b.quaternion.length() - 1) < 1e-6 && b.position.toArray().every(Number.isFinite), b.name);
   }
@@ -187,23 +179,18 @@ test("the walk of a posed adult strikes with the heel, straightens the standing 
     });
     done();
   }
-  // Left heel lands at the start of the loop: the leg is nearly straight and the toes are up.
   const strike = seen[0];
   assert.ok(strike.knees[0] < 12, "knee at heel strike " + strike.knees[0]);
   assert.ok(strike.toes[0].y - strike.ankles[0].y > R.left.ball.y - R.left.ankle.y + 0.015, "toes up at heel strike");
   assert.ok(strike.ankles[0].z > strike.pelvis.z + 0.12 && strike.ankles[1].z < strike.pelvis.z, "a real step");
-  // The foot behind has its heel up, pushing off the ball.
   assert.ok(strike.ankles[1].y > R.right.ankle.y + 0.02, "heel off behind");
-  // The swinging knee folds to clear the ground, and no knee ever bends backward or locks hard.
   assert.ok(Math.max(...seen.map((f) => f.knees[1])) > 35);
   for (const f of seen) for (const k of f.knees) assert.ok(k > 1 && k < 75, "knee " + k);
-  // The arm opposite the forward leg is forward, and each hand passes both ahead of and behind the hips.
   assert.ok(strike.wrists[1].z > strike.wrists[0].z + 0.1, "right hand leads the left foot");
   for (const side of [0, 1]) {
     const reach = seen.map((f) => f.wrists[side].z - f.pelvis.z);
     assert.ok(Math.max(...reach) > 0.08 && Math.min(...reach) < -0.02, "hand travel " + Math.min(...reach) + ".." + Math.max(...reach));
   }
-  // The second half of the loop mirrors the first, and the lowest point stays on the floor.
   for (let k = 0; k < 8; k++) {
     assert.ok(Math.abs(seen[k].knees[0] - seen[k + 8].knees[1]) < 0.5);
     assert.ok(Math.abs(seen[k].pelvis.y - seen[k + 8].pelvis.y) < 0.002);
@@ -211,7 +198,6 @@ test("the walk of a posed adult strikes with the heel, straightens the standing 
   for (const f of seen) assert.ok(Math.abs(f.low - floor) < 0.004, "lowest point in the walk " + f.low);
   const bob = seen.map((f) => f.pelvis.y);
   assert.ok(Math.max(...bob) - Math.min(...bob) > 0.01 && Math.max(...bob) - Math.min(...bob) < 0.08);
-  // The loop closes.
   const first = at(rig, walk, 0),
     start = rig.skeleton.bones.map((b) => b.quaternion.clone());
   first();
@@ -234,7 +220,6 @@ test("what is bound to the skull and the arms follows the posture", () => {
   before.actor.updateMatrixWorld(true);
   const head = bone(rig, "_head") ?? rig.posture.headBone;
   assert.equal(head, rig.posture.headBone);
-  // Every vertex the head carries alone keeps its place on the skull: hair, eyes and all.
   const carried = head.matrixWorld.clone().multiply(rig.posture.mesh.skeleton.boneInverses[rig.skeleton.bones.indexOf(head)]);
   let checked = 0;
   for (const mesh of rig.actor.children.filter((o) => o.isSkinnedMesh)) {
@@ -273,7 +258,6 @@ test("saved joint poses and old clip names survive a posture", () => {
   for (const name of ["Idle", "Walk", "Reach", "Crouch"]) assert.ok(names.includes(name));
   const clipName = names.find((n) => n.includes("Wave"));
   assert.ok(clipName);
-  // The saved pose plays from the fitting pose on both, joint for joint.
   const read = (rig) => {
     const done = at(rig, rig.clips.find((c) => c.name === clipName), 0);
     const turns = rig.skeleton.bones.filter((b) => b.name !== "Root").map((b) => b.quaternion.clone());

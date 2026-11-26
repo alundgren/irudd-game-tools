@@ -1,11 +1,3 @@
-// figure.cage: a part built from a control cage, subdivided into a smooth surface.
-//
-// Ported from checkCage in character-view/control-cage.js at 2761eb1. The
-// topology rules are part of the document's validation, so a builder only
-// ever sees a cage it can subdivide: faces meet along oppositely wound edges,
-// open edges form continuous borders and separate surfaces never touch at a
-// single vertex.
-
 import { Schema } from "effect";
 import { cross, sub, add, dot, type Vec3 } from "../geometry.js";
 import { bounded, family } from "./family.js";
@@ -15,17 +7,13 @@ const edgeKey = (a: number, b: number): string => (a < b ? `${a}:${b}` : `${b}:$
 const Index = Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 191 }));
 
 export const FigureCage = Schema.Struct({
-  /** Control points in the part frame. */
   vertices: Schema.Array(
     Schema.Tuple([bounded(-12, 12), bounded(-12, 12), bounded(-12, 12)]),
   ).check(Schema.isMinLength(3), Schema.isMaxLength(192)),
-  /** Polygons of 3–8 distinct control points. */
   faces: Schema.Array(
     Schema.Array(Index).check(Schema.isMinLength(3), Schema.isMaxLength(8)),
   ).check(Schema.isMinLength(1), Schema.isMaxLength(256)),
-  /** Catmull–Clark steps; 0 keeps the cage faceted. Defaults to 1. */
   levels: Schema.optionalKey(Schema.Literals([0, 1, 2])),
-  /** Edges kept sharp through subdivision. */
   creases: Schema.optionalKey(Schema.Array(Schema.Tuple([Index, Index]))),
 }).check(Schema.makeFilter((cage) => cageProblem(cage) ?? true));
 export type FigureCage = typeof FigureCage.Type;
@@ -48,7 +36,6 @@ function faceNormal(points: ReadonlyArray<Vec3>): Vec3 {
   return n;
 }
 
-/** The first topology rule a cage breaks, or undefined. */
 export function cageProblem(cage: {
   readonly vertices: ReadonlyArray<Vec3>;
   readonly faces: ReadonlyArray<ReadonlyArray<number>>;

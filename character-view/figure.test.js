@@ -39,7 +39,6 @@ test("a default figure is a valid, metric, two-armed form", () => {
       wrist = world(form, side + "hand");
     const upper = shoulder.distanceTo(elbow),
       lower = elbow.distanceTo(wrist);
-    // Adult proportions: the upper arm is the longer segment and the wrist hangs near the hip.
     assert.ok(upper > lower && upper / lower < 1.35, "arm segments");
     assert.ok(Math.abs(upper + lower - 0.32 * 1.72) < 0.03, "arm length");
     assert.ok(wrist.y > 0.42 * 1.72 && wrist.y < 0.52 * 1.72, "wrist height");
@@ -85,7 +84,6 @@ test("limb segments close with matching rounded ends at each joint", () => {
     const a = form.parts.find((p) => p.id === upper),
       b = form.parts.find((p) => p.id === lower);
     const joint = new Vector3(...b.position);
-    // The proximal segment has a full section exactly at the child's pivot.
     const at = a.knots.find((k) => new Vector3(...k).distanceTo(joint) < 1e-6);
     const start = b.knots.find((k) => Math.hypot(k[0], k[1], k[2]) < 1e-6);
     assert.ok(at && start, "sections at the joint");

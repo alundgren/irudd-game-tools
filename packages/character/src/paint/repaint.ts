@@ -1,12 +1,3 @@
-// Repaint: rebind painted regions to a new turnaround sheet as typed
-// operations. Ported from repaintRegions and retainPaintSources in
-// character-view/paint-sources.js at 2761eb1.
-//
-// Only paint changes. Every part keeps its geometry, traced binding, sculpt
-// and manual edits; the selected parts name the new sheet, and the document's
-// occluders keep the regions each active sheet still needs for visibility,
-// so a view past a part that moved or changed sheets samples what was there.
-
 import { Schema } from "effect";
 import {
   FeatureId,
@@ -23,7 +14,6 @@ import {
 
 const key = (atlas: Digest, region: string | undefined) => `${atlas}\u001f${region ?? ""}`;
 
-/** Bindings on the document's sheets, one per sheet and region, occluders first. */
 function sources(doc: CharacterDocument): PaintSource[] {
   const regions = new Map<string, PaintSource>();
   const all: PaintSource[] = [
@@ -39,7 +29,6 @@ function sources(doc: CharacterDocument): PaintSource[] {
   return [...regions.values()];
 }
 
-/** Occluders that keep each active sheet's hidden regions, in canonical order. */
 function retained(
   painted: ReadonlyArray<{ readonly atlas: Digest; readonly region: string }>,
   prior: ReadonlyArray<PaintSource>,
@@ -59,11 +48,6 @@ const occludersFeature = Schema.decodeUnknownSync(FeatureId)(figureOccluders.id)
 
 export class RepaintError extends Error {}
 
-/**
- * Operations that repaint `parts` from `sheet`. The parts must all be painted
- * from one sheet. The sheet's bytes belong in the project's blob store before
- * the operations are committed.
- */
 export function repaintOperations(
   doc: CharacterDocument,
   parts: ReadonlyArray<PartId>,

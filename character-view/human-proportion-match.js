@@ -59,18 +59,6 @@ const markup = `
 const mm = (x) => x.toFixed(1),
   signed = (x) => (x < 0 ? "−" : "+") + Math.abs(x).toFixed(1);
 
-/* The panel in the reference dialog for matching measured proportions. The artist picks
-   a named proportion and clicks its two ends on the reference in the left pane. The
-   same proportion is read on the editable head between two places of its own skin,
-   shown as dots in the right pane, and ordinary face controls are fitted to all marked
-   proportions together, except those that `proportionFitted` keeps as readings. Readings are taken as the face is seen from the front, so the
-   depth of a click does not count. `slot` is the element the panel is built in, `ready` says
-   whether an aligned reference is on show and no other tool is picking, `raw` returns
-   the loaded reference and `placement` its current placement, `reference` the drawn
-   reference mesh, `figure` the current body's { group, skins } and `form` its recipe.
-   `hold` returns the test for skin hidden on the reference, or null, `names` gives
-   the name each shape control carries in the editor, and `accept` stores the next
-   recipe as one step of the dialog. */
 export function proportionMatcher({
   slot,
   names = {},
@@ -100,7 +88,6 @@ export function proportionMatcher({
     strong = paint(0x1f5fbf),
     faint = paint(0x7d9cc4),
     thread = new LineBasicMaterial({ color: 0x1f5fbf, depthTest: false }),
-    // Marks ride with the reference and the places with the head, so each shows in its own pane.
     onReference = new Group(),
     onHead = new Group();
   for (const item of proportions) $("hfit-prop-pick").append(new Option(item.name, item.id));
@@ -112,7 +99,6 @@ export function proportionMatcher({
     last = "",
     down = null;
   const marks = new Map(),
-    // Controls the artist unticked, and ones ticked beyond those suggested.
     off = new Set(),
     extra = new Set(),
     readings = new WeakMap();
@@ -121,7 +107,6 @@ export function proportionMatcher({
     !$("hfit-original").checked;
   const keepEyes = () => !$("hfit-eyes-field").hidden && $("hfit-eyes").checked;
   const headSkin = () => figure()?.skins.find(([mesh, region]) => region === "head" && mesh.humanSkin)?.[0];
-  // A mark is a place on the loaded reference itself, so it follows a new placement.
   function markAt(hit) {
     const mesh = hit.object,
       position = mesh.geometry.attributes.position,
@@ -138,7 +123,6 @@ export function proportionMatcher({
     mark.corners.forEach((v, k) => point.addScaledVector(corner.fromBufferAttribute(position, v), mark.shares[k]));
     return point;
   }
-  // A marked point in the rest space the editable skin is measured in.
   function restOf(mark) {
     const local = localOf(mark);
     if (!local) return null;
@@ -156,12 +140,10 @@ export function proportionMatcher({
     return readings.get(recipe);
   }
   const marked = () => proportions.map((p) => p.id).filter((id) => referenceReading(id) !== null);
-  // Which controls serve the marked proportions on this recipe, and which are kept from them.
   let planned = null;
   function plan() {
     const recipe = form(),
       ids = marked(),
-      // The marked proportions the fit works on; the others are listed as readings.
       fitted = ids.filter(proportionFitted),
       eyes = keepEyes(),
       placed = placement(),
@@ -227,7 +209,6 @@ export function proportionMatcher({
   function sync() {
     const ok = ready();
     if (on && !(ok && paired())) stop();
-    // Marks belong to the loaded reference: another one starts without any.
     if (source !== raw()) {
       source = raw();
       marks.clear();
@@ -239,7 +220,6 @@ export function proportionMatcher({
     button.setAttribute("aria-pressed", String(on));
     button.textContent = on ? "Stop matching proportions" : "Match proportions";
     $("hfit-prop-panel").hidden = !on;
-    // The pointer is shared with the other picking tools, so only undo what this one set.
     if (on) canvas.style.cursor = "crosshair";
     else if (pointing) canvas.style.cursor = "";
     pointing = on;
@@ -315,7 +295,6 @@ export function proportionMatcher({
     on = false;
     pending = null;
   }
-  // Leaves the marking when another tool takes the pointer. The marks stay.
   function cancel() {
     if (!on) return;
     stop();
@@ -363,7 +342,6 @@ export function proportionMatcher({
     accept(result.form, { region: "head", proportions: step });
     note("Proportions fitted. Undo step takes it back; Apply keeps it.");
   };
-  // A step back also drops the reading of the step that was undone.
   $("hfit-undo").addEventListener("click", () => {
     last = "";
     delete $("hfit-prop-reading").dataset.result;
@@ -371,7 +349,6 @@ export function proportionMatcher({
     render();
   });
   $("hfit-room").addEventListener("close", cancel);
-  // Keeping the eye openings changes which controls are free, so the list follows the checkbox.
   $("hfit-eyes").addEventListener("change", () => {
     if (on) sync();
   });
@@ -382,7 +359,6 @@ export function proportionMatcher({
   canvas.addEventListener("pointerup", (e) => {
     const start = down;
     down = null;
-    // A drag turns the view; only a click marks.
     if (!on || !start || Math.hypot(e.clientX - start[0], e.clientY - start[1]) > 5) return;
     if (!ready() || !paired()) return cancel();
     const box = canvas.getBoundingClientRect(),
@@ -404,7 +380,6 @@ export function proportionMatcher({
     const pair = [pending, mark],
       [a, b] = pair.map(restOf);
     pending = null;
-    // Seen from the front, as the proportion is read.
     if (Math.hypot(a[0] - b[0], a[1] - b[1]) < 0.001) {
       sync();
       render();

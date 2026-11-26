@@ -35,9 +35,6 @@ test("the knee has the same pigment on both adjoining regions, with or without t
   assert.deepEqual(evalAt(ids[0], 0.58), evalAt(ids[1], 0.58));
   assert.ok(evalAt(ids[0], 0.93).r > evalAt(ids[1], 0.58).r);
   assert.ok(evalAt(ids[1], 0.58).r > evalAt(ids[2], 0.16).r);
-  // Without the fade the anatomical layers remain: the same three regions, one
-  // pigment on both sides of the knee, a darker crease there and the body's
-  // own colour high on the thigh.
   form.origin.plan.skin.limbFade = false;
   const plain = limbPigments(form, objects);
   assert.deepEqual([...plain.keys()], ids.slice(0, 3));

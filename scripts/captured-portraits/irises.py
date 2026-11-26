@@ -83,7 +83,6 @@ for f in [p / (n + "-registration.npz") for n in FRAMES]:
     imgs = np.stack(ims)
     ww = np.stack(weights)
     col = (imgs * ww[:, :, :, None]).sum(0) / np.maximum(0.01, ww.sum(0)[:, :, None])
-    # Where the upper lid blocks a sector, fill using other exposed angles at the same radius.
     known = ww.sum(0) > 0.08
     for ring in np.arange(0, 1.5, 0.045):
         select = (radius >= ring) & (radius < ring + 0.045)

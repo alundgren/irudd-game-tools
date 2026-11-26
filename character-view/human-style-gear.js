@@ -1,10 +1,8 @@
-// Bulky gear worn over the clothes: packs, capes and aprons.
 import { Envelope, Piece, add, clamp, cross, dot, mix, smooth, sub, unit } from "./human-style-kit.js";
 import { belt, caster, strap } from "./human-style-cloth.js";
 
 const ARMS = /^(upperarm|lowerarm|hand|thumb|index|middle|ring|pinky)/, TAU = Math.PI * 2;
 
-/** A rounded box or cushion: packs, pouches and bedrolls. `half` holds three half-extent vectors; rings run along the second. */
 export function pod(piece, centre, half, skin, { power = 4, rings = 9, around = 20 } = {}) {
   const curve = x => Math.sign(x) * Math.abs(x) ** (2 / power), list = [];
   for (let i = 0; i <= rings; i++) {
@@ -17,7 +15,6 @@ export function pod(piece, centre, half, skin, { power = 4, rings = 9, around = 
   piece.loft(list, skin, { flip: dot(cross(half[0], half[1]), half[2]) < 0 });
 }
 
-/** Press a path of points onto the clothes, returning [point, outward] pairs for `strap`. */
 export function lay(cast, body, points, inside, gap = .002) {
   return points.map(p => {
     const d = unit(sub(p, inside(p))), origin = add(p, d, .35), hit = cast(origin, [-d[0], -d[1], -d[2]]);
@@ -25,7 +22,6 @@ export function lay(cast, body, points, inside, gap = .002) {
   }).filter(Boolean);
 }
 
-/** A cape hanging from the shoulders down the back. */
 export function cape(body, m, shells, { bottom, ease = .016, open = 1.75, fold = .012, cols = 44 } = {}) {
   const k = m.k, top = m.neck[1] + .005 * k, head = body.weight(/^head/), points = [];
   for (let v = 0; v < body.count; v++) { const y = body.P[v * 3 + 1]; if (body.arm[v] < .1 && head[v] < .5 && y < top + .03 * k && y > bottom - .03 * k) points.push(body.point(v)); }
@@ -48,7 +44,6 @@ export function cape(body, m, shells, { bottom, ease = .016, open = 1.75, fold =
   return { piece, env };
 }
 
-/** A pack on the back with shoulder straps and an optional bedroll, or an air supply with two tanks. */
 export function backpack(body, m, shells, { bedroll = true, tanks = false } = {}) {
   const k = m.k, cast = caster(shells, true), top = m.shoulder - (tanks ? -.02 : .01) * k, tall = (tanks ? .42 : .37) * k, wide = Math.min(.29 * k, m.shoulderWidth * 1.65), deep = (tanks ? .1 : .125) * k;
   let back = Infinity;
@@ -84,7 +79,6 @@ export function backpack(body, m, shells, { bedroll = true, tanks = false } = {}
   return { pack, gear };
 }
 
-/** A bib apron over the front of the clothes, with a waist tie and shoulder straps. */
 export function apron(body, m, shells, { top = m.chest[1] + .1 * m.k, bottom = m.knee + .05 * m.k } = {}) {
   const k = m.k, cast = caster(shells, true), arm = body.weight(ARMS), points = [];
   for (let v = 0; v < body.count; v++) { const y = body.P[v * 3 + 1]; if (arm[v] < .3 && y < top + .04 * k && y > bottom - .03 * k) points.push(body.point(v)); }
@@ -111,12 +105,10 @@ export function apron(body, m, shells, { top = m.chest[1] + .1 * m.k, bottom = m
   return { piece, ties };
 }
 
-/** An open-faced shell helmet around the head, with a collar ring it locks into. */
 export function helmet(body, m, { room = .05, open = .92 } = {}) {
   const k = m.k, head = body.weight(/^head/), lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
   for (let v = 0; v < body.count; v++) if (head[v] > .6) for (let d = 0; d < 3; d++) { lo[d] = Math.min(lo[d], body.P[v * 3 + d]); hi[d] = Math.max(hi[d], body.P[v * 3 + d]); }
   const centre = [0, (lo[1] + hi[1]) / 2 + .012 * k, (lo[2] + hi[2]) / 2 - .004 * k], radius = Math.max(hi[1] - lo[1], hi[2] - lo[2]) / 2 + room * k;
-  // Rings circle the line of sight, so the face opening is a clean round edge.
   const sight = unit([0, -.12, 1]), side = [1, 0, 0], up = cross(sight, side), skin = body.rigid("head"), shell = new Piece(), trim = new Piece();
   const ring = (angle, r) => Array.from({ length: 40 }, (_, j) => {
     const a = j / 40 * TAU, x = Math.cos(a) * Math.sin(angle), y = Math.sin(a) * Math.sin(angle);

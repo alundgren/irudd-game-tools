@@ -1,22 +1,3 @@
-// G0 baseline: fast independent recheck of baseline.json against the pinned source.
-//
-// usage: node PATH/TO/verification/baseline/check.mjs [--build] [--g0 DIR] [--frames N|all] [--run DIR]
-//
-// Run it in a clean checkout of 2761eb14 (LF or CRLF, after `npm ci`). Without a browser,
-// GPU or provider it regenerates, into a temporary directory:
-//   - the inventory: counts, every gitBlob and canonicalSha256, the canonical aggregates and
-//     licence titles must equal baseline.json; working-tree sha256 values must equal the
-//     frozen ones in a CRLF checkout and the canonical ones in an LF checkout
-//   - workflows.json, which must equal frozen.workflows
-//   - the seeded generator digest
-//   - with --build, `npm run build` (this rewrites dist/), whose hashes must equal the frozen
-//     build for this checkout's line endings
-// With --g0 DIR (a G0 cache) it also reruns freeze.mjs on that cache, which must reproduce the
-// checked-in baseline.json byte for byte, and re-decodes N r0 capture frames per capture set
-// (default 24) with compare.py frames. With --run DIR (the .reference-cache/g0 of a fresh
-// run-g0.mjs run, --quick is enough) it compares that run's exports by content digest, its r0
-// captures by decoded pixels, its offline flow statuses and its public reference view with the
-// frozen records. Prints one line per check and exits 1 on a mismatch.
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdtempSync, readFileSync, readdirSync } from "node:fs";
@@ -41,7 +22,6 @@ const head = git("rev-parse", "HEAD");
 check("checkout is 2761eb14", head.startsWith("2761eb14"), head);
 check("tracked files clean", git("status", "--porcelain", "--untracked-files=no") === "");
 
-// Inventory
 node("inventory.mjs", tmp);
 const inv = JSON.parse(readFileSync(join(tmp, "inventory.json"), "utf8"));
 const crlf = (inv.checkout.workingTreeEol["w/crlf"] ?? 0) > 0;
@@ -66,7 +46,6 @@ for (const [name, list, want, pick] of [["forms", inv.forms, c.forms, same], ["g
   check(`${name}: ${list.length} records by gitBlob, canonicalSha256 and ${mode} sha256`, list.length === want.length && !bad.length, bad.slice(0, 5).join(", "));
 }
 
-// Workflows and seeded generators
 node("workflows.mjs", tmp);
 check("workflows.json equals frozen.workflows", isDeepStrictEqual(JSON.parse(readFileSync(join(tmp, "workflows.json"), "utf8")), frozen.workflows));
 const seeded = JSON.parse(node("seeded.mjs", tmp).trim().split("\n").pop());
@@ -92,7 +71,6 @@ if (g0) {
     check(`capture-${section} r0 frames: file hash and decoded pixels`, r.status === 0, r.stdout.trim());
   }
 }
-// A fresh run (run-g0.mjs, usually --quick --skip-suite) compared with the frozen records.
 const run = opt("--run");
 if (run) {
   const { glbSummary } = await import("./glb.mjs");

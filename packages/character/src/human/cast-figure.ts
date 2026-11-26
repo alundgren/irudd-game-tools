@@ -1,12 +1,3 @@
-// The clothed cast member an adult is worn as (castMeshes and its helpers in
-// character-view/human-cast.js, applyCastSurface in human-cast-surface.js and
-// castSkirtJoints in human-cast-skirt.js at 2761eb1). The member's figure
-// follows the adult's own body through handles of the editable surface, so
-// every measurement still reaches the cast; the face carries its authored
-// poses and the hair cards ride with the head. The textured presets paint the
-// member's photographed picture in the chosen skin colour, with the lids
-// repainted as skin and the irises in the chosen colour.
-
 import * as T from "three";
 import { context2d, type Raster } from "../raster.js";
 import {
@@ -37,19 +28,16 @@ import type { SmoothSurface } from "./smooth.js";
 
 const at = (a: ArrayLike<number>, i: number) => a[i] ?? 0;
 
-/** Skin weights of a cast mesh against the adult's bones. */
 export interface CastWeights {
   readonly boneIndices: Uint16Array;
   readonly weights: Float32Array;
 }
 
-/** The style fields the cast build reads. */
 export interface CastStyle extends CastOutfitStyle {
   readonly castShape?: number | undefined;
   readonly castPigment?: number | undefined;
 }
 
-/** What the textured presets paint the cast from. */
 export interface CastFinish {
   readonly raster: Raster;
   readonly paint: HumanPaint;
@@ -68,8 +56,6 @@ function spread<A extends Float32Array | Uint8Array>(
 }
 const floats = (length: number) => new Float32Array(length);
 
-// Gather the editable body's displacement into spatial handles. Coincident points on
-// separate eyelids, teeth, and cloth panels then receive the same local deformation.
 function shapeFigure(
   figure: CastFigureData,
   surface: SmoothSurface,
@@ -110,7 +96,6 @@ function smoothNormals(positions: Float32Array, index: Uint16Array): Float32Arra
   return normal instanceof Float32Array ? normal : Float32Array.from(normal);
 }
 
-/** An RGBA picture as an sRGB texture. */
 function picture(raster: Raster, bytes: Uint8ClampedArray, side: number): T.CanvasTexture {
   const canvas = raster.canvas(side, side),
     pen = context2d(canvas);
@@ -164,7 +149,6 @@ function paintedSkin(
     }
     rgba[i * 4 + 3] = 255;
   }
-  // The upper lids are skin: repaint them before the skin is tinted, so they take the chosen colour too.
   if (lids) paintCastLids(rgba, mask, paint.side, lids, paint.tone);
   for (let i = 0; i < mask.length; i++) {
     const m = at(mask, i);
@@ -174,8 +158,6 @@ function paintedSkin(
       rgba[i * 4 + k] = orig + (m / 255) * (at(lut[k] ?? [], orig) - orig);
     }
   }
-  // The Rocketbox facial chart maps both irises to this photographed disc.
-  // Keep the pupil, catchlights, outer dark ring and white of the eye from the artist.
   const target = eyeColour === undefined ? undefined : irisBaseTone(eyeColour);
   if (target) {
     const cx = 0.263 * half,
@@ -200,11 +182,6 @@ function paintedSkin(
   return picture(raster, rgba, paint.side);
 }
 
-/**
- * Normal and roughness maps matching the colour atlas the wardrobe makes. The
- * head occupies the top right, and a borrowed bottom can use the lower right
- * at half its original height.
- */
 function applyCastSurface(
   raster: Raster,
   paint: HumanPaint,
@@ -213,7 +190,6 @@ function applyCastSurface(
   style: CastOutfitStyle,
 ): void {
   const head = castPeople[name]?.subject ?? "";
-  // Photographed figures can supply their own artwork without supplementary maps.
   if (!Object.hasOwn(castSurfaceSubjects, head)) return;
   const outfit = wornCastOutfit(name, style);
   const top = outfit ? castPieces[outfit.top].subject : head;
@@ -244,7 +220,6 @@ function applyCastSurface(
         normals[dst] = 128 + scale * nx;
         normals[dst + 1] = 128 + scale * ny;
         normals[dst + 2] = 128 + scale;
-        // Adapt source specular intensity to dielectric roughness.
         const intensity = (at(src, a + 2) + at(src, b + 2)) / 255;
         roughness[dst + 1] = 255 * Math.max(0.24, 0.9 - 0.9 * Math.sqrt(intensity));
       }
@@ -258,7 +233,6 @@ function applyCastSurface(
   material.roughness = 1;
 }
 
-/** One cast mesh: its skin weights against the adult's bones, and the drape a hanging hem follows. */
 export interface CastMesh {
   readonly mesh: T.Mesh;
   readonly weights: CastWeights;
@@ -320,7 +294,6 @@ function hairCards(
   return { mesh, weights: { boneIndices, weights } };
 }
 
-// A fitted outfit can occupy the lower-right quarter with its borrowed trousers.
 function leavesHairQuarterFree(uv: Float32Array, indices: Uint16Array): boolean {
   for (let cursor = 0; cursor < indices.length; cursor += 3) {
     const a = 2 * at(indices, cursor),
@@ -333,11 +306,6 @@ function leavesHairQuarterFree(uv: Float32Array, indices: Uint16Array): boolean 
   return true;
 }
 
-/**
- * The joints a source garment hangs from, measured on this figure: two rings
- * of eight, at mid length and at the hem, standing on the garment's own
- * outline.
- */
 function castSkirtJoints(
   s: SmoothSurface,
   moved: Float32Array,
@@ -373,7 +341,6 @@ function castSkirtJoints(
     }
   const cx = pelvis[0],
     cz = pelvis[2];
-  // How far out the garment stands at a height and direction: the points nearest in height within the column.
   const radius = (y: number, a: number) => {
     const best: Array<readonly [number, number]> = [];
     for (const p of points) {
@@ -404,7 +371,6 @@ function castSkirtJoints(
       });
     }
   });
-  // The legs under the cloth as rows of balls. Their thickness is a share of the body's size, not measured.
   const legs: Array<ClothJoints["legs"][number]> = [];
   for (const side of ["l", "r"])
     for (const [from, to, radii] of [
@@ -427,12 +393,6 @@ function castSkirtJoints(
   };
 }
 
-/**
- * The cast member's meshes, in the head's frame at `origin`: the face with
- * its poses, the body and clothing (and a hanging hem apart), and the hair
- * cards. `finish` paints them as the textured presets do; without it they
- * take `colour` as clay.
- */
 export function castMeshes(
   cast: HumanCast,
   name: CastFigureName,

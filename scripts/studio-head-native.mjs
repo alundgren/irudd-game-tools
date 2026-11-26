@@ -1,5 +1,3 @@
-// The native default adult's smooth surface, for the correspondence made by scripts/pack-human-studio-head.py.
-//   node scripts/studio-head-native.mjs out.json
 import fs from 'node:fs';
 import { humanForm } from '../character-view/human-form.js';
 import { evaluateHuman, smoothHumanSurface } from '../character-view/human-surface.js';

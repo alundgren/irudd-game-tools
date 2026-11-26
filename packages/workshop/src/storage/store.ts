@@ -1,15 +1,3 @@
-// The SQLite storage writer. One file per project holds every document's
-// journal, a header row per document and the content-addressed blobs.
-//
-// Only the project service imports this module. It knows SQL, files and locks;
-// it never interprets journal entries beyond the columns the service hands it.
-//
-// Ownership: the connection runs in SQLite's EXCLUSIVE locking mode, set before
-// WAL is first entered, so no shared-memory index exists and the first write
-// takes a file lock that is held until the connection closes or the process
-// exits. A second service, in this or another process, cannot read or write the
-// file meanwhile and fails to open with `ProjectLocked`.
-
 import { SqliteClient } from "@effect/sql-sqlite-node";
 import { Duration, Effect, Schema } from "effect";
 import type { Scope } from "effect";
@@ -26,9 +14,7 @@ import {
 } from "../contract/errors.js";
 import { projectFormat, projectVersion } from "../contract/project.js";
 
-/** "irwd" — marks the file as a workshop project in SQLite's header. */
 export const applicationId = 0x69727764;
-/** Storage schema version, kept in `PRAGMA user_version` and in `meta.version`. */
 export const schemaVersion = projectVersion;
 
 const schema = [
@@ -60,8 +46,6 @@ const schema = [
      stored_at INTEGER NOT NULL
    ) STRICT`,
 ];
-
-// ── Rows ────────────────────────────────────────────────────────────────────
 
 const MetaRow = Schema.Struct({ key: Schema.String, value: Schema.String });
 const DocumentRow = Schema.Struct({
@@ -108,11 +92,9 @@ export interface NewEntry {
   readonly sequence: number;
   readonly digest: string;
   readonly requestId: string;
-  /** `canonicalJson(journalJson(entry))` */
   readonly text: string;
 }
 
-/** Non-authoritative header columns, kept so listing documents needs no journal. */
 export interface HeaderCache {
   readonly label: string | null;
   readonly revision: number;
@@ -132,13 +114,6 @@ export interface Store {
   readonly listDocuments: Effect.Effect<ReadonlyArray<DocumentRow>, StorageFailed>;
   readonly header: (documentId: string) => Effect.Effect<DocumentRow | undefined, StorageFailed>;
   readonly entries: (documentId: string) => Effect.Effect<ReadonlyArray<EntryRow>, StorageFailed>;
-  /**
-   * Append one entry and move the document's header from `expected` to it, in
-   * one transaction. `expected` is null for a document's first entry. When the
-   * stored header is not `expected` (another writer moved it) nothing is
-   * written and the call fails with `StorageFailed` operation `append-diverged`.
-   * `beforeCommit` runs inside the transaction after the rows are written.
-   */
   readonly append: (
     documentId: string,
     expected: { readonly sequence: number; readonly digest: string } | null,
@@ -146,7 +121,6 @@ export interface Store {
     cache: HeaderCache,
     beforeCommit: Effect.Effect<void>,
   ) => Effect.Effect<void, StorageFailed>;
-  /** Write a whole document (an import) with its blobs, in one transaction. */
   readonly insertDocument: (
     documentId: string,
     entries: ReadonlyArray<NewEntry>,
@@ -154,7 +128,6 @@ export interface Store {
     blobs: ReadonlyArray<NewBlob>,
   ) => Effect.Effect<{ readonly added: number; readonly existing: number }, StorageFailed>;
   readonly blobIndex: Effect.Effect<ReadonlyArray<BlobMetaRow>, StorageFailed>;
-  /** Store verified bytes. Returns whether they were new. Stored blobs never change. */
   readonly putBlob: (blob: NewBlob) => Effect.Effect<"new" | "existing", StorageFailed>;
   readonly readBlob: (
     digest: string,
@@ -163,24 +136,19 @@ export interface Store {
     | undefined,
     StorageFailed
   >;
-  /** Each stored blob in turn, without holding them all in memory. */
   readonly forEachBlob: (
     visit: (digest: string, bytes: Uint8Array) => void,
   ) => Effect.Effect<void, StorageFailed>;
   readonly integrityCheck: Effect.Effect<string, StorageFailed>;
-  /** SQLite online backup of the whole file to `destination`. */
   readonly backup: (destination: string) => Effect.Effect<void, StorageFailed>;
 }
 
 export interface OpenStoreOptions {
   readonly file: string;
-  /** Present to create a new file; absent to open an existing one. */
   readonly create?: StoreMeta;
   readonly lockTimeoutMs: number;
   readonly durability: "full" | "normal";
 }
-
-// ── Errors ──────────────────────────────────────────────────────────────────
 
 function sqliteCode(error: SqlError): number | undefined {
   const cause: unknown = error.reason.cause;
@@ -216,8 +184,6 @@ function decodeRows<S extends Schema.Top & { readonly DecodingServices: never }>
       ),
     );
 }
-
-// ── Opening ─────────────────────────────────────────────────────────────────
 
 export const openStore = (
   options: OpenStoreOptions,
@@ -267,7 +233,6 @@ export const openStore = (
     const sql = yield* Effect.flatMap(Reactivity.make, (reactivity) =>
       SqliteClient.make({
         filename: file,
-        // WAL is entered below, after EXCLUSIVE locking mode is set.
         disableWAL: true,
         busyTimeout: Duration.millis(Math.max(0, options.lockTimeoutMs)),
       }).pipe(Effect.provideService(Reactivity.Reactivity, reactivity)),
@@ -295,7 +260,6 @@ export const openStore = (
     const now = Date.now();
     const owner = JSON.stringify({ pid: process.pid, openedAt: now });
 
-    // The first write takes the exclusive lock, and keeps it.
     const meta = yield* sql
       .withTransaction(
         Effect.gen(function* () {

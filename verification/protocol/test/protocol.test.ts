@@ -1,5 +1,3 @@
-// Fast tier of the g1-protocol evidence: the same checks as the gate at small
-// bounds. The full bounds run only in `pnpm gate:g1-protocol`.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -18,7 +16,6 @@ import { explore, mutations } from "../src/model.js";
 
 test("the model is independent of the implementation", () => {
   const source = readFileSync(new URL("../src/model.ts", import.meta.url), "utf8");
-  // No imports of any kind: the model shares no code with what it checks.
   const imports = source
     .split("\n")
     .filter((line) => /^\s*(import|export\b.*\bfrom)\b|\bimport\(|\brequire\(/.test(line));
@@ -54,9 +51,7 @@ test("the real reducer matches the model on every request from every state", () 
   const r = exhaustive(small);
   assert.equal(r.mismatch, undefined, JSON.stringify(r.mismatch));
   assert.ok(r.cases > 20);
-  // Every outcome the model produces at these bounds came from the reducer too.
   assert.deepEqual(missingOutcomes(explore(small).outcomes, r.outcomes), []);
-  // Drafts and policy are compared exhaustively in the gate (draft-diff, about 5 s).
 });
 
 test("the real reducer matches the model on seeded random traces", () => {

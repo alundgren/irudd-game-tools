@@ -1,10 +1,3 @@
-// Offer the review worker to the project's owner.
-//
-// In process: the host calls the worker directly. Attached: the worker serves
-// over this window's authenticated person connection. Jobs arrive as
-// `review-job` events; outputs go back in order with `review.put`, and the
-// job ends with `review.complete`, also when the worker fails.
-
 import type { RunningHost } from "@irudd/workshop/host";
 import type { WorkshopClient } from "@irudd/workshop/client";
 import { putChunkBytes, type RenderJob } from "@irudd/workshop/wire";
@@ -27,7 +20,6 @@ function isJob(value: unknown): value is RenderJob {
 const say = (log: ((line: string) => void) | undefined, line: string): void =>
   log ? log(line) : console.warn(line);
 
-/** Register the worker with a host this process owns. Returns the unregister function. */
 export async function registerInProcess(
   host: RunningHost,
   worker: ReviewWorker,
@@ -45,7 +37,6 @@ export async function registerInProcess(
   return host.registerRenderer(worker);
 }
 
-/** Serve the worker to the process that owns the project, over this person connection. */
 export async function serveAttached(
   client: WorkshopClient,
   worker: ReviewWorker,

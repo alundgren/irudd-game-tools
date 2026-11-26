@@ -1,5 +1,3 @@
-// Portrait sculpting uses head-height units. Keep the source picture's
-// standing-height coordinates intact for sampling its colours.
 export function headSpace(paint) {
   const frame = paint?.portrait?.frame;
   if (!frame) return paint;

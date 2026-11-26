@@ -1,14 +1,5 @@
-// The Rocketbox cast as clothed figures: each cast member's own figure, the
-// outfits fitted from other members' garments, and the pictures they are
-// painted from (character-view/human-cast-data.json,
-// human-cast-wardrobe-data.json and human-cast-surface-data.json at
-// 2761eb1, Microsoft Rocketbox Avatar Library, MIT). The geometry is the
-// cast pack (human-cast.bin); the pictures, which only the textured presets
-// read, are entries of the paint pack.
-
 import { readPack, type EntrySpec, type Pack, type PackKind, type PackSpec } from "./pack.js";
 
-/** The facial poses every figure carries, in its order. */
 export const castPoseNames = [
   "Blink",
   "Smile",
@@ -19,10 +10,8 @@ export const castPoseNames = [
   "LookDown",
 ] as const;
 export type CastPoseName = (typeof castPoseNames)[number];
-/** The expressions a figure's hair cards follow. */
 export const castCardExpressions = ["Blink", "Smile", "BrowLift"] as const;
 
-/** The Rocketbox bones a figure is weighted to, by index. */
 export const castBones = [
   "ball_l",
   "ball_r",
@@ -78,19 +67,12 @@ export const castBones = [
   "upperarm_r",
 ] as const;
 
-/** What a packed figure holds besides its arrays. */
 export interface CastFigureEntry {
-  /** The leading triangles that are the face, which carries the poses. */
   readonly faceTriangles: number;
-  /** Body handles each point follows. */
   readonly reach: number;
-  /** The photographed face skin of its picture, linear. */
   readonly tone: readonly [number, number, number];
-  /** Points of its hair and lash cards, or null for a figure without them. */
   readonly cards: number | null;
-  /** The avatar whose face shape and pigment a figure may borrow. */
   readonly donor: string | null;
-  /** Whether part of its clothing hangs as a skirt. */
   readonly skirt: boolean;
 }
 
@@ -102,7 +84,6 @@ const figure = (
   skirt = false,
 ): CastFigureEntry => ({ faceTriangles, reach: 8, tone, cards, donor, skirt });
 
-/** Every packed figure, by the cast member's name. */
 export const castFigures = {
   Gardener: figure(3008, [0.55834, 0.283149, 0.181164], 432, "Adults/Male_Adult_01"),
   "Cropped jacket": figure(3218, [0.617207, 0.304987, 0.187821], 987, "Adults/Female_Adult_08"),
@@ -126,19 +107,14 @@ export const castFigureNames: ReadonlyArray<CastFigureName> = [
 ];
 export const isCastFigureName = (name: string): name is CastFigureName =>
   Object.hasOwn(castFigures, name);
-/** A member's name as pack entries spell it, which have no spaces. */
 export const castSlug = (name: string): string => name.replaceAll(" ", "_");
-/** The member a pack entry's spelling names. */
 export const castFromSlug = (slug: string): CastFigureName | undefined =>
   castFigureNames.find((name) => castSlug(name) === slug);
-/** The side of a figure's picture and of its hair cards' picture. */
 export const castPictureSide = 1024,
   castCardSide = 512;
 
-/** A garment pair of the wardrobe: whose avatar it came from and the names of its top and bottom. */
 export interface CastPiece {
   readonly subject: string;
-  /** The cast member who wears it as their own; null for a garment only the wardrobe carries. */
   readonly figure: CastFigureName | null;
   readonly top: string;
   readonly bottom: string;
@@ -184,13 +160,11 @@ export const castPieceCodes: ReadonlyArray<CastPieceCode> = [
   "f001",
 ];
 
-/** A fitted outfit: the top's piece and the bottom's, and the leading face triangles of its figure. */
 export interface CastVariant {
   readonly top: CastPieceCode;
   readonly bottom: CastPieceCode;
   readonly faceTriangles: number;
   readonly reach: number;
-  /** Points of the hair cards it carries. */
   readonly cards: number;
 }
 const variant = (
@@ -200,7 +174,6 @@ const variant = (
   cards: number,
 ): CastVariant => ({ top, bottom, faceTriangles, reach: 8, cards });
 
-/** The members the wardrobe fitted, their own piece and the outfits fitted to them, in the reference's order. */
 export const castReceivers: Readonly<
   Partial<
     Record<
@@ -228,7 +201,6 @@ export const castReceivers: Readonly<
 export const castVariantKey = (v: { readonly top: string; readonly bottom: string }): string =>
   `${v.top}/${v.bottom}`;
 
-/** The body skin each garment's art was photographed with, linear; null where it has none. */
 export const castBodySkin: Readonly<Record<string, readonly [number, number, number] | null>> = {
   Gardener: null,
   "Cropped jacket": [0.63569, 0.34053, 0.23604],
@@ -241,7 +213,6 @@ export const castBodySkin: Readonly<Record<string, readonly [number, number, num
   m007: [0.31896, 0.14226, 0.08533],
 };
 
-/** The supplementary normal and specular maps, by avatar: the regions each has, at this side. */
 export const castSurfaceSide = 384;
 export const castSurfaceSubjects: Readonly<Record<string, ReadonlyArray<"body" | "head">>> = {
   "Adults/Female_Adult_01": ["body", "head"],
@@ -267,12 +238,6 @@ const cardKinds: Kinds = {
 const poseKinds = (prefix: string): Kinds =>
   Object.fromEntries(castPoseNames.map((name) => [`${prefix}${name}`, "f32"]));
 
-/**
- * The cast pack: `figure/<member>/<array>` for each member's own figure and
- * `variant/<member>/<top>/<bottom>/<array>` for each fitted outfit. A figure's
- * body points follow handles of the editable body (`field.*`); a fitted
- * outfit stores its weights, pulls and chart in whole numbers.
- */
 function castSpec(): PackSpec {
   const spec: Record<string, EntrySpec> = {};
   const add = (prefix: string, kinds: Kinds) => {
@@ -327,12 +292,10 @@ function castSpec(): PackSpec {
 }
 export const humanCastSpec = castSpec();
 
-/** The paint pack's cast pictures, raw bytes as the reference held them. */
 export function castPaintEntries(): ReadonlyArray<readonly [string, EntrySpec]> {
   const out: Array<readonly [string, EntrySpec]> = [];
   for (const name of castFigureNames) {
     const entry: CastFigureEntry = castFigures[name];
-    // The picture as RGB, the face-skin mask, the hair cards' RGBA and a donor's pigment shift.
     out.push([
       `castFigure.${castSlug(name)}.pixels`,
       { kind: "u8", elements: castPictureSide ** 2 * 3 },
@@ -349,7 +312,6 @@ export function castPaintEntries(): ReadonlyArray<readonly [string, EntrySpec]> 
         { kind: "u8", elements: (castPictureSide / 2) ** 2 * 3 },
       ]);
   }
-  // Garment art the wardrobe carries for pieces no member wears: half a picture wide.
   out.push([
     `castArt.m007.pixels`,
     { kind: "u8", elements: (castPictureSide / 2) * castPictureSide * 3 },
@@ -360,7 +322,6 @@ export function castPaintEntries(): ReadonlyArray<readonly [string, EntrySpec]> 
   ]);
   for (const [subject, regions] of Object.entries(castSurfaceSubjects))
     for (const region of regions)
-      // Normal x, y and specular of half the picture's width: the body full height, the head half.
       out.push([
         `castSurface.${subject}.${region}`,
         {
@@ -372,7 +333,6 @@ export function castPaintEntries(): ReadonlyArray<readonly [string, EntrySpec]> 
   return out;
 }
 
-/** A figure's arrays, as castMeshes reads them. */
 export interface CastFigureData {
   readonly name: CastFigureName;
   readonly positions: Float32Array;
@@ -411,7 +371,6 @@ export interface CastFigureData {
   readonly skirt: Uint16Array | null;
 }
 
-/** A fitted outfit's arrays, as the pack stores them. */
 export interface CastVariantData {
   readonly positions: Float32Array;
   readonly source: Uint16Array;
@@ -515,7 +474,6 @@ function variantOf(pack: Pack, name: CastFigureName, v: CastVariant): CastVarian
   };
 }
 
-/** Decode the cast pack. Figures are assembled on first use. */
 export async function readHumanCast(bytes: Uint8Array): Promise<HumanCast> {
   const pack = await readPack(bytes, humanCastSpec, "human-cast.bin");
   const figures = new Map<CastFigureName, CastFigureData>(),

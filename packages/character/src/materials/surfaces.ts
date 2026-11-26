@@ -1,10 +1,3 @@
-// Material finishes of the full preset. Ported from loadSurfaces and
-// surfaceMaterial in character-view/materials.js at 2761eb1.
-//
-// Swatches are drawn from the bundled surface sheets through the host's
-// raster, so their resampling is the browser's own. Each finish is a value
-// map that tints with the part's colour, with the same map as its bump.
-
 import * as T from "three";
 import type { Digest } from "@irudd/document";
 import { bundledAssetNamed, type AssetResolver } from "../assets.js";
@@ -12,10 +5,6 @@ import { context2d, type Raster } from "../raster.js";
 import { randomStream } from "../random.js";
 import { prepareFacePaint, type FacePaint } from "../paint/faces.js";
 
-/**
- * Finish names the builders paint, including the groom finishes `strands`
- * and `scalp` and the untextured, vertex-coloured `wing` and `feathered wing`.
- */
 export type SurfaceKind =
   | "plain"
   | "canvas"
@@ -31,14 +20,8 @@ export type SurfaceKind =
   | "wing"
   | "feathered wing";
 
-/**
- * The bundled sheet a swatch texture was drawn from, so an export lists a
- * sheet only when one of its swatches reaches a material it writes.
- * Procedural swatches (strands, scalp, fur) have none.
- */
 export const swatchSheet = new WeakMap<T.Texture, Digest>();
 
-/** Unscaled texels for baking a leather swatch into a compact normal map. */
 export const leatherHeightImage = new WeakMap<T.Texture, HTMLCanvasElement>();
 
 function drawnFrom(texture: T.Texture, sheet: string): void {
@@ -51,13 +34,10 @@ export interface SurfaceKit {
   readonly raster: Raster;
   readonly textures: Map<SurfaceKind, T.Texture>;
   readonly roughness: ReadonlyMap<SurfaceKind, T.Texture>;
-  /** The built-in heads' face paint. */
   readonly faces: FacePaint;
   dispose(): void;
 }
 
-// Short, overlapping filaments remain visible between a collar's long guard
-// hairs. Draw pigment only, so lighting follows the mesh.
 function shortFur(raster: Raster): T.Texture {
   const size = 384;
   const canvas = raster.canvas(size, size);
@@ -101,7 +81,6 @@ async function bundledImage(raster: Raster, assets: AssetResolver, name: string)
   return raster.image(resolved.bytes, resolved.mediaType);
 }
 
-/** Load every finish swatch, in the reference workshop's order. */
 export async function loadSurfaces(raster: Raster, assets: AssetResolver): Promise<SurfaceKit> {
   const textures = new Map<SurfaceKind, T.Texture>();
   const roughness = new Map<SurfaceKind, T.Texture>();
@@ -175,7 +154,6 @@ export async function loadSurfaces(raster: Raster, assets: AssetResolver): Promi
     const roughCanvas = name === "leather" ? raster.canvas(256, 256) : null;
     const roughCtx = roughCanvas && context2d(roughCanvas);
     const roughData = roughCtx?.createImageData(256, 256);
-    // Retain grain as a neutral value map so the artist controls the dye colour.
     for (let i = 0; i < data.data.length; i += 4) {
       const l =
         0.21 * (data.data[i] ?? 0) +
@@ -184,7 +162,6 @@ export async function loadSurfaces(raster: Raster, assets: AssetResolver): Promi
       const value = Math.min(255, Math.max(138, 211 + (l - 136) * 0.58));
       data.data[i] = data.data[i + 1] = data.data[i + 2] = value;
       if (roughData) {
-        // Satin-oiled grain crowns against deeper leather pores.
         const norm = (value - 138) / (255 - 138);
         const r = i === 0 ? 0.79 : Math.max(0.64, Math.min(0.98, 0.96 - 0.3 * norm));
         roughData.data[i] = 255;
@@ -202,8 +179,6 @@ export async function loadSurfaces(raster: Raster, assets: AssetResolver): Promi
     drawnFrom(texture, "surfaces");
     textures.set(name, texture);
     if (roughCanvas && roughCtx && roughData) {
-      // Chromium changes how a readback canvas is filtered after repeated
-      // draws. Keep the same texels on a drawing canvas for height sampling.
       const height = raster.canvas(canvas.width, canvas.height);
       context2d(height, { willReadFrequently: false }).putImageData(data, 0, 0);
       leatherHeightImage.set(texture, height);
@@ -216,8 +191,6 @@ export async function loadSurfaces(raster: Raster, assets: AssetResolver): Promi
       roughness.set(name, roughTex);
     }
   }
-  // Unwrap the front panel around a vertical garment loft. Back and side
-  // samples use a plain area of the same cloth with the sewing details omitted.
   const canvas = raster.canvas(1024, 512);
   const ctx = context2d(canvas, { willReadFrequently: true });
   const src = raster.canvas(jacket.width, jacket.height);
@@ -282,7 +255,6 @@ function bumpOf(kind: SurfaceKind): number {
   return 0.0007;
 }
 
-/** The material of one finish and colour, as surfaceMaterial makes it. */
 export function surfaceMaterial(
   kit: SurfaceKit,
   color: string,
@@ -301,7 +273,6 @@ export function surfaceMaterial(
   });
 }
 
-/** One material per colour and finish for a build, as the reference builder caches them. */
 export function surfaceMaterials(
   kit: SurfaceKit,
 ): (color: string, finish: SurfaceKind) => T.Material {

@@ -1,9 +1,3 @@
-// The page side of the textured-preset gate: bundled with esbuild and run in
-// installed Chrome, so canvas resampling and PNG encoding are the browser's.
-//
-// The runner serves this bundle, the bundled asset files and the fixtures'
-// content-addressed blobs from a routed origin, then calls `iruddExport`.
-
 import {
   assetResolver,
   bundledAssets,
@@ -48,7 +42,6 @@ export interface ExportRequest {
   readonly name: string;
   readonly document: unknown;
   readonly presets: ReadonlyArray<Target>;
-  /** Project blobs the document needs, by digest, with their media types. */
   readonly blobs: ReadonlyArray<{ readonly digest: string; readonly mediaType: string }>;
   readonly revision: number;
   readonly build: string;
@@ -73,7 +66,6 @@ const raster = domRaster();
 const bundled = new Map<string, Uint8Array>();
 let surfaces: SurfaceKit | undefined;
 
-// A native adult's packs and prepared paint, loaded with the first adult the gate exports.
 let adult: Promise<{ readonly body: HumanBody; readonly paint: HumanPaintSources }> | undefined;
 let body: HumanBody | undefined;
 async function loadAdult() {
@@ -175,7 +167,6 @@ async function exportAll(requests: ReadonlyArray<ExportRequest>): Promise<Export
   return out;
 }
 
-/** The WebGL renderer string, so the run records whether canvas work was hardware accelerated. */
 function renderer(): string | null {
   const canvas = document.createElement("canvas");
   const gl = canvas.getContext("webgl2") ?? canvas.getContext("webgl");

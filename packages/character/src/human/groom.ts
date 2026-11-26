@@ -1,13 +1,5 @@
-// The groom pack: hair and facial hair combed as strand cards by MakeHuman
-// community artists (CC0), packed from character-view/human-grooms-data.json
-// at 2761eb1 (authoredAssets in character-view/human-authored-hair.js). Each
-// groom is tied to the adult's skin cage by three source vertices a card
-// vertex, with the cards trimmed to their painted outline and the scalp the
-// cards cover.
-
 import { readPack, type EntrySpec, type Pack, type PackSpec } from "./pack.js";
 
-/** Who combed a groom and where it was published. */
 export interface GroomCredit {
   readonly author: string;
   readonly licence: "CC0 1.0";
@@ -17,9 +9,7 @@ export interface GroomCredit {
 
 export interface GroomEntry {
   readonly credit: GroomCredit;
-  /** Facial hair is worn on the face, not as library hair. */
   readonly facial: boolean;
-  /** Cards drawn whole and rounded, not trimmed to their outline. */
   readonly smoothCards: boolean;
 }
 
@@ -41,7 +31,6 @@ const hair = (credit: GroomCredit, smoothCards = false): GroomEntry => ({
   smoothCards,
 });
 
-/** Every packed groom, in the order the reference holds them. */
 export const grooms = {
   short_layered: hair(system),
   short_receding: hair(system),
@@ -90,7 +79,6 @@ export const groomNames: ReadonlyArray<GroomName> = [
 ];
 export const isGroomName = (name: string): name is GroomName => Object.hasOwn(grooms, name);
 
-/** Hair styles worn as authored grooms (authoredHair at 2761eb1). */
 export const authoredHair: Readonly<Record<string, GroomName>> = {
   "Loose waves": "cloud_waves",
   "Layered short": "short_layered",
@@ -102,10 +90,6 @@ export const authoredHair: Readonly<Record<string, GroomName>> = {
   "Tied bun": "bun_tied",
 };
 
-/**
- * Library hair styles whose groom the pack holds (additionalHair at
- * 2761eb1, where these names resolve to their newer packing).
- */
 export const groomedHair: Readonly<Record<string, GroomName>> = {
   "Low ponytail": "ponytail_low",
   "Long centre part": "long_centre",
@@ -113,15 +97,6 @@ export const groomedHair: Readonly<Record<string, GroomName>> = {
   ...authoredHair,
 };
 
-/**
- * Arrays of a groom:
- *   faceRefs, faceWeights, faceUV, faceIndices   the cards trimmed to their outline: three card vertices and
- *                                                their shares (of 65535) a trimmed vertex, its chart point, triangles
- *   refs, weights, offsets                       three source cage vertices, their weights and the stand-off a card vertex
- *   uv, corners, uvCorners                       the whole cards: chart points and the vertex and chart point of each corner
- *   hide                                         source vertices the groom covers
- *   rootIds, rootField                           scalp source vertices and how far inside the groom's hairline each lies (1/100)
- */
 const groomKinds = {
   faceRefs: "u16",
   faceWeights: "u16",
@@ -135,13 +110,11 @@ const groomKinds = {
   uvCorners: "u16",
   hide: "u16",
   rootIds: "u16",
-  // Signed in the reference; the pack stores its bytes.
   rootField: "u8",
 } as const satisfies Readonly<Record<string, EntrySpec["kind"]>>;
 export type GroomArray = keyof typeof groomKinds;
 const scalpArrays: ReadonlyArray<string> = ["rootIds", "rootField"];
 
-/** Pack entries `<groom>/<array>`; facial hair has no scalp. */
 export const humanGroomSpec: PackSpec = Object.fromEntries(
   groomNames.flatMap((groom) =>
     Object.entries(groomKinds)
@@ -150,7 +123,6 @@ export const humanGroomSpec: PackSpec = Object.fromEntries(
   ),
 );
 
-/** A decoded groom. */
 export interface Groom extends GroomEntry {
   readonly name: GroomName;
   readonly faceRefs: Uint16Array;
@@ -164,7 +136,6 @@ export interface Groom extends GroomEntry {
   readonly corners: Uint16Array;
   readonly uvCorners: Uint16Array;
   readonly hide: Uint16Array;
-  /** The scalp the cards cover; null for facial hair. */
   readonly scalp: {
     readonly ids: Uint16Array;
     readonly field: Int8Array;
@@ -199,7 +170,6 @@ function groomOf(pack: Pack, name: GroomName): Groom {
   };
 }
 
-/** Decode the groom pack. Grooms are assembled on first use. */
 export async function readHumanGrooms(bytes: Uint8Array): Promise<HumanGrooms> {
   const pack = await readPack(bytes, humanGroomSpec, "human-groom.bin");
   const made = new Map<GroomName, Groom>();

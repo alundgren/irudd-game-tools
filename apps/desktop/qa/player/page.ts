@@ -1,13 +1,3 @@
-// The hidden player check. Runs in a never-shown Electron window on the
-// hardware GPU, against tracked example GLBs, through the same Player,
-// controls and Inspector the web player and the desktop library ship.
-//
-// It checks that inspection and the motion check never write to the live
-// stage (setter counters stay at zero and the live pose is unchanged, also
-// when a sheet fails), that portraits frame the face surface at the legacy
-// directions and measured angles, and that the look is held over clips and
-// handed back to them.
-
 import * as T from "three";
 import {
   Inspector,
@@ -64,7 +54,6 @@ const isMesh = (node: T.Object3D): node is T.Mesh => Reflect.get(node, "isMesh")
 const isSkinned = (node: T.Object3D): node is T.SkinnedMesh =>
   Reflect.get(node, "isSkinnedMesh") === true;
 
-/** Every morph weight in the stage's scene, keyed by mesh and target name. */
 function weights(stage: Stage): Map<string, number> {
   const found = new Map<string, number>();
   stage.scene.traverse((node) => {
@@ -85,7 +74,6 @@ function gazeWeights(stage: Stage): Record<string, number[]> {
   return found;
 }
 
-/** Everything a write to the live stage could change: clip, time, look, materials, weights, bones. */
 function liveSnapshot(stage: Stage): string {
   const parts: string[] = [
     String(stage.clip),
@@ -122,7 +110,6 @@ const watched = [
   "measureClips",
 ] as const;
 
-/** Count calls of every stage method that writes state, without changing what they do. */
 function spy(stage: Stage): { counts: Map<string, number>; restore: () => void } {
   const counts = new Map<string, number>();
   const originals: [string, unknown][] = [];
@@ -238,7 +225,6 @@ async function run(): Promise<void> {
           near(shot.time, 0.43, 1e-6, `${shot.view} time`);
           near(shot.gaze.x, 0.4, 1e-9, `${shot.view} look across`);
         }
-        // The counters do see a write to the live stage.
         player.setTime(0.43);
         expect(watch.counts.get("setTime") === 1, "the setter counter missed a live write");
         return `${shots.length} shots · ${shots.map((s) => s.view).join(", ")}`;

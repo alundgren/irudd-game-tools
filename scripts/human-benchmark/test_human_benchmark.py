@@ -71,7 +71,6 @@ class Distances(unittest.TestCase):
 
 class Rendering(unittest.TestCase):
     def test_frontmost_triangle_reports_interpolation_in_model_coordinates(self):
-        # Two nested triangles in a rectangular view. The nearer one is sloped.
         vertices = np.array([[-.8, -.5, -.2], [.8, -.5, -.2], [0, .5, -.2],
                              [-.3, -.2, .1], [.3, -.2, .3], [0, .4, .4]])
         faces = np.array([[0, 1, 2], [3, 4, 5]])
@@ -118,7 +117,6 @@ class Metrics(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         vertices, faces = sphere(0.3, 4)
-        # An egg, so that yaw matters; labels split it into a top and a bottom half.
         cls.vertices = vertices * [1.0, 1.4, 0.7] + [0, 0.5, 0]
         cls.faces = faces
         labels = (cls.vertices[:, 1] > 0.5).astype(int)
@@ -150,7 +148,7 @@ class Metrics(unittest.TestCase):
 
     def test_local_residual_removes_a_displaced_part(self):
         shifted = self.vertices.copy()
-        shifted[self.vertices[:, 1] > 0.62] += [0.0, 0.015, 0.0]  # lift the cap by 15 mm
+        shifted[self.vertices[:, 1] > 0.62] += [0.0, 0.015, 0.0]
         result, _ = compare(Body(shifted, self.faces, seed=4, samples=20000), self.target, aligned=False)
         self.assertGreater(result["regions"]["torso"]["chamfer"], 3 * result["regions"]["torso"]["local"]["chamfer"])
 

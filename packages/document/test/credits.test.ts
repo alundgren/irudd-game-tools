@@ -1,8 +1,3 @@
-// The asset-credit record under concurrent proposals, removals, undo and
-// records from earlier builds: credits merge one picture at a time, a real
-// disagreement about one picture's credit still conflicts, a removed picture
-// takes its credit with it, and a record that cannot be read is refused
-// rather than replaced.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -81,7 +76,6 @@ const head = (s: DocumentState): CharacterDocument => {
 const authors = (doc: CharacterDocument) =>
   Object.fromEntries(storedAssetCredits(doc).map((x) => [x.digest, x.author]));
 
-/** A document declaring `a` with its credit, plus whatever `extra` edits do. */
 function credited(...extra: Op[]): DocumentState {
   return run(
     generatedCreature(env),
@@ -138,7 +132,6 @@ test("two proposals that credit different new pictures merge credit by credit", 
     [b.digest]: "Bo",
     [c.digest]: "Cy",
   });
-  // The merged record is the written form: a fresh diff reproduces it exactly.
   const again = applyChanges(head(s), diff(head(s), merged.value));
   assert.ok(again.ok);
   assert.deepEqual(again.value, merged.value);
@@ -160,7 +153,6 @@ test("two proposals that credit the same picture differently still conflict on t
 });
 
 test("two proposals that each compact the same stale credit agree", () => {
-  // A record from a build that kept the credit of a removed picture.
   let s = credited(setCredits(record(credit(a.digest, "Ada"), credit(o.digest, "Gone"))));
   s = propose(s, "prop-b", 2, [
     addAsset(b.digest),
@@ -209,7 +201,6 @@ test("a whole-record change from an earlier build applies credit by credit on a 
     [b.digest]: "Bo",
     [c.digest]: "Cy",
   });
-  // The same change against a disagreeing credit is a conflict, not an overwrite.
   const disagree = [
     {
       path: ["extensions", assetCreditsNamespace],
@@ -227,7 +218,6 @@ test("a whole-record change from an earlier build applies credit by credit on a 
   );
   const refused = applyChanges(head(changed), disagree);
   assert.equal(refused.ok, false);
-  // Unchanged record: the stored change applies exactly as written.
   const exact = applyChanges(head(s), legacy);
   assert.ok(exact.ok);
   assert.deepEqual(authors(exact.value), { [a.digest]: "Ada", [c.digest]: "Cy" });
@@ -300,7 +290,6 @@ test("removing a picture retires its credit, undo restores it, and other credits
   s = run(s, env, envelope(human, 3, { type: "undo", target: 3 }));
   assert.deepEqual(authors(head(s)), { [a.digest]: "Ada", [b.digest]: "Bo" });
   assert.ok(head(s).assets.some((x) => x.digest === a.digest));
-  // The last picture's removal leaves no empty record behind.
   s = run(
     s,
     env,
@@ -313,7 +302,6 @@ test("removing a picture retires its credit, undo restores it, and other credits
     }),
   );
   assert.equal(head(s).extensions[assetCreditsNamespace], undefined);
-  // The journal replays the credit-by-credit revisions to the same head.
   const reopened = openJournal(docId, s.journal, env);
   assert.ok(reopened.ok);
   if (reopened.ok) assert.deepEqual(reopened.state.document, s.document);
@@ -329,7 +317,6 @@ test("a record that cannot be read is never replaced; removal leaves it as it is
   const merged = mergeAssetCredits(doc, new Set([a.digest, b.digest]), []);
   assert.equal(merged.ok, false);
   if (!merged.ok) assert.match(merged.diagnostics[0]?.message ?? "", /cannot be read/);
-  // One credit cannot be written into it either.
   const one = applyChanges(doc, [
     { path: ["extensions", assetCreditsNamespace, b.digest], after: credit(b.digest, "Bo") },
   ]);
@@ -353,7 +340,6 @@ test("a reader keeps every credit past the write limit, and a merge over the lim
   const over = mergeAssetCredits(head(s), declared, []);
   assert.equal(over.ok, false);
   if (!over.ok) assert.equal(over.diagnostics[0]?.code, "limit");
-  // Credits of pictures the document no longer declares are compacted away.
   const first = digestOf(many[0]);
   const compact = mergeAssetCredits(head(s), new Set([first]), []);
   assert.ok(compact.ok);
@@ -364,8 +350,6 @@ test("a reader keeps every credit past the write limit, and a merge over the lim
 });
 
 test("an agent's proposal may not slip a credit past a stale base", () => {
-  // Control: the credit diff still guards the asset itself. A proposal adding
-  // `b` against a head that already added `b` with another credit conflicts.
   let s = credited();
   s = propose(s, "prop-b", 2, [
     addAsset(b.digest),

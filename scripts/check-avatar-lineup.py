@@ -55,7 +55,6 @@ def capture(out, start, count, check_clothes=False, game_portraits=False, build_
                 image = Image.open(io.BytesIO(surface.screenshot())).convert("RGB")
                 w, h = image.size
                 if framing == "fixed":
-                    # The editor's world view spans 2.65 m, with the camera aimed at y=1.05 m.
                     span = h * 2.28 / 2.65
                     cx, cy = w / 2, h / 2
                 else:

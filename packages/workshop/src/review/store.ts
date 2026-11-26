@@ -1,13 +1,3 @@
-// Review artifacts a host issued: exported GLBs, rendered PNGs and manifests.
-//
-// Content-addressed files under the host's per-user state directory
-// (`hosts/<key>/review/`), never in the project directory, so backups and
-// archives stay journals and artwork only. `index.json` records every
-// artifact this host issued for this project; `review.read` serves only those,
-// so a caller cannot read arbitrary files by guessing a digest, and an index
-// written for another project at the same path is discarded. The newest
-// `keep` artifacts are kept.
-
 import { createHash, randomBytes } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -27,7 +17,6 @@ interface Index {
   readonly version: 1;
   readonly projectId: string;
   artifacts: Record<string, IssuedArtifact>;
-  /** Last export per `digest|revision|preset|build`, for repeatability. */
   exports: Record<string, string>;
 }
 
@@ -90,12 +79,9 @@ export class ArtifactStore {
             if (typeof sha === "string") fresh.exports[key] = sha;
         return fresh;
       }
-      // Another project used this path before: its artifacts are not this project's.
       for (const name of fs.readdirSync(this.dir))
         fs.rmSync(path.join(this.dir, name), { force: true });
-    } catch {
-      // No index yet.
-    }
+    } catch {}
     return fresh;
   }
 
@@ -111,7 +97,6 @@ export class ArtifactStore {
     writeAtomic(this.indexFile, JSON.stringify(this.index) + "\n");
   }
 
-  /** Store bytes and record them as issued. Identical bytes are stored once. */
   put(
     bytes: Uint8Array,
     meta: Pick<IssuedArtifact, "mediaType" | "documentId" | "revision" | "kind">,
@@ -145,7 +130,6 @@ export class ArtifactStore {
     return Object.hasOwn(this.index.artifacts, sha256) ? this.index.artifacts[sha256] : undefined;
   }
 
-  /** A chunk of an issued artifact, re-hashed when the whole file is read. Undefined when not issued here. */
   read(
     sha256: string,
     offset: number,

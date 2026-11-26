@@ -40,7 +40,6 @@ export function scuteGeometry() {
       }
     }
   }
-  // Close the narrow ends as well, so the scute remains a solid plate.
   for (let i = 1; i < cols - 1; i++) {
     idx.push(0, i + 1, i);
     const end = rows * (cols + 1);
@@ -53,8 +52,6 @@ export function scuteGeometry() {
   g.computeVertexNormals();
   return g;
 }
-// Wrap the insertion pose over the supporting loft. The editable transform
-// stays independent so a plate can subsequently be removed, rotated or lifted.
 export function fittedScute(part, carrier) {
   const geometry = scuteGeometry(),
     mount = part.mount;
@@ -109,8 +106,6 @@ const directions = {
   Right: [-1, 0, 0],
   Top: [0, 1, 0],
 };
-// Armour uses an independent surface. Its upper inside patch fastens to the
-// rendered carrier, including a changed suit or an asymmetric sculpt.
 export function equipPlateRows(form, id, settings = {}) {
   const {
     count = 4,
@@ -250,7 +245,6 @@ export function repeatOnSpine(
         base = id;
       while (used.has(id)) id = base + " " + n++;
       used.add(id);
-      // Curve the tips away from the carrier, keeping the top edge embedded.
       const tilt = new Matrix4()
         .makeBasis(across, along, outward)
         .multiply(new Matrix4().makeRotationX(-0.15));

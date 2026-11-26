@@ -43,7 +43,6 @@ test("Loose waves unwinds fractured card normals and seals scalp/side gaps acros
     assert.equal(inwardVerts, 0, `${label}: no inward-facing vertex normals`);
     assert.ok(maxCrownH < 0.028 * f.k, `${label}: crown fitted without stair-step loft (${(maxCrownH * 1000).toFixed(1)}mm)`);
 
-    // Continuous side/back/crown coverage with no bald gaps.
     const cast = raycaster(pos.array, g.index.array);
     let rays = 0, hits = 0;
     for (const side of [-1, 1]) {

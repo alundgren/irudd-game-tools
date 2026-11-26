@@ -21,12 +21,7 @@ import {browPigment,makeupPalette,mixMakeup} from "./human-makeup.js";
 import {photoDetail,photoDetailNames,skinPigment} from "./human-photo-detail.js";
 
 export const complexionNames=["Smooth","Fine","Weathered","Lined","Soft lines",...photoDetailNames,"Weathered scars","Shaved complexion",...Object.keys(castSkin).map(k=>"Portrait "+k), ...capturedSkinNames];
-// The paint is stored for the face rectangle of the 2048 pixel skin layout and drawn at
-// twice that density. The head's texture coordinates are fitted to the same rectangle.
 const layout=2048,density=2;
-// The detail maps hold signed values about 128: 128 leaves skin as it is. An earlier packing
-// held near-white paint that multiplied the skin, and reading one as the other turns every face
-// dark and blotched. The file names how it is packed, and the two have to agree.
 export const detailEncoding="signed-detail";
 if(data.encoding?.name!==detailEncoding||data.encoding.neutral!==128)
   throw new Error("human-complexion-data.json is not packed as "+detailEncoding+". Run scripts/pack-human-complexion.py.");
@@ -57,7 +52,6 @@ export async function loadComplexions(){
     normalMap.anisotropy = roughnessMap.anisotropy = 4;
     return { normalMap, roughnessMap };
   };
-  // Donor paint stays compressed until a face asks for it: twenty decoded skins would hold a hundred megabytes.
   const loadFinish=async()=>{
     const decoded=async url=>{const image=new Image();image.src=url;await image.decode();return image;};
     const [donors,micro,meso,gloss,lips]=await Promise.all([Promise.all(finishData.maps.map(decoded)),
@@ -93,17 +87,7 @@ const srgbDecode=Float64Array.from({length:256},(_,i)=>{const v=i/255;return v<=
 const srgbEncode=v=>{const c=clamp(v,0,1);return 255*(c<=.0031308?12.92*c:1.055*c**(1/2.4)-.055);};
 const srgbUnitToLinear=v=>{const c=clamp(v,0,1.5);return c<=.04045?c/12.92:((c+.055)/1.055)**2.4;};
 const headGain=1.46;
-/**
- * How strongly the painted anatomy of a face reads at portrait distance. The donor colour, the lips, the eye
- * sockets and the lash line were each a few percent off bare skin, which a 1024 pixel game page and a lit
- * player flatten to one colour. These are the strengths at which they still read there.
- */
 export const portraitRead={pigment:1.6,planes:.8,blush:.85,lip:.5,lipDonor:.5,lid:.34,socket:.42,under:.8,browMass:.34,browInk:1.35,lash:1};
-/**
- * Reversible per-channel head base & exact neutral border byte.
- * Bare skin pixels stored at `neutral[k]` multiply by `base[k]` to recover `skin[k]` exactly,
- * while bytes above `neutral[k]` encode genuine positive skin highlights without white clipping.
- */
 export function headroomForSkin(skin,gain=headGain){
   const c=skin?.isColor?skin:new T.Color(skin??"#b08566");
   const channels=[c.r,c.g,c.b],neutral=[255,255,255],base=[c.r,c.g,c.b];
@@ -118,8 +102,6 @@ export function headroomForSkin(skin,gain=headGain){
   }
   return {neutral,base};
 }
-// The material colour multiplies the paint in linear light. Express a target colour as
-// the paint value that reaches it on this skin, and never brighter than bare skin.
 function tintOn(skin,target){
   const encode=v=>Math.round(255*(v<=.0031308?12.92*v:1.055*v**(1/2.4)-.055));
   return [target.r/Math.max(skin.r,.01),target.g/Math.max(skin.g,.01),target.b/Math.max(skin.b,.01)].map(v=>encode(Math.min(1,v)));
@@ -135,11 +117,6 @@ const detailPresets={
   "Soft lines":{poreRelief:.82,wrinkleRelief:.78,wrinkleShade:.54,mottleAmp:.84,dryness:.04},
 };
 
-/**
- * Pure, skin-tone-relative complexion reflectance and subtle colour-variation profile.
- * All roughness values stay within [0.24, 0.80] so the face material keeps roughness = 0.8
- * (preserving compatibility with face-mark roughness encoding in human-face-marks.js).
- */
 export function complexionProfile({choice,ageDetail,skin,age=0,frame=0}={}){
   const c=skin?.isColor?skin:new T.Color(skin??"#b08566");
   const light=.2126*c.r+.7152*c.g+.0722*c.b;
@@ -148,14 +125,9 @@ export function complexionProfile({choice,ageDetail,skin,age=0,frame=0}={}){
   const clampedAge=clamp(age,0,1);
   const baseName=detailPresets[choice]?choice:detailPresets[ageDetail]?ageDetail:ageComplexion(clampedAge);
   const preset=detailPresets[baseName];
-  // Dielectric F0 is constant across skin tones while diffuse albedo drops on dark skin.
-  // Give deep skin a higher roughness floor so cheekbones and nose read as living satin
-  // skin rather than matte clay or sweaty/oily glare, and give fair skin tighter sheen so
-  // highlights remain legible against brighter diffuse reflectance.
   const bodyRoughness=clamp(mix(.69,.64,fair)+.04*clampedAge+preset.dryness*.45,.58,.76);
   const faceRoughness=clamp(mix(.64,.56,fair)+.045*clampedAge+preset.dryness*.55,.52,.73);
   const shineDrop=mix(.095,.125,fair)*(1-.18*clampedAge);
-  // Bare lips are a little smoother than the skin beside them, not wet: a gloss belongs to makeup, which names its own.
   const lipRoughness=clamp(faceRoughness-.035,.5,.68);
   return {
     light,fair,naturalHue,age:clampedAge,baseName,
@@ -166,11 +138,8 @@ export function complexionProfile({choice,ageDetail,skin,age=0,frame=0}={}){
     wrinkleRelief:preset.wrinkleRelief,
     wrinkleShade:preset.wrinkleShade*mix(.85,1,fair),
     mottleAmp:preset.mottleAmp*mix(.78,1,fair),
-    // Skin-tone-relative anatomical tints (keep bare border at 1,1,1 and never grey-out deep skin).
     blushG:mix(.042,.074,fair)*(1-.22*clampedAge),
     blushB:mix(.046,.070,fair)*(1-.22*clampedAge),
-    // Lips are the vermilion of this skin: deeper and redder on fair skin, deeper and a little cooler on deep
-    // skin. A skin that is not a natural hue keeps its own hue and only deepens.
     lipTint:[mix(.9,mix(.88,.95,fair),naturalHue),mix(.84,mix(.8,.83,fair),naturalHue),mix(.86,mix(.82,.84,fair),naturalHue)],
     lidTint:[mix(.93,.92,fair),mix(.86,.84,fair),mix(.86,.85,fair)],
     socketTint:[mix(.9,.88,fair),mix(.84,.8,fair),mix(.85,.82,fair)],
@@ -179,15 +148,9 @@ export function complexionProfile({choice,ageDetail,skin,age=0,frame=0}={}){
   };
 }
 
-/**
- * What one texel of a detail map does to the colour of bare skin: a multiplier per channel.
- * Bytes at 128 give exactly one, so the border of the face paint is the colour of the body.
- */
 export function detailTint(r,g,b,profile,skinArea=1,open=1,lids=0){
   const pore=(r-128)/96,wrinkle=(g-128)/96,mottle=(b-128)/88;
-  // Modest zero-clipping natural colour variation from CC0 red-green chrominance.
   const mv=mottle*profile.mottleAmp*skinArea;
-  // Warm subsurface shading in wrinkles/creases only (never dirty grey) and a subtle neutral pore whisper.
   const crease=Math.min(0,wrinkle)*profile.wrinkleShade*open*(1-lids*.5);
   const poreWhisper=1+.014*Math.min(0,pore)*profile.poreRelief*skinArea;
   return [
@@ -197,11 +160,6 @@ export function detailTint(r,g,b,profile,skinArea=1,open=1,lids=0){
   ];
 }
 
-/**
- * Linear-light RGB multipliers from a `local-pigment-v2` CC0 anatomical albedo texel
- * (R=luminance incl. positive highlights, G=vascular RG warmth, B=melanin/cool YB).
- * Bytes at (128, 128, 128) return exact [1, 1, 1].
- */
 export function pigmentTint(r,g,b,profile,strength=1){
   if(r===128&&g===128&&b===128||strength<=0)return [1,1,1];
   const scales=registeredPigment.scales??{lumPos:.28,lumNeg:.34,rg:.22,yb:.22};
@@ -209,12 +167,8 @@ export function pigmentTint(r,g,b,profile,strength=1){
   const dL=rawL*(rawL>=0?(scales.lumPos??scales.lum??.28):(scales.lumNeg??scales.lum??.34));
   const dRG=((g-128)/120)*(scales.rg??.22);
   const dYB=((b-128)/120)*(scales.yb??.22);
-  // Perceptually match positive highlight lift on deep skin (where linear steps compress in sRGB)
-  // while keeping shadows restrained and natural across light, medium, deep and fantasy skins.
   const posGain=mix(1.38,1.08,profile.fair);
   const negGain=mix(.88,1.02,profile.fair);
-  // Shade and colour carry the face at portrait strength; a donor's highlights stay near their own strength,
-  // or the middle of a forehead reads as a pale patch.
   const lumExp=clamp(dL*(dL>=0?Math.min(strength,1.2)*posGain:strength*negGain),-.6,.26);
   const chromaScale=mix(.34,mix(.72,1.18,profile.fair),profile.naturalHue??1)*strength;
   const rg=dRG*chromaScale,yb=dYB*chromaScale*.76;
@@ -225,8 +179,6 @@ export function pigmentTint(r,g,b,profile,strength=1){
   ];
 }
 
-// Read a head's texture coordinates as positions in the face rectangle. The lining of the
-// mouth has its own island elsewhere in the skin layout; it reads a dark square of the paint.
 const [liningLeft,liningTop,liningRight,liningBottom]=data.mouth.island,[patchX,patchY,patchHalf]=data.mouth.patch;
 export function fitFaceLayout(geometry,lining){
   const uv=geometry.attributes.uv,unit=v=>Math.min(1,Math.max(0,v));
@@ -239,8 +191,6 @@ export function fitFaceLayout(geometry,lining){
   }
   uv.needsUpdate=true;
 }
-// Facial hair zones at every pixel of the stored paint, with a fade at the border of the
-// rectangle: coordinates beyond it read the border, which has to stay bare skin.
 let grown;
 function growthPixels(){
   if(grown)return grown;
@@ -254,18 +204,13 @@ function growthPixels(){
   return grown;
 }
 
-// Band-limited tileable micro-pore height field (centered at 0, range ~[-1, 1]) used ONLY
-// for normal relief and micro-roughness breakup — never painted as tinted dots in albedo.
 function poreReliefTile(seed,size=96){
   const next=randomStream(seed^0x2f6b1d);
   const grid=new Float32Array(size*size);
   for(let i=0;i<grid.length;i++){
     const u=next();
-    // Occasional soft pore dimples plus fine skin micro-grain, strictly zero-mean.
     grid[i]=(u<.18?-1.15*(1-u/.18):.22*(u-.5));
   }
-  // One wrap-around 3x3 binomial smoothing pass keeps wavelengths >= 2.5px so pores survive
-  // the 1024px game atlas downsample without aliasing or noisy speckles.
   const out=new Float32Array(size*size);
   let mean=0;
   for(let y=0;y<size;y++)for(let x=0;x<size;x++){
@@ -282,33 +227,17 @@ function poreReliefTile(seed,size=96){
   return out;
 }
 
-/**
- * The skin under a chosen beard or moustache: the colour of the hair's roots, which is the hair in its own shadow with
- * a little of the skin through it, and the head-base gain that lets the paint hold it. Null without facial hair and
- * for stubble, which is too sparse to hide the skin and keeps its multiplying tint.
- */
 export function beardRoot(skin,hair,facial){
   if(!facial||facial==="None"||facial==="Stubble")return null;
   const tone=hair.clone().multiplyScalar(facial==="Short beard"?.8:.66).lerp(skin,.12);
   const gain=clamp(1.04*Math.max(tone.r/Math.max(skin.r,.004),tone.g/Math.max(skin.g,.004),tone.b/Math.max(skin.b,.004)),headGain,6);
   return {tone,gain};
 }
-/**
- * The portrait finish: how the artist-authored donor paint, relief and gloss of human-portrait-finish-data.json
- * are laid on a face. Relief heights are bytes per texel of the stored layout, read at `bumpScale`.
- */
 export const finishRead={bumpScale:.0025,legacyRelief:.5,relief:96,micro:1.1,meso:.6,gloss:1.1,fantasyChroma:.4,lipChroma:.64,lipChromaBroad:.56};
-/**
- * Which donor skins paint a face, as `[donor, share]` pairs whose shares add to one. Donors match the person's age,
- * depth of skin and breadth of frame (a chosen beard counts as broad), and the seed chooses among equals. Near the
- * boundary of an age band, of deep skin or of a broad frame the donors of both sides cross-fade, so no slider swaps
- * one face of paint for another.
- */
 export function finishDonors({skin,age=0,frame=0,seed=0,facial},donors=finishData.donors){
   const c=skin?.isColor?skin:new T.Color(skin??"#b08566");
   const deep=1-smooth(.2126*c.r+.7152*c.g+.0722*c.b,.085,.125),male=facial&&facial!=="None"?1:smooth(frame,.05,.25);
   const a=clamp(age,0,1),t=a<.25?0:a<.45?(a-.25)/.2:a<.58?1:a<.76?1+(a-.58)/.18:2,lower=Math.floor(t);
-  // Neighbouring seeds are neighbouring people in a draw: scramble, so they do not share one donor.
   let choice=Math.imul(seed^seed>>>16,0x45d9f3b);choice=(choice^choice>>>13)>>>0;
   const shares=new Map();
   for(const [band,ofBand] of [[lower,1-(t-lower)],[lower+1,t-lower]])for(const [isDeep,ofDepth] of [[true,deep],[false,1-deep]])for(const [isMale,ofFrame] of [[true,male],[false,1-male]]){
@@ -331,26 +260,16 @@ function donorPixels(index){
   return kept.get(index);
 }
 const finishLog=Float64Array.from({length:256},(_,b)=>{const v=(b-128)/127;return v*(v<0?finishData.encoding.darker:finishData.encoding.lighter);});
-/**
- * Linear-light multipliers of one donor texel on a skin: the donor's own light and shade in full, its colour
- * shifts scaled by `chroma`. A byte triple of 128 is bare skin and returns exactly [1, 1, 1].
- */
 export function finishTint(r,g,b,chroma=1,weight=1){
   if(r===128&&g===128&&b===128||weight<=0)return [1,1,1];
   const lr=finishLog[r],lg=finishLog[g],lb=finishLog[b],l=(lr+lg+lb)/3;
   return [Math.exp(weight*(l+chroma*(lr-l))),Math.exp(weight*(l+chroma*(lg-l))),Math.exp(weight*(l+chroma*(lb-l)))];
 }
 
-/**
- * The open planes of the cheeks in the face page, 0 to 1: beside the nose, below the folded skin under the eye and
- * above the jaw. The page lies on its side, so x runs from brow to chin and y from ear to ear.
- */
 export function cheekPlane(fx,fy){
   const side=Math.abs(fy-.5);
   return smooth(fx,.44,.50)*(1-smooth(fx,.66,.74))*smooth(side,.075,.125)*(1-smooth(side,.36,.44));
 }
-// Weathered scars keeps its red and brown wash whole on the nose, lids, brow and jaw. On the open cheek planes the wash
-// and a projected portrait layer keep these shares, so the cheeks read as skin beside the scar.
 export const weatheredCheek={wash:.35,layer:.45};
 function paint(look){
   const {choice,skin,hair,age,frame,seed,brow}=look,facial=facialHairStyle(look.facial);
@@ -366,19 +285,14 @@ function paint(look){
   const baseDetail=weathering?"Weathered":(photographic || cast || captured) ? look.ageDetail : choice;
   const detail=sources.maps[complexionNames.indexOf(baseDetail)-1],[tone,zones,eyes]=sources.fields;
   const fin=sources.finish,finish=finishRead;
-  // With the finish, tone zones come from the donor paint. The blotches of the detail map stay out of it.
   const profile=fin?{...complexionProfile(look),mottleAmp:0}:complexionProfile(look);
   const donors=fin?finishDonors(look).map(([index,share])=>[donorPixels(index),share]):[],onlyDonor=donors.length===1&&donors[0][0];
-  // A skin outside the human range keeps its own hue: donor light and shade in full, donor colour in part.
   const donorChroma=mix(finish.fantasyChroma,1,profile.naturalHue);
-  // Bare lips: the donors lean to a made-up mouth, broad frames least of all.
   const lipChroma=(look.frame>.15||facial?finish.lipChromaBroad:finish.lipChroma)*mix(.82,1,profile.fair);
   const ageLines=smooth(profile.age,.3,.8);
   const pigmentAt = baseDetail === "Smooth" ? null : skinPigment(seed);
   const localPigment = [0,0,0];
   const pigmentGain = .95 * (1 - .40 * ageLines);
-  // All six transfers are on the native UV layout. Choose the wrinkle
-  // family by complexion, with a seeded variant within each family.
   const family = baseDetail === "Lined" || baseDetail === "Soft lines" ? 2 : baseDetail === "Weathered" ? 1 : 0;
   const pigment = sources.pigment[family*2 + (family===2 ? (frame>.15 ? 0 : 1) : seed>>>3&1)] ?? null;
   const reliefMap = baseDetail === "Smooth" ? null : sources.dermal[(seed >>> 3) & 1];
@@ -387,14 +301,11 @@ function paint(look){
     + (baseDetail === "Lined" ? .25 : 0));
   const lines = lineStrength > 0 ? expressionLines(seed) : null;
   const pigmentStrength = baseDetail === "Smooth" ? .72 : [1.08,1.18,1.24][family];
-  // The skin under a beard or moustache is the colour of its roots: the hair in its own shadow, a little of the skin
-  // through it. It is laid in linear light, so pale hair shows on deep skin, which a multiplying tint cannot do.
   const root=fin&&facial?beardRoot(skin,hair,look.facial):null;
   const {neutral,base:headBase}=headroomForSkin(skin,root?root.gain:headGain);
   const trimmed = look.facial === "Clipped beard";
   const clipped = trimmed || look.facial === "Stubble" ? sources.clippedBeard : null;
   const standingBeard = look.facial==="Short beard" || look.facial==="Full beard";
-  // Pale hair needs darker roots over the lip to stand out from the skin; dark hair already does.
   const mousDeepen=.22+.3*smooth(.2126*hair.r+.7152*hair.g+.0722*hair.b,.12,.4);
   const bareLinear=neutral.map(b=>srgbDecode[b]);
   const rootLinear=root&&[root.tone.r/headBase[0],root.tone.g/headBase[1],root.tone.b/headBase[2]];
@@ -403,15 +314,12 @@ function paint(look){
   const {lipTint:lip,lidTint:lid,socketTint:soc,underTint:und,beard}=profile;
   const stubble=tintOn(skin,hair.clone().lerp(skin,.48)).map(v=>v/255);
   const poreTileSize=96,poreTile=poreReliefTile(seed,poreTileSize);
-  // Smooth zones and CC0 skin maps, at the stored size.
   const small=canvasOf(width,height),rough=canvasOf(width,height),relief=canvasOf(width,height);
   const colour=new ImageData(width,height),gloss=new ImageData(width,height),bump=new ImageData(width,height);
   for(let i=0;i<width*height*4;i+=4){
     const pixel=i/4,px=pixel%width,py=Math.floor(pixel/width);
-    // The donors agree on where the vermilion lies; the measured zone is a rounder stand-in without them.
     const mask=eyes[i+2]/255,lips=fin?fin.lips[i]/255:tone[i]/255,lids=tone[i+1]/255,form=tone[i+2]/255-.5;
     const blush=zones[i]/255,shine=zones[i+1]/255,growth=zones[i+2]/255*(1-lips)*beard;
-    // Chosen facial hair shows through on the skin under it, and at its soft border.
     let cover=0;
     const fx=(px+.5)/width,fy=(py+.5)/height;
     if(facial){
@@ -428,7 +336,6 @@ function paint(look){
     }
     const rootGrain = clipped ? .26+.70*clipped[i+1]/128 : standingBeard && cover>0 ? (look.facial==="Short beard" ? shortBeardRoot(fx,fy,grows[0][pixel],mousDeepen) : beardRootTone(fx,fy)) : 1;
     const under=eyes[i]/255*(.14+.42*age),socket=eyes[i+1]/255;
-    // Signed zero-mean CC0 channels: R=fine pores, G=wrinkles/mid-structure, B=organic chroma.
     const pore=detail?(detail[i]-128)/96:0;
     const wrinkle=detail?(detail[i+1]-128)/96:0;
     const mottle=detail?(detail[i+2]-128)/88:0;
@@ -437,14 +344,11 @@ function paint(look){
     if (pigmentAt && skinArea > 0) pigmentAt((px+.5)/width,(py+.5)/height,localPigment);
     const photo=photographic
       ? photographic((px+.5)/width,(py+.5)/height)*skinArea : 0;
-    // Procedural micro-pore relief (strictly zero-mean; applied to normal & micro-roughness only).
     const procPore=poreTile[(py%poreTileSize)*poreTileSize+(px%poreTileSize)]*profile.poreRelief;
-    // Gentle plane sculpting; when real CC0 broad albedo is active, dial back synthetic blobs to avoid double-darkening.
     const plane=fin?1:Math.min(1,1+.16*Math.max(synWeight,read.planes)*form*mask);
     const warmG=fin?1:1-blush*mask*profile.blushG*Math.max(synWeight,read.blush);
     const warmB=fin?1:1-blush*mask*profile.blushB*Math.max(synWeight,read.blush);
     const [detR,detG,detB]=detail?detailTint(detail[i],detail[i+1],detail[i+2],profile,skinArea,open,lids):[1,1,1];
-    // The zone tints stand in for a painted face. Donor paint carries lips, lids, sockets and cheeks itself.
     const zone=fin?0:1;
     const lipW=lips*read.lip*zone,lidW=lids*read.lid*zone,socW=socket*read.socket*zone,undW=under*read.under*zone;
     const tints=[
@@ -454,11 +358,9 @@ function paint(look){
     ];
     let pigLinear=[1,1,1];
     if(fin){
-      // Artist-authored paint of the matched donors, in linear light. The mask is already in the packed paint.
       const chroma=donorChroma*(1-(1-lipChroma)*lips),weight=1-cover;
       if(onlyDonor)pigLinear=finishTint(onlyDonor[i],onlyDonor[i+1],onlyDonor[i+2],chroma,weight);
       else{
-        // Donors cross-fade in the logarithm their bytes hold.
         let r=0,g=0,b=0;
         for(const [donor,share] of donors){r+=finishLog[donor[i]]*share;g+=finishLog[donor[i+1]]*share;b+=finishLog[donor[i+2]]*share;}
         const l=(r+g+b)/3;
@@ -466,7 +368,6 @@ function paint(look){
       }
     }else if(pigment){
       if(isV2Pigment){
-        // Real CC0 broad+meso+fine anatomical albedo in linear light (allows positive highlights!).
         pigLinear=pigmentTint(pigment[i],pigment[i+1],pigment[i+2],profile,pigmentStrength*read.pigment*mask*(1-cover)*(1-(1-read.lipDonor)*lips));
       }else{
         const local = (pigment[i]-128)/127;
@@ -518,8 +419,6 @@ function paint(look){
       }
     }
     if (weathering && mask > 0 && cover < 1) {
-      // Keep the source paint's registration across cheeks and brow. Reduce
-      // the donor's flush on bare skin and preserve the hue of fantasy skin.
       const luminance=.25*weathering[i]+.5*weathering[i+1]+.25*weathering[i+2]-128;
       const cheek = cheekPlane(fx,fy) * (1-eyes[i]/255);
       const wash = .0055 * (1-(1-weatheredCheek.wash)*cheek) * mask * (1-cover);
@@ -540,11 +439,8 @@ function paint(look){
     }
     colour.data[i+3]=255;
 
-    // Skin-tone-relative reflectance, seamlessly matching bodyRoughness at mask = 0.
-    // Stored in green against material.roughness = 0.8 (required by human-face-marks.js).
     let roughVal=mix(profile.bodyRoughness,profile.faceRoughness,mask);
     roughVal-=profile.shineDrop*shine*mask*(1-cover);
-    // The donor specular map: smoother nose, lids and brow bone, rougher pores.
     if(fin)roughVal-=finish.gloss*(fin.gloss[i]-128)/finishData.encoding.gloss*(1-cover)*(1-lips);
     if (scanSurface) {
       const measured = profile.faceRoughness - .00125*(scanSurface[i+1]-128);
@@ -558,22 +454,16 @@ function paint(look){
     roughVal=mix(roughVal,makeup?.roughness ?? profile.lipRoughness,lips*mask);
     roughVal=mix(roughVal,.72,Math.min(1,growth*1.35));
     roughVal=mix(roughVal,.76,cover);
-    // Micro-roughness breakup: pore pits & creases roughen, flat skin mesas tighten slightly.
     roughVal+=(-profile.microRoughAmp*(pore*profile.poreRelief+.55*procPore)-.028*wrinkle*profile.wrinkleRelief-(photo/255)*.08)*skinArea;
     roughVal=clamp(roughVal-.11*sebum-.035*crease,.24,.8);
-    // Red holds local ambient visibility, multiplied into indirect light only.
     gloss.data[i]=sources.fields[3][i];
     gloss.data[i+1]=Math.round(255*(roughVal/.8));
     gloss.data[i+2]=0;
     gloss.data[i+3]=255;
 
-    // Centered height field (128 = flat) for clean Game GLB normal conversion.
     const lipGrain=lips*mask*procPore*4.5;
     let high=128+(pore*36*profile.poreRelief+wrinkle*48*profile.wrinkleRelief+procPore*12+photo*1.1)*skinArea+lipGrain+104*ridge+105*crease;
     if(fin){
-      // The finish reads heights at a larger scale, so what was there keeps its depth at half the bytes. The donor
-      // of the relief is middle-aged: a young face takes his pores and the forms of lips and lids, and his lines
-      // and the crinkles around the eyes come back only as the person ages.
       const forms=Math.max(lips,mix(.4,.7,ageLines)*Math.max(lids,.6*socket),.06+.94*ageLines),fine=1-(1-ageLines)*(.2+.5*Math.max(socket,eyes[i]/255));
       high=128+(high-128)*finish.legacyRelief+finish.relief*(1-cover)*(
         finish.micro*fine*(1-.55*zones[i+2]/255)*(fin.micro[i]-128)/finishData.encoding.micro+finish.meso*forms*(fin.meso[i]-128)/finishData.encoding.meso);
@@ -603,15 +493,10 @@ function paint(look){
     ctx.imageSmoothingQuality="high";ctx.drawImage(source,0,0,w,h);return c;
   };
   const map=enlarge(small),roughness=enlarge(rough),height2=enlarge(relief);
-  // Brow and lash strokes are drawn on white at full density and multiplied ONLY into albedo,
-  // never etched into the normal/height map (3D brow/lash fibres carry real strand geometry).
   const fine=canvasOf(w,h),f=fine.getContext("2d");
   f.fillStyle="#fff";f.fillRect(0,0,w,h);
   const next=randomStream(seed^0x2f6b1d);
-  // Brow hairs under the strand geometry, in the chosen hair colour.
   const ink=target=>{const [r,g2,b]=tintOn(skin,target);return "rgb("+r+","+g2+","+b+")";};
-  // The actual painted hair coverage supplies the density and the direction
-  // of individual hairs, including the nearly transparent outer tail.
   const browImage = sources.brows[brow], placement = browLayout[brow];
   if (browImage && !(captured && look.photoBrows && capturedSkin(choice).brows)) {
     const tint = canvasOf(browImage.width, browImage.height);
@@ -620,10 +505,7 @@ function paint(look){
     inkLayer.globalCompositeOperation = "source-in";
     inkLayer.fillStyle = ink(browPigment(hair, skin, age, look.makeup));
     inkLayer.fillRect(0, 0, tint.width, tint.height);
-    // The mass of the brow: the same hairs out of focus, so the brow is a dark shape before it is single hairs.
     if (portraitRead.browMass > 0) {
-      // The face lies on its side in the layout, so a brow is thickened along x. A brow drawn as one fine line
-      // gains a body this way; a full brow gains a soft edge.
       f.save(); f.filter = "blur(" + 1.8 * density + "px)"; f.globalAlpha = portraitRead.browMass;
       for (const dx of [-3.2, -1.6, 0, 1.6, 3.2]) f.drawImage(tint, placement.x + dx * density, placement.y);
       f.restore();
@@ -637,7 +519,6 @@ function paint(look){
     }
   }
   f.lineCap="round";
-  // The lash line along each lid margin.
   const lash=hair.clone().lerp(new T.Color("#120d0b"),.7);
   for(const lidLine of data.lids){
     const p=points(lidLine.points);
@@ -649,19 +530,16 @@ function paint(look){
     }
   }
   f.globalAlpha=1;
-  // Keep brow/lash marks strictly inside the face mask, with its soft edge.
   const coverCanvas=canvasOf(width,height),cover2d=coverCanvas.getContext("2d"),alpha=new ImageData(width,height);
   for(let i=0;i<alpha.data.length;i+=4)alpha.data[i+3]=eyes[i+2];
   cover2d.putImageData(alpha,0,0);
   f.globalCompositeOperation="destination-in";f.drawImage(coverCanvas,0,0,w,h);
   const mc=map.getContext("2d");mc.globalCompositeOperation="multiply";mc.drawImage(fine,0,0);
   if(facial){
-    // Short hairs over the tinted skin, so stubble and the border of a beard read as hair.
     const tile=canvasOf(160,160),t=tile.getContext("2d");
     t.fillStyle="#fff";t.fillRect(0,0,160,160);
     t.strokeStyle=ink(hair.clone().lerp(skin,.1));t.lineCap="round";
     for(let n=0;n<1500;n++){
-      // The face lies on its side in the layout, so hairs that grow down run along x.
       const x=next()*160,y=next()*160,angle=(next()-.5)*1.3,length=(1.6+2.6*next())*density;
       t.globalAlpha=.3+.45*next();t.lineWidth=(.45+.4*next())*density;
       for(const [dx,dy] of [[0,0],[-160,0],[0,-160],[-160,-160]]){
@@ -674,8 +552,6 @@ function paint(look){
     hc.globalCompositeOperation="destination-in";hc.imageSmoothingQuality="high";hc.drawImage(where,0,0,w,h);
     mc.globalCompositeOperation="multiply";mc.drawImage(hairs,0,0);
   }
-  // The lining of the mouth: dark and red. It shows when a smile parts the lips. With the finish it is damp, not
-  // wet, and holds little ambient light: a wet lining draws a silver line along a closed mouth.
   const inner=(patchHalf+4)*density,cx=patchX*density,cy=patchY*density;
   const mouthRgb=[142,112,110].map((v,k)=>Math.round(srgbEncode(srgbDecode[v]*bareLinear[k])));
   for(const [canvas,fill] of [[map,`rgb(${mouthRgb[0]},${mouthRgb[1]},${mouthRgb[2]})`],[roughness,fin?"rgb(96,205,0)":"rgb(255,90,0)"],[height2,"rgb(128,128,128)"]]){
@@ -701,10 +577,6 @@ function lookFromForm(form){
   };
 }
 
-/**
- * Clone a body skin material with the same skin-tone-relative roughness used at the
- * border of the face texture, so the neck/jaw/ear seam stays invisible.
- */
 export function skinMaterial(base,form){
   const material=base.clone();
   const profile=complexionProfile(lookFromForm(form));
@@ -726,10 +598,8 @@ export function faceMaterial(base,form){
   }
   const key=[look.choice,look.ageDetail,look.skin.getHexString(),look.hair.getHexString(),look.age,look.frame,look.seed,look.brow,look.photoBrows,look.facial,look.makeup].join("/");
   if(painted.has(key)){
-    // Mark as recently used.
     const kept=painted.get(key);painted.delete(key);painted.set(key,kept);
   }else{
-    // Each painted face holds three canvases. Keep the few most recent.
     if(painted.size>=6){
       const oldest=painted.keys().next().value;
       for(const t of Object.values(painted.get(oldest)))t?.dispose?.();
@@ -740,7 +610,6 @@ export function faceMaterial(base,form){
   const {map,roughnessMap,bumpMap,headBase,skinColor,finished}=painted.get(key);
   material.color.setRGB(...headBase);
   Object.assign(material,{map,roughnessMap,metalnessMap:roughnessMap,metalness:0,aoMap:roughnessMap,aoMapIntensity:.72,bumpMap,bumpScale:capturedSkin(look.choice) ? .0016 : finished?finishRead.bumpScale:.00125,roughness:.8});
-  // A game export gives a face more of its shared texture page.
   material.userData={...material.userData,portrait:true,faceLayout:true,quietCheeks:look.choice==="Weathered scars",skinColor,paintedLips:finished && look.makeup==="None"};
   return material;
 }

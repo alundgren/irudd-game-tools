@@ -1,7 +1,3 @@
-// The textured layers of a creature's eye: compound facets or an iris drawn
-// across the cage's equator. Ported from
-// character-view/creature-eye-surface.js at 2761eb1.
-
 import * as T from "three";
 import { context2d, type Raster } from "../raster.js";
 import type { BuildPart } from "../view.js";
@@ -9,8 +5,6 @@ import type { BuildPart } from "../view.js";
 const clamp = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, v));
 type Texel = readonly [number, number, number, number, number];
 
-// The staggered lattice follows the dome. Each lens has its own curvature
-// and a quiet edge; highlights come from the scene lights.
 function facet(x: number, y: number): Texel {
   const spacing = 0.186;
   const rowHeight = (spacing * Math.sqrt(3)) / 2;
@@ -92,7 +86,6 @@ function artwork(raster: Raster, kind: "compound" | "iris", textures: T.Texture[
   return { map, normalMap };
 }
 
-/** One material per eye layer and colour, and one artwork per textured layer. */
 export interface EyeFinish {
   readonly materials: Map<string, T.MeshStandardMaterial>;
   readonly artwork: Map<string, Artwork>;
@@ -129,8 +122,6 @@ export function finishCreatureEye(
   }
   mesh.material = material;
   if (!material.map) return;
-  // The equator is the first sixteen cage points, in anatomical order. Its
-  // two diameters carry the texture through turning and hand sculpture.
   const ring = cage.vertices;
   const vec = (i: number): T.Vector3 => {
     const v = ring[i];

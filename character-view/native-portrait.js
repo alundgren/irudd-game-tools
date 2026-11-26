@@ -57,8 +57,6 @@ function pixels(canvas, marks, points) {
   return { width, height, data, map, at };
 }
 
-// Check visibility in the planar camera before the landmark warp. The profile
-// photo is mirrored onto the opposite cheek, so evaluate each side separately.
 function cameraVisibility(geometry, horizontal, depth, sign, scale) {
   const positions = geometry.attributes.position;
   const size = 384, density = 900 / scale;
@@ -118,8 +116,6 @@ function broadColour(image) {
   return ctx.getImageData(0, 0, width, height).data;
 }
 
-// The layer stores colour variation relative to the source's skin. At render
-// time its neutral value becomes the current adult's skin tone.
 export function bakeNativePortrait(mesh, surface, origin, front, side, marks) {
   if (!mesh?.material.userData.faceLayout) throw new Error("The native face paint is still loading.");
   const f = marks?.front, s = marks?.side;
@@ -137,7 +133,6 @@ export function bakeNativePortrait(mesh, surface, origin, front, side, marks) {
   const frontVisible = cameraVisibility(geometry, positionX, positionZ, 1, k);
   const leftVisible = cameraVisibility(geometry, positionZ, positionX, -1, k);
   const rightVisible = cameraVisibility(geometry, positionZ, positionX, 1, k);
-  // Cheek swatches well away from eyes and lips align the two source exposures.
   a.skin = skinSample(a, [MathUtils.lerp(marks.front[0][0], marks.front[2][0], .23),
     MathUtils.lerp(marks.front[2][1], marks.front[3][1], .28)]);
   b.skin = skinSample(b, [MathUtils.lerp(marks.side[4][0], marks.side[1][0], .6),
@@ -183,8 +178,6 @@ export function bakeNativePortrait(mesh, surface, origin, front, side, marks) {
     const height = smooth(y, chin.y - .023 * k, chin.y + .010 * k)
       * (1 - smooth(y, eyes[0].y + .061 * k, eyes[0].y + .083 * k));
     const frontness = smooth(nz, .08, .83);
-    // At the temple the source contains a different hairline. Fade the profile
-    // above the cheekbone and before the nose so those edges cannot repeat.
     const profile = smooth(Math.abs(nx), .32, .88)
       * smooth(z, ear.z + .011 * k, ear.z + .043 * k)
       * (1 - smooth(y, eyes[0].y - .018 * k, eyes[0].y + .004 * k))
@@ -218,8 +211,6 @@ export function applyNativePortrait(mesh, image) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
   const overlay = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  // Three multiplies the material tint in linear light. Preserve that colour
-  // everywhere, then add only the portrait's relative detail inside its mask.
   const tint = new Float32Array(256 * 3), grey = new Color(), rgb = {};
   for (let value = 0; value < 256; value++) {
     const s = value / 255;
@@ -227,7 +218,6 @@ export function applyNativePortrait(mesh, image) {
     tint.set([255 * rgb.r, 255 * rgb.g, 255 * rgb.b], value * 3);
   }
   const exposure = .56 + .36 * Math.sqrt(tint[255 * 3 + 1] / 255);
-  // A Weathered scars face keeps a lower share of the layer on its open cheek planes.
   const quiet = material.userData.quietCheeks ? 1 - weatheredCheek.layer : 0;
   for (let p = 0, i = 0; p < paint.data.length; p += 4, i++) {
     let alpha = overlay.data[p + 3] / 255;

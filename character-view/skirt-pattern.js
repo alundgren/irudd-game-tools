@@ -58,7 +58,6 @@ export function skirtRadius(curve, t) {
     q = curve[b],
     len = q[0] - p[0],
     s = MathUtils.clamp((t - p[0]) / len, 0, 1);
-  // Monotone cubic tangents retain narrow knees without overshoot at a hem.
   const slope = (i) => {
     if (i === 0)
       return (curve[1][1] - curve[0][1]) / (curve[1][0] - curve[0][0]);
@@ -177,7 +176,6 @@ export function skirtGeometry(c) {
   g.setAttribute("color", new Float32BufferAttribute(colors, 3));
   g.setIndex(index);
   g.computeVertexNormals();
-  // Weld lighting across the UV seam while retaining separate texture coordinates.
   const n = g.attributes.normal;
   for (let s = 0; s < 2; s++)
     for (let j = 0; j <= rows; j++) {

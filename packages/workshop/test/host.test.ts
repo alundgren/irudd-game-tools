@@ -1,6 +1,3 @@
-// The project host and its client, in one process over a real OS-local
-// endpoint: authentication, host-stamped identity, agent limits, starters,
-// idempotent and stale requests, events, and attaching to an owner.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -92,7 +89,6 @@ test("a person and a paired agent share one owner; the host stamps both identiti
     assert.deepEqual(agent.welcome.actor, { kind: "agent", id: "claude", name: "Claude" });
     assert.ok(!agent.welcome.methods.includes("pair.agent"));
 
-    // A person's manual edit, then the agent reads it as a manual delta.
     const current = await human.call("current", { documentId: docId });
     const part = current.document?.parts[1]?.id;
     assert.ok(part);
@@ -102,7 +98,6 @@ test("a person and a paired agent share one owner; the host stamps both identiti
     assert.equal(delta.deltas.length, 1);
     assert.equal(delta.deltas[0]?.actor.id, "tester");
 
-    // Agents cannot edit directly, change policy, name an actor or pair.
     const direct = await agent.call("apply", { request: { ...rename(2, part, "Agent name") } });
     assert.equal(direct.kind, "rejected");
     assert.equal(
@@ -125,7 +120,6 @@ test("a person and a paired agent share one owner; the host stamps both identiti
     );
     await failsWith(agent.call("pair.agent", { agent: "other" }), "Forbidden");
 
-    // Proposal from the agent: duplicate replays, preview, accept by the person.
     const proposal = request(2, {
       type: "proposal.create",
       proposal: "prop-tail",
@@ -173,11 +167,9 @@ test("a person and a paired agent share one owner; the host stamps both identiti
     );
     await waitFor(() => events.includes(3));
 
-    // In-process calls from desktop main follow the same rules.
     const inspected = await host.call("inspect", { documentId: docId });
     assert.equal(inspected.history.length, 3);
 
-    // Revocation applies to the next handshake.
     await human.call("pair.revoke", { agent: "claude" });
     await failsWith(
       connect({ credential: { role: "agent", file: paired.credentialFile }, stateDir }),

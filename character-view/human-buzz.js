@@ -19,7 +19,6 @@ function scalpData() {
   };
 }
 
-// The canvas can be reused after its mesh goes away. Each wearer owns a separate GPU texture.
 const paintings = new Map();
 function buzzMap(skin, hair) {
   if (typeof document === "undefined") return null;
@@ -54,8 +53,6 @@ function buzzMap(skin, hair) {
   return texture;
 }
 
-// The donor was painted on the native topology. Preserve UV splits and use the actual
-// edited skull for both the position and the skinning at every hairline point.
 export function buzzCut(cage, style, material, skin) {
   const texture = buzzMap(skin, style.hairColor ?? "#342923");
   if (!texture) return null;

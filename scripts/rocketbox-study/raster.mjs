@@ -1,9 +1,5 @@
-// An orthographic z-buffer renderer with texture lookup and alpha cut-outs, so a textured
-// reference and an editable adult can be compared without a browser or a graphics card.
-// meshes: [{positions, indices, normals?, uvs?, texture?: {data, size}, cutout?, color: [r, g, b]}]
 export function render(meshes, { yaw = 0, center = [0, 0.96, 0], span = 2.06, width = 450, height = 618, background = [0.875, 0.898, 0.875], supersample = 2, mode = "colour" } = {}) {
   const W = width * supersample, H = height * supersample, scale = H / span, cy = Math.cos(yaw), sy = Math.sin(yaw);
-  // Yaw 0 looks at the front (+Z faces the camera). Positive yaw walks the camera toward +X.
   const right = [cy, 0, -sy], toward = [sy, 0, cy];
   const depth = new Float32Array(W * H).fill(-Infinity), color = new Float32Array(W * H * 3);
   const unit = (v) => { const l = Math.hypot(...v); return v.map((x) => x / l); };
@@ -43,8 +39,6 @@ export function render(meshes, { yaw = 0, center = [0, 0.96, 0], span = 2.06, wi
         let nx = w0 * nrm[a * 3] + w1 * nrm[b * 3] + w2 * nrm[c * 3], ny = w0 * nrm[a * 3 + 1] + w1 * nrm[b * 3 + 1] + w2 * nrm[c * 3 + 1], nz = w0 * nrm[a * 3 + 2] + w1 * nrm[b * 3 + 2] + w2 * nrm[c * 3 + 2];
         const l = Math.hypot(nx, ny, nz) || 1;
         nx /= l; ny /= l; nz /= l;
-        // Lights are fixed to the camera. Surfaces facing away are lit as if seen from behind,
-        // so hair cards, open collars and hems read from both sides.
         let lx = nx * right[0] + nz * right[2], ly = ny, lz = nx * toward[0] + nz * toward[2];
         if (lz < 0) { lx = -lx; ly = -ly; lz = -lz; }
         const d = Math.max(0, lx * key[0] + ly * key[1] + lz * key[2]) * 0.72 + Math.max(0, lx * fill[0] + ly * fill[1] + lz * fill[2]) * 0.2 + Math.max(0, lx * rim[0] + ly * rim[1] + lz * rim[2]) * 0.08 + 0.3 + 0.06 * ly;
@@ -90,7 +84,6 @@ function vertexNormals(positions, indices) {
   }
   return n;
 }
-/** A ruler with a tick every 10 cm and longer ticks at each half metre, at a world x on the camera plane. */
 export function ruler(image, x = -0.66) {
   const { width, height, data, pixelsPerMetre: ppm, center } = image, px = Math.round(width / 2 + x * ppm), row = (y) => Math.round(height / 2 - (y - center[1]) * ppm);
   const dot = (cx, cy) => { if (cx >= 0 && cy >= 0 && cx < width && cy < height) data.set([65, 88, 76, 255], (cy * width + cx) * 4); };
@@ -98,7 +91,6 @@ export function ruler(image, x = -0.66) {
   for (let i = 0; i <= 20; i++) { const y = row(i / 10), reach = i % 10 === 0 ? 0.09 : i % 5 === 0 ? 0.06 : 0.03; for (let dx = 0; dx < reach * ppm; dx++) dot(px + dx, y); }
   return image;
 }
-/** Images joined in a row, or stacked when `vertical`, on white. */
 export function join(images, gap = 4, vertical = false) {
   const w = vertical ? Math.max(...images.map((i) => i.width)) : images.reduce((t, i) => t + i.width, 0) + gap * (images.length - 1);
   const h = vertical ? images.reduce((t, i) => t + i.height, 0) + gap * (images.length - 1) : Math.max(...images.map((i) => i.height));
@@ -110,13 +102,6 @@ export function join(images, gap = 4, vertical = false) {
   }
   return { width: w, height: h, data };
 }
-/**
- * Where to stand one figure front to back so its outlines best cover another's. `views` holds,
- * per camera angle, both silhouette masks from one camera: [{yaw (radians), target, adult}].
- * Moving a figure in depth slides its outline sideways in every view but the front and back,
- * so candidate placements are scored by sliding masks. Returns the shift in metres and the
- * mean overlap (intersection over union) at that placement.
- */
 export function bestDepth(views, width, height, pixelsPerMetre, reach = 0.14) {
   let best = { shift: 0, overlap: -1 };
   const steps = Math.ceil(reach * pixelsPerMetre);
@@ -132,7 +117,6 @@ export function bestDepth(views, width, height, pixelsPerMetre, reach = 0.14) {
       }
       total += both / either;
     }
-    // Among equal scores the smallest move wins.
     if (total / views.length > best.overlap + 1e-9 || (Math.abs(total / views.length - best.overlap) <= 1e-9 && Math.abs(shift) < Math.abs(best.shift))) best = { shift, overlap: total / views.length };
   }
   return best;

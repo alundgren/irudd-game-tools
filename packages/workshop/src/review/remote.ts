@@ -1,22 +1,11 @@
-// A renderer served over a person's authenticated connection: an attached
-// desktop whose isolated review worker renders for a headless owner.
-//
-// The host sends each job as a `review-job` event on that connection only.
-// The desktop uploads named outputs with `review.put` in order and finishes
-// with `review.complete`. When the connection closes, every job it holds fails
-// with `RendererLost`, and the renderer is unregistered; the desktop registers
-// again when it reconnects.
-
 import { isJson } from "@irudd/document";
 import type { RenderJob, RenderResult, RendererInfo, ReviewJobEvent } from "../wire/review.js";
 import { ReviewError, type RenderOutput, type ReviewRenderer } from "./service.js";
 
-/** Most bytes one job may upload. */
 export const maxJobBytes = 512 * 1024 * 1024;
 
 export interface ConnectionLink {
   readonly id: string;
-  /** Write a frame; false when the connection is gone. */
   readonly write: (event: ReviewJobEvent) => boolean;
 }
 
@@ -30,7 +19,6 @@ interface Pending {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-/** A light shape check of the renderer's result; the host checks the bytes themselves. */
 export function isRenderResult(value: unknown): value is RenderResult {
   if (!isRecord(value)) return false;
   const { glb, exportMs, credits, gpu, inspection } = value;
@@ -56,7 +44,6 @@ export function isRenderResult(value: unknown): value is RenderResult {
       )
         return false;
   }
-  // The checks above cover every field the host reads; the rest is reported as given.
   return true;
 }
 
@@ -170,7 +157,6 @@ export class RemoteRenderer implements ReviewRenderer {
     job?.reject(error);
   }
 
-  /** The connection closed: every job it holds fails. */
   close(): void {
     this.closed = true;
     for (const jobId of this.pending.keys()) this.fail(jobId, lost());

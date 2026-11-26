@@ -1,9 +1,3 @@
-// Traced faces export as their own skinned mesh with expressions, fitted
-// garments clear the body they are worn on, and landmarks, anatomy or fit on
-// a part that cannot carry them are refused. The four-preset parity of these
-// forms (coastal-biologist, rescue-vest, tidal-print, tide-surveyor) is the
-// slow gate's.
-
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -18,7 +12,6 @@ type Mutable = { [key: string]: unknown };
 const isObject = (v: unknown): v is Mutable => typeof v === "object" && v !== null;
 const isMesh = (o: T.Object3D | undefined): o is T.Mesh => o instanceof T.Mesh;
 
-/** The coastal-biologist fixture with `edit` applied to each part's raw JSON. */
 function biologist(edit?: (part: Mutable, features: Mutable) => void): CharacterDocument {
   const raw: unknown = JSON.parse(
     readFileSync(join(fixturesDir, "coastal-biologist.json"), "utf8"),

@@ -1,10 +1,3 @@
-// @irudd/workshop/client: connect to the host that owns a project.
-//
-// The CLI, the MCP server and a desktop window that finds its project already
-// open all use this. It reaches no storage code: a client never opens the
-// SQLite file, it talks to the project's single owner over its OS-local
-// endpoint and authenticates with a per-user credential.
-
 import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
@@ -43,7 +36,6 @@ export * from "./results.js";
 export * from "./edits.js";
 export * from "./art.js";
 
-/** Tags of failures that happen on the client side of the wire. */
 export const clientErrorTags = [
   "HostUnavailable",
   "CredentialMissing",
@@ -53,11 +45,6 @@ export const clientErrorTags = [
   "ProtocolError",
 ] as const;
 
-/**
- * Every failure a client reports: either one of `clientErrorTags` or an error
- * the host sent (`DocumentMissing`, `Forbidden`, `InvalidArgument`, …). The
- * host's plain fields are in `detail`.
- */
 export class WorkshopError extends Error {
   readonly _tag: string;
   readonly detail: WireErrorShape;
@@ -76,15 +63,12 @@ const failure = (
 ): WorkshopError => new WorkshopError({ ...fields, _tag: tag, message });
 
 export type Credential =
-  /** The person signed in to this OS account. Reads the host's human key. */
   | { readonly role: "human"; readonly project: string }
-  /** A paired agent. The credential file names its project. */
   | { readonly role: "agent"; readonly file: string };
 
 export interface ConnectOptions extends LocationOptions {
   readonly credential: Credential;
   readonly client?: { readonly name: string; readonly version: string };
-  /** How long to wait for the handshake. */
   readonly timeoutMs?: number;
 }
 
@@ -92,9 +76,7 @@ export interface WorkshopClient {
   readonly welcome: Welcome;
   readonly endpoint: Endpoint;
   call<M extends MethodName>(method: M, params: MethodParams[M]): Promise<MethodResults[M]>;
-  /** Events: commits (and, for a person, steering changes) after `subscribe`; inbox events after `inbox.watch`. */
   onEvent(listener: (event: HostEvent) => void): () => void;
-  /** Resolves when the connection ends, for any reason. */
   readonly closed: Promise<void>;
   readonly isClosed: () => boolean;
   close(): void;
@@ -144,7 +126,6 @@ function resolveCredential(options: ConnectOptions): Resolved {
   return { project: credential.project, role: "human", secret };
 }
 
-/** The endpoint of the host that owns `project`, or a `HostUnavailable` explaining what to do. */
 export function readEndpoint(project: string, options: LocationOptions = {}): Endpoint {
   const files = hostFiles(project, options);
   const read = readJsonFile(files.endpoint, Endpoint);
@@ -174,7 +155,6 @@ function processAlive(pid: number): boolean {
   }
 }
 
-/** Connect and authenticate. Fails with a `WorkshopError` whose message says what to do next. */
 export async function connect(options: ConnectOptions): Promise<WorkshopClient> {
   const resolved = resolveCredential(options);
   const endpoint = readEndpoint(resolved.project, options);
@@ -349,7 +329,6 @@ function session(
   };
 }
 
-/** Frames received before the session takes over, then a pass-through. */
 class Queue {
   private items: unknown[] = [];
   private waiter:
@@ -416,17 +395,10 @@ class Queue {
   }
 }
 
-// ── Review artifacts ────────────────────────────────────────────────────────
-
 interface ReviewReader {
   call<M extends MethodName>(method: M, params: MethodParams[M]): Promise<MethodResults[M]>;
 }
 
-/**
- * Every byte of an issued artifact, read with `review.read` in chunks. The
- * SHA-256 of what arrived must be the one asked for, so a client can bind what
- * it saves to the manifest it got.
- */
 export async function readArtifact(
   client: ReviewReader,
   sha256: string,

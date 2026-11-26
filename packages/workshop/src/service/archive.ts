@@ -1,14 +1,3 @@
-// Legacy portable document archive, format "irudd.document-archive" version 1.
-//
-// Saving now writes the ZIP character package (`package.ts`); this JSON form
-// stays readable, and `encodeArchive` remains for tests and older tools.
-//
-// One canonical JSON file holding a document's whole journal, its last
-// `{sequence, digest}` anchor and every blob any of its revisions references,
-// base64 encoded. Importing recovers the journal with `openJournal`, so the
-// document comes back with its history, receipts, drafts and policy, and with
-// the same digests. Archives are independent of the project file format.
-
 import {
   canonicalJson,
   diagnostic,
@@ -66,7 +55,6 @@ const Archive = Schema.Struct({
 });
 
 export interface DecodedArchive {
-  /** `irudd.document-archive` (JSON) or `irudd.character-package` (ZIP). */
   readonly format: string;
   readonly documentId: string;
   readonly last: { readonly sequence: number; readonly digest: string };

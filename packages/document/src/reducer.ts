@@ -1,19 +1,3 @@
-// The revision protocol: one pure reducer owns every document write.
-//
-//   reduce(state, envelope, environment) → { state, outcome }
-//
-// Order of checks for an envelope:
-//   1. decode (invalid → rejected, no effect);
-//   2. document identity (wrong-document);
-//   3. request ID: a known ID with the same payload replays its original
-//      receipt; with a different payload it is rejected (request-reused);
-//   4. actor policy (agents need a proposal unless direct editing is enabled);
-//   5. revision: writes must name the current head (stale-revision);
-//   6. the command itself, validated in full before anything is recorded.
-// Rejected commands return the input state object unchanged: no revision, no
-// receipt, no history. Accepted document changes append exactly one revision
-// whose number is head + 1.
-
 import { Schema } from "effect";
 import { headAccess, markWritable, type Access } from "./access.js";
 import { diagnostic, type Diagnostic } from "./diagnostics.js";
@@ -67,7 +51,6 @@ export type Outcome =
   | {
       readonly kind: "committed";
       readonly receipt: Receipt;
-      /** The durable record storage appends for this commit. */
       readonly entry: JournalEntry;
     }
   | { readonly kind: "replayed"; readonly receipt: Receipt }
@@ -78,7 +61,6 @@ export interface Step {
   readonly outcome: Outcome;
 }
 
-/** The state of a document that has not been created yet. */
 export function emptyState(documentId: DocumentId): DocumentState {
   return makeState({
     documentId,
@@ -100,7 +82,6 @@ const decodeEnvelope = Schema.decodeUnknownResult(CommandEnvelope, {
   errors: "all",
 });
 
-/** Commands that never build a document, so they work whatever this build can read. */
 const accessExempt = new Set<ReceiptKind>(["policy.set", "proposal.discard", "document.upgrade"]);
 
 function accessDiagnostics(access: Exclude<Access, { readonly mode: "writable" }>): Diagnostic[] {
@@ -132,7 +113,6 @@ const documentWrites = new Set<ReceiptKind>([
   "proposal.accept",
 ]);
 
-/** The last revision after `since` whose changes overlap `path`. */
 export function lastTouch(
   state: DocumentState,
   path: ReadonlyArray<string>,
@@ -309,10 +289,6 @@ function commit(
   };
 }
 
-/**
- * Validate a candidate from a detached copy, so the committed document shares
- * nothing with generator, codec or caller objects and can be frozen in place.
- */
 function validateFresh(doc: CharacterDocument, options: ReadOptions) {
   return readDocument(detach(documentJson(doc)), options);
 }
@@ -330,7 +306,6 @@ function finish(
   previous: CharacterDocument,
   candidate: CharacterDocument,
   env: Environment,
-  /** Undo and restore bring back the very part an ID once named; new content may not. */
   history: "new-content" | "from-history" = "new-content",
 ):
   | { readonly ok: true; readonly document: CharacterDocument }
@@ -371,11 +346,6 @@ function sameActor(a: Actor, b: Actor): boolean {
   return a.kind === b.kind && a.id === b.id;
 }
 
-/**
- * Only the generator assigns slots and records the base. A whole-document
- * replacement may change everything else, but neither of those: the same
- * rule ops follow (part.add refuses slots; generation.* ops run the generator).
- */
 function generatorIdentity(base: CharacterDocument, next: CharacterDocument): Diagnostic[] {
   const out: Diagnostic[] = [];
   if (canonicalJson(base.generation ?? null) !== canonicalJson(next.generation ?? null))
@@ -401,7 +371,6 @@ function generatorIdentity(base: CharacterDocument, next: CharacterDocument): Di
   return out;
 }
 
-/** Build the candidate document a proposal content describes, relative to `base`. */
 function proposalTarget(
   state: DocumentState,
   envelope: Envelope,
@@ -439,17 +408,13 @@ function documentAtRevision(state: DocumentState, revision: number): CharacterDo
   return state.history[revision - 1]?.document;
 }
 
-/** Apply one command envelope. Pure: the input state is never modified. */
 export function reduce(state: DocumentState, input: unknown, env: Environment): Step {
-  // Detach first: later changes to the caller's object cannot reach the state,
-  // and the caller's object is never frozen or retained.
   if (!isJson(input))
     return rejectOne(state, "schema", ["envelope"], "A command envelope is plain JSON.");
   const decoded = decodeEnvelope(detach(input));
   if (decoded._tag === "Failure")
     return rejectOne(state, "schema", ["envelope"], decoded.failure.message);
   const envelope = own(decoded.success);
-  // The decoded envelope is plain JSON; it is what the journal stores.
   const raw: Json = envelope;
   const payload = digestBrand(digestJson(raw));
 
@@ -632,8 +597,6 @@ export function reduce(state: DocumentState, input: unknown, env: Environment): 
           "A feature upgrade cannot be undone; restore an earlier revision instead.",
         );
       {
-        // Undoing an undo brings its target back, which can re-instate an older
-        // undo of the same revision. At most one undo of a revision may be in force.
         const undo = state.head + 1;
         const after = undoStatus(undo, withUndo(state.undos, c.target, undo)).inForce;
         for (const [revision, by] of after) {

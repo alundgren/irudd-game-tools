@@ -1,10 +1,3 @@
-// Whole preset outfits assembled from the garments of the dress kit
-// (human-style-outfits.js, palette in human-style.js and concealed in
-// human-style-conceal.js at 2761eb1). Each outfit returns its parts, every one
-// a piece in one tone of the outfit's palette: main, dark, light and accent
-// cloth plus leather, sole and metal. The palette comes from one cloth colour,
-// and a style may name any of the other tones outright.
-
 import * as T from "three";
 import type { Raster } from "../../raster.js";
 import type { HumanSurface } from "../surface.js";
@@ -49,15 +42,12 @@ import { apron, backpack, cape, pod } from "./gear.js";
 import { skirt } from "./skirt.js";
 import type { PresetOutfit } from "./outfit-names.js";
 
-/** A finished piece of a preset outfit before it becomes a mesh. */
 export interface OutfitPart {
   readonly piece: Piece;
-  /** A palette tone ("main", "dark" and so on) or a colour. */
   readonly tone: string;
   readonly region: string;
   readonly name: string;
   readonly type: string;
-  /** The lowest point of a sole. */
   readonly ground?: number;
 }
 
@@ -75,7 +65,6 @@ const part = (
   type,
 });
 
-/** A pair of shoes: an upper and a sole on each foot. */
 function shoes(
   body: DressBody,
   m: Landmarks,
@@ -95,7 +84,6 @@ function shoes(
   }
 }
 
-/** Boots: shoes with a shaft up each calf, cuffed and strapped unless `cuff` is 0. Returns the shafts. */
 function boots(
   body: DressBody,
   m: Landmarks,
@@ -132,14 +120,12 @@ function boots(
 }
 const meanY = (s: Shell, loop: ReadonlyArray<number>) =>
   loop.reduce((t, i) => t + (s.pos[i * 3 + 1] ?? 0), 0) / loop.length;
-/** A shell's open edge that lies highest. */
 const highest = (g: { readonly s: Shell; readonly all: ReadonlyArray<ReadonlyArray<number>> }) =>
   g.all.reduce<ReadonlyArray<number> | null>(
     (best, loop) => (!best || meanY(g.s, loop) > meanY(g.s, best) ? loop : best),
     null,
   );
 
-/** A garment's shell as a piece, with bands at the openings named. */
 function finish(
   g: Garment,
   k: number,
@@ -164,7 +150,6 @@ function finish(
   return piece;
 }
 
-/** A placket down the centre front, with buttons on it or, given `buttonTone`, on a piece of their own. */
 function front(
   piece: Piece,
   cast: Ray,
@@ -214,7 +199,6 @@ function front(
   return studs;
 }
 
-/** A patch pocket, with a flap unless `flap` is false. One over a full chest would stand off like a shelf, so it is left out. */
 function pocket(
   piece: Piece,
   cast: Ray,
@@ -288,7 +272,6 @@ function pocket(
     });
 }
 
-/** Five-pocket trousers cut at the waistband. */
 function jeans(
   body: DressBody,
   m: Landmarks,
@@ -300,7 +283,6 @@ function jeans(
   return { g, piece };
 }
 
-/** A bellows pocket on the outside of each thigh, part way down to the knee. */
 function cargoPockets(piece: Piece, g: Garment, body: DressBody, m: Landmarks): void {
   const cast = caster([g.s]);
   for (const sign of [1, -1]) {
@@ -319,7 +301,6 @@ function cargoPockets(piece: Piece, g: Garment, body: DressBody, m: Landmarks): 
   }
 }
 
-/** Two patch pockets on the seat. */
 function backPockets(piece: Piece, g: Garment, body: DressBody, m: Landmarks): void {
   const cast = caster([g.s]);
   for (const sign of [1, -1])
@@ -336,13 +317,11 @@ function backPockets(piece: Piece, g: Garment, body: DressBody, m: Landmarks): v
     });
 }
 
-/** Extra room for a top where it lies over a waistband. */
 const overWaist =
   (m: Landmarks, room: number) =>
   (y: number): number =>
     room * smooth(m.waistband + 0.04 * m.k, m.waistband + 0.012 * m.k, y);
 
-/** A buckle on a belt's front, a frame of boxes round a prong. */
 function buckle(
   piece: Piece,
   body: DressBody,
@@ -378,7 +357,6 @@ function buckle(
     );
 }
 
-/** A piece's surface as a shell a belt measures round. */
 function surfaceOf(piece: Piece): Shell {
   const s = new Shell();
   s.pos = piece.pos;
@@ -388,7 +366,6 @@ function surfaceOf(piece: Piece): Shell {
 
 type Outfit = (body: DressBody, m: Landmarks) => OutfitPart[];
 
-/** The preset outfits the port builds. */
 export const presetOutfits = {
   "T-shirt and jeans"(body, m) {
     const parts: OutfitPart[] = [],
@@ -1009,7 +986,6 @@ export const presetOutfits = {
     const parts: OutfitPart[] = [],
       k = m.k,
       seam = m.waist - 0.02 * k;
-    // Snow trousers go over the boots, so the boots are made first and the legs keep outside their shafts.
     const footwear: OutfitPart[] = [],
       shafts = boots(body, m, footwear, {
         from: 1.55,
@@ -1040,7 +1016,6 @@ export const presetOutfits = {
     });
     const piece = finish(coat, k, { cuff: 0.035, rise: 0.003 }),
       cast = caster([coat.s]);
-    // The skirt is full, so its top is gathered in under the coat and the drawcord lies on the join.
     const yoke = 0.016,
       tails = skirt(body, m, {
         top: seam + 0.012 * k,
@@ -1084,7 +1059,6 @@ export const presetOutfits = {
       stand: 0.024,
       front: 0.5,
     });
-    // The fur edges the hood's opening, which lies round the nape and comes forward over the collarbones.
     roll(trim, coat.s, coat.upper, m, {
       radius: 0.024,
       front: 0.6,
@@ -1198,7 +1172,6 @@ export const presetOutfits = {
   },
 } satisfies Readonly<Record<PresetOutfit, Outfit>>;
 
-/** The style fields that name one tone of an outfit outright, and the tone each one sets. */
 export const toneFields = {
   clothSecond: "dark",
   clothLight: "light",
@@ -1209,23 +1182,15 @@ export const toneFields = {
 } as const;
 export type ToneField = keyof typeof toneFields;
 
-/** The colours a style names for an outfit's palette. */
 export type OutfitTones = { readonly clothColor?: string | undefined } & Partial<
   Record<ToneField, string | undefined>
 >;
 
-/** The cloth colour a style without one is dressed in. */
 export const defaultClothColor = "#6f7f86";
 
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
-// Hues from red through orange to yellow read as bare skin on a waistband or strap, so the accent avoids them.
 const skinLike = (hue: number) => hue > 0.94 || hue < 0.17;
 
-/**
- * Tones for a whole outfit. One cloth colour gives all of them; a style may
- * also name the second cloth, the pale cloth, the accent, the leather, the
- * soles and the metal one by one, and those are used as they are.
- */
 export function outfitPalette(style: OutfitTones): Record<string, string> {
   const main = new T.Color(style.clothColor ?? defaultClothColor),
     hsl = main.getHSL({ h: 0, s: 0, l: 0 });
@@ -1251,11 +1216,6 @@ export function outfitPalette(style: OutfitTones): Record<string, string> {
   return tones;
 }
 
-/**
- * Whether a shell covers each skin point. Skin within `margin` of one of the
- * shell's open edges is not covered, because a viewer can see in there: up a
- * sleeve, under a hem, into a collar.
- */
 function cover(body: DressBody, s: Shell, margin: number): Uint8Array {
   const over = new Uint8Array(body.count),
     P = body.P,
@@ -1272,7 +1232,6 @@ function cover(body: DressBody, s: Shell, margin: number): Uint8Array {
       list.push(a);
     }
   for (let i = 0; i < s.count; i++) {
-    // A shell is cut from the skin, so away from its cut edges and its added detail a vertex still names one skin point.
     const a = s.anchor(i),
       v = body.nearest(a, 1);
     if (
@@ -1299,11 +1258,6 @@ function cover(body: DressBody, s: Shell, margin: number): Uint8Array {
   return over;
 }
 
-/**
- * The source vertex ids of the skin under the shells of `pieces`, which the
- * adult's own regions leave out. `margin` is how far in from an opening the
- * skin stays, in metres on a 1.72 m figure.
- */
 export function concealed(
   body: DressBody,
   pieces: ReadonlyArray<Piece>,
@@ -1318,7 +1272,6 @@ export function concealed(
   return hidden;
 }
 
-/** A preset outfit's mesh and the kind of material it is made of. */
 export interface OutfitMesh extends DressMesh {
   readonly type: string;
   readonly tone: string;
@@ -1327,25 +1280,15 @@ export interface OutfitMesh extends DressMesh {
 export interface DressedOutfit {
   readonly meshes: ReadonlyArray<OutfitMesh>;
   readonly ground: number;
-  /** Source vertex ids of skin that lies under the outfit. */
   readonly hidden: ReadonlySet<number>;
   readonly landmarks: Landmarks;
 }
 
-/** What the textured presets finish a preset outfit with. */
 export interface OutfitFinish {
   readonly raster: Raster;
-  /** Weaves a piece's cloth. */
   readonly cloth?: (mesh: T.Mesh, m: Landmarks) => void;
 }
 
-/**
- * Dresses the surface in a preset outfit (the outfit half of styleHuman in
- * character-view/human-style.js at 2761eb1). `material(tone, type)` makes each
- * piece's material from the outfit's palette; with `finish`, footwear is
- * painted, cloth woven and cloth that hangs in folds marked for the game
- * reduction.
- */
 export function dressPreset(
   surface: HumanSurface,
   name: PresetOutfit,
@@ -1368,7 +1311,6 @@ export function dressPreset(
     if (finish) {
       finishFootwear(finish.raster, made.mesh, p.piece.shoeUV);
       finish.cloth?.(made.mesh, m);
-      // Cloth that hangs in folds keeps a share of a reduced model's faces, so the folds stay in its outline.
       if (p.piece.draped) {
         const own = made.mesh.material === base ? base.clone() : made.mesh.material;
         if (!Array.isArray(own)) {

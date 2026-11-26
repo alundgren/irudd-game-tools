@@ -1,11 +1,3 @@
-// The whole-body build warp. Ported from sculptBuild in
-// character-view/body-sculpt.js and bodyFrame in character-view/graft.js at
-// 2761eb1. Section profiles are not ported.
-//
-// Each build axis widens or narrows the body around one height band of its
-// frame. Part pivots move with the warp, and every mesh is warped in world
-// space, so attachments stay on the surface they hung from.
-
 import * as T from "three";
 import { buildAxes, type FigureBuild } from "@irudd/document";
 import type { BuildPart } from "../view.js";
@@ -16,7 +8,6 @@ import { mantleGeometry } from "./mantle.js";
 import { skirtGeometry } from "./skirt.js";
 import { volumeBounds } from "./volume.js";
 
-/** A built part as the warp reads it: its typed view and its mesh. */
 interface WarpPart {
   readonly part: BuildPart;
   readonly object: T.Object3D;
@@ -25,7 +16,6 @@ interface WarpPart {
 const bell = (y: number, c: number, r: number): number => Math.exp(-(((y - c) / r) ** 2));
 
 type Corner = readonly [number, number, number];
-/** The rest boxes of the built-in pieces, in part coordinates. From anatomyBoxes in graft.js. */
 const pieceBoxes: Readonly<Record<string, readonly [Corner, Corner]>> = {
   head: [
     [-0.12, -0.05, -0.12],
@@ -61,11 +51,6 @@ const unitBox: readonly [Corner, Corner] = [
   [0.5, 0.5, 0.5],
 ];
 
-/**
- * The world bounds of a frame part that is not a sweep, as bounds in
- * graft.js measures it: a cage's points, a mantle's panel, a hull's box, a
- * built-in piece's or a hand's rest box, else the unit box.
- */
 function restBounds(part: BuildPart, world: T.Matrix4): T.Box3 {
   if (part.cage) {
     const box = new T.Box3().makeEmpty();
@@ -90,7 +75,6 @@ function restBounds(part: BuildPart, world: T.Matrix4): T.Box3 {
   return new T.Box3(new T.Vector3(...a), new T.Vector3(...b)).applyMatrix4(world);
 }
 
-/** Rest bounds of the frame parts, as bodyFrame measures them. */
 function bodyFrame(build: FigureBuild, parts: ReadonlyMap<string, WarpPart>): T.Box3 {
   const box = new T.Box3().makeEmpty();
   for (const id of build.frame) {
@@ -113,10 +97,6 @@ function bodyFrame(build: FigureBuild, parts: ReadonlyMap<string, WarpPart>): T.
   return box;
 }
 
-/**
- * The build warp as a map of rest world points, or undefined when every axis
- * is 1. `root` must still be at rest.
- */
 export function buildWarp(
   root: T.Object3D,
   build: FigureBuild,
@@ -161,11 +141,6 @@ export function buildWarp(
   };
 }
 
-/**
- * Warp a built character in place: each part's pivot moves to the warped
- * point of its rest pivot, so its rotation and scale stay as placed, and every
- * mesh is warped in world space. Returns the warp, if any.
- */
 export function warpBuild(
   root: T.Object3D,
   build: FigureBuild,
@@ -208,9 +183,6 @@ export function warpBuild(
       after.copy(before);
       deform(after);
       if (smooth) {
-        // Joined triangles are split between independently editable regions.
-        // Carry the shared normal through the warp rather than shading each
-        // triangle independently and leaving a faceted line at the joint.
         normal.fromBufferAttribute(normals, i).normalize();
         tangent.crossVectors(Math.abs(normal.y) < 0.8 ? up : right, normal).normalize();
         bitangent.crossVectors(normal, tangent);

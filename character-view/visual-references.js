@@ -1,5 +1,3 @@
-// Artist references travel with a direction request. The accepted form contains
-// only the geometry and surface art needed to render it.
 export const referenceRoles = [
   "Face",
   "Body silhouette",

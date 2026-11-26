@@ -1,14 +1,5 @@
-// The views a trace or depth brief attaches: the selected part's sheet, drawn
-// as G0 drew it for the agent (character-view/art-variation.js at 2761eb1).
-// Its first quadrant is the front, its second the profile facing left. A
-// depth brief sends each as a 640 px panel (newDepthCandidate); a trace brief
-// sends 768 px panels with G0's coordinate grid and labels (coordinateViews),
-// so the agent's normalised marks are fractions of the panel the host
-// measures when it fits them.
-
 import { domRaster, type RasterImage } from "@irudd/character";
 
-/** Draw one quadrant of a sheet into a `size` canvas, as G0's paintGuide does. */
 function guide(image: RasterImage, quadrant: 0 | 1, size: number): HTMLCanvasElement {
   const canvas = domRaster().canvas(size, size);
   const ctx = canvas.getContext("2d");
@@ -27,7 +18,6 @@ function guide(image: RasterImage, quadrant: 0 | 1, size: number): HTMLCanvasEle
   return canvas;
 }
 
-/** G0's coordinate grid: dotted tenths with their labels along the top and left edges. */
 function grid(canvas: HTMLCanvasElement): void {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
@@ -61,7 +51,6 @@ const png = (canvas: HTMLCanvasElement): Promise<Uint8Array> =>
     }, "image/png");
   });
 
-/** The front and profile views of a sheet for a trace or depth brief, as PNGs. */
 export async function sheetViews(
   sheet: { readonly bytes: Uint8Array; readonly mediaType: string },
   kind: "trace" | "depth",

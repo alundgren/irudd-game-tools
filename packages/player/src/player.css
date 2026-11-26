@@ -1,4 +1,3 @@
-/* Player controls. Hosts set the custom properties; defaults suit a light panel. */
 .pl-controls {
   display: grid;
   gap: 8px;

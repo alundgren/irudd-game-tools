@@ -1,4 +1,3 @@
-// The two original brows follow the height control on previously saved faces.
 const artwork = {
   "Soft taper": "eyebrow001", "Lifted arch": "eyebrow003", "Straight": "eyebrow005",
   "Fine arch": "eyebrow006", "Full and brushed": "eyebrow009",

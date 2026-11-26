@@ -1,8 +1,3 @@
-// Review in the host, with fake renderers: prepared forms staging their
-// artwork, revision pinning, head movement during a job, issued-artifact
-// reads, provenance checks, and a renderer served over a person's connection
-// that disconnects and registers again. The real renderer is the desktop's
-// review worker; apps/desktop/scripts/qa-review.ts exercises it on the GPU.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
@@ -42,7 +37,6 @@ const info: RendererInfo = {
   },
 };
 
-/** A GLB holding only a JSON chunk with the provenance stamp. */
 function fakeGlb(stamp: Record<string, unknown>, padding = 0): Uint8Array {
   const json = new TextEncoder().encode(
     JSON.stringify({
@@ -164,7 +158,6 @@ async function failsWith(promise: Promise<unknown>, tag: string): Promise<Worksh
   assert.fail(`expected ${tag}`);
 }
 
-/** A forms directory with feline-worker and the two sheets it declares. */
 function feline(root: string, withArtwork: boolean): string {
   const dir = path.join(root, "forms");
   fs.mkdirSync(path.join(dir, "artwork"), { recursive: true });
@@ -228,7 +221,6 @@ test("a painted form stages its artwork before the revision, keeps it in backups
       const current = await host.call("current", { documentId: "doc-feline-a" });
       for (const asset of current.document?.assets ?? [])
         assert.ok(await Effect.runPromise(host.project.blobInfo(asset.digest)));
-      // A second start reuses the stored bytes.
       const again = await host.call("start", {
         documentId: "doc-feline-b",
         requestId: requestId(),
@@ -268,7 +260,6 @@ test("a painted form stages its artwork before the revision, keeps it in backups
     bare,
   );
 
-  // A tampered file is reported and not offered.
   fs.writeFileSync(path.join(forms, "artwork", "body.webp"), "tampered");
   assert.match(loadForms(forms).problems.join(" "), /does not match its digest/);
 });
@@ -330,7 +321,6 @@ test("a job is pinned to its revision while the head moves, and only issued arti
     assert.equal(seen[0]?.documentDigest, current.documentDigest);
     assert.equal(exported.renderer.via, "in-process");
 
-    // Chunked reads reassemble to the issued SHA-256.
     const parts: Buffer[] = [];
     let offset = 0;
     for (;;) {
@@ -348,7 +338,6 @@ test("a job is pinned to its revision while the head moves, and only issued arti
       exported.glb.sha256,
     );
 
-    // The same revision again: identical bytes, recorded as a repeat.
     const repeat = await host.call("review.export", {
       documentId: docId,
       revision: 1,
@@ -357,7 +346,6 @@ test("a job is pinned to its revision while the head moves, and only issued arti
     assert.deepEqual(repeat.repeat, { previous: exported.glb.sha256, identical: true });
     assert.equal(repeat.source.headMoved, false);
 
-    // Agents read issued artifacts only.
     const pairing = await host.call("pair.agent", { agent: "reviewer" });
     const agent = await connect({
       credential: { role: "agent", file: pairing.credentialFile },
@@ -378,7 +366,6 @@ test("a job is pinned to its revision while the head moves, and only issued arti
   });
 });
 
-/** A forms directory with field-wardrobe, which has saved outfits, and its three sheets. */
 function wardrobeForms(root: string): string {
   const dir = path.join(root, "forms");
   fs.mkdirSync(path.join(dir, "artwork"), { recursive: true });
@@ -449,7 +436,6 @@ test("a wardrobe export names its saved outfits and is its own artifact", async 
         wardrobe: true,
       });
       assert.deepEqual(again.repeat, { previous: all.glb.sha256, identical: true });
-      // A renderer that drops the outfits from the stamp issues nothing.
       stampLooks = false;
       const error = await failsWith(
         host.call("review.export", { documentId: "doc-wardrobe", preset: "clay", wardrobe: true }),
@@ -495,7 +481,6 @@ test("a renderer that returns another revision's GLB issues nothing", async () =
 const isJob = (value: unknown): value is RenderJob =>
   typeof value === "object" && value !== null && "jobId" in value && "documentDigest" in value;
 
-/** Serve as the renderer on a person's connection, answering jobs until told to drop. */
 function serve(client: WorkshopClient, options: { hold?: boolean } = {}): { jobs: RenderJob[] } {
   const jobs: RenderJob[] = [];
   client.onEvent((event: HostEvent) => {
@@ -559,7 +544,6 @@ test("an attached desktop serves the renderer over its connection; a disconnect 
       const png = await agent.call("review.read", { sha256: inspected.images[0]?.sha256 ?? "" });
       assert.equal(png.mediaType, "image/png");
 
-      // The serving desktop goes away mid-job.
       desktop.close();
       const holding = await connect({ credential: { role: "human", project }, stateDir });
       const held = serve(holding, { hold: true });
@@ -572,7 +556,6 @@ test("an attached desktop serves the renderer over its connection; a disconnect 
         await new Promise((r) => setTimeout(r, 10));
       assert.equal((await agent.call("review.capabilities", {})).available, false);
 
-      // It reconnects and serves again.
       const again = await connect({ credential: { role: "human", project }, stateDir });
       serve(again);
       await again.call("review.serve", { renderer: info });

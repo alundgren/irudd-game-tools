@@ -2,7 +2,6 @@ import { buildFigure } from "../character-view/figure.js";
 import references from "./body-references.json" with { type: "json" };
 import { scanFits } from "./local-references.js";
 
-// The fitted parameters stay local, so a fresh checkout lists no scan studies.
 export const referenceStudies = Object.entries(scanFits ?? {}).map(
   ([id, figure]) => ({
     id: "scan-" + id,

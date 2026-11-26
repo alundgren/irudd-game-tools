@@ -1,8 +1,3 @@
-// Installation state and links on a real NTFS folder: prepare, activate, roll
-// back, prune and refusals. Fake builds keep it under a second; recovery after
-// killed processes is in recovery.test.ts, and the installer rehearsal
-// (scripts/rehearse.ts) covers real builds.
-
 import assert from "node:assert/strict";
 import {
   mkdirSync,
@@ -96,7 +91,6 @@ test("a rollback made by the junction-only preview survives a modern restart", a
   await activate(root, modern);
   await rollback(root);
   assert.equal(existsSync(path.join(root, "installation.json")), false);
-  // The running preview implements its own rollback entirely with junctions.
   renameSync(path.join(root, "current"), path.join(root, "swapping"));
   renameSync(path.join(root, "previous"), path.join(root, "current"));
   renameSync(path.join(root, "swapping"), path.join(root, "previous"));
@@ -119,7 +113,6 @@ test("a foreign launcher or a build of another root is refused without changing 
 
   const other = fakeBuild(path.join(scratch, "elsewhere"), commit(5));
   await assert.rejects(activate(root, other), /not a build of this installation/);
-  // A foreign program at a launcher path blocks every step until it is moved.
   await assert.rejects(rollback(root, { wait: 0 }), /not this installation's launcher/);
   rmSync(path.join(root, "bin", "irudd.exe"));
   await assert.rejects(rollback(root, { wait: 0 }), /no earlier version/);

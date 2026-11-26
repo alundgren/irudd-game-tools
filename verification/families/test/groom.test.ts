@@ -1,7 +1,3 @@
-// A groom grows a cap and three strand layers from its seed, the same each
-// time; payloads outside the legacy editor's bounds are refused. The
-// four-preset parity of braided-biologist is the slow gate's.
-
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -46,7 +42,6 @@ function hair(doc: CharacterDocument): number[] {
 
 test("a groom grows a cap and three strand layers from its seed", () => {
   const counts = hair(biologist());
-  // A 64 by 20 cap, then 23 braids of three five-sided strands over 127 stations.
   assert.equal(counts.length, 4);
   assert.equal(counts[0], 65 * 21);
   assert.equal(

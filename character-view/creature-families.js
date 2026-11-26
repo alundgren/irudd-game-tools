@@ -1,12 +1,5 @@
 import { randomStream } from "./random.js";
 
-// Ordinary draws come from ecological families. A family is a way of
-// living; inside it, a kin is one animal that lives that way, with its own
-// silhouette, head and ornament. A biome settles the palette. Families,
-// kins and biomes all come from shuffled decks, so a run of consecutive
-// seeds walks through different animals and palettes, and two draws of the
-// same family walk through its kins before one repeats.
-// Everything a family writes is an ordinary editable plan value.
 const deckOf = {
   envoy: 4,
   hopper: 3,
@@ -62,17 +55,13 @@ const hsl = (h, s, l) => {
   return "#" + [0, 8, 4].map((n) => Math.round(f(n) * 255).toString(16).padStart(2, "0")).join("");
 };
 
-// How much of the plan a family leaves to the outfit draws.
 const dressOdds = {
   envoy: 0.72, brute: 0.5, hopper: 0.42, grazer: 0.4, stalker: 0.38, tank: 0.36,
   wader: 0.3, mantis: 0.36, strider: 0.3, skitter: 0.22, glider: 0.24, wild: 0.3,
   drifter: 0, swimmer: 0,
 };
-// How often a drawn kit is kept. A slender shore bird rarely carries one.
 const kitOdds = { wader: 0.3, glider: 0.4, skitter: 0.5 };
 
-// The family and the kin of a seed. The nth draw of a family, counted over
-// all seeds, takes the nth card of that family's own circle of kins.
 export function familyOf(seed) {
   seed = seed >>> 0;
   const n = slots.length,
@@ -84,8 +73,6 @@ export function familyOf(seed) {
   for (let i = 0; i < at; i++) if (slots[order[i]] === family) earlier++;
   const kins = creatureKins[family],
     salt = [...family].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 0x3ad5);
-  // One fixed shuffle per family, walked in a circle: any run of as many
-  // draws as the family has kins shows each of them once.
   return { family, kin: kins[shuffled(0, kins.length, salt)[(block * deckOf[family] + earlier) % kins.length]] };
 }
 
@@ -100,7 +87,6 @@ export function drawFamily(seed) {
     P = (p) => draw() < p,
     either = (v) => (P(0.5) ? v : -v);
 
-  // Palette. One body colour, one accent that answers it and a pale underside.
   const tone = {
     savanna: () => [R(24, 48), R(0.45, 0.62), R(0.46, 0.58), C([200, 355, 168])],
     jungle: () => [R(95, 150), R(0.4, 0.58), R(0.34, 0.48), C([320, 46, 18])],
@@ -165,17 +151,14 @@ export function drawFamily(seed) {
     seed: Math.floor(draw() * 4294967296),
     ...extra,
   });
-  // A small wing held folded against the flank.
   const folded = (from = 0.7) => wingOf("feather", { from, length: R(0.45, 0.6), rise: -58, sweep: 50, chord: 0.22, ribs: I(6, 8), bend: 0.85, notch: 0.2, point: 0.2 });
   const look = () => (P(0.85) ? either(R(10, 30)) : 0);
   const sway = () => (P(0.8) ? either(R(12, 45)) : 0);
   const none = { kind: "none" };
 
   const families = {
-    // Plains and forest herbivores on four hooves or pads.
     grazer() {
       if (kin === "browser") {
-        // A tall browser: sloping back, tower of a neck, knobbed crown.
         const girth = R(0.22, 0.27),
           length = R(0.78, 0.95);
         return {
@@ -189,7 +172,6 @@ export function drawFamily(seed) {
         };
       }
       if (kin === "boar") {
-        // A low rooter: all shoulder and snout, tusks and a bristled ridge.
         const girth = R(0.27, 0.33),
           length = R(0.8, 0.98);
         return {
@@ -203,7 +185,6 @@ export function drawFamily(seed) {
         };
       }
       if (kin === "bison") {
-        // A front-heavy herd beast under a mountain of shoulder.
         const girth = R(0.28, 0.34),
           length = R(0.92, 1.1);
         return {
@@ -216,7 +197,6 @@ export function drawFamily(seed) {
           skin: skinOf(["Countershade", "Countershade", "Marbled", "Bands"]),
         };
       }
-      // A fleet antelope on long thin legs under a rack of horn.
       const girth = R(0.2, 0.25),
         length = R(0.82, 1);
       return {
@@ -229,10 +209,8 @@ export function drawFamily(seed) {
         skin: skinOf(["Rosettes", "Spots", "Bands", "Countershade"]),
       };
     },
-    // Hunters, each with its own way of closing the distance.
     stalker() {
       if (kin === "cat") {
-        // A four-footed ambusher: low shoulders, long tail, sabre teeth.
         const girth = R(0.19, 0.24),
           length = R(0.95, 1.15);
         return {
@@ -246,7 +224,6 @@ export function drawFamily(seed) {
         };
       }
       if (kin === "terror bird") {
-        // A flightless axe-beak that runs its prey down.
         const girth = R(0.22, 0.27),
           length = R(0.62, 0.78);
         return {
@@ -260,7 +237,6 @@ export function drawFamily(seed) {
         };
       }
       if (kin === "lurker") {
-        // A river ambusher: belly to the mud, half its length is jaw and tail.
         const girth = R(0.19, 0.24),
           length = R(1.15, 1.4);
         return {
@@ -273,7 +249,6 @@ export function drawFamily(seed) {
           skin: skinOf(["Countershade", "Reticulated", "Bands"]),
         };
       }
-      // Two-legged pursuit predator balanced by a heavy tail.
       const girth = R(0.2, 0.27),
         length = R(0.75, 0.95);
       const limbs = [{ kind: "leg", pairs: 1, from: 0.3, style: "bird", splay: R(4, 8), end: "talons", digits: 3, girth: R(1.15, 1.4), muscle: R(1.2, 1.45) }];
@@ -288,12 +263,10 @@ export function drawFamily(seed) {
         skin: skinOf(["Bands", "Bands", "Countershade", "Marbled"]),
       };
     },
-    // Upright talkers and traders with hands and an expressive head.
     envoy() {
       const leg = (extra) => ({ kind: "leg", pairs: 1, from: 0.04, style: C(["mammal", "mammal", "pillar"]), splay: R(4, 9), end: C(["paw", "pad", "hoof"]), digits: 3, girth: R(1.15, 1.45), muscle: R(1.1, 1.3), ...extra });
       const arm = (extra) => ({ kind: "arm", pairs: 1, from: 0.82, to: 0.82, length: R(0.52, 0.72), drop: R(55, 70), forward: R(15, 32), elbow: R(30, 55), end: "hand", digits: I(3, 4), hand: R(0.78, 0.98), muscle: R(1, 1.25), raise: P(0.7) ? either(R(25, 60)) : 0, ...extra });
       if (kin === "scholar") {
-        // Tall and narrow, a small crested head on a long neck.
         const girth = R(0.17, 0.21),
           length = R(0.7, 0.88);
         return {
@@ -307,7 +280,6 @@ export function drawFamily(seed) {
         };
       }
       if (kin === "merchant") {
-        // Broad and settled, with a great jowled head and hands to spare.
         const girth = R(0.26, 0.32),
           length = R(0.56, 0.7),
           four = P(0.6);
@@ -322,7 +294,6 @@ export function drawFamily(seed) {
         };
       }
       if (kin === "sprite") {
-        // Small, quick and mostly head: huge eyes under ears or feelers.
         const girth = R(0.17, 0.2),
           length = R(0.42, 0.52);
         const limbs = [leg({ girth: R(0.95, 1.15), style: C(["mammal", "bird"]), end: C(["paw", "talons", "pad"]) }), arm({ length: R(0.46, 0.6), girth: R(0.78, 0.9), hand: R(0.9, 1.1), raise: either(R(30, 65)) })];
@@ -339,7 +310,6 @@ export function drawFamily(seed) {
         };
       }
       if (kin === "saurian") {
-        // An upright lizard: long jaw, sail of a crest and a tail to balance.
         const girth = R(0.2, 0.25),
           length = R(0.66, 0.82);
         return {
@@ -352,7 +322,6 @@ export function drawFamily(seed) {
           skin: skinOf(["Bands", "Countershade", "Reticulated", "Marbled"]),
         };
       }
-      // Avian: a beaked talker on bird legs under a show of feathers.
       const girth = R(0.2, 0.25),
         length = R(0.55, 0.72);
       return {
@@ -365,10 +334,8 @@ export function drawFamily(seed) {
         skin: skinOf(["Bands", "Spots", "Countershade"]),
       };
     },
-    // The heavies.
     brute() {
       if (kin === "ogre") {
-        // Upright and pot-bellied on short legs, jaw first.
         const girth = R(0.3, 0.36),
           length = R(0.68, 0.84);
         return {
@@ -385,7 +352,6 @@ export function drawFamily(seed) {
         };
       }
       if (kin === "bear") {
-        // Four pillars under a rolling bulk and a blunt wide head.
         const girth = R(0.3, 0.36),
           length = R(0.9, 1.08);
         return {
@@ -398,7 +364,6 @@ export function drawFamily(seed) {
           skin: skinOf(["Countershade", "Marbled", "Bands"]),
         };
       }
-      // Knuckle-walker: a small low head between enormous arms.
       const girth = R(0.26, 0.33),
         length = R(0.75, 0.95);
       return {
@@ -414,10 +379,8 @@ export function drawFamily(seed) {
         skin: skinOf(["Countershade", "Marbled", "Bands", "Spots"]),
       };
     },
-    // Slow armoured browsers.
     tank() {
       if (kin === "tortoise") {
-        // A dome on four stumps with a wrinkled neck reaching out of it.
         const girth = R(0.28, 0.34),
           length = R(0.78, 0.95);
         return {
@@ -431,7 +394,6 @@ export function drawFamily(seed) {
         };
       }
       if (kin === "rhino") {
-        // Taller and barer: thick hide, a horn on the nose, swivelling ears.
         const girth = R(0.28, 0.33),
           length = R(1, 1.18);
         return {
@@ -445,7 +407,6 @@ export function drawFamily(seed) {
         };
       }
       if (kin === "ceratops") {
-        // A beaked head behind a wall of frill and brow horn.
         const girth = R(0.26, 0.32),
           length = R(1, 1.2);
         return {
@@ -458,7 +419,6 @@ export function drawFamily(seed) {
           skin: skinOf(["Spots", "Reticulated", "Bands"]),
         };
       }
-      // Ankylosaur: plate and club.
       const girth = R(0.25, 0.32),
         length = R(1, 1.28);
       const shingled = P(0.5);
@@ -472,7 +432,6 @@ export function drawFamily(seed) {
         skin: skinOf(["Spots", "Reticulated", "Countershade"]),
       };
     },
-    // Fliers, each with its own wing.
     glider() {
       if (kin === "dragonfly") {
         const girth = R(0.15, 0.19),
@@ -491,7 +450,6 @@ export function drawFamily(seed) {
         };
       }
       if (kin === "moth") {
-        // A furred body under two pairs of broad painted wings.
         const girth = R(0.22, 0.27),
           length = R(0.6, 0.75);
         return {
@@ -508,7 +466,6 @@ export function drawFamily(seed) {
         };
       }
       if (kin === "wyvern") {
-        // Serpent neck, whip tail and leather wings on two taloned legs.
         const girth = R(0.18, 0.22),
           length = R(0.9, 1.1);
         return {
@@ -542,10 +499,8 @@ export function drawFamily(seed) {
         skin: skinOf(["Bands", "Countershade", "Spots"]),
       };
     },
-    // Long-legged shore and plain walkers.
     wader() {
       if (kin === "runner") {
-        // A heavy-thighed plains runner with a show of tail feathers.
         const girth = R(0.25, 0.3),
           length = R(0.6, 0.74);
         return {
@@ -559,7 +514,6 @@ export function drawFamily(seed) {
         };
       }
       if (kin === "longneck") {
-        // A four-footed marsh browser: a small head at the end of a boom.
         const girth = R(0.23, 0.28),
           length = R(0.9, 1.1);
         return {
@@ -573,7 +527,6 @@ export function drawFamily(seed) {
         };
       }
       if (kin === "stilt") {
-        // A ball of a body high on wire legs, probing with a long curved bill.
         const girth = R(0.2, 0.24),
           length = R(0.44, 0.54);
         return {
@@ -586,7 +539,6 @@ export function drawFamily(seed) {
           skin: skinOf(["Spots", "Countershade", "Bands"], { socks: R(0.6, 0.9) }),
         };
       }
-      // Heron: stilts, an S of neck and a spear of a bill.
       const girth = R(0.18, 0.22),
         length = R(0.62, 0.78);
       const limbs = [{ kind: "leg", pairs: 1, from: 0.36, style: "bird", splay: R(3, 6), end: C(["paddle", "talons", "paddle"]), girth: R(0.6, 0.72), muscle: 1.4 }];
@@ -601,10 +553,8 @@ export function drawFamily(seed) {
         skin: skinOf(["Countershade", "Bands"], { socks: R(0.6, 0.9) }),
       };
     },
-    // Small bipeds that bounce.
     hopper() {
       if (kin === "kanga") {
-        // Leaning over great thighs, counterweighted by a tail as thick as a leg.
         const girth = R(0.22, 0.27),
           length = R(0.66, 0.8);
         return {
@@ -621,7 +571,6 @@ export function drawFamily(seed) {
         };
       }
       if (kin === "frog") {
-        // A squat wide mouth with eyes on top and folded jumping legs.
         const girth = R(0.27, 0.33),
           length = R(0.48, 0.6);
         return {
@@ -638,7 +587,6 @@ export function drawFamily(seed) {
         };
       }
       if (kin === "owl") {
-        // A feathered ball: face of two great eyes, tufts and a hooked beak.
         const girth = R(0.25, 0.31),
           length = R(0.44, 0.56);
         return {
@@ -651,7 +599,6 @@ export function drawFamily(seed) {
           skin: skinOf(["Spots", "Bands", "Countershade"]),
         };
       }
-      // Puff: a small round biped that is mostly head and eyes.
       const girth = R(0.24, 0.32),
         length = R(0.42, 0.6);
       const limbs = [{ kind: "leg", pairs: 1, from: 0.1, style: C(["bird", "mammal", "mammal"]), splay: R(6, 12), end: C(["paw", "paddle", "pad"]), digits: 3, girth: R(0.95, 1.25), muscle: 1.2 }];
@@ -666,11 +613,9 @@ export function drawFamily(seed) {
         skin: skinOf(["Spots", "Rosettes", "Marbled", "Countershade"]),
       };
     },
-    // Many-legged ground dwellers.
     skitter() {
       const mask = (extra) => ({ neck: 0.05, neckPitch: R(4, 14), size: R(1.2, 1.5), shape: "wide", snout: "mandibles", eyes: C([2, 4, 6, 8]), eyePlace: C(["front", "side"]), eyeSize: R(1.1, 1.5), lids: 0, brow: 0, crest: "antennae", crestSize: R(0.9, 1.4), turn: look(), ...extra });
       if (kin === "beetle") {
-        // A domed wing-case on short legs behind one great horn.
         const girth = R(0.27, 0.33),
           length = R(0.7, 0.86);
         return {
@@ -684,7 +629,6 @@ export function drawFamily(seed) {
         };
       }
       if (kin === "centipede") {
-        // A long jointed ribbon carried on a fringe of legs.
         const girth = R(0.13, 0.16),
           length = R(1.7, 2.1);
         return {
@@ -698,7 +642,6 @@ export function drawFamily(seed) {
         };
       }
       if (kin === "spider") {
-        // A small forebody and a great abdomen slung between eight high knees.
         const girth = R(0.2, 0.25),
           length = R(0.7, 0.86);
         return {
@@ -712,7 +655,6 @@ export function drawFamily(seed) {
         };
       }
       if (kin === "crab") {
-        // A wide flat shell behind raised claws, eyes up on stalks.
         const girth = R(0.26, 0.32),
           length = R(0.5, 0.62);
         return {
@@ -728,7 +670,6 @@ export function drawFamily(seed) {
           skin: skinOf(["Spots", "Marbled", "Countershade"]),
         };
       }
-      // Scorpion: pincers in front, a sting carried over the back.
       const girth = R(0.17, 0.22),
         length = R(0.95, 1.2);
       return {
@@ -744,12 +685,10 @@ export function drawFamily(seed) {
         skin: skinOf(["Bands", "Bands", "Reticulated"]),
       };
     },
-    // Ambushers that rear a forebody over walking legs.
     mantis() {
       const girth = R(0.18, 0.23),
         length = R(1.05, 1.3);
       if (kin === "hexataur") {
-        // Six pillars under a heavy barrel and a horned rider's torso.
         const g = R(0.22, 0.27);
         return {
           spine: { length: R(1.2, 1.4), girth: g, rear: R(-2, 4), front: R(74, 86), arch: 0, stance: R(0.5, 0.64), profile: "tube", bulge: [1.2, 1.4, 1.1, 0.84, 1] },
@@ -782,10 +721,8 @@ export function drawFamily(seed) {
         skin: skinOf(["Bands", "Spots", "Countershade"]),
       };
     },
-    // Tide-flat foragers that walk on a ring of legs.
     strider() {
       if (kin === "tripod") {
-        // A small pod carried high on a few long stilts, one great eye.
         const girth = R(0.2, 0.24);
         const limbs = [{ kind: "leg", pairs: C([2, 2, 3]), from: 0, to: 0.12, style: "insect", splay: R(24, 34), fan: R(150, 180), end: "point", girth: R(0.8, 0.95) }];
         if (P(0.6)) limbs.push({ kind: "tentacle", pairs: 1, from: 0.7, to: 0.7, length: R(0.4, 0.6), droop: R(30, 60), forward: R(20, 45), curl: R(0.4, 0.8), girth: 0.5 });
@@ -800,7 +737,6 @@ export function drawFamily(seed) {
         };
       }
       if (kin === "squat") {
-        // A wide low table of a body on many short legs, all mouth.
         const girth = R(0.28, 0.34);
         return {
           spine: { length: R(0.42, 0.52), girth, flat: R(1.3, 1.5), rear: R(84, 88), front: R(80, 88), arch: R(0, 4), stance: R(0.24, 0.32), profile: "barrel" },
@@ -828,10 +764,8 @@ export function drawFamily(seed) {
         skin: skinOf(["Spots", "Rosettes", "Bands"]),
       };
     },
-    // Reef drifters that taste the water with their arms.
     drifter() {
       if (kin === "jelly") {
-        // A broad bell trailing a curtain of thin streamers.
         return {
           spine: { length: R(0.34, 0.44), girth: R(0.2, 0.25), rear: 88, front: 90, arch: 0, stance: R(0.7, 0.95), profile: "pear" },
           head: { neck: 0.03, neckPitch: 88, size: R(1.7, 2.1), shape: C(["wide", "flat"]), snout: "none", mouth: false, eyes: C([2, 4, 3]), eyeSize: R(1, 1.3), eyePlace: "front", lids: 0, brow: 0, crest: C(["none", "fan", "nubs"]), crestSize: R(0.8, 1.2) },
@@ -846,7 +780,6 @@ export function drawFamily(seed) {
         };
       }
       if (kin === "nautilus") {
-        // A coiled shell riding above a face of short arms and two great eyes.
         const girth = R(0.24, 0.3);
         return {
           spine: { length: R(0.5, 0.62), girth, rear: R(30, 50), front: R(60, 80), arch: R(4, 10), stance: R(0.5, 0.66), profile: "barrel" },
@@ -874,10 +807,8 @@ export function drawFamily(seed) {
         skin: skinOf(["Rosettes", "Spots", "Marbled"], { belly: R(0.4, 0.7) }),
       };
     },
-    // Open-water animals.
     swimmer() {
       if (kin === "ray") {
-        // A flat kite on two great wings of fin, trailing a whip.
         const girth = R(0.18, 0.22),
           length = R(0.85, 1.05);
         return {
@@ -891,7 +822,6 @@ export function drawFamily(seed) {
         };
       }
       if (kin === "angler") {
-        // A swimming mouth with a lantern on a stalk.
         const girth = R(0.32, 0.38),
           length = R(0.8, 1);
         return {
@@ -925,8 +855,6 @@ export function drawFamily(seed) {
   };
   if (family === "wild") return { family, kin, biome, plan: null, skin: skinOf(["Bands", "Spots", "Rosettes", "Countershade", "Reticulated", "Marbled"]), dressOdds: dressOdds.wild, kitOdds: 0.72, draw };
   const plan = families[family]();
-  // Facial signals suit the anatomy: a cheek flash on a swimmer, a dark eye stripe on a
-  // hunter, or a pale blaze on a grazer. Keep the trunk, kit and biome draws independent.
   const faceDraw = randomStream(seed ^ 0x65c3a9b1);
   const faceStyles = {
     glider: ["Facial disc", "Eye stripe"], wader: ["Cheek flashes", "Eye stripe"],
@@ -971,7 +899,6 @@ export function drawFamily(seed) {
   const scale = R(0.78, 1.22);
   plan.scale ??= scale;
 
-  // One grafted oddity keeps a kin from repeating itself.
   if (P(0.22)) {
     const legged = plan.limbs.some((l) => l.kind === "leg"),
       flies = plan.limbs.some((l) => l.kind === "wing");
@@ -994,7 +921,6 @@ export function drawFamily(seed) {
       arm.to = 0.9;
     }
   }
-  // Only bare-backed ground and bottom dwellers carry the heavy growth.
   const shellRoll = randomStream((seed ^ 0x103c9e7a) >>> 0);
   const chance = { tortoise: 0.25, ankylo: 0.12, scorpion: 0.2, crab: 0.45, octopus: 0.5 }[kin] ?? 0;
   if (shellRoll() < chance && !plan.limbs.some((l) => l.kind === "wing")) {

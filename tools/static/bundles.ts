@@ -52,7 +52,6 @@ function check(probe: BundleProbe): void {
       throw new Error(`expected a resolved workspace source or external Electron import: ${input}`);
     if (probe.allowedSource.test(input)) continue;
     if (probe.name !== "preload" && input.startsWith("node_modules/")) continue;
-    // Rolldown/Vite generate virtual helper modules during chunk rendering.
     if (input.startsWith("\0") || input.startsWith("virtual:")) continue;
     throw new Error(`unexpected input ${input}`);
   }

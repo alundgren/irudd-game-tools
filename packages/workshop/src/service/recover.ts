@@ -1,8 +1,3 @@
-// Recovery of one document from the store: read its rows, check them against
-// the header and hand them to `openJournal`, which rebuilds the state from the
-// recorded effects only. The header's `{sequence, digest}` is the anchor that
-// makes a journal truncated at its end detectable.
-
 import {
   diagnostic,
   documentDigest,
@@ -18,7 +13,6 @@ import type { HeaderCache, Store } from "../storage/store.js";
 
 export interface Loaded {
   readonly state: DocumentState;
-  /** The stored header; null before the document's first commit. */
   readonly position: JournalPosition | null;
 }
 
@@ -92,7 +86,6 @@ export const recoverDocument = (
     return { state: recovery.state, position: last };
   });
 
-/** The header columns that describe a state, for listing without a journal. */
 export function headerCache(state: DocumentState): HeaderCache {
   return {
     label: state.document?.label ?? null,
@@ -101,7 +94,6 @@ export function headerCache(state: DocumentState): HeaderCache {
   };
 }
 
-/** Every asset digest any revision of the document references, with the first revision that does. */
 export function referencedAssets(state: DocumentState): Map<string, number> {
   const out = new Map<string, number>();
   for (const record of state.history)

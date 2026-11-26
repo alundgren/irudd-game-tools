@@ -1,10 +1,5 @@
-// How an adult stands and walks (character-view/human-posture.js): the
-// controls, the named ways of standing and the seeded draw. The solver that
-// turns a posture into joint rotations is in the rig.
-
 import { randomStream } from "./identity.js";
 
-/** Every control: [minimum, maximum, value an unnamed control takes]. */
 export const postureRanges = {
   weight: [-1, 1, 0],
   hip: [0, 1, 0.5],
@@ -213,7 +208,6 @@ export function mirrorPosture(p: Posture): Posture {
   return out;
 }
 
-/** One adult's own way of standing and walking. Age and build weigh the choice, the seed decides. */
 export function drawPosture(
   seed: number,
   human: { readonly age?: number; readonly weight?: number; readonly muscle?: number } = {},

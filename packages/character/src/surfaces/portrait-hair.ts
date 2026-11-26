@@ -1,7 +1,3 @@
-// Hair painted on a traced face, separated into a removable shell. Ported from
-// separateHair, seatHair, hairMargin and scalpMaterial in
-// character-view/portrait-hair.js at 2761eb1.
-
 import * as T from "three";
 import { hairCapSize, type HairCap, type Knot } from "@irudd/document";
 import { context2d, drawable, type Raster } from "../raster.js";
@@ -9,7 +5,6 @@ import { unpack } from "./packed.js";
 
 const [width, height] = hairCapSize;
 
-/** A field's value at a UV, wrapping round the sweep and clamped along it. */
 function value(field: Uint8Array, u: number, v: number): number {
   const x = (u - Math.floor(u)) * width;
   const y = T.MathUtils.clamp(v, 0, 1) * (height - 1);
@@ -27,17 +22,11 @@ function value(field: Uint8Array, u: number, v: number): number {
   );
 }
 
-/** The hair shell of a separated face and the vertices of its inner lining. */
 export interface HairShell {
   readonly geometry: T.BufferGeometry;
   readonly lining: ReadonlyArray<number>;
 }
 
-/**
- * Cut the outer surface at the painted hairline. The continuous inner head
- * recedes underneath it, so replacing or taking off the hair changes its
- * outline. Without `needShell` the head still recedes but no shell is cut.
- */
 export function separateHair(
   geometry: T.BufferGeometry,
   cap: HairCap,
@@ -196,7 +185,6 @@ export function separateHair(
 
 const margins = new Map<string, Uint8Array>();
 
-/** Distance inside the fitted hairline, wrapped through the longitude seam. */
 function hairMargin(key: string): Uint8Array {
   const known = margins.get(key);
   if (known) return known;
@@ -225,11 +213,6 @@ function hairMargin(key: string): Uint8Array {
   return a;
 }
 
-/**
- * Seat the inside of a removable cap on the head it lies over. The hair's
- * outside keeps its original fit and relief, including its longer side locks.
- * `rows` are the head sweep's knots.
- */
 export function seatHair(
   hair: T.Mesh,
   lining: ReadonlyArray<number>,
@@ -288,12 +271,6 @@ export function seatHair(
 
 const scalps = new WeakMap<T.Texture, Map<string, T.CanvasTexture>>();
 
-/**
- * A painted material whose map takes the cap's scalp colour under its
- * hairline, for the head left when the hair shell comes off. Textures made
- * here are added to `made`. A material without a drawable map is returned
- * as it is.
- */
 export function scalpMaterial(
   raster: Raster,
   source: T.Material,

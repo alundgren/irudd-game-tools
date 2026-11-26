@@ -12,12 +12,9 @@ import { drawIdentity } from "./human-identity.js";
 
 const { meta, packet } = data;
 export const portraitAxes = Object.keys(portraits.credits);
-// Face foundations measured on artist-modelled heads of the Microsoft Rocketbox library (MIT).
-// Each is a displacement field of the face alone; a saved adult without them keeps its shape.
 export const castShapeAxes = Object.keys(castShapes.credits);
 const castShapeShare = .45, castShapeFrame = .2;
 export const castShapeTitles = Object.fromEntries(castShapeAxes.map(key => [key, castShapes.credits[key].title]));
-/** True when this adult's face wears a cast foundation: its export owes the Rocketbox MIT notice. */
 export function wearsCastShape(human) {
   return !!human && castShapeAxes.some(key => human[key] > 0);
 }
@@ -60,12 +57,9 @@ export const humanAxes = [
   "faceA",
   "faceB",
   ...meta.axes,
-  // Shaped by human-neck.js on any build, beside what body mass does there.
   "shoulderLine",
   "upperBack",
   "abdominalApron",
-  // Face outline, soft tissue and one-sided controls packed by pack-human-identity.py.
-  // A saved adult without them keeps its shape.
   ...identity.meta.axes,
   ...Object.keys(faceSculpt.controls),
   ...portraitAxes,
@@ -74,8 +68,6 @@ export const humanAxes = [
   ...capturedAxes,
 ];
 export const humanIdentityAxes = identity.meta.axes;
-// What a reference fit or a proportion solver may move. The identity controls stay out, so
-// a fit made before they existed solves the same way and saved heads keep their contracts.
 export const humanFitAxes = humanAxes.filter((key) => !identity.meta.axes.includes(key) && !Object.hasOwn(faceSculpt.controls, key) && !portraitAxes.includes(key) && !castShapeAxes.includes(key) && !capturedAxes.includes(key) && !["orbitalRim","zygomaticArch","footLead","armLead","leftArmLift","rightArmLift","smileOpenness","smileBias"].includes(key));
 export function humanRange(key) {
   if (key === "height") return [1.43, 2.08, 1.72];
@@ -100,7 +92,6 @@ export function validHuman(p) {
   );
 }
 export function randomHuman(seed, archetype = "any", { relaxed = true, fitRestingLips = true } = {}) {
-  // Give each measurement its own seeded draw so adding an axis preserves the others.
   function draw(key) {
     let hash = seed >>> 0;
     for (const c of key) hash = Math.imul(hash ^ c.charCodeAt(0), 16777619);
@@ -116,13 +107,9 @@ export function randomHuman(seed, archetype = "any", { relaxed = true, fitRestin
     { male: 0.9, female: -0.9, neutral: 0 }[archetype] ??
     between("frame", -1, 1);
   spec.earTip *= 0.28;
-  // The line from neck to shoulder and the upper back follow body mass; the artist sets the rest.
   spec.shoulderLine = spec.upperBack = spec.armLead = spec.footLead = spec.leftArmLift = spec.rightArmLift = 0;
   for (const key of ["earLevel","earSetback","earLength","craniumDepth","faceHeight","noseTipAngle","noseTipWidth","nostrilWidth"])
     spec[key] *= 0.45;
-  // On a resting face, sample mouth depth together with the jaw that supports
-  // it. Independent extremes can push the whole mouth forward over a receding
-  // chin. The lip fullness draw and all artist-adjustable ranges remain independent.
   spec.mouthCorners *= 0.55;
   spec.mouthProjection *= 0.65;
   spec.lipParting *= 0.18;
@@ -132,8 +119,6 @@ export function randomHuman(seed, archetype = "any", { relaxed = true, fitRestin
     spec.chin = 0.8 * spec.chin + Math.max(0, 0.26 * spec.jawProjection);
     spec.lipBalance *= .55;
   }
-  // A coherent build carries into connected regions; retain independent variation
-  // so prominent shoulders, a full abdomen and long limbs can occur on any frame.
   const clamp = (v) => Math.max(-1, Math.min(1, v));
   const spread = (x) => Math.sign(x) * Math.pow(Math.abs(x), 0.59);
   spec.weight = spread(between("mass", -1, 1));
@@ -147,7 +132,6 @@ export function randomHuman(seed, archetype = "any", { relaxed = true, fitRestin
   spec.belly = clamp(
     0.58 * spec.belly + 0.67 * spec.weight - 0.15 * spec.muscle,
   );
-  // Lower abdominal tissue can hang on any frame. Most draws leave it at rest.
   const lowerMass = .75 * spec.weight + .45 * spec.belly - .22 * spec.muscle;
   spec.abdominalApron = Math.max(0, Math.min(1, (lowerMass-.36) * (.45 + .7*draw("lower abdomen"))));
   if (relaxed) {
@@ -163,18 +147,12 @@ export function randomHuman(seed, archetype = "any", { relaxed = true, fitRestin
       0.42 * spec.submentalFullness + 0.87 * fullness + 0.17 * spec.age,
     );
   }
-  // The face as one person: ancestry, outline, feature types, soft tissue and resting expression.
   drawIdentity(spec, draw, { relaxed });
-  // Start with one artist's related feature decisions. Other measurements
-  // remain editable, including the subject's own age, mass and ancestry.
   for (const key of portraitAxes) spec[key] = 0;
   for (const key of castShapeAxes) spec[key] = 0;
   for (const key of capturedAxes) spec[key] = 0;
   const foundation = portraitAxes[Math.floor(draw("portrait foundation") * portraitAxes.length)];
   spec[foundation] = between("portrait strength", .62, .98);
-  // Nearly half of the men start from a face an artist modelled as one person instead. Its
-  // draws are its own, so every other adult keeps the face it had. The library's women did not
-  // carry over as distinct faces, so a female or middling frame keeps the earlier foundations.
   if (spec.frame > castShapeFrame && draw("cast foundation") < castShapeShare) {
     spec[foundation] = 0;
     spec[castShapeAxes[Math.floor(draw("cast pick") * castShapeAxes.length)]] = between("cast strength", .7, 1);
@@ -198,7 +176,6 @@ export function randomHuman(seed, archetype = "any", { relaxed = true, fitRestin
         ]
       : between(key, -0.5, 0.4);
   spec.wristFlex = relaxed ? 0.44 : between("wristFlex", -0.28, 0.52);
-  // Smile has its own range of motion, independent of the resting mouth.
   spec.smileOpenness = relaxed ? between("smile opening", -.88, .78) : 0;
   spec.smileBias = relaxed ? between("smile bias", -.78, .78) : 0;
   spec.fingerCurl = relaxed ? 0.3 : between("fingerCurl", 0.02, 0.7);
@@ -214,8 +191,6 @@ export function randomHuman(seed, archetype = "any", { relaxed = true, fitRestin
     const surface = evaluateHuman(spec);
     balanceCheekDraw(spec, surface);
     const profile = restLipProfile(surface);
-    // Balance the neighbouring structures when several independent draws
-    // push the lips out together. Keep the artist's full individual ranges.
     const forward = Math.max(0, Math.max(profile.upper, profile.lower) - 1.4);
     spec.mouthProjection = clamp(spec.mouthProjection - .10 * forward);
     spec.chin = clamp(spec.chin + .072 * forward);
@@ -224,9 +199,6 @@ export function randomHuman(seed, archetype = "any", { relaxed = true, fitRestin
   return spec;
 }
 
-// Three points on each lateral cheek, spaced 10 mm apart on the neutral head.
-// Read the change of slope below the cheekbone in an oblique view. A prominent
-// cheek on a hollow jaw can form a sharp shelf when several source shapes add.
 const cheekSections = [
   [[11929,5325,.145],[11791,5179,.324],[11930,5326,.531]],
   [[11766,5152,.032],[11789,5177,.241],[11788,5176,.727]],
@@ -254,16 +226,11 @@ export function malarBend(surface) {
 function balanceCheekDraw(spec, surface) {
   const excess = Math.max(0,Math.min(1,(malarBend(surface)-15)/13));
   if (!excess) return;
-  // Reduce only the contributions that pull the lower cheek in or push the
-  // crest out. The underlying skull, eye shape, mouth and jaw stay distinctive.
   for (const [key, direction, share] of [
     ["cheeks",1,.83], ["cheekHollow",1,.5], ["faceFlesh",-1,.52], ["jowlFullness",-1,.52],
   ]) if (direction*spec[key]>0) spec[key]*=1-share*excess;
 }
 
-// Forward distances from the nose-tip/chin line, in mm at 1.72 m stature.
-// Sample the centre of each prominence on the neutral topology; use the
-// frontmost vertex in each small group as the shape changes.
 export function restLipProfile(surface) {
   const p = surface.positions;
   function front(ids) {
@@ -327,8 +294,6 @@ export function smoothHumanSurface(source) {
     pigments: unpack("subPigments", Uint8Array),
   };
 }
-/* Which cage vertices each vertex of the smoothed surface is blended from:
-   vertex i uses refs[offsets[i] .. offsets[i + 1]] with the matching factors. */
 export function humanSmoothSources() {
   return { offsets: unpack("subOffsets", Uint32Array), refs: unpack("subRefs", Uint16Array), factors: unpack("subFactors", Float32Array) };
 }
@@ -377,9 +342,6 @@ function rotateBranches(
     });
   }
 }
-// Advance one foot while the other supports the figure. The thigh and shin
-// take the shift gradually. Every point below the ankle shares one translation,
-// keeping each sole planted and its original pitch on the floor.
 function staggerFeet(positions, joints, indices, weights, lead) {
   for (const [suffix, sign] of [["_l", 1], ["_r", -1]]) {
     const branch = meta.names.map(name => /^(thigh|calf|foot|ball|toe)/.test(name) && name.endsWith(suffix));
@@ -514,9 +476,6 @@ export function applyHumanControls(source, vectors) {
       positions[v] += (sum / w0) * scale;
     }
   }
-  // A fit can raise the whole crown or lower a sole. Correct that common
-  // displacement over the region, preserving the curvature at the endpoint.
-  // Clipping individual vertices here cuts a flat plane across the skull.
   let top = -Infinity, floor = Infinity, originalTop = -Infinity, originalFloor = Infinity;
   for (let i = 1; i < source.bodyVertices * 3; i += 3) {
     top = Math.max(top, positions[i]);
@@ -540,22 +499,6 @@ export function applyHumanControls(source, vectors) {
   }
   return { ...source, positions };
 }
-/* The fine layer: a small movement stored for single vertices of the head.
-
-   The control anchors stand about 22 mm apart on the head and blend by
-   distance, which cannot follow a shape that varies between them. This layer
-   holds what they leave over. It is {version: 1, region: "head", vertices,
-   offsets}: `vertices` in rising order, `offsets` three whole numbers per
-   vertex in units of 0.01 mm on a 1.72 m adult, each movement at most
-   `humanDetailLimit` long.
-
-   The rebase rule: a movement of the skin is written in that vertex's own skin
-   frame, its normal and the direction to one fixed neighbour, on the surface
-   the measurements and control anchors give. Every evaluation rebuilds it on
-   the current surface. A layer therefore turns with the skin under it and
-   keeps its size in millimetres per 1.72 m of stature when the measurements
-   or the anchors change later. Vertices that are not skin, such as the
-   eyeballs, are written along the figure's own axes so they stay rigid. */
 export const humanDetailLimit = 1200;
 let detailTopology;
 function headDetailTopology() {
@@ -566,7 +509,6 @@ function headDetailTopology() {
     const name = meta.names[bones[v * 4]];
     allowed[v] = name === "head" || name.startsWith("neck") ? 1 : 0;
   }
-  // For each skin vertex: its triangles, and the neighbour farthest away at rest.
   const start = new Uint32Array(meta.bodyVertices + 1), partner = new Int32Array(meta.bodyVertices).fill(-1), far = new Float32Array(meta.bodyVertices);
   for (let i = 0; i < meta.bodyTriangles * 3; i++) start[indices[i] + 1]++;
   for (let v = 0; v < meta.bodyVertices; v++) start[v + 1] += start[v];
@@ -582,7 +524,6 @@ function headDetailTopology() {
     }
   return (detailTopology = { allowed, start, faces, partner, indices });
 }
-// Rows of the frame of one vertex: tangent, bitangent, normal. False where the skin has no direction.
 function skinFrame(positions, v, out) {
   const { start, faces, partner, indices } = headDetailTopology();
   if (v >= meta.bodyVertices || partner[v] < 0) return false;
@@ -626,10 +567,6 @@ export function validHumanDetail(detail) {
   }
   return true;
 }
-/* Write movements of the surface `coarse`, in metres on that figure, as a fine
-   layer. `offsets` has three numbers for every vertex of the figure. Movements
-   outside the head are dropped, longer ones shortened to the limit. Returns
-   undefined when nothing is left. */
 export function humanDetailFrom(coarse, offsets) {
   const { allowed } = headDetailTopology(), unit = (0.00001 * (coarse.height ?? 1.72)) / 1.72;
   const vertices = [], saved = [], frame = new Float64Array(9);
@@ -641,14 +578,11 @@ export function humanDetailFrom(coarse, offsets) {
       [x, y, z] = [frame[0] * x + frame[1] * y + frame[2] * z, frame[3] * x + frame[4] * y + frame[5] * z, frame[6] * x + frame[7] * y + frame[8] * z];
     const length = Math.hypot(x, y, z), keep = length > humanDetailLimit ? humanDetailLimit / length : 1;
     let q = [Math.round(keep * x), Math.round(keep * y), Math.round(keep * z)];
-    // Rounding may step just past the limit: round towards nothing instead.
     if (q[0] * q[0] + q[1] * q[1] + q[2] * q[2] > humanDetailLimit * humanDetailLimit) q = [keep * x, keep * y, keep * z].map(Math.trunc);
-    // No negative zero: a saved file reads it back as plain zero.
     if (q[0] || q[1] || q[2]) { vertices.push(v); saved.push(q[0] || 0, q[1] || 0, q[2] || 0); }
   }
   return vertices.length ? { version: 1, region: "head", vertices, offsets: saved } : undefined;
 }
-// The movement of each stored vertex on the surface `coarse`, in metres, three numbers per stored vertex.
 export function humanDetailOffsets(coarse, detail, strength = 1) {
   if (!validHumanDetail(detail) || detail.vertices[detail.vertices.length - 1] >= coarse.positions.length / 3)
     throw new Error("Invalid fine correction.");
@@ -664,8 +598,6 @@ export function humanDetailOffsets(coarse, detail, strength = 1) {
   }
   return out;
 }
-/* Add a fine layer to the surface its measurements and control anchors give.
-   Joints stay where they are: the layer reshapes skin, it does not repose. */
 export function applyHumanDetail(coarse, detail, strength = 1) {
   if (!detail) return coarse;
   const moves = humanDetailOffsets(coarse, detail, strength), positions = coarse.positions.slice();
@@ -700,10 +632,6 @@ function applyPortraitFields(vertices, headJoint, fields, {origin, shape, pitch,
   }
 }
 
-// In the frontal bone the supraorbital ridge follows the upper edge of each
-// socket. The zygoma sits below the outer corner and runs back to the temple.
-// Read those two arches from this head's actual eye position and interocular
-// distance. The same smooth warp carries adjacent skin and fitting helpers.
 function shapeFacialBones(vertices, rim, cheek) {
   if (!rim && !cheek) return;
   for (const ids of meta.eyeGroups) {
@@ -716,7 +644,6 @@ function shapeFacialBones(vertices, rim, cheek) {
     for (let v=0; v<vertices.length; v+=3) {
       const x=side*vertices[v]/k, y=(vertices[v+1]-ey)/k, z=(vertices[v+2]-ez)/k;
       if (x<=0 || x>.088 || y<-.08 || y>.055 || z<-.078) continue;
-      // Restrict the change to the outer face and taper across the midline.
       const depth=Math.max(0,Math.min(1,(z+.070)/.048));
       const mid=Math.min(1,x/.012);
       const front=depth*depth*(3-2*depth)*mid*mid*(3-2*mid);
@@ -793,8 +720,6 @@ export function evaluateHuman(p = {}, fit, detail) {
   }
   if (p.abdominalApron) {
     const rest = humanRestPositions();
-    // The fold sits above the groin. Move both skin and wardrobe guides by
-    // their rest positions, leaving joints, groin, arms and legs in place.
     const rising = (low, high, x) => {
       const t = Math.max(0, Math.min(1, (x-low)/(high-low)));
       return t*t*(3-2*t);
@@ -813,8 +738,6 @@ export function evaluateHuman(p = {}, fit, detail) {
     }
   }
   if (p.bust) {
-    // Move the broad lower and outer chest with its clothing attachment points.
-    // Use rest coordinates so this composes with a change in stature, mass or pose.
     const rest = humanRestPositions();
     for (let i = 0; i < vertices.length; i += 3) {
       const x = rest[i],
@@ -871,8 +794,6 @@ export function evaluateHuman(p = {}, fit, detail) {
     const total = Math.max(1, castWeights.reduce((sum, axis) => sum + p[axis], 0));
     const fields = castWeights.map(axis => [unpack("m:" + axis, Int16Array), p[axis] / total]);
     const headJoint = vertices.length / 3 - meta.names.length + meta.names.indexOf("head");
-    // The field is one translation through each socket of the head it was measured on. On another
-    // head the eye sits a little elsewhere, so give each eyeball the mean movement of its own points.
     const before = meta.eyeGroups.map(ids => ids.flatMap(id => [vertices[3*id], vertices[3*id+1], vertices[3*id+2]]));
     applyPortraitFields(vertices, headJoint, fields, castShapes.layout);
     meta.eyeGroups.forEach((ids, e) => {
@@ -897,7 +818,6 @@ export function evaluateHuman(p = {}, fit, detail) {
   }
   if (p.smileLeft || p.smileRight) offsetRestSmile(vertices, p, height / 1.72, false);
   const ids = unpack("ids", Uint16Array);
-  // Collarbones, the pit of the neck and the trapezius slope, before the limbs are posed.
   shapeNeck(vertices, p, height, {
     rest: unpack("base", Float32Array),
     names: meta.names,
@@ -933,8 +853,6 @@ export function evaluateHuman(p = {}, fit, detail) {
     rotateBranches(...bind, "upperarm", 0, side => -side*p.armLead*.31);
     rotateBranches(...bind, "lowerarm", 0, side => -.24*Math.max(0,side*p.armLead));
   }
-  // Flex one elbow into a resting gesture. A little shoulder abduction keeps
-  // the elbow outside the ribs, then the forearm comes back across the body.
   if (p.leftArmLift || p.rightArmLift) {
     const lift = side => (side > 0 ? p.leftArmLift : p.rightArmLift) || 0;
     rotateBranches(...bind, "upperarm", 2, side => side * .13 * lift(side));

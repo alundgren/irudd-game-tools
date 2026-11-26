@@ -4,11 +4,6 @@ param(
     [Parameter(Mandatory = $true)][ValidateSet('apply', 'remove')][string]$Action,
     [switch]$NoPath
 )
-# Windows integration of a per-user installation: Start menu shortcuts for the
-# workshop and its offline player, and <root>\bin on the user's PATH so agents
-# can run `irudd`. Only entries that point at this installation are replaced
-# or removed. The installer passes another -Programs folder and -NoPath for a
-# rehearsal, so the person's Start menu and PATH stay untouched.
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $launcher = Join-Path $Root 'Irudd Workshop.exe'

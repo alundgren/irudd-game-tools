@@ -1,12 +1,3 @@
-// Fast regression for the cuts G0 grows as strands on the adult's scalp
-// (strandGroom in character-view/human-groom.js at 2761eb1). A crop on the Day
-// dress and chore jacket adults, a buzz cut, a ponytail, a bun and the braid of G0's frozen
-// look-8950 export G0's clay meshes, rig and clips: the roots inside each
-// adult's own hairline and the cards of strands combed over them, each layer
-// with its own material, and the plaits and their tie. The hair is an editable
-// style field that a steer changes, and a cut the port does not grow is
-// refused at its field.
-
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
@@ -33,10 +24,6 @@ type Hair = NonNullable<HumanAdultParams["style"]["hair"]>;
 const wearing = (look: HumanLook, hair: Hair): HumanAdultParams =>
   dressedAdult(seededHumanAdult(body, look.seed), { ...look, style: { ...look.style, hair } });
 
-/**
- * `accessorDigest` of G0's clay exports of its frozen look-8973 and look-8950 with only the hair changed
- * (.reference-cache/g0/derived/hair).
- */
 const g0Hair: ReadonlyArray<readonly [HumanLook, Hair, string]> = [
   [dayDress, "Crop", "eb1c9a2d8634983e768198b9b19c711e6cc9ef79c0868eca34f3576ecfb0c4d1"],
   [dayDress, "Buzz cut", "0a7f8f1fe4c19ce5c9cfef61ba893db0d29e63366cece33916b1d37ad07c056a"],
@@ -59,7 +46,6 @@ test("the starter's look-8950 is G0's frozen braided look in clay", async () => 
   assert.equal(look.style.hair, "Braid");
   const params = dressedAdult(seededHumanAdult(body, look.seed), look);
   const glb = parseGlb(await clayBytes(documentOf(store.generate(params, "Braid")), body));
-  // accessorDigest of G0's adult-look-8950 clay export (.reference-cache/human-oracle).
   assert.equal(
     accessorDigest(glb),
     "49ae32b7d99c33baec04ed765e65c35058507879499ecc10b9a09bda510cf742",

@@ -1,19 +1,3 @@
-// A trace map's regions built as new parts on an existing sheet: the
-// character package's trace build matches G0's buildTraceMap on the same
-// panels for every method (loft, volume, membrane, path), registers with the
-// brief's anchor part, attaches each part under its parent region, keeps
-// regions named like existing parts, names what it could not build, and adds
-// exported meshes without moving any existing one.
-//
-// The oracle is character-view at 2761eb14: buildTraceMap in trace-map.js
-// with traceOutline, traceHull, tracePath, withDepthPairs and traceRegion
-// from turnaround.js, registerFace from portrait-frame.js and bindParts from
-// rig.js, run from the frozen source on the same panels. The panels here are
-// synthetic masks; the desktop's art QA (`pnpm --filter @irudd/desktop
-// qa:art`) builds from a real sheet with the hardware canvas and
-// src/trace-desktop.ts (`gate:trace-desktop`) compares that build with the
-// same oracle.
-
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { exportCharacter } from "@irudd/character";
@@ -45,23 +29,18 @@ import { familyRegistry } from "../src/prepare.js";
 import { readFixture } from "../src/run.js";
 
 installNodeExporter();
-/** G0's buildTraceMap on the same panels. */
 const g0Build = (panels: SheetPanels, map: unknown, height: number) =>
   g0BuildTraceMap(panels, map, height);
-
-// ── A synthetic sheet ───────────────────────────────────────────────────────
 
 const size = 640;
 const mid = 320;
 const feet = 600;
 const span = 560;
-/** A sheet point [across, height] in standing-height units, as a panel fraction. */
 const at = (u: number, h: number): [number, number] => [
   (mid + u * span) / size,
   (feet - h * span) / size,
 ];
 
-/** A panel whose subject covers the points `inside` accepts, in standing-height units. */
 function panel(inside: (u: number, h: number) => boolean): Panel {
   const mask = new Uint8Array(size * size);
   for (let y = 0; y < size; y++)
@@ -97,7 +76,6 @@ const rect = (u0: number, u1: number, h0: number, h1: number) => [
   at(u1, h0),
   at(u0, h0),
 ];
-/** Spine points of the tail: the same heights in both views, profile x mirrored as the view faces left. */
 const spine = [0.48, 0.42, 0.36, 0.3, 0.24].map(
   (h): [number, number, number, number, number, number] => {
     const [fx, fy] = at(0.12 + (0.5 - h) * 0.8, h);
@@ -143,7 +121,6 @@ const regions: ReadonlyArray<TraceBuildRegion> = [
     side: rect(-0.03, 0.04, 0.55, 0.75),
   },
   { id: "tail", parent: "body", method: "path", spine },
-  // Nothing of the subject lies here: it is left out and its child moves up to the body.
   {
     id: "ghost fin",
     parent: "body",
@@ -169,7 +146,6 @@ const bodyOf = (doc: CharacterDocument): Part => {
   return p;
 };
 const height = figurePaint.read(bodyOf(fixture).features)?.height ?? 0;
-// G0 refuses a whole map for one unknown role; the build leaves that role out and says so.
 const g0 = g0Build(
   panels,
   {
@@ -186,7 +162,6 @@ const vec = (v: unknown): Vec3 => {
   return [Number(v[0]), Number(v[1]), Number(v[2])];
 };
 const g0World = (id: string): Vec3 => g0WorldOf(g0.parts, id);
-/** As the document stores it: JSON, where -0 is 0. */
 function stored(v: unknown): unknown {
   if (v === undefined) return undefined;
   const parsed: unknown = JSON.parse(JSON.stringify(v));
@@ -195,7 +170,6 @@ function stored(v: unknown): unknown {
 const close = (a: ReadonlyArray<number>, b: ReadonlyArray<number>, tol = 1e-9) =>
   a.length === b.length && a.every((v, i) => Math.abs(v - (b[i] ?? NaN)) <= tol);
 
-/** POSITION values by node name, from a clay export. */
 async function positions(doc: CharacterDocument): Promise<Map<string, Float64Array>> {
   const result = await exportCharacter(doc, { preset: "clay", revision: 1, build: "trace-build" });
   const glb = parseGlb(result.bytes);
@@ -291,7 +265,6 @@ test("each method builds the part G0's buildTraceMap builds from the same panels
 });
 
 test("built parts attach to their parent regions and register with the anchor", async () => {
-  // The person moved the whole figure: the new parts follow the anchor, not the sheet's origin.
   const shift: Vec3 = [0.25, 0.05, -0.1];
   const moved: CharacterDocument = {
     ...fixture,
@@ -339,8 +312,6 @@ test("built parts attach to their parent regions and register with the anchor", 
   );
   assert.equal(doc.parts.length, moved.parts.length + build.built.length);
 
-  // The export gains the built parts' vertices and moves none of the existing ones. The
-  // skin merges every part's geometry into one surface, so compare it vertex by vertex.
   const vertices = (meshes: Map<string, Float64Array>) => {
     const counts = new Map<string, number>();
     for (const values of meshes.values())
@@ -360,7 +331,6 @@ test("built parts attach to their parent regions and register with the anchor", 
   }
   assert.equal(kept, total, "every existing exported vertex stays where it was");
   const added = [...after.values()].reduce((a, b) => a + b, 0) - total;
-  // Measured: the five built parts add 207,675 vertices, most of them the marching-cubes volumes.
   assert.ok(added > 100_000, `the built parts add ${added} vertices`);
 });
 

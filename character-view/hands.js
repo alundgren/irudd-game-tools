@@ -2,8 +2,6 @@ import { closedDigitRows } from "./cylindrical-grip.js";
 import { handSurface } from "./hand-surface.js";
 const cache = new Map();
 
-// The wrist is the pivot. Digit chains bend toward the palm in its local
-// frame, and the opposable thumb has its own plane of movement.
 export function handGeometry({
   fingers = 4,
   curl = 0.15,
@@ -34,9 +32,6 @@ export function handGeometry({
       rz * d,
     ]);
     if (!cylindrical && pad !== "hand") {
-      // A padded paw has a metacarpal cushion and short, thick toes.
-      // In a raptorial grasp the long distal phalanx curls toward the palm.
-      // Both use the same individual digit chains as the animator.
       for (const [i, p] of scaled.entries()) {
         const t = i / (scaled.length - 1);
         const toe = name && name !== "Thumb";
@@ -66,8 +61,6 @@ export function handGeometry({
     if (name) digits.push({ name, rows: cylindrical ? closedDigitRows(scaled,name === "Thumb",side) : scaled });
     else palm = scaled;
   }
-  // The little-finger edge rounds away first. The palm fans from a
-  // flatter wrist, with the thumb pad carried by the thumb's root.
   loft(
     relaxed
       ? [
@@ -123,8 +116,6 @@ export function handGeometry({
         0.12,
       ],
     ];
-    // Preserve the bind shape of authored grasps. A hanging human hand
-    // has staggered knuckles and increasing flexion toward the little finger.
     if (relaxed) {
       const bend = curl * (0.77 + 0.79 * u);
       let y = -0.485 - 0.025 * Math.sin(Math.PI * u) + 0.055 * u;

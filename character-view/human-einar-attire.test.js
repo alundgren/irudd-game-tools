@@ -35,7 +35,6 @@ test("the outfit is an ordinary wardrobe choice with dyes for cloth, knit, patch
       assert.ok(rule.level > 0.02 && rule.level < 0.6 && rule.worn > 0.2 && rule.worn < 0.7, garment + " " + rule.tone);
       assert.ok(chart.includes(k + 1), garment + " charts " + rule.tone);
     }
-    // Hardware and tape keep their own paint.
     if (garment !== "einar_boots") assert.ok(chart.includes(0), garment);
   }
   assert.deepEqual([...tones].sort(), ["accent", "dark", "leather", "light", "main", "sole"]);
@@ -58,12 +57,10 @@ test("it is fitted and skinned on a slender and a broad adult, with two sleeves,
       const sleeve = /^lowerarm_([lr])$/.exec(mesh.userData.styleRegion);
       if (sleeve) arms[sleeve[1]] += mesh.geometry.index.count / 3;
     }
-    // The source coat had one sleeve; the worn one has the same cloth on both forearms.
     assert.ok(arms.l > 300 && arms.r > 300 && Math.abs(arms.l - arms.r) < 0.5 * arms.r, JSON.stringify(arms));
     assert.ok(all.min.y > -0.06 && all.min.y < 0.03, "soles at the ground: " + all.min.y.toFixed(3));
     assert.ok(all.max.y < human.height * 0.93, "the head stays bare");
     assert.ok(all.max.x - all.min.x < human.height * 0.75 && all.max.z - all.min.z < 0.75, "no point flies off");
-    // Skin under the cloth is left out; hands and head stay.
     assert.ok(pieces.hidden.size > 3000);
   }
 });

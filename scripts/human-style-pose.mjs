@@ -1,13 +1,3 @@
-// Measures a dressed, skinned adult in animation poses without a browser, and can draw a quick sheet:
-//   node scripts/human-style-pose.mjs --bodies heavy,f2 --outfit "Sweater and skirt" --hair Crop --poses Walk:.3,Reach:.5,Crouch:.5
-// The figure goes through the same regions, wardrobe and skinning as an export. For every pose it prints
-//   lowest   the lowest point of the whole figure in metres (0 is the floor)
-//   bare     sampled points that clothing covered at rest and no longer covers: skin or an under layer showing through
-//   pulled   clothing edges stretched to more than half again their resting length, with the worst piece: cloth
-//            torn between two joints shows up here
-// Add --out sheet.png for a contact sheet (rows are poses, columns are --views 0,90,180) with back faces in red.
-// It is drawn on the graphics card through a headless browser, or by the CPU renderer on a machine without a
-// usable one, and the script prints which. The numbers above need no renderer.
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import * as T from "three";
@@ -22,7 +12,6 @@ const args = Object.fromEntries(process.argv.slice(2).join(" ").split("--").filt
 const rgb = color => { const c = color.clone().convertLinearToSRGB(); return [c.r, c.g, c.b]; };
 const skinTone = "#b58a6c";
 
-/** The skinned character an export would write. Every material remembers the piece it belongs to. */
 export function dressedActor(human, style) {
   const form = humanForm(human, 7);
   form.outfit = style.outfit === "Pressure suit" ? "Pressure suit" : "Work clothes";
@@ -37,7 +26,6 @@ export function dressedActor(human, style) {
   return skinCharacter(form, root);
 }
 
-/** Posed triangles of every skinned mesh, split by material: {piece, positions, normals, indices, color}. */
 export function posed(rig) {
   rig.actor.updateMatrixWorld(true);
   rig.skeleton.update();
@@ -62,7 +50,6 @@ export function posed(rig) {
 }
 
 const hairLike = /hair|lengths|tail|knot|plait|tie|bob|crop|curls|afro|buzz|part|swept|bun|braid|wavy|long/i;
-/** Sample points of the body and of each layer, with the layers that may cover them. */
 function samples(list, step) {
   const points = [];
   for (const [n, item] of list.entries()) {
@@ -74,7 +61,6 @@ function samples(list, step) {
   }
   return points;
 }
-/** Which sample points have another clothing piece within reach along their outward normal. */
 function covered(list, points, reach = .12) {
   const cloth = list.map((item, n) => item.piece !== "skin" && item.piece !== "face" && !hairLike.test(item.piece) ? n : -1).filter(n => n >= 0);
   return points.map(({ n, v }) => {
@@ -83,7 +69,6 @@ function covered(list, points, reach = .12) {
   });
 }
 
-/** Edges of each clothing piece that a pose pulls to more than half again their resting length: {piece: [edges, worst ratio]}. */
 function stretched(rest, now) {
   const out = {}, far = (p, i, j) => Math.hypot(p[i] - p[j], p[i + 1] - p[j + 1], p[i + 2] - p[j + 2]);
   rest.forEach((item, n) => {

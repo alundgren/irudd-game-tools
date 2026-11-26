@@ -1,23 +1,3 @@
-// The per-user installation on disk, following Scope's source-install layout:
-//
-//   <root>\source\                          the installer's clean Git clone
-//   <root>\builds\<commit>\Irudd Workshop\  one packaged app per built commit
-//   <root>\installation.json                which builds are current, previous and prepared
-//   <root>\current, previous, prepared      junctions mirroring installation.json
-//   <root>\Irudd Workshop.exe               launcher: starts the current build
-//   <root>\bin\irudd.exe                    CLI/MCP launcher on the same build
-//
-// Project data never lives here: projects are folders the person chooses,
-// settings stay in Electron's user data and host state in IRUDD_STATE_DIR.
-//
-// installation.json is the only commit point. It is replaced by one atomic
-// rename, and the launchers read it, so a switch is never half done for them.
-// Launchers and junctions follow it afterwards, and every locked operation
-// first brings them back in line. An operation killed at any point therefore
-// leaves either the old or the new state, and the next operation completes it.
-// The lock is a named pipe that Windows releases when its owner exits, so a
-// killed owner cannot leave the installation locked.
-
 import { createHash, randomUUID } from "node:crypto";
 import {
   closeSync,
@@ -41,10 +21,8 @@ import { createServer, type Server } from "node:net";
 import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
-/** The packaged app folder inside a build, and its executable. */
 export const appFolder = "Irudd Workshop";
 export const appExecutable = "Irudd Workshop.exe";
-/** Launchers the build carries in resources\app\bin and activation installs at the root. */
 export const launchers = [
   { file: "Irudd Workshop.exe", target: "Irudd Workshop.exe" },
   { file: "irudd.exe", target: path.join("bin", "irudd.exe") },
@@ -53,35 +31,24 @@ export const launchers = [
 const commitPattern = /^[0-9a-f]{40}$/;
 export const linkNames = ["current", "previous", "prepared"] as const;
 export type LinkName = (typeof linkNames)[number];
-/** Commits by role. A missing role has no build. */
 export type InstallationState = Partial<Record<LinkName, string>>;
 
-/** The file launchers and the app read to find the builds. */
 export const stateFile = "installation.json";
-/** The ownerless lock directory of the first preview; cleared once it is stale. */
 const legacyLock = ".activation-lock";
 const legacyLockStaleMs = 30_000;
 
-/**
- * Steps an operation reports as it passes them, for the kill controls of the
- * installer rehearsal. Production callers pass nothing.
- */
 export type Observe = (step: string) => void | Promise<void>;
 export interface OperationOptions {
   readonly observe?: Observe;
-  /** How long to wait for another operation to finish (ms). */
   readonly wait?: number;
 }
 
-/** What the installer records in the packaged app's package.json. */
 export interface Installation {
-  /** Absent from builds produced before the activation protocol was declared. */
   readonly activationVersion?: 1;
   readonly root: string;
   readonly commit: string;
   readonly branch: string;
   readonly origin: string;
-  /** The Vite+ executable that built it; updates build with the same one. */
   readonly vp: string;
 }
 
@@ -93,7 +60,6 @@ function codeOf(error: unknown): unknown {
   return error instanceof Error && "code" in error ? error.code : undefined;
 }
 
-/** The installation of an unpacked app directory (resources\app), or undefined when unmanaged. */
 export function readInstallation(appDirectory: string): Installation | undefined {
   let manifest: unknown;
   try {
@@ -148,7 +114,6 @@ export function samePath(left: string, right: string): boolean {
   return key(left) === key(right);
 }
 
-/** The commit a build directory holds; throws for anything outside <root>\builds. */
 export function commitOf(root: string, build: string): string {
   const name = path.basename(build);
   if (!samePath(path.dirname(build), path.join(root, "builds")) || !commitPattern.test(name))
@@ -156,7 +121,6 @@ export function commitOf(root: string, build: string): string {
   return name;
 }
 
-/** Check that a build is complete and was made for this root and commit. */
 export function validateBuild(root: string, build: string): Installation {
   const commit = commitOf(root, build);
   if (!existsSync(path.join(build, appFolder, appExecutable)))
@@ -172,11 +136,6 @@ function stripNamespace(target: string): string {
   return target.startsWith("\\\\?\\") ? target.slice(4) : target;
 }
 
-/**
- * Remove a junction without touching its target. Node's rm may report a
- * junction as a directory (EISDIR); removing the directory entry is what a
- * junction needs.
- */
 function removeLink(file: string): void {
   try {
     unlinkSync(file);
@@ -200,7 +159,6 @@ function junctionTarget(file: string): string | undefined {
   return path.resolve(stripNamespace(readlinkSync(file)).replace(/[\\/]+$/, ""));
 }
 
-/** Where a link junction points, or undefined when it does not exist. */
 export function readLink(root: string, name: LinkName): string | undefined {
   return junctionTarget(path.join(root, name));
 }
@@ -214,15 +172,8 @@ function commitIn(root: string, target: string | undefined): string | undefined 
   }
 }
 
-/** Temporary entries a killed link switch can leave: `.current-<uuid>` and `.current-<uuid>.old`. */
 const strayLink = /^\.(current|previous|prepared)-[0-9a-f-]{36}(\.old)?$/;
 
-/**
- * The state of an installation from the first preview, which had only
- * junctions. A switch killed between its two renames left `current` missing
- * beside `.current-<uuid>` (the new build) and `.current-<uuid>.old` (the old
- * one); the new one was the intended state.
- */
 function legacyState(root: string): InstallationState {
   const state: InstallationState = {};
   for (const name of linkNames) {
@@ -265,7 +216,6 @@ function parseState(text: string): InstallationState {
   return state;
 }
 
-/** Which builds are current, previous and prepared. Reading needs no lock. */
 export function readState(root: string): InstallationState {
   let text: string;
   try {
@@ -277,13 +227,11 @@ export function readState(root: string): InstallationState {
   return parseState(text);
 }
 
-/** The build directory a role points at, or undefined. */
 export function buildOf(root: string, name: LinkName): string | undefined {
   const commit = readState(root)[name];
   return commit === undefined ? undefined : buildDirectory(root, commit);
 }
 
-/** Rename, retrying briefly while a reader or scanner holds the target open. */
 async function renameRetrying(from: string, to: string): Promise<void> {
   for (let attempt = 0; ; attempt++) {
     try {
@@ -297,7 +245,6 @@ async function renameRetrying(from: string, to: string): Promise<void> {
   }
 }
 
-/** The commit point: replace installation.json in one rename. */
 async function writeState(root: string, state: InstallationState): Promise<void> {
   const record = {
     version: 1,
@@ -321,12 +268,6 @@ async function writeState(root: string, state: InstallationState): Promise<void>
   }
 }
 
-/**
- * Point a junction at a build (or remove it). Windows cannot rename a junction
- * over another, so the old one is moved aside first. A kill between the two
- * renames leaves the junction missing, which the next operation repairs from
- * installation.json.
- */
 async function pointLink(
   root: string,
   name: LinkName,
@@ -356,7 +297,6 @@ async function pointLink(
   }
 }
 
-/** A launcher is ours when it carries the identity string the C# source embeds. */
 function ownLauncher(file: string): boolean {
   try {
     return readFileSync(file).includes(Buffer.from("Irudd Workshop launcher v1", "utf16le"));
@@ -373,7 +313,6 @@ function sameBytes(left: string, right: string): boolean {
   }
 }
 
-/** Refuse to replace a program at a launcher path that this installation did not put there. */
 function checkLaunchers(root: string): void {
   for (const launcher of launchers) {
     const target = path.join(root, launcher.target);
@@ -382,12 +321,6 @@ function checkLaunchers(root: string): void {
   }
 }
 
-/**
- * Install a build's launcher at the root in one rename, so the launcher path
- * never goes missing. Windows refuses to replace a running program (an MCP
- * session's `irudd mcp`); that launcher keeps working, since every launcher
- * only reads installation.json, and a later step replaces it once it exits.
- */
 async function placeLauncher(
   root: string,
   build: string,
@@ -407,7 +340,6 @@ async function placeLauncher(
   } catch (error) {
     const code = codeOf(error);
     if (code !== "EPERM" && code !== "EACCES" && code !== "EBUSY") throw error;
-    // Running: left as it is until a later step.
   } finally {
     rmSync(staged, { force: true });
   }
@@ -419,8 +351,6 @@ function junctionOnlyBuild(root: string, state: InstallationState): boolean {
   const build = buildDirectory(root, state.current);
   if (!existsSync(path.join(build, appFolder, appExecutable))) return false;
   if (readInstallation(appDirectoryOf(build))?.activationVersion === 1) return false;
-  // The first two launcher formats predate a manifest capability field.
-  // The state-file launcher embeds the UTF-16 file name in its C# assembly.
   const launcher = path.join(appDirectoryOf(build), "bin", appExecutable);
   return !readFileSync(launcher).includes(Buffer.from(stateFile, "utf16le"));
 }
@@ -436,7 +366,6 @@ async function mirrorRoles(
   }
 }
 
-/** Bring launchers and junctions in line and remove what killed operations left. */
 async function converge(
   root: string,
   state: InstallationState,
@@ -461,9 +390,6 @@ async function converge(
       if (entry.startsWith(`${launcher.file}.`) && entry.endsWith(".new"))
         rmSync(path.join(directory, entry), { force: true });
   }
-  // Every junction now represents the committed switch. The preview's updater
-  // changes those junctions directly. A later modern launch must import its
-  // choice, including a second rollback performed inside that older app.
   if (junctionOnlyBuild(root, state)) rmSync(path.join(root, stateFile), { force: true });
 }
 
@@ -485,11 +411,6 @@ function listen(server: Server, name: string): Promise<void> {
 const busy = (): Error =>
   new Error("Another update step is running for this installation. Wait for it and retry.");
 
-/**
- * The preview's lock was a directory nobody owned. Its operations took
- * milliseconds, so one older than legacyLockStaleMs was left by a killed
- * process and is removed; a younger one is waited for.
- */
 async function clearLegacyLock(root: string, deadline: number): Promise<void> {
   const lock = path.join(root, legacyLock);
   for (;;) {
@@ -510,11 +431,6 @@ async function clearLegacyLock(root: string, deadline: number): Promise<void> {
   }
 }
 
-/**
- * Run one operation alone on this installation. The lock is a named pipe that
- * only one process can serve; Windows closes it when its owner exits, killed
- * or not. Before the operation, whatever a killed operation left is completed.
- */
 async function withLock<T>(
   root: string,
   options: OperationOptions,
@@ -547,16 +463,12 @@ async function withLock<T>(
   }
 }
 
-/** Commit a new state, then bring launchers and junctions in line with it. */
 async function commitState(
   root: string,
   next: InstallationState,
   observe: Observe | undefined,
 ): Promise<void> {
   if (junctionOnlyBuild(root, next)) {
-    // Keep the modern launchers and their old selection in place while the
-    // preview's junctions are prepared. Removing the state file switches them
-    // together. A kill before that leaves the old selection authoritative.
     await mirrorRoles(root, next, observe);
     rmSync(path.join(root, stateFile), { force: true });
   } else await writeState(root, next);
@@ -565,12 +477,10 @@ async function commitState(
   await observe?.("converged");
 }
 
-/** Complete whatever a killed operation left, and nothing else. */
 export async function repair(root: string, options: OperationOptions = {}): Promise<void> {
   await withLock(root, options, async () => {});
 }
 
-/** Record a finished build as the one a restart will start. */
 export async function prepare(
   root: string,
   build: string,
@@ -584,10 +494,6 @@ export async function prepare(
   });
 }
 
-/**
- * Make `build` current, keep the old current as previous and clear `prepared`
- * when it named this build. Running apps keep the build they started from.
- */
 export async function activate(
   root: string,
   build: string,
@@ -604,7 +510,6 @@ export async function activate(
   });
 }
 
-/** Swap current and previous. Returns the build that is now current. */
 export async function rollback(root: string, options: OperationOptions = {}): Promise<string> {
   return withLock(root, options, async (state) => {
     if (!state.previous) throw new Error("There is no earlier version to return to.");
@@ -619,11 +524,6 @@ export async function rollback(root: string, options: OperationOptions = {}): Pr
   });
 }
 
-/**
- * Remove builds that no role names and no process uses. A build in use cannot
- * be renamed on Windows (its executable is mapped), so it is skipped intact.
- * When another operation holds the lock, pruning waits for a later start.
- */
 export async function prune(
   root: string,
   keep: ReadonlyArray<string> = [],
@@ -669,9 +569,7 @@ export async function prune(
           if (name.startsWith(`${launcher.file}.`) && name.endsWith(".old"))
             try {
               rmSync(path.join(directory, name), { force: true });
-            } catch {
-              // Still running; removed on a later start.
-            }
+            } catch {}
       }
       return removed;
     });

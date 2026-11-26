@@ -1,14 +1,3 @@
-// The g1-protocol gate: exhaustive exploration of the independent model at
-// the full bounds, one counterexample per deliberately broken rule, and the
-// differential comparison of the real reducer against the model, including
-// broken reducers that the comparison must catch, fixed named scenarios and
-// a coverage check that every outcome the model produces was also produced
-// by the real reducer.
-//
-//   pnpm --filter @irudd/verification-protocol gate:g1-protocol
-//
-// Exits non-zero on any failure. Prints counts and wall times per check.
-
 import { chains, deep, draftDiff, drafts, draftTraces, fast, pair, traces } from "./bounds.js";
 import {
   exhaustive,
@@ -46,7 +35,6 @@ const total = performance.now();
 const modelOutcomes: Record<string, number> = {};
 for (const b of [pair, deep, drafts, chains]) {
   const [r, ms] = timed(() => explore(b));
-  // Every outcome label the model produces is required of the real reducer.
   for (const [k, n] of Object.entries(r.outcomes)) modelOutcomes[k] = (modelOutcomes[k] ?? 0) + n;
   report(
     `model ${b.name}: invariants I1-I13`,
@@ -58,7 +46,6 @@ for (const b of [pair, deep, drafts, chains]) {
   );
 }
 
-// Cheapest bounds first; a mutant counts when any bound exposes it.
 const mutantBounds: ReadonlyArray<Bounds> = [chains, drafts, pair, deep];
 for (const [mutation, invariant] of mutations) {
   const [found, ms] = timed(() => {

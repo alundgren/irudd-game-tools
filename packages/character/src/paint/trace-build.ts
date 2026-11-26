@@ -1,25 +1,3 @@
-// Building editable parts from a trace map's regions on an existing sheet.
-// Ported from buildTraceMap in character-view/trace-map.js at 2761eb1 with
-// its geometry from turnaround.js: traceOutline (loft), traceHull (volume and
-// membrane), tracePath (path), registerFace (faceLandmarks) and
-// withDepthPairs (depthPairs), arithmetic in the same order, so each built
-// part's binding, hull or path is the one G0 builds from the same panels.
-//
-// G0 replaced the whole form with the map's parts. Here the map adds to the
-// person's document instead:
-//
-// - The sheet is the one the brief's anchor part paints from, at the
-//   anchor's standing height, so the new parts register with the anchor as
-//   they lay on the sheet: a part G0 places at sheet point S lands at the
-//   anchor's frame moved by S minus the anchor's own sheet point.
-// - A region named like an existing part (its ID, label or traced region) is
-//   that part: it is kept as it is and its child regions attach to it.
-// - A parent region that cannot be built passes its children to the nearest
-//   built or existing ancestor, as G0's tolerant rebuild does; a root stays
-//   at the document root.
-// - A region that cannot be built is left out with the reason, never the
-//   whole map, unless nothing at all can be built.
-
 import {
   affineFromTrs,
   composeAffine,
@@ -58,10 +36,8 @@ import { ArtFitError, pairDepth, registerFace, type TraceRegionInput } from "./a
 import type { Panel } from "./panel.js";
 import { traceRegion, type TrackRow } from "./trace.js";
 
-/** A sheet's four prepared views: front, left-facing profile, back, right-facing profile. */
 export type SheetPanels = readonly [Panel, Panel, Panel, Panel];
 
-/** The fields of an `irudd.trace-map.v1` region a build reads. */
 export interface TraceBuildRegion extends TraceRegionInput {
   readonly front?: ReadonlyArray<readonly [number, number]>;
   readonly side?: ReadonlyArray<readonly [number, number]>;
@@ -74,8 +50,6 @@ export interface TraceBuildRegion extends TraceRegionInput {
 
 const partId = Schema.decodeUnknownSync(PartId);
 const registry = createRegistry({ features: familyFeatures });
-
-// ── G0's sheet geometry ─────────────────────────────────────────────────────
 
 const guideHeight = (p: Panel, y: number) => (p.feet - y * p.size) / p.span;
 const guidePosition = (p: Panel, h: number) => (p.feet - h * p.span) / p.size;
@@ -113,7 +87,6 @@ function outlineHeights(
   return [low, high];
 }
 
-/** Occupied horizontal intervals in standing-height units. Ported from silhouetteRuns. */
 function silhouetteRuns(p: Panel, height: number, bridge = 0.011): Array<[number, number]> {
   const y = Math.max(0, Math.min(p.size - 1, Math.round(p.feet - height * p.span)));
   const runs: Array<[number, number]> = [];
@@ -127,7 +100,6 @@ function silhouetteRuns(p: Panel, height: number, bridge = 0.011): Array<[number
   return runs.filter(([a, b]) => b - a >= 0.003);
 }
 
-/** A loft's rest binding within the outlines. Ported from traceOutline. */
 export function traceOutline(
   panels: SheetPanels,
   atlas: Digest,
@@ -173,7 +145,6 @@ export function traceOutline(
 
 type HullRow = readonly [number, Array<[number, number]>, Array<[number, number]>];
 
-/** A volume's traced hull within the outlines, and its origin in metres. Ported from traceHull. */
 export function traceHull(
   panels: SheetPanels,
   height: number,
@@ -205,7 +176,6 @@ export function traceHull(
   while (rows.length && !rows[rows.length - 1]?.[1].length) rows.pop();
   if (rows.filter((r) => r[1].length).length < 3)
     throw new ArtFitError("Select a larger overlapping region.");
-  // G0's volume skips an empty row inside the hull; the document holds covered rows only.
   if (rows.some((r) => !r[1].length))
     throw new ArtFitError(
       "Its outlines leave a gap with no silhouette inside the volume; outline each piece as its own region.",
@@ -232,7 +202,6 @@ export function traceHull(
   };
 }
 
-/** A path's knots from paired centreline landmarks. Ported from tracePath. */
 export function tracePath(
   panels: SheetPanels,
   height: number,
@@ -273,15 +242,9 @@ export function tracePath(
   return { paint: { height, offset: pivot, rest, frame: "path" }, position: pivot };
 }
 
-// ── Roles ───────────────────────────────────────────────────────────────────
-
 const isMotion = (r: string): r is (typeof motionRoles)[number] => motionRoles.some((m) => m === r);
 const isOutfit = (r: string): r is (typeof outfitRoles)[number] => outfitRoles.some((m) => m === r);
 
-/**
- * The movement role G0's skin infers for a traced part without one: from its
- * name, its outfit role or its face. Ported from inferRole in skin.js.
- */
 function inferRole(id: string, outfit: string | undefined, face: boolean): string {
   const name = id.toLowerCase();
   if (/wing/.test(name) && (!/(rib|spar|plate|fin)/.test(name) || /leading.spar/.test(name)))
@@ -300,15 +263,12 @@ function inferRole(id: string, outfit: string | undefined, face: boolean): strin
   return "rigid";
 }
 
-// ── Building into the document ──────────────────────────────────────────────
-
 const norm = (s: string) =>
   s
     .trim()
     .toLowerCase()
     .replace(/[\s_.-]+/g, " ");
 
-/** The sheet point a painted part's origin traces, in metres, or undefined for an unpainted part. */
 function sheetPoint(part: Part): Vec3 | undefined {
   const binding = figurePaint.read(part.features);
   if (binding) return binding.offset;
@@ -318,19 +278,16 @@ function sheetPoint(part: Part): Vec3 | undefined {
   return undefined;
 }
 
-/** The standing height a painted part traces its sheet at. */
 function sheetHeight(part: Part): number | undefined {
   return figurePaint.read(part.features)?.height ?? figureHull.read(part.features)?.height;
 }
 
-/** Why a part cannot anchor a trace build, or undefined when it can: a painted part. */
 export function buildAnchorRefusal(part: Part): string | undefined {
   if (!part.paint || sheetPoint(part) === undefined)
     return `${part.id} is not painted from a turnaround sheet: select a traced part of the sheet to build on.`;
   return undefined;
 }
 
-/** The anchor a build brief names: one painted part, whose sheet the regions trace. */
 export function buildAnchor(
   doc: CharacterDocument,
   parts: ReadonlyArray<string> | undefined,
@@ -344,7 +301,6 @@ export function buildAnchor(
   return part;
 }
 
-/** A part a build adds, as the proposal's operations name it. */
 export interface BuiltPart {
   readonly region: string;
   readonly method: string;
@@ -354,15 +310,11 @@ export interface BuiltPart {
 export interface TraceBuild {
   readonly operations: Operation[];
   readonly built: ReadonlyArray<BuiltPart>;
-  /** Regions named like an existing part, which stay as they are. */
   readonly kept: ReadonlyArray<{ readonly region: string; readonly part: string }>;
-  /** Regions left out, with why. */
   readonly missed: ReadonlyArray<{ readonly region: string; readonly reason: string }>;
-  /** What the reply carried that the build did not apply, for the person and the agent. */
   readonly notes: ReadonlyArray<string>;
 }
 
-/** The parts' unique new ID for a region name. */
 function newId(name: string, taken: Set<string>): string {
   const slug =
     name
@@ -383,7 +335,6 @@ interface Geometry {
   readonly notes: string[];
 }
 
-/** One region's geometry on the sheet, in G0's standing frame, or why it cannot be built. */
 function regionGeometry(
   r: TraceBuildRegion,
   panels: SheetPanels,
@@ -455,9 +406,7 @@ function regionGeometry(
       for (const pair of pairs.slice(0, 24))
         try {
           pins.push(pairDepth(loft, panels[0], panels[1], pair));
-        } catch {
-          /* A profile point may be hidden or at another height. */
-        }
+        } catch {}
       if (pins.length < pairs.length)
         notes.push(
           `${pairs.length - pins.length} of ${r.id}'s depthPairs did not match at the same height in both views and were left out.`,
@@ -485,11 +434,6 @@ function regionGeometry(
   return { shape, position, features, notes };
 }
 
-/**
- * The operations that add a trace map's regions to the document as editable
- * parts painted from the anchor's sheet. `panels` are that sheet's four
- * prepared views, `mapHeight` the height the agent stated.
- */
 export function traceBuildOperations(
   doc: CharacterDocument,
   anchorId: string,
@@ -511,7 +455,6 @@ export function traceBuildOperations(
   const placements = partPlacements(doc, registry);
   const anchorFrame = placements.get(anchor.id)?.frame;
   if (!anchorFrame) throw new ArtFitError(`${anchor.id} cannot be placed.`);
-  // The existing part each region names, matched as a fit matches its target.
   const existing = new Map<string, Part>();
   for (const r of regions) {
     const match = doc.parts.filter((p) => {
@@ -528,7 +471,6 @@ export function traceBuildOperations(
     if (match.length === 1 && only) existing.set(r.id, only);
   }
   const byId = new Map(regions.map((r) => [r.id, r]));
-  // Parents before children, in map order otherwise.
   const ordered: TraceBuildRegion[] = [];
   const visiting = new Set<string>();
   const visit = (r: TraceBuildRegion) => {
@@ -544,7 +486,6 @@ export function traceBuildOperations(
   const kept: Array<{ region: string; part: string }> = [];
   const missed: Array<{ region: string; reason: string }> = [];
   const built: BuiltPart[] = [];
-  /** Where each region's part is: an existing part or a built one, with its children's basis. */
   const placed = new Map<string, { readonly id: string; readonly children: Affine }>();
   let order =
     Math.max(-1, ...doc.parts.map((p) => figureAssembly.read(p.features)?.order ?? -1)) + 1;
@@ -556,7 +497,6 @@ export function traceBuildOperations(
       if (children) placed.set(r.id, { id: own.id, children });
       continue;
     }
-    // The nearest ancestor region with a part.
     let parentRegion = r.parent;
     const seen = new Set<string>();
     while (parentRegion !== undefined && !placed.has(parentRegion) && !seen.has(parentRegion)) {
@@ -572,7 +512,6 @@ export function traceBuildOperations(
       missed.push({ region: r.id, reason: error.message });
       continue;
     }
-    // G0's standing point S lands where the anchor's frame puts S minus the anchor's own point.
     const world = composeAffine(
       anchorFrame,
       affineFromTrs(sub(geometry.position, origin), [0, 0, 0, 1]),
@@ -604,7 +543,6 @@ export function traceBuildOperations(
         ...geometry.features,
       },
     };
-    // Every family checks its payload, so a part the document cannot hold is left out here.
     try {
       for (const f of [
         figureAssembly,
@@ -628,7 +566,6 @@ export function traceBuildOperations(
     order++;
     notes.push(...geometry.notes);
     built.push({ region: r.id, method: r.method, part });
-    // A built part's children attach in its own scaled frame: the parent basis times its local TRS and size.
     placed.set(r.id, {
       id,
       children: affineScaled(

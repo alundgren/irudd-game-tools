@@ -1,12 +1,3 @@
-// The ordinary adult through a real workshop host, as the desktop app hosts it:
-// the person starts the adult from its starter, moves a forearm by hand, a
-// paired agent proposes thicker muscle as a parameter steer, the person
-// accepts, and a fresh export of the new revision still carries the hand edit.
-// The starter's seed-491 parameters are the seeded draw that
-// verification/families/test/human-clay.test.ts holds equal to G0's export,
-// and its look-491 preset the dressed look that
-// verification/families/test/human-tailor.test.ts holds equal to G0's.
-
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -21,9 +12,6 @@ import type { CommandRequest } from "@irudd/workshop";
 import type { MethodResults } from "@irudd/workshop/wire";
 import { humanHosting } from "../../src/main/human.js";
 
-// Three's GLTFExporter reads its buffers through the browser's FileReader; the
-// desktop exports in its review worker. Under Node this test provides the one
-// read the clay preset needs.
 class NodeFileReader {
   result: ArrayBuffer | null = null;
   onloadend: (() => void) | null = null;
@@ -111,7 +99,6 @@ test("an adult started on the desktop host keeps a hand edit through an agent's 
     assert.equal(committed(started.result), 1);
     assert.deepEqual(started.params, seededHumanAdult(hosting.body, 491));
 
-    // The person moves the left forearm by hand.
     const first = await human.call("current", { documentId });
     const forearm = first.document?.parts.find((p) => p.slot === humanSlot("lowerarm_l"));
     assert.ok(forearm, "the forearm is an editable part");
@@ -124,7 +111,6 @@ test("an adult started on the desktop host keeps a hand edit through an agent's 
       }),
     );
 
-    // A paired agent proposes a parameter steer; the person accepts it.
     const paired = await human.call("pair.agent", { agent: "claude", name: "Claude" });
     const agent = await connect({
       credential: { role: "agent", file: paired.credentialFile },
@@ -182,7 +168,6 @@ test("an adult started on the desktop host keeps a hand edit through an agent's 
   }
 });
 
-/** Triangles of each primitive of the exported "Character surface", read from the GLB's JSON chunk. */
 function surfaceTriangles(bytes: Uint8Array): {
   readonly triangles: ReadonlyArray<number>;
   readonly hairCards: ReadonlyArray<boolean>;
@@ -246,7 +231,6 @@ test("a dressed look started on the desktop host keeps a hand edit through an ag
       });
       return { doc: current.document, ...surfaceTriangles(fresh.bytes) };
     };
-    // Skin, cloth and roots; the pendant's setting and bead; the hair cards; the frames: G0's primitives.
     const first = await exported(1);
     assert.deepEqual(first.triangles, [97595, 968, 80, 10411, 1968]);
     assert.deepEqual(first.hairCards, [false, false, false, true, false]);
@@ -261,7 +245,6 @@ test("a dressed look started on the desktop host keeps a hand edit through an ag
         }),
       }),
     );
-    // The agent proposes a parted fringe, darker hair and four buttons; the person accepts.
     const paired = await human.call("pair.agent", { agent: "claude", name: "Claude" });
     const agent = await connect({
       credential: { role: "agent", file: paired.credentialFile },
@@ -295,7 +278,6 @@ test("a dressed look started on the desktop host keeps a hand edit through an ag
     const held = after.doc.parts.find((p) => p.id === forearm.id);
     assert.ok(base && held);
     assert.ok(Math.abs(held.position[0] - base.position[0] - 0.02) < 1e-9, "the hand edit holds");
-    // Two more buttons of 50 triangles each; the same cards, combed the other way.
     assert.deepEqual(after.triangles, [97695, 968, 80, 10411, 1968]);
     agent.close();
     human.close();

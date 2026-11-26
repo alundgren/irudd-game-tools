@@ -1,21 +1,3 @@
-// Paired turnaround painting through the desktop's own host options: a
-// person's brief with real views and the source sheet, the paired agent's reply
-// with a real restored sheet, the desktop's repaint translator, and the
-// person's acceptance. The accepted document must be the one the character
-// package's repaint makes from the same sheet when the person paints it by
-// hand. That repaint is G0's: verification/families/test/repaint.test.ts runs
-// G0's repaintRegions from 2761eb14 on the courier case, and the family gate's
-// repaint oracle (`pnpm --filter @irudd/verification-families gate:g4a-families`)
-// matches G0's recorded hardware paint panel session on harbour-trader.
-//
-// Cases:
-// - courier on feline-worker, from tracked fixtures. Always runs.
-// - harbour-trader with the 78,290-byte sheet G0 accepted in its recorded
-//   session, from the ignored .reference-cache. Runs when that recording is
-//   present and says so when it is not.
-// - a reply after the person moved a part is drafted on the brief's revision
-//   and leaves the head alone; a reply after the person repainted the same
-//   region conflicts on rebase.
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -49,11 +31,9 @@ import { repaintTranslator, shippedArtwork } from "../../src/main/art.js";
 const repository = fileURLToPath(new URL("../../../../", import.meta.url));
 const fixturesDir = path.join(repository, "verification", "families", "fixtures");
 const blobsDir = path.join(fixturesDir, "blobs");
-/** Bytes from local reference material that is not tracked, such as the sheet G0 accepted. */
 const referenceBlobsDir = path.join(repository, ".reference-cache", "g4a", "blobs");
 const g0PaintDir = path.join(repository, ".reference-cache", "g0-paint");
 
-/** A plain JSON copy, for values sent in a command. */
 function json(value: unknown): Json {
   const copy: unknown = JSON.parse(JSON.stringify(value));
   assert.ok(isJson(copy));
@@ -67,7 +47,6 @@ const registry = createRegistry({ features: familyFeatures, generators: [frameCr
 const person = { kind: "human", id: "tester", name: "Tester" } as const;
 const characterAssets = path.join(repository, "packages", "character", "assets");
 
-/** Bytes of a digest from the fixtures, the shipped assets or the local reference blobs. */
 function bytesOf(digest: string): Uint8Array {
   const name = digest.replace(":", "-");
   for (const dir of [blobsDir, referenceBlobsDir]) {
@@ -86,7 +65,6 @@ function fixture(name: string): { raw: unknown; doc: CharacterDocument } {
   return { raw, doc: read.value };
 }
 
-/** The same operations applied as the person's own edit, then validated. */
 function painted(doc: CharacterDocument, ops: unknown): CharacterDocument {
   const decoded = decodeOperations(ops);
   assert.ok(decoded.ok, JSON.stringify(!decoded.ok && decoded.diagnostics));
@@ -103,7 +81,6 @@ function painted(doc: CharacterDocument, ops: unknown): CharacterDocument {
   return checked.value;
 }
 
-/** What the person's own repaint of a region from this sheet makes. */
 function expected(base: CharacterDocument, part: string, digest: string, byteLength: number) {
   return painted(
     base,
@@ -172,12 +149,10 @@ async function withRig(name: string, body: (rig: Rig) => Promise<void>): Promise
   }
 }
 
-/** The person's turnaround brief: the editor's whole view, a close-up and the body's current sheet. */
 async function repaintBrief(rig: Rig, revision: number, body: string): Promise<string> {
   const doc = (await rig.human.call("current", { documentId: rig.documentId })).document;
   const atlas = doc?.parts.find((p) => p.id === body)?.paint?.atlas;
   assert.ok(atlas);
-  // Editor views stand in as the restored sheets' own bytes: real pictures of this character.
   const source = await uploadArt(rig.human, bytesOf(atlas), "image/webp");
   const requested = await rig.human.call("art.request", {
     agent: "claude",
@@ -334,7 +309,6 @@ test("a repaint reply after the person's edits is stale, keeps the head and conf
     assert.ok(courier);
     const sheet = new Uint8Array(fs.readFileSync(path.join(characterAssets, courier.file)));
     const artId = await repaintBrief(rig, 1, "p-body");
-    // The person moves a forearm, then repaints the body themselves from another sheet.
     const base = (await rig.human.call("current", { documentId: rig.documentId })).document;
     assert.ok(base);
     const forearm = base.parts.find((p) => p.label === "left forearm");
@@ -380,7 +354,6 @@ test("a repaint reply after the person's edits is stale, keeps the head and conf
     assert.equal(draft.preview.parts.find((p) => p.id === "p-body")?.paint?.atlas, courier.digest);
     assert.equal(draft.rebased.ok, true, "a repaint and a moved forearm do not conflict");
 
-    // The person's own repaint of the same region, from the other sheet already in the document.
     const headDoc = head.document;
     assert.ok(headDoc);
     const other = headDoc.assets.find(

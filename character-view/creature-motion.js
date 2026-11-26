@@ -31,9 +31,6 @@ function bendAxis(direction, toward) {
   const axis = new Vector3().crossVectors(direction, toward);
   return axis.lengthSq() < 1e-6 ? forward : axis.normalize();
 }
-// A leg whose knee stands above its hip, as on a spider or crab, cannot
-// shorten in the sagittal plane. Solve its two links in space instead. The
-// rest pose supplies the plane of the bend, so each leg keeps its own splay.
 export function spatialLeg(hip, knee, ankle) {
   const upper = hip.distanceTo(knee),
     lower = knee.distanceTo(ankle);
@@ -63,8 +60,6 @@ export function placeFootInSpace(leg, dz, lift, drop, write) {
   );
   const interior = (a, b, c) =>
     Math.acos(MathUtils.clamp((a * a + b * b - c * c) / (2 * a * b), -1, 1));
-  // The thigh leaves the hip-to-foot line by this angle, about the same
-  // side of the bend as at rest.
   const hipAngle = interior(upper, reach, lower) - thigh.angleTo(rest);
   const first = new Quaternion()
     .setFromAxisAngle(normal.clone().negate().applyQuaternion(swing), hipAngle)
@@ -77,9 +72,6 @@ export function placeFootInSpace(leg, dz, lift, drop, write) {
   write(leg.b, second);
   write(leg.c, first.clone().multiply(second).invert());
 }
-// Long arms can hang to the floor. Bound a sagittal swing about the shoulder
-// so the hand does not pass through the ground on its way under the body.
-// Returns the least and greatest turn about the side axis in radians.
 export function floorSwing(shoulder, hand, floor, sink = 0) {
   if (!hand || hand.bounds.isEmpty()) return [-Infinity, Infinity];
   const z = (hand.bounds.min.z + hand.bounds.max.z) / 2 - shoulder.z,
@@ -98,8 +90,6 @@ export function creatureClips(root, regions) {
   for (const s of values) box.union(s.bounds);
   const size = box.getSize(new Vector3()),
     span = Math.max(size.x, size.y, size.z);
-  // A long wing can sweep well below a short-legged body's resting feet.
-  // Reserve room for its stroke using the lengths of the articulated spar.
   let wingClearance = 0;
   for (const region of values) {
     if (region.role !== "wing" || region.points.length < 2) continue;
@@ -144,8 +134,6 @@ export function creatureClips(root, regions) {
         const { points, bones, role } = s,
           n = bones.length;
         if ((role === "axial spine" || role === "tail") && n > 1) {
-          // Each joint contributes the difference between successive desired
-          // headings, so waves travel down a long spine without accumulating turns.
           const amplitude =
             name === "Slither" ? 0.64 : name === "Swim" ? 0.52 : 0.17;
           const cycles = role === "tail" ? 0.72 : 1.16,

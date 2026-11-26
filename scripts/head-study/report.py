@@ -23,10 +23,10 @@ from hs_metrics import Scored, profile
 from run import fits_path, labelled, results_path
 
 ROOT = Path(__file__).resolve().parents[2]
-MEDIA = ROOT / "docs" / "media" / "head-study"  # ignored by git; tracked pages name it without embedding it
+MEDIA = ROOT / "docs" / "media" / "head-study"
 VIEWS = (("front", 0, 0), ("profile", 90, 0), ("three-quarter", 38, 8))
 INK = (0.16, 0.16, 0.18)
-SCAN_INK, HEAD_INK = (0.15, 0.35, 0.85), (0.85, 0.30, 0.15)  # RGB
+SCAN_INK, HEAD_INK = (0.15, 0.35, 0.85), (0.85, 0.30, 0.15)
 PALETTE = np.array([[.85, .45, .35], [.35, .55, .85], [.9, .75, .3], [.8, .35, .6], [.45, .75, .45],
                     [.95, .6, .45], [.55, .5, .8], [.7, .7, .7], [.5, .65, .7], [.3, .3, .3]])
 
@@ -78,7 +78,6 @@ def sheets(name, generator, topology, results, cache, folder, run_label=""):
     def millimetres(key, group="face"):
         return f"{stages[key]['regions'][group]['two_way_mean_mm']:.2f} mm"
 
-    # 1. All stages from three directions.
     width, height, ppm = 500, 600, 1850.0
     rows = []
     for view, azimuth, elevation in VIEWS:
@@ -92,7 +91,6 @@ def sheets(name, generator, topology, results, cache, folder, run_label=""):
         rows.append(np.concatenate(panels, axis=1))
     save(folder / f"{name}-stages.png", np.concatenate(rows, axis=0))
 
-    # 2. Face close-ups: scan beside the corrected head, then both outlines over each other.
     m, u = topology.landmarks, topology.landmarks["unit"]
     face_centre = np.array([0.0, m["mouth"][1] + 0.55 * u, m["ear"][2] + 0.9 * u])
     width, height, ppm = 640, 760, 3600.0
@@ -109,14 +107,12 @@ def sheets(name, generator, topology, results, cache, folder, run_label=""):
         rows.append(np.concatenate([caption(a, f"scan, {view}"), caption(b, "recipe fit"), caption(c, "recipe + correction"), over], axis=1))
     save(folder / f"{name}-face.png", np.concatenate(rows, axis=0))
 
-    # 3. Midline profile curves.
     width, height, ppm = 560, 760, 3600.0
     panels = []
     for key, text in (("recipe fit", "recipe fit"), (data["chosen"], "recipe + correction")):
         numbers, generated, scan_curve = profile(topology, smooth[key], scan, faces)
         image = np.ascontiguousarray(np.full((height, width, 3), 247, dtype=np.uint8))
         for curve, ink in ((scan_curve, SCAN_INK), (generated, HEAD_INK)):
-            # Looking at the head's left side: the nose points right.
             x = (curve[:, 0] - face_centre[2]) * ppm + width * 0.42
             y = height / 2 - (curve[:, 1] - face_centre[1]) * ppm
             for px, py in zip(x.astype(int), y.astype(int)):

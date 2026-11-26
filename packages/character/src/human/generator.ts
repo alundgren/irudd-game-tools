@@ -1,18 +1,3 @@
-// irudd.human-adult version 1: an ordinary adult human body as a generator.
-//
-// The parameters are the explicit values the reference workshop's seeded
-// adult draw decides (character-view/human-form.js generatedHuman at 2761eb1):
-// the measurements, the posture, the skin and eye colours, the personal style,
-// the complexion and the face marks. The draw itself runs once, in the
-// starter, so a document stores values a person or an agent can read and
-// steer, never a seed to replay.
-//
-// The generator materialises the 52 regions of the evaluated body as slots:
-// each region's joint relative to its parent's joint, at unit size, in the
-// skin colour. The builder reads the body from these parameters and the
-// regions' transforms from the parts, so a manual edit of a region survives a
-// steer of the measurements by the ordinary three-way merge.
-
 import { Schema } from "effect";
 import {
   Color,
@@ -74,7 +59,6 @@ const axisFits = (values: { readonly [axis: string]: number }) => {
   return true;
 };
 
-/** Measurements by name, each within the reference editor's own limits. Unset ones rest. */
 export const HumanMeasurementsSchema = Schema.Record(Schema.String, Schema.Finite).check(
   Schema.makeFilter(axisFits),
 );
@@ -104,7 +88,6 @@ export const HumanPostureSchema = Schema.Struct({
   swing: posture("swing"),
 });
 
-/** The brow artwork names the reference workshop offers. */
 export const browStyles = ["As drawn", ...new Set(browStyleDraws)] as const;
 export const eyeColors = [
   "dark brown",
@@ -115,7 +98,6 @@ export const eyeColors = [
   "grey",
   "blue",
 ] as const;
-/** Complexions a seeded adult draw can choose. */
 export const drawnComplexions: ReadonlyArray<string> = [
   "Portrait Rose",
   "Portrait Honey",
@@ -126,10 +108,6 @@ export const drawnComplexions: ReadonlyArray<string> = [
   ...capturedSkinNames,
 ];
 
-/**
- * An outfit tailored piece by piece: layers in dressing order, each a piece
- * and any of its fields (unset fields take the piece's starting values).
- */
 export const HumanTailorSchema = Schema.Struct({
   layers: Schema.Array(Schema.Record(Schema.String, Schema.Union([Schema.String, Schema.Finite]))),
 }).check(
@@ -139,7 +117,6 @@ export const HumanTailorSchema = Schema.Struct({
   }),
 );
 
-/** What the adult wears: the bare anatomy, or the work clothes its style tailors or its cast member wears. */
 export const humanOutfits = ["Anatomy", "Work clothes"] as const;
 
 export const HumanStyleSchema = Schema.Struct({
@@ -149,36 +126,25 @@ export const HumanStyleSchema = Schema.Struct({
   castShape: Schema.optionalKey(range(0, 1)),
   castPigment: Schema.optionalKey(range(0, 1)),
   castSkin: Schema.optionalKey(Color),
-  /** The cast member's top and bottom, from the pieces fitted to it; unset is its own. */
   castTop: Schema.optionalKey(Schema.Literals(castTopNames)),
   castBottom: Schema.optionalKey(Schema.Literals(castBottomNames)),
-  /** Everyday makeup painted into the face. */
   makeup: Schema.optionalKey(Schema.Literals(makeupStyles)),
   tailor: Schema.optionalKey(HumanTailorSchema),
-  /** A preset outfit worn in work clothes when no outfit is tailored. */
   outfit: Schema.optionalKey(Schema.Literals(["None", ...presetOutfitNames])),
-  /** The outfit's cloth colour, which every other tone of its palette is drawn from. */
   clothColor: Schema.optionalKey(Color),
-  /** Tones of the outfit named outright: the second and pale cloth, the accent, leather and soles. */
   clothSecond: Schema.optionalKey(Color),
   clothLight: Schema.optionalKey(Color),
   accentColor: Schema.optionalKey(Color),
   leatherColor: Schema.optionalKey(Color),
   soleColor: Schema.optionalKey(Color),
-  /** Hair: library hair, an authored groom fitted to the head, or a cut grown as strands on the scalp. */
   hair: Schema.optionalKey(Schema.Literals([...fittedHairStyles, ...grownHairStyles])),
-  /** How the hair over the forehead is worn. */
   fringe: Schema.optionalKey(Schema.Literals(fringeStyles)),
   hairColor: Schema.optionalKey(Color),
   eyewear: Schema.optionalKey(Schema.Literals(eyewearStyles)),
   necklace: Schema.optionalKey(Schema.Literals(necklaceStyles)),
-  /** The enamel of a teardrop pendant. */
   clothAccent: Schema.optionalKey(Color),
-  /** The metal of jewellery settings. */
   metalColor: Schema.optionalKey(Color),
-  /** The weave of a tailored outfit's outermost top. */
   clothDesign: Schema.optionalKey(Schema.Literals(tailoredClothDesigns)),
-  /** The weave of tailored trousers or shorts. */
   secondDesign: Schema.optionalKey(Schema.Literals(secondClothDesigns)),
 }).check(
   Schema.makeFilter((style) => {
@@ -212,14 +178,11 @@ export const FaceMarkSchema = Schema.Struct({
 }).check(Schema.makeFilter(placeFits));
 
 export const HumanAdultParams = Schema.Struct({
-  /** The seed the values were drawn from. Skin details (ink wear, marks) still vary with it. */
   seed: unsigned32,
   human: HumanMeasurementsSchema,
-  /** How the adult stands and moves. Unset, it rests in the fitting pose with the generated clips, as G0 builds a form without one. */
   posture: Schema.optionalKey(HumanPostureSchema),
   skin: Color,
   style: HumanStyleSchema,
-  /** Anatomy unless set: work clothes dress the tailored outfit, or wear the cast member. */
   outfit: Schema.optionalKey(Schema.Literals(humanOutfits)),
   eyeColor: Schema.optionalKey(Schema.Literals(eyeColors)),
   complexion: Schema.optionalKey(Schema.Literals(drawnComplexions)),
@@ -229,7 +192,6 @@ export const HumanAdultParams = Schema.Struct({
 });
 export type HumanAdultParams = typeof HumanAdultParams.Type;
 
-/** The parameters a draw decides. Equal draws give equal parameters. */
 export function humanAdultParams(draw: HumanDraw): HumanAdultParams {
   return Schema.decodeUnknownSync(HumanAdultParams)({
     seed: draw.seed,
@@ -243,12 +205,6 @@ export function humanAdultParams(draw: HumanDraw): HumanAdultParams {
   });
 }
 
-/**
- * The cast member the adult is worn as: its style names one and it wears work
- * clothes with every region of the body (wornCast in
- * character-view/human-cast-looks.js at 2761eb1). Otherwise null, and the
- * adult is built from its own regions.
- */
 export function humanWornCast(
   params: HumanAdultParams,
   regions: number = boneNames.length,
@@ -262,7 +218,6 @@ export function humanWornCast(
     : null;
 }
 
-/** The measurements the parameters set, as the surface evaluates them. */
 export function humanMeasurements(params: HumanAdultParams): HumanMeasurements {
   const out: HumanMeasurements = {};
   for (const axis of humanAxes) {
@@ -272,7 +227,6 @@ export function humanMeasurements(params: HumanAdultParams): HumanMeasurements {
   return out;
 }
 
-/** A bone's slot key: "ball_l" is "ball.l", "index_01_r" is "index-01.r". */
 export function humanSlot(bone: BoneName): string {
   const side = /_([lr])$/.exec(bone);
   const base = side ? bone.slice(0, -2) : bone;
@@ -280,13 +234,8 @@ export function humanSlot(bone: BoneName): string {
 }
 
 const slotBones = new Map<string, BoneName>(boneNames.map((b) => [humanSlot(b), b]));
-/** The bone a generated slot stands for. */
 export const humanSlotBone = (slot: string): BoneName | undefined => slotBones.get(slot);
 
-/**
- * Regions parent first, siblings in the reference form's (bone name) order,
- * so the document's order keeps the reference scene's child order.
- */
 function parentFirst(): BoneName[] {
   const names: ReadonlyArray<string> = boneNames;
   const out: BoneName[] = [];
@@ -306,7 +255,6 @@ const regionOrder = parentFirst();
 
 const identity = [0, 0, 0, 1] as const;
 
-/** The regions of the body these parameters evaluate to. */
 export function humanAdultSlots(body: HumanBody, params: HumanAdultParams): BaseSlotInput[] {
   const regions = new Map(
     surfaceRegions(evaluateHuman(body, humanMeasurements(params))).map((r) => [r.bone, r]),
@@ -329,10 +277,6 @@ export function humanAdultSlots(body: HumanBody, params: HumanAdultParams): Base
   });
 }
 
-/**
- * The adult generator over a loaded body pack. A reader that only checks
- * parameters can pass a getter, so the pack loads when a document is generated.
- */
 export function humanAdultGenerator(body: HumanBody | (() => HumanBody)): GeneratorDefinition {
   const pack = () => (typeof body === "function" ? body() : body);
   return defineGenerator({
@@ -346,11 +290,6 @@ export function humanAdultGenerator(body: HumanBody | (() => HumanBody)): Genera
   });
 }
 
-/**
- * A limb root seated on a shoulder blade of the chest moves with that blade
- * when the measurements change (reseatCreatureLimbs in
- * character-view/human-creature-mount.js at 2761eb1); other parts keep their place.
- */
 function reseatOnBlades(body: HumanBody, before: HumanAdultParams, after: HumanAdultParams) {
   const chest = humanSlot("spine_03");
   const surfaces = new Map<HumanAdultParams, ReturnType<typeof evaluateHuman>>();
@@ -379,7 +318,6 @@ function reseatOnBlades(body: HumanBody, before: HumanAdultParams, after: HumanA
   return reseat;
 }
 
-/** The seeded draw a starter offers: the reference workshop's `#adult=SEED`. */
 export function seededHumanAdult(body: HumanBody, seed: number): HumanAdultParams {
   return humanAdultParams(drawAdult(body, seed >>> 0));
 }

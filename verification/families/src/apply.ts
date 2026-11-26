@@ -1,5 +1,3 @@
-// Apply operations to a fixture as a client sends them, then validate the result.
-
 import {
   applyOperations,
   decodeOperations,

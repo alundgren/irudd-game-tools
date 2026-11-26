@@ -50,7 +50,6 @@ for key, donor in json.loads(raw.read_bytes()).items():
     mask = cv2.GaussianBlur(mask.astype("f"), (0, 0), 1.8)
     lum = ratio @ np.array([0.26, 0.59, 0.15], dtype="f")
     area = material[:, :, 2] / 255
-    # The largest changes in light across an entire cheek/forehead belong to the capture studio.
     light = filtered(lum, area * (1 - mask), 32)
     cen = np.median(light[area > 0.95])
     ratio -= 0.48 * (light - cen).clip(-0.72, 0.72)[:, :, None] * area[:, :, None]

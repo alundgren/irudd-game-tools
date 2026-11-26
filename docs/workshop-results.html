@@ -1541,8 +1541,6 @@
       </footer>
     </main>
     <script>
-      // Comparison pictures are local reference material (local-references.md).
-      // Show a picture, or a block that depends on one, only where its file loads.
       for (const item of document.querySelectorAll("[data-local]")) {
         const probe = new Image();
         probe.onload = () => item.setAttribute("data-local-found", "");

@@ -1,19 +1,3 @@
-// steering gate: a real host process, CLI processes for the person and for a
-// paired agent (--credential), and an MCP SDK client driving `irudd mcp
-// --channel` over stdio, all against one open project.
-//
-//   pnpm --filter @irudd/mcp gate:steering
-//
-// It covers: binding a Claude channel route to the exact MCP server instance,
-// a person's manual edit, a steering message pushed to the MCP client as
-// `notifications/claude/channel` and confirmed back to the host, the agent's
-// inbox, acknowledgement, manual-change cursor, proposal and applied receipt
-// over MCP; an inbox-only (Codex) route worked entirely with the agent CLI;
-// killing and restarting the host under the live channel; and revocation.
-//
-// The host runs with --no-push, so it never calls T3 Code or Codex. The SDK
-// client stands in for Claude Code: this proves what the irudd side sends,
-// not that a Claude Code session displays it (see docs/workshop-steering.md).
 import { connect } from "@irudd/workshop/client";
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -153,7 +137,6 @@ test(
       const codexCredential = String(field(codex.value, "credentialFile"));
       assert.equal((await cliJson("new", doc, "--preset", "default")).code, 0);
 
-      // The channel server: an SDK client in place of Claude Code.
       const pushes: Array<{ content: string; meta: Record<string, string> }> = [];
       const transport = new StdioClientTransport({
         command: process.execPath,
@@ -185,7 +168,6 @@ test(
           name,
         );
 
-      // The person sees the connected instance and binds exactly that one.
       t = Date.now();
       const seen = await until(
         () => cliJson("recipients"),
@@ -206,7 +188,6 @@ test(
       assert.equal(unproven.code, 5, unproven.stderr);
       assert.equal((await cliJson("route", "claude", "--claude-channel", instance)).code, 0);
 
-      // The person's manual edit, then a message about it.
       const shown = await cliJson("show", doc);
       const part = String(field(shown.value, "document", "parts", 1, "id"));
       assert.equal((await cliJson("rename", doc, part, "Left foreleg", "--base", "1")).code, 0);
@@ -237,7 +218,6 @@ test(
         "host acceptance",
       );
       assert.equal(field(accepted.value, "delivery", "receipt", "delivery"), "channel-notified");
-      // The duplicate send is the same message and is not pushed again.
       const again = await cliJson(
         "send",
         "claude",
@@ -249,7 +229,6 @@ test(
       );
       assert.equal(field(again.value, "messageId"), messageId);
 
-      // The agent works over MCP: inbox, ack, manual changes, proposal, applied.
       const inbox = await tool(client, "read_inbox");
       assert.equal(field(inbox.value, "messages", 0, "messageId"), messageId);
       const since = Number(field(inbox.value, "messages", 0, "cursor", "since"));
@@ -271,7 +250,6 @@ test(
         documentId: doc,
         requestId: "gate-steer-prop-0001",
       });
-      // A proposal awaits the person; it applies only when they accept that version.
       assert.equal(field(applied.value, "status"), "proposed", applied.summary);
       assert.equal(field(applied.value, "applied"), null);
       assert.equal((await cliJson("accept", doc, "prop-tail", "--base", "head")).code, 0);
@@ -283,7 +261,6 @@ test(
       assert.equal(field(decided.value, "applied", "via"), "proposal-accepted");
       assert.equal(field(decided.value, "applied", "acceptedBy", "kind"), "human");
 
-      // Codex has no push into a running session here: an inbox-only route, worked with the CLI.
       assert.equal(
         (
           await cliJson(
@@ -353,7 +330,6 @@ test(
       const personAsAgent = await cli("send", "claude", "spoof", "--credential", codexCredential);
       assert.notEqual(personAsAgent.code, 0, "an agent credential cannot send steering");
 
-      // Kill the host under the live channel, restart it: the same instance re-watches.
       t = Date.now();
       await killed(host);
       host = await startHost(false);
@@ -377,7 +353,6 @@ test(
         "no repeat of the first",
       );
 
-      // Revocation: open messages are revoked and the route is unbound.
       const pending = await cliJson(
         "send",
         "claude",

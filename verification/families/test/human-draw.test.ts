@@ -1,10 +1,3 @@
-// The seeded adult draw against G0. The baseline records, for every frozen
-// seed, the SHA-256 of the form G0's `#adult=SEED` route generated (canonical
-// JSON, sorted keys). The port draws explicit values and regions; writing them
-// back in G0's form shape must reproduce those bytes exactly, so every
-// measurement, the posture, colours, style choices, face marks and all 52
-// region joints and bounds agree bit for bit.
-
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -58,7 +51,6 @@ const role = (bone: string) =>
     spine_03: "torso",
   })[bone.replace(/_[lr]$/, "")] ?? "rigid";
 
-/** The form G0's generatedHuman returns for this draw. */
 function g0Form(draw: HumanDraw, regions: ReadonlyArray<Region>): unknown {
   return {
     human: draw.human,

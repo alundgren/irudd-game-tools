@@ -1,9 +1,3 @@
-// A project host that the art crash test kills. It serves the project and
-// state directory it is given and terminates itself (SIGKILL, TerminateProcess
-// on Windows) when the art service reaches the named cut point, so nothing
-// after that point is written. Progress lines go to stdout synchronously.
-//
-//   { "path": <project>, "stateDir": <dir>, "cut": <ArtCut> }
 import fs from "node:fs";
 import { startHost } from "@irudd/workshop/host";
 import { person } from "./art-fixtures.js";

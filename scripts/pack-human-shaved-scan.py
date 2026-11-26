@@ -16,7 +16,6 @@ parser.add_argument("source", type=Path)
 parser.add_argument("destination", type=Path)
 args = parser.parse_args()
 
-# Coordinates on the upright native face and donor charts, in a 512-square preview.
 pairs = np.asarray(
     [
         [256, 60, 256, 44],
@@ -123,15 +122,11 @@ def png(array, format):
     )
 
 
-# Express the measured reflectance relative to clean skin on this face. Shaving
-# grain and colour around the nose remain. The stored neutral recovers every skin tone.
 color = np.log(sample(read("Map-COL.jpg")) + 1.0)
 base = np.median(
     color[(ellipse(190, 265, 15, 17) < 1) | (ellipse(322, 265, 15, 17) < 1)], axis=0
 )
 color = (color - base) * mask[:, :, None]
-# Integrate the tangent normal into a height field so its axes follow the new
-# UV chart. Discard broad displacement that the editable head already supplies.
 normal = read("Infinite-Level_02_Tangent_SmoothUV.jpg") / 127.5 - 1
 dx = -normal[:, :, 0] / np.maximum(normal[:, :, 2], 0.1)
 dy = normal[:, :, 1] / np.maximum(normal[:, :, 2], 0.1)

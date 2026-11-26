@@ -1,8 +1,6 @@
 import { armAccess } from "./mantle.js";
 import { MathUtils, Vector3 } from "three";
 
-// A mantle rests against the shoulder and arm. Transfer movement from the
-// nearest arm joint at its sides, fading to the wearer's fixed neckline and back.
 export function bindMantleArms(
   region,
   regions,
@@ -102,7 +100,6 @@ export function bindMantleArms(
     indices[slot + 3] = g > 0 ? index.get(driver.bones[b]) : 0;
     weights[slot + 3] = influence * g;
   }
-  // Both surfaces of a sewn panel use the same joints at each fabric station.
   indices.copyWithin(layer * 4, 0, layer * 4);
   weights.copyWithin(layer * 4, 0, layer * 4);
 }

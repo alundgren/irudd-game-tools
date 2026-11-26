@@ -28,8 +28,8 @@ from hs_fit import Head, Placement, ScanView, correct, fit_recipe, near_faces, r
 from hs_generator import Generator, HeadTopology, snapshot
 from hs_metrics import Scored, folds, profile, roughness
 
-PASSES = (1, 3)        # fitHumanReference runs that are scored
-CHOSEN_PASSES = 1      # the run stored as the study's surface correction
+PASSES = (1, 3)
+CHOSEN_PASSES = 1
 
 
 INSTALLED = Path(__file__).resolve().parents[2] / "examples" / "head-targets-fits"
@@ -54,7 +54,6 @@ def study(generator, topology, name, cache, label="", log=print):
     started = time.time()
     weight = region_weights(not_skin)
     default_head = Head(topology, generator.evaluate([{}], blink=blink)[0], weight)
-    # Fit on the part of the scan near the head; the bust below it only slows the search.
     view = ScanView(vertices, faces, near_faces(vertices, faces, default_head.vertices[default_head.ids], 0.05))
     stages = {}
 
@@ -75,7 +74,7 @@ def study(generator, topology, name, cache, label="", log=print):
     stages["recipe fit"] = {"recipe": recipe, "fit": None, "placement": placement,
                             "history": fitted["history"], "start": fitted["start"]}
 
-    scan = placement.apply(vertices)  # the frame every stage is scored in
+    scan = placement.apply(vertices)
     drop = ("eyes", *not_skin)
     for passes in PASSES:
         log(f"  fitHumanReference x{passes}")
@@ -84,7 +83,6 @@ def study(generator, topology, name, cache, label="", log=print):
 
     chosen = f"corrected x{CHOSEN_PASSES}"
     smooth = {key: generator.smooth(stage["recipe"], stage["fit"], blink) for key, stage in stages.items()}
-    # Stages that settled the scan differently are moved into the scoring frame through the scan.
     smooth = {key: placement.apply(stages[key]["placement"].inverse(surface)) for key, surface in smooth.items()}
     scored = Scored(topology, scan, faces, smooth[chosen], not_skin)
     out = {}
@@ -99,7 +97,6 @@ def study(generator, topology, name, cache, label="", log=print):
                 "controls": len(stage["fit"]["controls"]), "mean_offset_mm": float(lengths.mean()),
                 "max_offset_mm": float(lengths.max()), "at_limit": int((lengths > 64).sum()),
                 "roughness_mm": roughness(topology, smooth[key], smooth["recipe fit"]),
-                # Open-eyed cage, as the editor shows the correction.
                 "folds": folds(topology.cage_faces, *generator.evaluate([recipe, recipe], [None, stage["fit"]])),
                 "editor_reports": stage["editor_reports"],
             }

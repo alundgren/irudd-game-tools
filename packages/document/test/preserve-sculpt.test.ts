@@ -1,6 +1,3 @@
-// preserve-sculpt: a manual body edit survives a 5% creature scale, or the
-// command returns a field-specific conflict and leaves the head unchanged.
-// CPU only; part of the fast suite. Each test reports its wall time.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -38,16 +35,10 @@ const near = (a: Vec3, b: Vec3, tolerance = 1e-9) =>
   );
 const times = (v: Vec3, s: number): Vec3 => [v[0] * s, v[1] * s, v[2] * s];
 
-/**
- * The fixture: a generated creature with its stored base, one sculpted body
- * displacement made by the person through a surface pick, a pose linking the
- * body and neck, a renamed body, and an agent allowed to edit directly.
- */
 function sculptedCreature(): { state: DocumentState; trunk: string; neck: string } {
   let s = generatedCreature(env);
   const trunk = partBySlot(s, "trunk");
   const neck = partBySlot(s, "neck");
-  // Trunk centre is at (legs + girth) = 0.65 m; its top surface is 0.2 m above.
   s = run(
     s,
     env,
@@ -89,7 +80,6 @@ function sculptedCreature(): { state: DocumentState; trunk: string; neck: string
   return { state: s, trunk: trunk.id, neck: neck.id };
 }
 
-/** The displacement exists, unchanged in its local frame, and moved with the body in the world. */
 function preserved(
   before: CharacterDocument,
   after: CharacterDocument,
@@ -113,7 +103,6 @@ test("the pick resolves to the expected displacement in the body's normalised fr
   const part = state.document?.parts.find((p) => p.id === trunk);
   const d = part?.sculpt[0];
   assert.ok(d);
-  // Half-extents are (0.2, 0.2, 0.45): the top of the body at 0.1 m forward.
   near(d.at, [0, 1, 0.1 / 0.45]);
   near(d.offset, [0, 0.15, 0]);
   assert.ok(Math.abs(d.radius - 0.08 / 0.45) < 1e-12);
@@ -142,12 +131,10 @@ test("a 5% scale by the agent keeps the person's displacement, rename and pose",
       Math.abs(params["scale"] - 1.05) < 1e-12,
   );
 
-  // The displacement is identical in the body's frame and scaled with it in the world.
   assert.ok(preserved(before, after, trunk, 1.05));
   const body = after.parts.find((p) => p.id === trunk);
   assert.equal(body?.label, "Barrel");
   near(body?.size ?? [0, 0, 0], times([0.4, 0.4, 0.9], 1.05));
-  // The pose still names the same immutable parts.
   assert.deepEqual(
     after.poses[0]?.joints.map((j) => j.part),
     [trunk, neck].sort(),
@@ -252,7 +239,6 @@ test("negative control: a destructive rebuild loses the displacement and the che
       }),
     ).document ?? fail();
   assert.equal(preserved(before, after, trunk, 1.05), false);
-  // Removing the slot that carries a manual edit is a conflict, not a silent loss.
   const fewer = {
     ...defaultFrameCreatureParams,
     legs: { ...defaultFrameCreatureParams.legs, pairs: 1 },

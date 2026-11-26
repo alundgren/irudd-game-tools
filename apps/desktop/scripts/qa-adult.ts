@@ -1,21 +1,3 @@
-// Hidden end-to-end run of the ordinary adult in the built desktop app, on the
-// hardware GPU. Run it under the shared GPU lock, then compare its exports
-// with G0's:
-//
-//   pnpm --filter @irudd/desktop build
-//   pnpm --filter @irudd/desktop qa:adult [-- --keep] [--out DIR]
-//   pnpm --filter @irudd/verification-families gate:human-desktop
-//
-// Starts the real app with --hidden on a fresh project and drives its own
-// page: start the adult from its seed-491 preset, export it at Clay, Full and
-// Game through the review worker, move the left forearm by hand, accept a
-// paired agent's parameter steer after a preview, and export the new revision
-// fresh. The steered export must come from the steered head, which keeps the
-// hand edit. The revision-1 exports are saved to DIR (by default
-// .reference-cache/g4a/human-desktop) as adult-491-PRESET.glb, where
-// verification/families/src/human-desktop.ts compares each with G0's whole.
-// Nothing here ships.
-
 import assert from "node:assert/strict";
 import {
   copyFileSync,
@@ -50,7 +32,6 @@ const scratch = mkdtempSync(join(tmpdir(), "irudd-desktop-adult-"));
 const projectDir = join(scratch, "project");
 const userData = join(scratch, "user-data");
 const stateDir = join(scratch, "state");
-// Installed-style lookup: the built tree with no adjacent sources or node_modules.
 const distribution = join(scratch, "Workshop App");
 mkdirSync(distribution);
 copyFileSync(join(appDir, "package.json"), join(distribution, "package.json"));
@@ -164,7 +145,6 @@ async function waitRevision(page: Page, at: number): Promise<void> {
   );
 }
 
-/** Export the open revision at `preset` through the window and return the saved file. */
 async function exportAt(page: Page, preset: string): Promise<string> {
   const exportsDir = join(projectDir, "exports");
   const before = new Set(existsSync(exportsDir) ? readdirSync(exportsDir) : []);
@@ -185,7 +165,6 @@ async function exportAt(page: Page, preset: string): Promise<string> {
   return join(exportsDir, added[0] ?? "");
 }
 
-/** The binary chunk of a GLB: every accessor, image and buffer the scene uses. */
 function binaryChunk(bytes: Buffer): Buffer {
   const jsonLength = bytes.readUInt32LE(12);
   const at = 20 + jsonLength;
@@ -202,12 +181,10 @@ interface AdultPart {
   readonly position: ReadonlyArray<number>;
 }
 
-/** The parts and parameters of an adult document read from the host or a GLB's provenance. */
 function adultOf(doc: unknown): {
   readonly parts: ReadonlyArray<AdultPart>;
   readonly params: Record<string, unknown>;
   readonly human: Record<string, unknown>;
-  /** The generator's own placement of a slot, before manual edits. */
   readonly base: (slot: unknown) => BaseSlot;
 } {
   if (!isRecord(doc) || !Array.isArray(doc["parts"])) throw new Error("Not a document.");
@@ -289,7 +266,6 @@ try {
   const started = await head();
 
   mkdirSync(outDir, { recursive: true });
-  // G0 names each joint's region by the part label; this document's parts by their stable IDs.
   writeFileSync(
     join(outDir, "regions.json"),
     JSON.stringify(Object.fromEntries(started.parts.map((p) => [p.label, p.id])), null, 2),
@@ -357,7 +333,6 @@ try {
     assert.equal(provenance["digest"], view.documentDigest, "exported from the steered head");
     const doc = adultOf(view.document);
     assert.equal(doc.human["muscle"], 0.1, "the steer took");
-    // A steer carries a position edit in the part's own frame from the old base to the new one.
     const before = edited.parts.find((p) => p.id === forearm.id);
     const held = doc.parts.find((p) => p.id === forearm.id);
     assert.ok(before && held);

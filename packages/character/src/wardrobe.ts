@@ -1,8 +1,3 @@
-// Saved outfits. Ported from wearOutfit in character-view/outfit-sets.js at
-// 2761eb1: wearing a look selects its base outfit, styles every fitted
-// garment from the look (hiding garments it does not name) and replaces the
-// appearance's tones with the look's own.
-
 import {
   characterAppearance,
   outfitFit,
@@ -14,12 +9,10 @@ import {
   type OutfitLook,
 } from "@irudd/document";
 
-/** The document's saved outfits, in their saved order. */
 export function savedLooks(doc: CharacterDocument): ReadonlyArray<OutfitLook> {
   return outfitLooks.read(doc.features)?.looks ?? [];
 }
 
-/** The document as it is worn in `look`. Geometry, paint and every edit are untouched. */
 export function wearLook(doc: CharacterDocument, look: OutfitLook): CharacterDocument {
   const layers: Record<string, LayerStyle> = {};
   for (const part of doc.parts)

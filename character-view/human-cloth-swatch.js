@@ -8,11 +8,8 @@ export const clothDesigns = [
   "Breton stripe", "Herringbone", "Colour block",
   "Gingham", "Small dots", "Chest band", "Knit yoke", "Hem border", "Scallop brocade",
 ];
-// A second piece of the outfit may carry its own design. "Plain cloth" leaves it in the quiet weave.
 export const secondDesigns = clothDesigns.filter(name => name !== "Outfit swatch");
 
-// A named part selects a fabric. Print placement belongs to the outfit so
-// picking a print never puts it on the buttons, bindings or hardware.
 const fabrics = {
   "T-shirt": "jersey", "Hoodie": "jersey", "Joggers": "jersey",
   "Sweater": "wool", "Skirt": "twill", "Tights": "jersey", "Socks": "jersey",
@@ -27,13 +24,11 @@ const fabrics = {
   "Vest": "sports knit", "Shorts": "sports knit",
   "Breeches": "twill", "Cloak": "wool", "Tunic": "wool", "Tunic skirt": "wool",
   "Parka": "ripstop", "Parka skirt": "ripstop", "Snow trousers": "ripstop",
-  // The capsule (human-style-capsule.js).
   "Split mantle": "wool", "Shoulder cloak": "wool", "Mantle lining": "silk",
   "Short bomber": "satin", "Rolled-sleeve bomber": "canvas", "Ribbing": "jersey", "Tucked top": "jersey", "Wide trousers": "twill", "Cuffed wide trousers": "twill",
   "Bodice": "silk", "Shoulder wing": "silk", "Gored skirt": "silk", "Draped skirt": "silk", "Skirt panel": "silk", "Skirt facing": "satin", "Girdle": "satin",
 };
 
-// The style fields that name tones one by one (human-style.js `toneFields`).
 const directedFields = ["clothSecond", "clothLight", "accentColor", "leatherColor", "soleColor", "metalColor"];
 
 const primaryParts = {
@@ -60,7 +55,6 @@ const primaryParts = {
   "Draped bodice gown": ["Skirt panel", "Scallop brocade"],
 };
 
-// The pieces that take `secondDesign`: the other large cloth of each outfit.
 const secondParts = {
   "T-shirt and jeans": ["Jeans"],
   "Hoodie and joggers": ["Joggers"],
@@ -81,7 +75,6 @@ const secondParts = {
   "Rolled bomber and cuffed trousers": ["Cuffed wide trousers"],
 };
 
-// Pieces tailored one by one are named by what they are.
 const tailoredFabrics = { "Top": "jersey", "Hooded top": "jersey", "Jacket": "canvas", "Trousers": "twill", "Shorts": "twill" };
 
 const cloth = {
@@ -112,15 +105,12 @@ const fold = (x, step) => Math.abs(x - Math.round(x / step) * step);
 const band = (x, half, feather = .002) => 1 - Math.max(0, Math.min(1, (x - half) / feather + .5));
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 
-// Panel registration in rest-space metres. The print stays in the cloth UV
-// as the model moves. Front and back share the same height and grain.
 export function clothChart(positions, landmarks) {
   const { shoulder, waist, chest } = landmarks;
   const points = new Float32Array(positions.count * 2);
   let minU = Infinity, minV = Infinity, maxU = -Infinity, maxV = -Infinity;
   for (let i = 0; i < positions.count; i++) {
     const x = positions.getX(i), z = positions.getZ(i) - chest[2];
-    // Widen the chart around the flank without introducing a mirrored UV seam.
     const u = x * (1 + .19 * Math.min(1, Math.abs(z) / .17));
     const v = positions.getY(i) - waist;
     points[i * 2] = u;
@@ -137,8 +127,6 @@ export function clothChart(positions, landmarks) {
   return { uv: new Float32BufferAttribute(points, 2), u0, v0, du, dv, yoke: shoulder - waist };
 }
 
-// Unroll an open gathered sheet from its sewn edge. Rows vary in length
-// as the gores widen. The border follows its lifted hem across every fold.
 function gatheredChart(position, [rows, columns], landmarks) {
   const coords = new Float32Array(2*position.count);
   const lengths = [];
@@ -168,8 +156,6 @@ function gatheredChart(position, [rows, columns], landmarks) {
     du:width, dv:height, yoke:landmarks.shoulder-landmarks.waist};
 }
 
-// Original painted goldwork. The field stores thread coverage and the relief
-// of its satin stitches. Staggered fans share one scale across both garment panels.
 let threadField;
 function brocadeThread(x, y) {
   threadField ??= unzlibSync(Uint8Array.from(atob(scallop.thread), c => c.charCodeAt(0)));
@@ -208,7 +194,6 @@ function printAt(pattern, x, y, chart, outfit, meshName) {
     return [.55 * Math.max(warp, weft, paired) + .22 * warp * weft, .17 * Math.max(warp, weft)];
   }
   if (pattern === "Breton stripe") {
-    // A plain yoke and hem frame yarn-dyed stripes.
     const inside = band(Math.abs(y - (chart.v0 + chart.dv * .51)), chart.dv * .40, .005);
     return [.77 * band(fold(y, .061), .009) * inside, 0];
   }
@@ -223,7 +208,6 @@ function printAt(pattern, x, y, chart, outfit, meshName) {
     return [.38 * pin * bib, .34 * backing * bib];
   }
   if (pattern === "Workwear tape") {
-    // A pair of sewn visibility strips, outside the central zip or placket.
     const awayFromZip = 1 - band(Math.abs(x), .031, .009);
     const chest = band(Math.abs(y - chart.yoke * .53), .012);
     const welt = band(Math.abs(y - chart.yoke * .53 + .021), .0022);
@@ -237,22 +221,18 @@ function printAt(pattern, x, y, chart, outfit, meshName) {
     return [.58 * inner * diamond + .52 * outer, .36 * inner];
   }
   if (pattern === "Gingham") {
-    // Even bands both ways: half tone where one crosses, full where both do.
     const warp = band(fold(x, .03), .0075, .0015), weft = band(fold(y, .03), .0075, .0015);
     return [.36 * (warp + weft) + .1 * warp * weft, 0];
   }
   if (pattern === "Small dots") {
     const row = Math.round(y / .034), dx = fold(x + (row % 2 ? .02 : 0), .04), dy = y - row * .034;
-    // Drawn a little narrow: the chart widens round the flank, and a dot there should not read as an oval.
     return [.82 * band(Math.hypot(dx * 1.3, dy * .92), .0058, .0016), 0];
   }
   if (pattern === "Chest band") {
-    // One broad band across the chest with a fine line under it.
     const at = chart.yoke * .58;
     return [.9 * band(Math.abs(y - at), .024, .003) + .8 * band(Math.abs(y - at + .041), .0042, .002), 0];
   }
   if (pattern === "Knit yoke") {
-    // Rows of small knitted figures across the shoulders, as on a yoked jumper.
     const from = chart.yoke * .7, inside = 1 - band(y - from, .001, .006);
     const zig = band(Math.abs(y - from - .03 - fold(x, .022) * .9), .0048, .002);
     const row = Math.max(band(Math.abs(y - from - .008), .0032, .0016), band(Math.abs(y - from - .068), .0032, .0016));
@@ -261,7 +241,6 @@ function printAt(pattern, x, y, chart, outfit, meshName) {
     return [Math.min(1, inside * (.8 * zig + .78 * row + .8 * seed) + .7 * lower), 0];
   }
   if (pattern === "Hem border") {
-    // Two lines and a row of small lozenges above the lower edge.
     const hem = y - chart.v0;
     const lines = Math.max(band(Math.abs(hem - .034), .0034, .0016), band(Math.abs(hem - .082), .0034, .0016));
     const lozenge = band(fold(x, .034) + Math.abs(hem - .058) * 1.25, .0088, .002);
@@ -277,13 +256,10 @@ function printAt(pattern, x, y, chart, outfit, meshName) {
   return [0, 0];
 }
 
-// Dyed cloth is never one flat tone: yarn takes dye unevenly, and wear lightens it in broad soft patches.
 const washes = {
   denim: .36, canvas: .26, twill: .22, wool: .22, "waxed cotton": .28,
   jersey: .16, poplin: .12, ripstop: .13, "sports knit": .12, satin: .08, silk: .09,
 };
-// Peak to trough in metres at the scale of the cloth chart, calibrated so directional
-// weaves, knit ribs, twill wales and seams read cleanly inside the 24K/1024 shared atlas.
 const yarnHeight = {
   denim: .0048, canvas: .0050, twill: .0044, wool: .0058, "waxed cotton": .0042,
   jersey: .0030, poplin: .0028, ripstop: .0042, "sports knit": .0028, satin: .0018, silk: .0022,
@@ -294,8 +270,6 @@ function cloud(x, y) {
   return mix(mix(grainAt(i, j), grainAt(i + 1, j), a), mix(grainAt(i, j + 1), grainAt(i + 1, j + 1), a), b) * 2 - 1;
 }
 
-// Compute directional construction geometry [albedoMod, height01, roughScale01, weftLift] for one cloth texel.
-// Designed at macro+meso spatial wavelengths (6-15 mm) that survive 24K/1024 atlas downsampling cleanly.
 function fabricConstruction(fabric, meshName, x, y, chart, pitch, contrast, out) {
   const hemY = y - chart.v0;
   let albedoMod = 1;
@@ -306,26 +280,23 @@ function fabricConstruction(fabric, meshName, x, y, chart, pitch, contrast, out)
   if (fabric === "wool") {
     const isKnit = meshName === "Sweater" || meshName === "Scarf";
     if (isKnit) {
-      // Chunky vertical knit wales with interlocking V-loop courses + ribbed hem band.
       const ribBand = hemY < 0.058 ? 1 - clamp((hemY - 0.048) / 0.010, 0, 1) : 0;
       const weltSeam = band(Math.abs(hemY - 0.056), 0.0020, 0.0022);
       const waleP = ribBand > 0.5 ? 0.0078 : 0.0096;
       const courseP = 0.0074;
       const waleX = (x / waleP) % 1;
       const wFrac = waleX < 0 ? waleX + 1 : waleX;
-      const waleRib = Math.sin(wFrac * Math.PI); // rounded vertical knit column [0..1]
-      const vLeg = Math.abs(wFrac - 0.5) * 2; // 0 at center of knit column, 1 at trough
+      const waleRib = Math.sin(wFrac * Math.PI);
+      const vLeg = Math.abs(wFrac - 0.5) * 2;
       const loop = 0.5 + 0.5 * Math.cos(((y / courseP) + vLeg * 0.65) * Math.PI * 2);
       const fuzz = cloud(x * 75, y * 75) * 0.12;
       const knitH = ribBand > 0.5
         ? 0.16 + 0.74 * waleRib + 0.08 * loop
         : 0.14 + 0.64 * waleRib + 0.18 * loop * (0.45 + 0.55 * waleRib);
       height = clamp(knitH + fuzz - 0.26 * weltSeam, 0.06, 0.96);
-      // Deep shadowed troughs between chunky knit ribs + velvety matte yarn light response.
       albedoMod = 1 + contrast * ((knitH - 0.54) * 1.45 + fuzz * 0.5) - 0.12 * weltSeam;
       roughScale = clamp(0.99 - 0.07 * waleRib - 0.04 * loop, 0.86, 1.0);
     } else {
-      // Heavy felted/twill outerwear wool (Overcoat, Cloak, Tunic): directional diagonal tweed weave + felled hem.
       const diag = (x * 0.72 + y * 0.69) / pitch;
       const wale = Math.sin(diag * Math.PI * 2);
       const cross = Math.sin(((x * -0.69 + y * 0.72) / (pitch * 1.15)) * Math.PI * 2);
@@ -337,26 +308,21 @@ function fabricConstruction(fabric, meshName, x, y, chart, pitch, contrast, out)
       roughScale = clamp(0.98 - 0.06 * wale + 0.04 * Math.abs(nap), 0.85, 1.0);
     }
   } else if (fabric === "denim" || fabric === "twill") {
-    // Classic 3x1 right-hand diagonal twill wales (steeper and bolder on denim).
     const isDenim = fabric === "denim";
     const diag = (x * 0.78 + y * 0.62) / pitch;
     const f = diag - Math.floor(diag);
-    // Asymmetric rounded twill ridge catches raking light cleanly across atlas mip levels.
     const wale = Math.sin(f * Math.PI * 2) * 0.72 + Math.sin(f * Math.PI * 4) * 0.20;
     const warpSlub = cloud(x * (isDenim ? 72 : 58), y * 14);
     const weftSlub = cloud(x * 16, y * 68);
     const wearPatch = 0.5 + 0.5 * cloud(x * 6.5, y * 4.5);
-    // Double-needle workwear hem & subtle vertical outseam stitch track.
     const hemStitch = (band(Math.abs(hemY - 0.026), 0.0016, 0.0018) + (isDenim ? band(Math.abs(hemY - 0.034), 0.0015, 0.0018) : 0))
       * band(fold(x, 0.0082), 0.0029, 0.0016);
     const hemFold = band(Math.abs(hemY - 0.030), 0.0026, 0.0028);
     height = clamp(0.50 + (isDenim ? 0.34 : 0.29) * wale + 0.13 * warpSlub + 0.06 * weftSlub + 0.26 * hemStitch - 0.14 * hemFold, 0.06, 0.96);
     albedoMod = 1 + contrast * (0.72 * wale + 0.42 * warpSlub + 0.18 * weftSlub) - 0.10 * hemFold;
-    // Recessed weft troughs on denim flash subtle pale undyed yarn undertone!
     weftLift = isDenim ? clamp((-wale - 0.10) * 0.20 + Math.max(0, weftSlub) * 0.07, 0, 0.24) : 0;
     roughScale = clamp((isDenim ? 0.94 : 0.90) - 0.12 * wale - (isDenim ? 0.10 : 0.06) * wearPatch - 0.06 * hemStitch, 0.68, 0.99);
   } else if (fabric === "canvas") {
-    // Heavy 2x2 basketweave outerwear duck + felled double-needle workwear seams.
     const bx = x / pitch, by = y / pitch;
     const ix = Math.floor(bx), iy = Math.floor(by);
     const fx = bx - ix, fy = by - iy;
@@ -373,7 +339,6 @@ function fabricConstruction(fabric, meshName, x, y, chart, pitch, contrast, out)
     albedoMod = 1 + contrast * ((rib - 0.5) * 1.35 + slub * 0.9) - 0.11 * hemFold;
     roughScale = clamp(0.97 - 0.16 * rib - 0.05 * Math.max(stitch, placket), 0.74, 0.99);
   } else if (fabric === "poplin") {
-    // Garment-weight woven cotton / linen: crisp orthogonal weave + natural directional warp/weft slubs + placket/hem stitch.
     const wx = Math.sin((x / pitch) * Math.PI * 2);
     const wy = Math.sin((y / pitch) * Math.PI * 2);
     const slubWeft = cloud(x * 11, y * 92) * 0.34;
@@ -385,10 +350,8 @@ function fabricConstruction(fabric, meshName, x, y, chart, pitch, contrast, out)
       : 0;
     height = clamp(0.50 + 0.28 * weave + 0.24 * Math.max(hemStitch, placket), 0.12, 0.92);
     albedoMod = 1 + contrast * (0.72 * weave);
-    // Crisp dry-satin shirting sheen (material.roughness = 0.70 -> effective ~0.52..0.69).
     roughScale = clamp(0.92 - 0.14 * weave - 0.06 * Math.max(hemStitch, placket), 0.72, 0.99);
   } else if (fabric === "jersey" || fabric === "sports knit") {
-    // Fine vertical knit wales + ribbed bottom cuff band (Hoodie/Joggers) or breathable athletic pique (sports knit).
     const isSport = fabric === "sports knit";
     const ribBand = !isSport && (meshName === "Hoodie" || meshName === "Joggers") && hemY < 0.052
       ? 1 - clamp((hemY - 0.044) / 0.008, 0, 1)
@@ -416,7 +379,6 @@ function fabricConstruction(fabric, meshName, x, y, chart, pitch, contrast, out)
       roughScale = clamp(0.95 - 0.09 * knit, 0.80, 0.99);
     }
   } else if (fabric === "waxed cotton") {
-    // Tight cotton base + bold waxed pull-up crease lines with strong waxy semi-gloss vs matte crease contrast.
     const weave = Math.sin((x / pitch) * Math.PI * 2) * Math.sin((y / pitch) * Math.PI * 2);
     const c1 = Math.abs(cloud(x * 7.5, y * 6.2));
     const c2 = Math.abs(cloud(x * 16.5 + 4.1, y * 14.0 - 2.3));
@@ -424,10 +386,8 @@ function fabricConstruction(fabric, meshName, x, y, chart, pitch, contrast, out)
     const hemStitch = band(Math.abs(hemY - 0.026), 0.0018, 0.0020) * band(fold(x, 0.0085), 0.0030, 0.0016);
     height = clamp(0.58 + 0.16 * weave - 0.36 * crease + 0.24 * hemStitch, 0.08, 0.94);
     albedoMod = 1 + contrast * (0.35 * weave + 0.55 * crease);
-    // Flat waxed planes gleam (effective rough ~0.31), bent pull-up creases go dry matte (~0.65)!
     roughScale = clamp(0.46 + 0.48 * crease - 0.06 * weave, 0.38, 0.98);
   } else if (fabric === "ripstop") {
-    // Raised 14mm reinforced cross-grid cords + quilted horizontal parka baffles + sleek shell sheen.
     const gx = band(fold(x, pitch), 0.0015, 0.0018);
     const gy = band(fold(y, pitch), 0.0015, 0.0018);
     const grid = Math.max(gx, gy);
@@ -440,10 +400,8 @@ function fabricConstruction(fabric, meshName, x, y, chart, pitch, contrast, out)
     const fine = Math.sin((x / 0.0052) * Math.PI * 2) * Math.sin((y / 0.0052) * Math.PI * 2) * 0.14;
     height = clamp(0.38 + 0.24 * puff + 0.34 * grid + fine - 0.34 * baffle, 0.06, 0.96);
     albedoMod = 1 + contrast * (0.48 * grid + 0.28 * (puff - 0.5)) - 0.14 * baffle;
-    // Sleek technical nylon panes (~0.30..0.38) vs matte raised ripstop cords & baffle seams (~0.54)!
     roughScale = clamp(0.56 + 0.34 * grid + 0.26 * baffle - 0.08 * puff, 0.46, 0.98);
   } else {
-    // Silk & Satin: lustrous diagonal charmeuse sheen with flowing drape shimmer + delicate rolled hem.
     const isSatin = fabric === "satin";
     const diag = (x * 0.55 + y * 0.84) / pitch;
     const weave = Math.sin(diag * Math.PI * 2);
@@ -477,9 +435,7 @@ function swatchMap(chart, dye, accent, fabric, pattern, outfit, depth = 0, meshN
   const base = dye.toArray();
   const other = accent.toArray();
   const dark = base.map(value => value * .67);
-  // Pale cloth shows little of its wash: mottling as strong as on a dark dye would read as dirt.
   const fade = clamp(1.1 - (base[0] * .2126 + base[1] * .7152 + base[2] * .0722) * 1.5, .25, 1);
-  // Use a lookup for colour-space conversion along the linear-light dye blend.
   const encoded = Array.from({ length: 1024 }, (_, i) => {
     const v = i / 1023;
     return 255 * (v < .0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - .055);
@@ -495,11 +451,8 @@ function swatchMap(chart, dye, accent, fabric, pattern, outfit, depth = 0, meshN
       let light = fabOut[0];
       const weftLift = fabOut[3];
       if (depth) {
-        // Broad patches of wash, finer mottling in the yarn, and a turned edge a shade deeper along the lower hem.
         const wash = (washes[fabric] ?? .04) * depth * fade;
         light *= 1 + wash * (cloud(x * 9, y * 5) * .6 + cloud(x * 37 + 9, y * 29) * .4 + cloud(x * 120, y * 40 + 5) * .16) - wash * .65 * band(Math.abs(y - chart.v0 - .03), .0018, .0022);
-        // Height and roughness describe the construction. A change of dye
-        // or a printed stripe leaves the actual yarn in exactly the same place.
         const brocade = pattern === "Scallop brocade" ? tint : 0;
         relief.data[i] = Math.round(255 * clamp(fabOut[1] + brocade * .52, 0, 1));
         relief.data[i + 1] = Math.round(255 * clamp(fabOut[2] - brocade * .22, .38, 1));
@@ -531,15 +484,9 @@ function swatchMap(chart, dye, accent, fabric, pattern, outfit, depth = 0, meshN
 export function finishCloth(mesh, outfit, style, landmarks, panelGrid) {
   const design = style.clothDesign, fabric = fabrics[mesh.name];
   if (!fabric || !design || design === "Plain cloth") return;
-  // A style that names its tones is woven with the uneven depth of dyed cloth; one saved before keeps its even weave.
   weave(mesh, fabric, designFor(outfit, mesh.name, style), style.clothAccent, outfit, landmarks, directedFields.some(field => style[field]) ? 1 : 0, panelGrid);
 }
 
-/**
- * Cloth for an outfit tailored piece by piece. The outermost top takes `clothDesign`, trousers or shorts take
- * `secondDesign` and other cloth takes the quiet weave. A style without a design, or with the design a preset
- * outfit chooses for itself, leaves tailored pieces as they are.
- */
 export function finishTailored(meshes, style, landmarks) {
   const design = style.clothDesign, second = style.secondDesign;
   if (!design || design === "Plain cloth" || design === "Outfit swatch") return;
@@ -555,7 +502,6 @@ function weave(mesh, fabric, pattern, accent, outfit, landmarks, depth = 0, pane
   const material = mesh.material.clone();
   const dye = material.color.clone();
   const hue = dye.getHSL({ h: 0, s: 0, l: 0 });
-  // The pale yarn stays coherent with a dark shell, with some warm fibre tone.
   const trim = accent ? new Color(accent)
     : dye.clone().lerp(new Color(hue.l > .42 ? "#233039" : "#dfd0ae"), pattern === "Herringbone" ? .23 : .58);
   material.roughness = cloth[fabric][0];

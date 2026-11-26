@@ -1,13 +1,3 @@
-// Build an adult human document into the scene the skin binds (the "human
-// region" branch of createCharacter in character-view/model.js at 2761eb1).
-//
-// A document is an adult when irudd.human-adult generated it. Its parameters
-// give the body; each part that materialises a region slot is that region's
-// group, placed by the part's own transform, so a person's edit of a region
-// moves its piece and the regions under it. Regions keep the reference form's
-// order, which the scene's child order and the skin's region indices follow.
-// Parts added by hand are not regions: buildCharacter builds them after.
-
 import * as T from "three";
 import { decodeWith, finishes, type CharacterDocument, type Finish } from "@irudd/document";
 import { isMesh } from "../mesh.js";
@@ -34,18 +24,13 @@ import type { PortraitPlates } from "../paint/portrait.js";
 
 export type { HumanBuild } from "./binding.js";
 
-/** The options the adult builder reads; the general builder's options satisfy it. */
 export interface HumanBuildOptions {
   readonly materials: (color: string, finish: Finish) => T.Material;
-  /** Present at the textured presets, which paint the skin, face and eyes; a native portrait reads its plates. */
   readonly finish?: { readonly plates?: PortraitPlates | undefined } | undefined;
-  /** The adult's prepared paint, needed with `finish`. */
   readonly humanPaint?: HumanPaintSources | undefined;
-  /** Build for the game export. */
   readonly game?: boolean | undefined;
 }
 
-/** An adult built as the general builder's BuiltCharacter. */
 export interface BuiltHuman {
   readonly view: BuildView;
   readonly group: T.Group;
@@ -61,7 +46,6 @@ export interface BuiltHuman {
   dispose(): void;
 }
 
-/** Whether this document is an adult the human builder builds. */
 export function isHumanDocument(doc: CharacterDocument): boolean {
   return doc.generation?.generator === humanAdultId;
 }
@@ -76,7 +60,6 @@ const roles: Readonly<Record<string, BuildPart["motion"]>> = {
   head: "head",
   spine_03: "torso",
 };
-/** The movement role the reference form gives a region. */
 export const humanRole = (bone: BoneName): NonNullable<BuildPart["motion"]> =>
   roles[bone.replace(/_[lr]$/, "")] ?? "rigid";
 
@@ -105,10 +88,8 @@ export function buildHuman(
     colors.set(bone, part.color);
     regionParts.push({ ...part, motion: humanRole(bone) });
   }
-  // The reference form lists its regions by bone name.
   const order = (p: BuildPart) => boneNames.indexOf(bones.get(p.id) ?? "head");
   regionParts.sort((a, b) => order(a) - order(b));
-  // Parts a person or agent added by hand are built by the general builder and hung from their region.
   const measurements = humanMeasurements(params);
   const brow = fittedBrow(params.style.browStyle, measurements["brow"] ?? 0);
   const plain = !options.finish;
@@ -127,8 +108,6 @@ export function buildHuman(
           marks: params.faceMarks ?? [],
           armInk: params.style.armInk,
         };
-  // Clothes, hair and jewellery ask for a material by colour and type, as G0's builder kept them. A type
-  // that names no surface finish makes an untextured material of its own, as G0's surfaceMaterial did.
   const finishNames: ReadonlyArray<string> = finishes;
   const isFinish = (type: string): type is Finish => finishNames.includes(type);
   const typed = new Map<string, T.Material>();
@@ -140,10 +119,7 @@ export function buildHuman(
     if (!found) typed.set(key, (found = options.materials(color, "plain").clone()));
     return found;
   };
-  // Work clothes dress the tailored outfit, or wear the cast member whole when the adult has every region
-  // (wornCast in character-view/human-cast-looks.js at 2761eb1). Anatomy keeps hair and accessories only.
   const work = params.outfit === "Work clothes";
-  // A native portrait is painted on the adult's own head, so no cast member is worn over it.
   const portrait = regionParts.find((p) => p.nativePortrait);
   if (portrait && bones.get(portrait.id) !== "head")
     throw new Error(`A native portrait layer belongs on the adult's head, not ${portrait.label}.`);
@@ -153,9 +129,6 @@ export function buildHuman(
       `A native portrait layer belongs on the adult's head, not ${unregioned.label}.`,
     );
   const member = portrait ? null : humanWornCast(params, regionParts.length);
-  // Work clothes with neither a tailored outfit nor a worn cast member put on the style's preset outfit, or
-  // G0's field jacket and denim when it names none (dressedHuman in character-view/human-wardrobe.js at
-  // 2761eb1), which is not ported yet.
   const presetName = params.style.outfit;
   const preset =
     work && !member && params.style.tailor === undefined && presetName && isPresetOutfit(presetName)
@@ -242,7 +215,6 @@ export function buildHuman(
     warp: undefined,
     blendOwners: new Map<T.Mesh, never>(),
     hands: new Map<T.Mesh, never>(),
-    // The head carries its own expressions; painted-face targets do not apply.
     faces: new Map<T.Mesh, never>(),
     human: { bones, weights: (mesh) => humanWeightsOf.get(mesh), params },
     dispose() {

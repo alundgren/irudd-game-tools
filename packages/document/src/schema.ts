@@ -1,16 +1,6 @@
-// The canonical character document, format "irudd.character" version 1.
-//
-// One Effect Schema defines the document's structure, identifiers, reference
-// fields, extensions and family payload slots. Family payloads (`features`) are
-// typed here as validated JSON; the feature registry composes their own schemas
-// into the decoder (see registry.ts). Reference integrity across the graph is
-// checked after decoding (see integrity.ts).
-
 import { Schema } from "effect";
 import { isJson, type Json } from "./json.js";
 import { quatNorm } from "./geometry.js";
-
-// ── Identifiers ────────────────────────────────────────────────────────────
 
 const pattern = (re: RegExp, message: string) =>
   Schema.String.check(Schema.isPattern(re, { message }));
@@ -21,7 +11,6 @@ export const DocumentId = pattern(
 ).pipe(Schema.brand("DocumentId"));
 export type DocumentId = typeof DocumentId.Type;
 
-/** Immutable part identity. Labels are renameable; IDs never change or get reused. */
 export const PartId = pattern(/^p-[a-z0-9][a-z0-9-]{0,62}$/, "Use a part ID like p-trunk.").pipe(
   Schema.brand("PartId"),
 );
@@ -49,7 +38,6 @@ export const Digest = pattern(/^sha256:[0-9a-f]{64}$/, "Use a sha256:<64 hex> di
 );
 export type Digest = typeof Digest.Type;
 
-/** Dotted lowercase names: "core.sculpt", "creature.plan". */
 export const FeatureId = pattern(
   /^[a-z][a-z0-9]*(?:\.[a-z][a-z0-9-]*)+$/,
   "Use a dotted feature name like core.sculpt.",
@@ -62,7 +50,6 @@ export const GeneratorId = pattern(
 ).pipe(Schema.brand("GeneratorId"));
 export type GeneratorId = typeof GeneratorId.Type;
 
-/** Namespaced optional metadata, for example "com.example.notes". */
 export const Namespace = pattern(
   /^[a-z][a-z0-9-]*(?:\.[a-z0-9][a-z0-9-]*)+$/,
   "Use a dotted namespace like com.example.notes.",
@@ -75,13 +62,10 @@ export const CatalogId = pattern(
 ).pipe(Schema.brand("CatalogId"));
 export type CatalogId = typeof CatalogId.Type;
 
-/** A generator output slot, stable across regenerations: "trunk", "leg.0.l". */
 export const SlotKey = pattern(/^[a-z][a-z0-9.-]{0,63}$/, "Use a slot key like leg.0.l.").pipe(
   Schema.brand("SlotKey"),
 );
 export type SlotKey = typeof SlotKey.Type;
-
-// ── Values ─────────────────────────────────────────────────────────────────
 
 export const JsonValue = Schema.Unknown.pipe(
   Schema.refine((value: unknown): value is Json => isJson(value), {
@@ -105,7 +89,6 @@ const component = (min: number, max: number) =>
 const bounded = (limit: number) =>
   Schema.Tuple([component(-limit, limit), component(-limit, limit), component(-limit, limit)]);
 
-/** Metres in the parent frame. */
 export const Position = bounded(100);
 export const Size = Schema.Tuple([
   component(0.0005, 100),
@@ -129,11 +112,6 @@ export const coreShapes = ["ellipsoid", "box", "capsule", "cylinder", "cone"] as
 export const Shape = Schema.Literals(coreShapes);
 export type Shape = typeof Shape.Type;
 
-/**
- * A sculpted displacement in the part's normalised frame. `at` and `offset` are
- * fractions of the part's half-extents along its own axes, so the edit keeps
- * its meaning when the part is scaled, moved or rotated.
- */
 export const Displacement = Schema.Struct({
   id: EditId,
   at: bounded(1.5),
@@ -153,7 +131,6 @@ export const ComponentSource = Schema.Struct({
   item: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(128)),
 });
 
-// Record keys stay plain strings so lookups need no brand; the patterns still apply.
 const FeatureKey = pattern(
   /^[a-z][a-z0-9]*(?:\.[a-z][a-z0-9-]*)+$/,
   "Use a dotted feature name like core.sculpt.",
@@ -175,9 +152,7 @@ export const Part = Schema.Struct({
   color: Color,
   sculpt: Schema.Array(Displacement).check(Schema.isMaxLength(64)),
   paint: Schema.optionalKey(Paint),
-  /** Generator slot this part materialises. Absent for hand-made parts. */
   slot: Schema.optionalKey(SlotKey),
-  /** Catalog component the part was placed from. */
   component: Schema.optionalKey(ComponentSource),
   features: FeaturePayloads,
 });
@@ -192,17 +167,11 @@ export const Pose = Schema.Struct({
 export type Pose = typeof Pose.Type;
 
 export const mediaTypes = ["image/webp", "image/png", "image/jpeg", "model/gltf-binary"] as const;
-/** Media types a raster binding can load as an image. */
 export const rasterMediaTypes: ReadonlyArray<(typeof mediaTypes)[number]> = [
   "image/webp",
   "image/png",
   "image/jpeg",
 ];
-/**
- * What an asset is for. A `portrait-plate` is a raster a portrait fit paints
- * the face with, front or side as its binding says; documents with one
- * declare the fit version that binds it.
- */
 export const assetRoles = [
   "paint-atlas",
   "occluder-atlas",
@@ -228,7 +197,6 @@ export const FeatureRequirement = Schema.Struct({
 });
 export type FeatureRequirement = typeof FeatureRequirement.Type;
 
-/** One slot of a materialised generator output, in the same frames as parts. */
 export const BaseSlot = Schema.Struct({
   slot: SlotKey,
   parent: Schema.NullOr(SlotKey),
@@ -240,14 +208,8 @@ export const BaseSlot = Schema.Struct({
   color: Color,
 });
 export type BaseSlot = typeof BaseSlot.Type;
-/** A slot before validation, as a generator writes it. */
 export type BaseSlotInput = typeof BaseSlot.Encoded;
 
-/**
- * The generator inputs and the exact output the current parts were derived
- * from. Comparing parts with this base identifies the user's edits, so a later
- * regeneration can carry them onto the new output.
- */
 export const Generation = Schema.Struct({
   generator: GeneratorId,
   version: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 1000 })),

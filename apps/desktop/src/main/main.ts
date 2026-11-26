@@ -1,14 +1,3 @@
-// Desktop main: one window per app, one project link, and the bridge the
-// sandboxed renderer talks through.
-//
-//   electron apps/desktop [--project DIR] [--create] [--open FILE.glb] [--hidden] [--user-data DIR]
-//
-// --project opens (or with --create, creates) a project directory. --open
-// adds GLB files to the library, as opening them from the file manager would.
-// --hidden
-// keeps the window off screen for verification runs; it renders at full
-// speed and is otherwise the normal app. --user-data isolates settings.
-
 import { app, BrowserWindow, dialog, ipcMain, session, type IpcMainInvokeEvent } from "electron";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
@@ -44,7 +33,6 @@ const rendererUrl = pathToFileURL(rendererPage).href;
 const preload = path.join(dist, "preload", "preload.cjs");
 const formsDir = path.join(dist, "forms");
 
-// The review worker fetches from its own scheme, which must be known before the app is ready.
 registerReviewScheme();
 
 const { values: args } = parseArgs({
@@ -67,13 +55,9 @@ function readBuild(): string {
     const value: unknown = JSON.parse(fs.readFileSync(path.join(dist, "build.json"), "utf8"));
     if (typeof value === "object" && value !== null && "build" in value)
       return typeof value.build === "string" ? value.build : "unknown";
-  } catch {
-    // A development tree without a build stamp.
-  }
+  } catch {}
   return "unknown";
 }
-
-// ── State ───────────────────────────────────────────────────────────────────
 
 let window: BrowserWindow | undefined;
 let link: WorkshopLink | undefined;
@@ -101,11 +85,8 @@ function exportDirectory(): string | undefined {
   return untitled ? path.join(app.getPath("documents"), "Irudd Workshop") : link?.directory;
 }
 let library: Library;
-/** The isolated review worker, offered to whichever process owns the open project. */
 let reviewWorker: ReviewWorker | undefined;
-/** Source updates of the installed app; unmanaged in a development or unpacked build. */
 let updater: Updater | undefined;
-/** The adult's packs, registry and starters, read once from the build's assets. */
 let hosting: Promise<HumanHosting> | undefined;
 const assetsDir = path.join(dist, "assets");
 const settingsFile = (): string => path.join(app.getPath("userData"), "settings.json");
@@ -120,9 +101,7 @@ function readRecent(): string[] {
       Array.isArray(value.recent)
     )
       return value.recent.filter((v): v is string => typeof v === "string").slice(0, 10);
-  } catch {
-    // First run.
-  }
+  } catch {}
   return [];
 }
 
@@ -161,7 +140,6 @@ async function openDirectory(
   const resolved = path.resolve(directory);
   if (link?.directory === resolved || !canLeaveProject()) return state();
   try {
-    // A failed read is tried again at the next open rather than remembered.
     hosting ??= humanHosting(assetsDir).catch((error: unknown) => {
       hosting = undefined;
       throw error;
@@ -212,8 +190,6 @@ function openUntitled(): Promise<ProjectState> {
   );
 }
 
-// ── Validation of renderer input ────────────────────────────────────────────
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -259,10 +235,6 @@ function isUpdateAction(value: unknown): value is UpdateAction {
   return updateActions.some((action) => action === value);
 }
 
-/**
- * Arguments for the app reopened after an update or rollback: the same
- * settings and switches, on the project open now, without one-time actions.
- */
 function relaunchArgs(): string[] {
   const kept: string[] = [];
   const given = process.argv.slice(app.isPackaged ? 1 : 2);
@@ -278,9 +250,6 @@ function relaunchArgs(): string[] {
   return link && !untitled ? [...kept, "--project", link.directory] : kept;
 }
 
-// ── The bridge ──────────────────────────────────────────────────────────────
-
-/** Only the app's own page may use the bridge. */
 function trusted(event: IpcMainInvokeEvent): boolean {
   return event.senderFrame?.url === rendererUrl && event.sender === window?.webContents;
 }
@@ -332,7 +301,6 @@ function characterFailure(error: unknown): CharacterFileOutcome {
   };
 }
 
-/** Save through the host; a file the person chose to replace is swapped in after the save succeeds. */
 async function saveCharacter(documentId: string): Promise<CharacterFileOutcome> {
   const current = link;
   if (!current) throw new Error("Open a project first.");
@@ -445,7 +413,6 @@ function registerBridge(build: string): void {
     return link.call(method, params);
   });
   handle(channels.library, (): LibraryEntry[] => library.list());
-  // The window builds the adult's preview from the same packs the host reads.
   handle(channels.humanPack, (file) => {
     const pack = humanPackPaths.find(
       (p) => typeof file === "string" && p === path.join("human", file),
@@ -500,8 +467,6 @@ function registerBridge(build: string): void {
   });
 }
 
-// ── Window ──────────────────────────────────────────────────────────────────
-
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 1600,
@@ -522,7 +487,6 @@ function createWindow(): BrowserWindow {
       backgroundThrottling: !hidden,
     },
   });
-  // The installed app carries its icon beside dist; a development build keeps Electron's.
   const icon = path.join(path.dirname(dist), "icon.ico");
   if (fs.existsSync(icon)) win.setIcon(icon);
   win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
@@ -538,7 +502,6 @@ function createWindow(): BrowserWindow {
 }
 
 app.enableSandbox();
-// One taskbar identity for the launcher's shortcut and the window it opens.
 app.setAppUserModelId("alundgren.irudd-game-tools");
 
 app.on("web-contents-created", (_event, contents) => {
@@ -556,8 +519,6 @@ app.on("before-quit", (event) => {
 
 app.on("window-all-closed", () => app.quit());
 
-// No top-level await: Electron emits `ready` only after the entry module has
-// finished evaluating, so awaiting it here would never resolve.
 async function start(): Promise<void> {
   session.defaultSession.setPermissionRequestHandler((_contents, _permission, callback) =>
     callback(false),
@@ -599,14 +560,12 @@ async function start(): Promise<void> {
   window = createWindow();
   window.webContents.once("did-finish-load", () => {
     personWindowLoaded();
-    // Stage an update in the background; the person decides when to restart.
     void updater?.prune();
     void updater?.check();
   });
   window.on("closed", () => {
     personWindowLoaded();
     window = undefined;
-    // The hidden worker is not a reason to keep the app running.
     reviewWorker?.close();
   });
 }

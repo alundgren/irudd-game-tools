@@ -1,12 +1,3 @@
-// Repaint as typed operations matches G0's repaint of the same form, and
-// changes nothing but paint.
-//
-// The oracle is character-view/paint-sources.js at 2761eb14 (repaintRegions,
-// the code the frozen workshop's paint panel commits). It runs on the legacy
-// form; preparing its result must give the document the port's operations
-// give from the prepared fixture. verification/baseline/paint.py exercises
-// the same function through the frozen workshop UI for Harbour Trader.
-
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { test } from "node:test";
@@ -27,7 +18,6 @@ import { readFixture } from "../src/run.js";
 
 const frozen = "2761eb14";
 
-/** G0's repaintRegions on a legacy form, run from the frozen source. */
 function legacyRepaint(form: unknown, ids: ReadonlyArray<string>, atlas: string): unknown {
   const source = execFileSync("git", ["show", `${frozen}:character-view/paint-sources.js`], {
     cwd: repository,
@@ -70,7 +60,6 @@ test("repainting the body from the courier sheet gives G0's repainted document",
   assert.deepEqual(ported.parts, repainted.parts);
   assert.deepEqual(ported.features, repainted.features);
   assert.deepEqual(sortedAssets(ported), sortedAssets(repainted));
-  // The sheet that stops being visible on the body is kept as an occluder of both sheets.
   const occluders = figureOccluders.read(ported.features)?.sources ?? [];
   assert.ok(
     occluders.some((s) => s.atlas === partNamed(base, "body").paint?.atlas && s.region === "body"),

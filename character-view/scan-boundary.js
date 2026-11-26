@@ -1,5 +1,3 @@
-// An imported GLB may split a continuous surface at UV seams, or store each
-// triangle separately. Count edges using their physical endpoint positions.
 import { Triangle, Vector3 } from "three";
 
 export function scanBoundary(faces) {

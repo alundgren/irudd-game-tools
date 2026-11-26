@@ -1,7 +1,6 @@
 import { Box3, Float32BufferAttribute, Matrix3, Vector3 } from "three";
 import { raycaster } from "./human-style-kit.js";
 
-// Direction samples in world space give coincident vertices on UV seams the same result.
 const directions = Array.from({ length: 32 }, (_, i) => {
   const y = 1 - 2 * (i + 0.5) / 32;
   const r = Math.sqrt(1 - y * y);
@@ -9,8 +8,6 @@ const directions = Array.from({ length: 32 }, (_, i) => {
   return [r * Math.cos(angle), y, r * Math.sin(angle)];
 });
 
-// The last rows of the packed texture store a linear red-channel ramp. glTF
-// interpolates a second UV set across each triangle to read its accessibility.
 export function contactRampRows(size) {
   return Math.min(16, Math.floor(size / 8));
 }
@@ -28,9 +25,6 @@ function casts(material) {
   return !(material.alphaTest || material.transparent || material.userData.fibreLOD);
 }
 
-/** Short-range visibility in the clothing and character's bind pose. A nearby
- * collar can cover ambient light from below a jaw, while a distant arm has no
- * effect. Geometry, base colour, direct light, rig and normal maps stay independent. */
 export function bakeContact(work, size) {
   const positions = [], triangles = [];
   const bounds = new Box3(), p = new Vector3(), n = new Vector3();
@@ -65,8 +59,6 @@ export function bakeContact(work, size) {
         const i = g.index.getX(offset);
         if (visited[i]) continue;
         visited[i] = 1;
-        // Existing texture AO, including the painted facial creases, retains
-        // its full texel resolution. The existing atlas red already holds it.
         if (material.aoMap?.image) {
           values[2*i] = attributes.uv.getX(i);
           values[2*i+1] = attributes.uv.getY(i);

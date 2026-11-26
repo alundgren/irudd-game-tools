@@ -1,12 +1,3 @@
-// The art panel's file handling, free of the DOM so tests run it in Node:
-// which views a brief needs, staging bytes in art.put chunks, reading a
-// request's files back with their digests checked, turning a file the person
-// imports into an art reply, and finding a brief the host stored but never
-// sent, so the person can send that same request again.
-//
-// The renderer bundle may not load the workshop package, so the few limits it
-// needs are restated here; the host checks every one of them again.
-
 import { sha256Digest, type AssetAttribution } from "@irudd/document";
 import type { ArtKind, AttachmentRole, MethodParams, MethodResults } from "@irudd/workshop/wire";
 
@@ -26,12 +17,10 @@ export const rolesShown: ReadonlyArray<AttachmentRole> = [
   "reference",
 ];
 
-/** Under the host's 4 MiB chunk limit; the host checks it again. */
 const chunkBytes = 3 * 1024 * 1024;
 const imageTypes = ["image/png", "image/jpeg", "image/webp"] as const;
 export type ImageType = (typeof imageTypes)[number];
 
-/** What a brief of this kind still lacks before the host will take it. */
 export function briefNeeds(
   kind: ArtKind,
   roles: ReadonlyArray<AttachmentRole>,
@@ -53,7 +42,6 @@ export function briefNeeds(
   return needs;
 }
 
-/** PNG, JPEG or WebP by signature; undefined for anything else. */
 export function sniffImage(bytes: Uint8Array): ImageType | undefined {
   const at = (i: number) => bytes[i] ?? -1;
   if ([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every((b, i) => at(i) === b))
@@ -85,7 +73,6 @@ interface Caller {
   ): Promise<MethodResults[M]>;
 }
 
-/** Stage a picture in order; the last chunk returns the host's verified record. */
 export async function stagePicture(host: Caller, bytes: Uint8Array) {
   const mediaType = sniffImage(bytes);
   if (!mediaType) throw new Error("Choose a PNG, JPEG or WebP picture.");
@@ -103,7 +90,6 @@ export async function stagePicture(host: Caller, bytes: Uint8Array) {
   return last.stored;
 }
 
-/** Every byte of one of a request's files; what arrived must have the digest asked for. */
 export async function readPicture(
   host: Caller,
   artId: string,
@@ -143,12 +129,6 @@ export async function readImageChunks(
 export const extensionOf = (mediaType: string): string =>
   mediaType === "image/jpeg" ? "jpg" : mediaType === "image/webp" ? "webp" : "png";
 
-/**
- * The reply a person's imported file makes for a brief of this kind: a
- * picture for turnaround and depth (staged first, named by its digest), a
- * trace map or an operation list as JSON. It stays untyped here: main checks
- * it against the wire schema and the host decodes and validates it.
- */
 export function importedReply(
   kind: ArtKind,
   summary: string,
@@ -182,25 +162,14 @@ export function importedReply(
 
 type RequestView = MethodResults["art.list"]["requests"][number];
 
-/**
- * A request whose brief the host stored but whose steering message it never
- * wrote, because it stopped in between, and that nothing has answered. The
- * panel offers to send it; it is never sent without the person asking.
- */
 export function undelivered(r: RequestView): boolean {
   return r.steering === null && r.closed === null && r.submissions.length === 0;
 }
 
-/** The request that sends an undelivered brief again: its own agent, request ID and brief. */
 export function resendRequest(r: RequestView): MethodParams["art.request"] {
   return { agent: r.agent, requestId: r.requestId, brief: r.brief };
 }
 
-/**
- * The request ID to send this brief under: that of an undelivered request to
- * the same agent with the same brief, so sending it again never makes a
- * second ask; undefined when the brief is new.
- */
 export function undeliveredRequestId(
   requests: ReadonlyArray<RequestView>,
   agent: string,
@@ -211,7 +180,6 @@ export function undeliveredRequestId(
     ?.requestId;
 }
 
-/** JSON with sorted keys, so equal briefs compare equal whatever order built them. */
 function stableJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
   if (isRecord(value))

@@ -1,16 +1,3 @@
-// Folds for cloth cut from the body (character-view/human-style-folds.js at
-// 2761eb1). A garment arrives hanging smoothly; here it gets the broad creases
-// everyday cloth shows where it is compressed or pulled: behind the knee,
-// stacked on the shoe, fanning from the fork of the legs, under the seat, at
-// the elbow, the armpit and the waist.
-//
-// Every fold only adds cloth outward, so none can open a way through to the
-// skin. Its depth grows with the slack the drape left at that place, which is
-// why a snug garment shows a few fine tension lines, a loose one deeper and
-// wider folds, and cloth stretched over a belly stays smooth.
-//
-// Every fold is placed by its own seeded draws, taken in the reference's order.
-
 import {
   Shell,
   add,
@@ -34,11 +21,9 @@ import {
 const TAU = Math.PI * 2;
 const wrap = (angle: number) => angle - TAU * Math.round(angle / TAU);
 
-/** One fold on a flat chart of the cloth. Charts are in metres on a 1.72 m figure. */
 interface Fold {
   readonly c: number;
   readonly s: number;
-  /** A fold lying on a limb: its `u` runs around the limb from this angle, at radius `r`. */
   readonly turn?: number;
   readonly r?: number;
   readonly u?: number;
@@ -51,10 +36,6 @@ interface Fold {
 }
 type FoldShape = Omit<Fold, "c" | "s">;
 
-/**
- * One fold: a ridge along a gently curved line that tapers to nothing at both
- * ends. `lean` makes one flank steeper than the other.
- */
 function ridge(f: Fold, u: number, v: number, spread: number): number {
   const du = f.turn === undefined ? u - (f.u ?? 0) : wrap(u - f.turn) * (f.r ?? 0),
     dv = v - f.v,
@@ -68,7 +49,6 @@ function ridge(f: Fold, u: number, v: number, spread: number): number {
   return f.high * (1 - a * a) ** 1.5 * (1 - x * x) ** 2;
 }
 
-/** Several folds together: where two cross, the higher one shows and the other adds a little. */
 function ridges(list: ReadonlyArray<Fold>, u: number, v: number, spread = 1): number {
   let sum = 0;
   for (const f of list) {
@@ -114,10 +94,6 @@ function clothNormals(s: Shell): Float32Array {
   return n;
 }
 
-/**
- * Splits every edge longer than `target(a, b, shell)` allows, a few rounds over. New points lie on the
- * curve through their neighbours instead of on the chord, so a refined tube is rounder, not only denser.
- */
 export function refine(
   shell: Shell,
   target: (a: number, b: number, s: Shell) => number,
@@ -149,7 +125,6 @@ export function refine(
       b: number,
       d: number,
     ) => {
-      // Half way between the chord and the two tangent planes is where a smooth curve through both ends runs.
       let ha = 0,
         hb = 0;
       for (let e = 0; e < 3; e++) {
@@ -227,7 +202,6 @@ export function refine(
           c = at(v, (e + 2) % 3);
         out.tri.push(a, at(m, e), c, at(m, e), b, c);
       } else {
-        // Two cut edges meet at one corner: that corner keeps a triangle and the rest is a quad split along its shorter diagonal.
         const e = m.findIndex((x) => x < 0),
           a = at(v, e),
           b = at(v, (e + 1) % 3),
@@ -251,11 +225,6 @@ export function refine(
   return s;
 }
 
-/**
- * Skin weights change unevenly across a joint from one vertex to the next, which is invisible on skin but
- * leaves a ragged line where cloth folds over itself. Cloth takes one even blend across the joint instead,
- * no wider than the skin's own, so it folds along a clean line and stays outside the skin.
- */
 function evenJoint(
   s: Shell,
   body: DressBody,
@@ -296,25 +265,17 @@ function evenJoint(
 }
 
 export interface CreaseOptions {
-  /** The garment has a body and sleeves; `lower`, it has legs. Coveralls have both. */
   readonly upper?: boolean;
   readonly lower?: boolean;
   readonly waistband?: number;
-  /** The garment's room over the body, metres before scaling. */
   readonly ease?: number;
-  /** Where legs end (1 knee, 2 ankle); `sleeveEnd` the same along the arm. */
   readonly legEnd?: number;
   readonly sleeveEnd?: number;
-  /** Lower edge height of a top. */
   readonly low?: number | null;
-  /** Scales every fold; 0 leaves the cloth smooth. */
   readonly amount?: number;
-  /** Scales fold width and spacing; heavy cloth folds wider. */
   readonly size?: number;
-  /** Makes two garments on one body fold differently. */
   readonly seed?: number;
   readonly gap?: number;
-  /** Scales how finely folded cloth is meshed. */
   readonly detail?: number;
 }
 
@@ -356,7 +317,6 @@ interface Tally {
   fold(out: number, into: number, list: ReadonlyArray<Fold>, u: number, v: number): void;
 }
 
-/** Refines a draped garment and raises its folds. Returns the new shell. */
 export function crease(
   shell: Shell,
   body: DressBody,
@@ -406,10 +366,8 @@ export function crease(
     };
     const salt = seed * 31 + (name === "l" ? 17 : 91);
     let draws = 0;
-    // Every fold is placed by its own draws, so the two sides of one garment never mirror each other.
     const r = (a = 0, b = 1) => mix(a, b, hash1(salt * 131 + ++draws * 7 + 3)),
       flip = () => (r() < 0.5 ? -1 : 1);
-    /** Compressed cloth at a joint folds in a zigzag: ridges of alternating slant stacked along the limb. */
     const zigzag = (
       count: number,
       turn: number,
@@ -432,7 +390,6 @@ export function crease(
         }),
       );
     };
-    /** Spare length settles above an edge in crescents that spiral round the limb. */
     const stack = (
       count: number,
       radius: number,
@@ -456,7 +413,6 @@ export function crease(
         }),
       );
     };
-    /** Tension lines fanning out of one point. */
     const fan = (
       angles: ReadonlyArray<number>,
       from: readonly [number, number],
@@ -476,7 +432,6 @@ export function crease(
           high: r(0.6, 1),
         });
       });
-    // Loose cloth gathers in fewer, broader folds than snug cloth.
     const knee0 = zigzag(
       loose > 0.6 ? 2 : loose > 0.2 ? 3 : 4,
       Math.PI + 0.25,
@@ -623,7 +578,6 @@ export function crease(
   if (!left || !right) return s;
   const leftSide: Side = left;
   const of = (i: number) => (at(s.anc, i * 3) >= 0 ? left : right);
-  /** Angle around the leg: 0 at the front, a quarter turn at the outside, half a turn at the back. */
   const legAngle = (i: number) => {
     const side = of(i),
       t = s.value("leg", i),
@@ -635,16 +589,12 @@ export function crease(
       at(s.anc, i * 3 + 2) - mix(from[2], to[2], q),
     );
   };
-  /** Angle around the arm: 0 at the front, a quarter turn underneath, half a turn at the back. */
   const armAngle = (i: number) => {
     const side = of(i),
       f = side.arms[s.value("arm", i) < 1 ? 0 : 1],
       d = sub(s.anchor(i), f?.from ?? [0, 0, 0]);
     return Math.atan2(dot(d, f?.e2 ?? [0, 0, 0]), dot(d, f?.e1 ?? [0, 0, 0]));
   };
-  // Slack is the room between the cloth and the closest it may lie to the skin: about half the garment's ease,
-  // since loose cloth rests on the body in places. It is averaged over neighbours, because folds that took
-  // their depth from one vertex at a time would roughen the cloth.
   let slack = new Float32Array(0);
   const measure = () => {
     let now = Float32Array.from({ length: s.count }, (_, i) =>
@@ -673,8 +623,6 @@ export function crease(
       at(s.anc, i * 3 + 2) / (0.13 * k),
     ) - 0.5;
 
-  // Folds at one vertex, in metres on a 1.72 m figure. Snug cloth raises a crest by `out`. Cloth with slack also sinks
-  // by up to `into` around each crest, towards the body, so loose cloth gathers instead of only swelling.
   function tally(): Tally {
     const sum: Tally = {
       high: 0,
@@ -704,7 +652,6 @@ export function crease(
       inner = -at(s.nrm, i * 3) * side.sign,
       sum = tally();
     const open = 1 - smooth(0.25, 0.65, inner) * smooth(1.1, 0.7, t);
-    // Whiskers: tension lines from the fork of the legs towards the hips.
     if (nz > 0.1 && t < 0.6) {
       const on = smooth(0.1, 0.45, nz) * open;
       sum.fold(
@@ -715,7 +662,6 @@ export function crease(
         (y - m.crotch) / k,
       );
     }
-    // Under the seat: smile lines where the cloth leaves the seat for the back of the thigh.
     if (nz < -0.1 && t < 0.6) {
       const on = smooth(0.1, 0.5, -nz) * open;
       sum.fold(
@@ -744,7 +690,6 @@ export function crease(
         angle,
         h,
       );
-      // Stacking: the length left over at the ankle.
       if (legEnd > 1.75) {
         const above = ((Math.min(legEnd, 2.02) - t) * side.calf) / k,
           edge = mix(0.35, 1, smooth(0, 0.016, above));
@@ -759,7 +704,6 @@ export function crease(
       }
     }
     if (t > 0.2 && slack > 0) {
-      // Loose legs hang in long soft valleys instead of one smooth tube.
       const phase =
         2.7 * legAngle(i) +
         1.1 * Math.sin(2.3 * t + TAU * hash1(side.salt)) +
@@ -785,11 +729,9 @@ export function crease(
     const around = Math.atan2(x, at(s.anc, i * 3 + 2) - centre),
       trunk = 1 - smooth(0.25, 0.6, armed);
     if (trunk > 0) {
-      // Whatever is worn under a top reaches up to the waistband, so cloth only sinks above it.
       const free = smooth(m.waistband + 0.02 * k, m.waistband + 0.07 * k, y),
         v = (y - middle) / k,
         on = trunk * (1 - 0.8 * calm);
-      // The waist: between the chest and the seat the cloth sags in a couple of swags, lowest at the side.
       sum.fold(
         on * Math.min(0.007, 0.0012 * snug + 0.2 * slack),
         on * free * Math.min(0.008, 0.5 * slack),
@@ -798,7 +740,6 @@ export function crease(
         v,
       );
       sum.fold(on * Math.min(0.007, 0.0012 * snug + 0.25 * slack), 0, leftSide.small, around, v);
-      // The armpit: tension lines fan from under the arm across the chest and the shoulder blade.
       const pit = trunk * (1 - 0.75 * calm) * smooth(0.05, 0.3, Math.abs(nz));
       sum.fold(
         pit * Math.min(0.006, 0.0034 * snug * mix(1, 0.6, loose) + 0.12 * slack),
@@ -807,7 +748,6 @@ export function crease(
         (Math.abs(side.shoulder[0]) - 0.012 * k - Math.abs(x)) / k,
         (y - side.shoulder[1]) / k + 0.075,
       );
-      // A loose hem does not hang in a perfect ring.
       const wave = 2.5 * around + 1.6 * Math.sin(around + TAU * hash1(seed + 5)) + 4 * drift(i);
       sum.high +=
         trunk *
@@ -821,7 +761,6 @@ export function crease(
         on = smooth(0.4, 0.75, armed),
         long = sleeveEnd > 1.25,
         end = (Math.min(sleeveEnd, 0.9) * side.upper) / k;
-      // The sleeve head: folds run from the armpit up over the arm.
       if (t < 0.9) {
         const head = on * smooth(end - 0.012, end - 0.04, (t * side.upper) / k);
         sum.fold(
@@ -832,7 +771,6 @@ export function crease(
           (t * side.upper) / k,
         );
       }
-      // The elbow gathers like the back of a knee, and a long sleeve stacks above its cuff.
       if (long && t > 0.5)
         sum.fold(
           on * Math.min(0.008, 0.0036 * snug + 0.12 * slack),
@@ -865,7 +803,6 @@ export function crease(
     }
     return sum;
   }
-  // Coveralls are a top above the waistband and trousers below it.
   const part = (i: number) =>
     upper && lower
       ? smooth(waistband - 0.02 * k, waistband + 0.04 * k, at(s.anc, i * 3 + 1))
@@ -889,7 +826,6 @@ export function crease(
 
   if (lower && legEnd > 1.25) evenJoint(s, body, "leg", "thigh", "calf");
   if (upper && sleeveEnd > 1.25) evenJoint(s, body, "arm", "upperarm", "lowerarm", { half: 0.18 });
-  // Cloth is refined only as far as the folds at a place need: fine where they are sharp, coarser where it lies smooth.
   for (let round = 0; round < 3; round++) {
     measure();
     s.f["fold"] = Array.from({ length: s.count }, (_, i) =>
@@ -914,7 +850,6 @@ export function crease(
     height[i] = f[0];
     sink[i] = f[2];
   }
-  // Averaging takes the saw teeth off a ridge that runs slantwise across the triangles.
   for (const field of [height, sink, height, sink]) {
     const sum = new Float32Array(s.count),
       links = new Uint16Array(s.count);
@@ -933,14 +868,10 @@ export function crease(
   s.f["foldMetres"] = foldMetres;
   for (let i = 0; i < s.count; i++) {
     if (at(height, i) <= 0 && at(sink, i) <= 0) continue;
-    // Crests stand along the cloth's own normal. Where that has turned far from the body's, the cloth is bridging a
-    // hollow and its folds fade out. Cloth sinks towards the skin it hangs over and stops at the least room the
-    // garment keeps, or where it already lay if that was closer.
     const own: Vec = [at(normals, i * 3), at(normals, i * 3 + 1), at(normals, i * 3 + 2)],
       before = dot(sub(s.at(i), s.anchor(i)), s.normal(i)),
       on = smooth(0.4, 0.75, dot(own, s.normal(i)));
     if (on <= 0) continue;
-    // Both ways it moves along its own normal: far off the skin, the skin's normals differ too much from point to point.
     const facing = dot(own, s.normal(i)),
       p = add(s.at(i), own, (at(height, i) - at(sink, i)) * on),
       least = Math.min(before, floor * k),

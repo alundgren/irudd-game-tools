@@ -1,5 +1,3 @@
-// Side-by-side orbit of two Microsoft Rocketbox avatars and the editable adults made to match them.
-// Both panes share one orthographic camera, so a metre is the same number of pixels in each.
 import * as T from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
@@ -9,7 +7,6 @@ import { loadComplexions } from "../../character-view/human-complexion.js";
 import { loadSurfaces } from "../../character-view/materials.js";
 import { loadFacePaint } from "../../character-view/face.js";
 import { rocketboxStudies } from "../../.reference-cache/rocketbox/studies.js";
-// Front-to-back placement of each adult, measured by compare.mjs.
 import placement from "../../.reference-cache/rocketbox/placement.json";
 import femaleTarget from "../../.reference-cache/rocketbox/targets/female-adult-04.glb";
 import gardenerTarget from "../../.reference-cache/rocketbox/targets/gardener-male-01.glb";
@@ -18,7 +15,6 @@ const targets = {
   "rocketbox-female-adult-04": femaleTarget,
   "rocketbox-gardener-male-01": gardenerTarget,
 };
-// Centre height and visible height in metres, then the least visible width of one pane.
 const frames = {
   whole: [0.96, 2.06, 1.5],
   torso: [1.2, 0.95, 0.8],
@@ -27,7 +23,6 @@ const frames = {
 };
 const get = (id) => document.getElementById(id);
 
-// Hair cards carry their shape in the texture's alpha. Keep that cut in clay and silhouette.
 function cutout(material, texture) {
   material.map = texture;
   material.alphaTest = 0.4;
@@ -149,10 +144,8 @@ async function start() {
     const form = study.stages[state.stage] ?? study.stages.final;
     right.actor = createCharacter(form(), state.mode === "Silhouette", state.mode === "Clay");
     right.scene.add(right.actor);
-    // Stand the adult on its soles, as the original stands on its own.
     right.actor.updateMatrixWorld(true);
     right.actor.position.y -= new T.Box3().setFromObject(right.actor, true).min.y;
-    // And where its outlines best cover the original's front to back, so a different origin is not counted as a difference in shape.
     right.actor.position.z = placement[study.id.replace("rocketbox-", "") + (state.stage === "final" ? "" : "-" + state.stage)] ?? 0;
     for (const pane of panes) pane.scene.background.set(state.mode === "Silhouette" ? 0xf4f6f4 : 0xdfe5df);
     get("credit").textContent = study.credit;
@@ -195,7 +188,6 @@ async function start() {
     panes.forEach((pane, i) => {
       const left = Math.round((i * w) / 2),
         width = Math.round(((i + 1) * w) / 2) - left;
-      // The ruler stays square to the camera beside the figure, lights follow the view.
       pane.scale.rotation.y = turn;
       pane.scale.position.set(-0.66 * Math.cos(turn), 0, 0.66 * Math.sin(turn));
       pane.scale.visible = state.ruler !== false && (state.frame === "whole" || state.frame === "legs");
@@ -243,9 +235,7 @@ async function start() {
   await build();
   look(25);
   get("status").textContent = "";
-  // Scripted captures use the same controls as a visitor.
   window.rocketboxStudy = {
-    // `ruler: false` leaves the ruler out, so an outline measurement counts the figures only.
     async show({ study, mode, frame, stage: wanted, angle = 0, pitch = 0, ruler = true }) {
       const rebuild =
         (study && study !== state.study) || (mode && mode !== state.mode) || (wanted && wanted !== state.stage);

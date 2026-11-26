@@ -1,13 +1,8 @@
-// Minimal PNG decoder for comparing exported textures by pixels: 8-bit
-// greyscale, RGB, palette-free RGBA and grey-alpha, non-interlaced, as browser
-// canvases encode them.
-
 import { inflateSync } from "node:zlib";
 
 export interface Pixels {
   readonly width: number;
   readonly height: number;
-  /** RGBA, 8 bits per channel. */
   readonly rgba: Uint8Array;
 }
 

@@ -34,7 +34,6 @@ test("the studio head comes whole, with expressions, gaze and a sewn neck", () =
   assert.ok(skin.userData.faceSurface && skin.userData.fittedEyes && skin.geometry.attributes.lodAnchor);
   for (const mesh of group.children)
     for (const value of mesh.geometry.attributes.position.array) assert.ok(Number.isFinite(value), mesh.name);
-  // Every open edge is the neck join, an eye opening or the mouth: no edge is longer than a few centimetres.
   const position = skin.geometry.attributes.position, index = skin.geometry.index.array, a = new T.Vector3(), b = new T.Vector3();
   for (let i = 0; i < index.length; i += 3)
     for (let k = 0; k < 3; k++)

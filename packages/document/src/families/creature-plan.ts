@@ -1,16 +1,3 @@
-// creature.plan: the editable body plan a creature was built from. Ported
-// from readCreaturePlan, readLimb, readCreatureCoat, readEquipment and
-// readDress in character-view/creature-plan.js, creature-coat.js,
-// creature-equipment.js and creature-dress.js at 2761eb1.
-//
-// A plan is one spine with a posture and any number of limb groups placed
-// along it, a head, a tail, a back ornament and a skin. The parts the plan
-// built are ordinary document parts; the plan stays with the document so it
-// can be edited and rebuilt, and the textured presets read its skin, head,
-// limbs and dress when they finish the hide. Every number is bounded by the
-// legacy reader's own clamps, and a plan stores each value explicitly: the
-// optional keys are the ones the legacy reader writes only when they are set.
-
 import { Schema } from "effect";
 import { bounded, family, Hex } from "./family.js";
 import { markingKinds } from "./figure.js";
@@ -26,7 +13,6 @@ export const legEnds = ["paw", "hoof", "talons", "point", "pad", "paddle"] as co
 export const armEnds = ["hand", "pincer", "spike", "none"] as const;
 export const wingStructures = ["plain", "bat", "feather", "insect"] as const;
 export const wingPatterns = ["none", "tips", "bars", "eyespot"] as const;
-/** Fingers of a bat wing, primaries of a feathered wing or main veins of an insect wing. */
 export const wingRibCounts = { bat: [2, 5], feather: [4, 12], insect: [3, 8] } as const;
 export const headShapes = ["round", "long", "wide", "flat"] as const;
 export const snouts = ["muzzle", "beak", "mandibles", "trunk", "bill", "none"] as const;
@@ -103,7 +89,6 @@ export const dressDevices = ["swallow", "oak", "sunburst", "tide", "compass"] as
 const limbBase = {
   pairs: whole(1, 6),
   side: Schema.Literals(limbSides),
-  /** Where the group starts and ends along the spine, 0 at the hips. */
   from: bounded(0, 1),
   to: bounded(0, 1),
   girth: bounded(0.3, 3),
@@ -114,7 +99,6 @@ export const CreatureLeg = Schema.Struct({
   kind: Schema.Literal("leg"),
   ...limbBase,
   style: Schema.Literals(legStyles),
-  /** Insect legs seated in coxal sockets. */
   sockets: Schema.optionalKey(Schema.Literal(true)),
   splay: bounded(0, 78),
   fan: bounded(0, 240),
@@ -136,7 +120,6 @@ export const CreatureArm = Schema.Struct({
   end: Schema.Literals(armEnds),
   digits: whole(1, 6),
   hand: bounded(0.4, 3),
-  /** A resting gesture: the left hand lifts and the right relaxes, or the reverse below zero. */
   raise: Schema.optionalKey(
     bounded(-80, 80).check(Schema.makeFilter((v) => v !== 0 || "A zero raise is omitted.")),
   ),
@@ -151,7 +134,6 @@ const wingBase = {
   chord: bounded(0.03, 1.5),
 };
 
-/** A plain wing is one smooth blade. */
 export const CreaturePlainWing = Schema.Struct({
   ...wingBase,
   structure: Schema.Literal("plain"),
@@ -205,7 +187,6 @@ export type CreatureLimb = typeof CreatureLimb.Type;
 
 export const CreatureCoat = Schema.Struct({
   family: Schema.Literals(coatFamilies),
-  /** Grade the coat's tone over the body instead of zoning it. */
   graded: Schema.optionalKey(Schema.Literal(true)),
   contrast: bounded(0, 1),
   density: bounded(0.55, 1.8),
@@ -224,7 +205,6 @@ export const CreaturePlanMarkings = Schema.Struct({
 
 export const CreatureEquipment = Schema.Struct({
   kind: Schema.Literals(equipmentKinds),
-  /** A courier satchel the animal offers in its hand. */
   handling: Schema.optionalKey(Schema.Literal("offer")),
   station: bounded(0.14, 0.85),
   hang: bounded(-1.42, 0.85),
@@ -248,12 +228,9 @@ export const CreatureDress = Schema.Struct({
   device: Schema.optionalKey(Schema.Literals(dressDevices)),
   color: Hex,
   trim: Hex,
-  /** 1 keeps the signature piece, 2 adds limb pieces, 3 adds a headpiece. */
   layers: whole(1, 3),
   size: bounded(0.7, 1.4),
-  /** A station along the spine that a carried pack occupies. */
   clear: Schema.optionalKey(bounded(0, 1)),
-  /** Cut 2 shapes armour to the animal; cut 3 also fits a breastplate on inclined bipeds. */
   cut: Schema.optionalKey(Schema.Literals([2, 3])),
   seed,
 });
@@ -277,7 +254,6 @@ export const CreaturePlan = Schema.Struct({
     arch: bounded(-40, 40),
     profile: Schema.Literals(creatureProfiles),
     stance: bounded(0.05, 3),
-    /** Girth multipliers at five stations from the hips to the shoulders. */
     bulge: Schema.Tuple([
       bounded(0.4, 2.2),
       bounded(0.4, 2.2),
@@ -311,7 +287,6 @@ export const CreaturePlan = Schema.Struct({
     brow: bounded(0, 1),
     nostrils: Schema.Boolean,
     whiskers: Schema.Boolean,
-    /** Where the animal looks at rest, in degrees to its left. */
     turn: Schema.optionalKey(nonZero(-50, 50)),
   }),
   limbs: Schema.Array(CreatureLimb).check(Schema.isMaxLength(8)),

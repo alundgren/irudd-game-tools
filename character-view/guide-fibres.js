@@ -52,8 +52,6 @@ export function validFibres(s) {
   );
 }
 
-// Read the rings after surface fitting and sculpting. A moved guide, resized
-// body or bent spine changes the fibres without baking a second editable mesh.
 export function readGuide(g) {
   const p = g.attributes.position,
     uv = g.attributes.uv;
@@ -74,8 +72,6 @@ export function readGuide(g) {
   }
   return { rows, p, stride, length };
 }
-// Spend a bounded part of the game mesh on continuous strands. If the whole
-// coat exceeds the budget, keep an evenly spaced selection on every guide.
 export function gameFibreDetail(guides, budget) {
   const total = guides.reduce((n, p) => n + p.fibres.count, 0);
   const max = Math.min(total, Math.max(guides.length, Math.floor(budget / 32)));
@@ -263,7 +259,6 @@ export function fibreGeometry(mesh, settings, color, rootAt, lod) {
           Math.abs(along.y) < 0.8 ? 0 : 1,
         );
       u.addScaledVector(along, -u.dot(along)).normalize();
-      // A clump lies flat on the lock: wide across it, thin along its radius.
       if (clump) {
         const across = new Vector3().crossVectors(along, dirs[j]);
         if (across.lengthSq() > 1e-10) u.copy(across.normalize());
@@ -296,7 +291,6 @@ export function fibreGeometry(mesh, settings, color, rootAt, lod) {
         }
       }
     }
-    // Closed ends stay visible in a game that culls back faces.
     for (let k = 1; k < sides - 1; k++) {
       indices.push(base, base + k + 1, base + k);
       const end = base + (stations.length - 1) * (sides + 1);
@@ -339,8 +333,6 @@ export function growGuideFibres(
     );
   });
   const details = gameBudget ? gameFibreDetail(guides, gameBudget) : null;
-  // Pelt locks spend the triangles their strands were given on clumps and
-  // undercoat tufts instead.
   const pelt = details ? peltGuideIds(form, guides) : new Set();
   let tuftCount = 0;
   if (pelt.size) {
@@ -354,7 +346,6 @@ export function growGuideFibres(
     tuftCount = plan.tufts;
   }
   const peltLocks = new Map();
-  // Freeze the carrier surfaces before replacing any parent that is also a guide.
   const surfaces = new Map();
   for (const part of guides) {
     const parent = objects.get(part.parent);

@@ -1,7 +1,3 @@
-// Measures groomed heads without a renderer: how much of the eyes and face the hair hides,
-// how much scalp it leaves bare and how much of it is inside the head.
-//   node scripts/human-hair-check.mjs --hair "Bob,Rounded bob" --fringe all --bodies f4,m1
-// Lists take commas; `all` means every hairstyle or every way of wearing a fringe.
 import * as T from "three";
 import { evaluateHuman } from "../character-view/human-surface.js";
 import { adultStyles } from "../character-view/human-wardrobe.js";
@@ -21,7 +17,6 @@ for (const name of list(args.bodies, Object.keys(bodies), "f4,m4")) {
   for (const hair of list(args.hair, adultStyles.hair.slice(1), "Bob")) for (const fringe of list(args.fringe, adultStyles.fringe, "As cut")) {
     const style = { hair, fringe };
     const meshes = [...styleHuman(surface, style, material), ...libraryPieces(surface, style, material, true), ...coilGroom(surface, style, material, true), ...strandGroom(surface, style, material, true)];
-    // The roots under hair cards are closed to the skin by design, so depth inside the head is measured on the rest.
     const cards = meshes.filter(mesh => !mesh.userData.hairRoots), all = probeHair(surface, meshes), own = cards.length < meshes.length ? probeHair(surface, cards) : all;
     const views = ["front", "left", "right"];
     console.log((name + "  " + hair + " / " + fringe).padEnd(40), views.map(view => all.eyes[view].map(percent).join(" ")).join("   ").padEnd(52), views.map(view => percent(all.face[view])).join(" ").padEnd(16),

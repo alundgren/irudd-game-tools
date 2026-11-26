@@ -1,11 +1,3 @@
-// irudd.frame-creature version 1: the protocol's reference generator.
-//
-// It materialises a small articulated body (trunk, neck, head, paired legs and
-// tail) from a handful of plan values. It exists so the revision protocol and
-// the generator merge run against a real, deterministic generator with
-// non-trivial frames. It does not claim parity with the legacy creature
-// builder; ported families register their own generators beside it.
-
 import { Schema } from "effect";
 import { defineGenerator } from "../registry.js";
 import { quatFromAxisAngle, rotate, add, scale, type Vec3 } from "../geometry.js";
@@ -15,7 +7,6 @@ const range = (minimum: number, maximum: number) =>
   Schema.Finite.check(Schema.isBetween({ minimum, maximum }));
 
 export const FrameCreatureParams = Schema.Struct({
-  /** Uniform scale of the whole animal. */
   scale: range(0.2, 4),
   trunk: Schema.Struct({
     length: range(0.2, 3),
@@ -56,7 +47,6 @@ export function frameCreatureSlots(p: FrameCreatureParams): BaseSlotInput[] {
     color: p.color,
   });
 
-  // The neck leaves the top front of the trunk, pitched up from horizontal.
   const pitch = quatFromAxisAngle(xAxis, -degrees(p.neck.pitch));
   const shoulder: Vec3 = [0, 0.5 * g * s, 0.5 * L * s];
   let headParent = "trunk";
@@ -76,7 +66,6 @@ export function frameCreatureSlots(p: FrameCreatureParams): BaseSlotInput[] {
     });
     headParent = "neck";
     headPosition = [0, 0, n / 2 + p.head.size * 0.5 * s];
-    // Bring the head level again in the neck's frame.
     headRotation = quatFromAxisAngle(xAxis, degrees(p.neck.pitch));
   }
   slot({

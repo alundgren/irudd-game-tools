@@ -1,11 +1,3 @@
-// Structured inspection of an exported GLB, for agents and reviews: what the
-// file actually contains, read from its bytes, without a renderer.
-//
-// The summary is plain JSON. It reports the provenance stamp, counts,
-// triangles per region and per material, each material's factors and texture
-// slots, each embedded image's size and SHA-256, joints with the part they
-// drive, morph targets and animation clips.
-
 import { sha256Hex } from "@irudd/document";
 import { readGlb } from "./glb.js";
 
@@ -35,25 +27,21 @@ export interface MaterialSummary {
   readonly metallic: number;
   readonly roughness: number;
   readonly emissive: number[];
-  /** Texture slot to image index. */
   readonly textures: Record<string, number>;
   readonly extensions: string[];
   readonly primitives: number;
   readonly triangles: number;
-  /** Regions (part labels) whose triangles use this material. */
   readonly regions: string[];
 }
 
 export interface GlbSummary {
   readonly generator: string | null;
-  /** The `asset.extras.irudd` stamp, when present. */
   readonly provenance: unknown;
   readonly extensionsUsed: string[];
   readonly counts: Record<string, number>;
   readonly vertices: number;
   readonly triangles: number;
   readonly bounds: { readonly min: number[]; readonly max: number[] } | null;
-  /** Triangles by region (part label), from the `_REGION` vertex attribute. */
   readonly regions: Record<string, number>;
   readonly materials: MaterialSummary[];
   readonly images: ImageSummary[];
@@ -75,7 +63,6 @@ function parse(bytes: Uint8Array): Glb {
   const { json, rest } = readGlb(bytes);
   if (!isRecord(json)) throw new Error("The GLB has no JSON object.");
   const view = new DataView(rest.buffer, rest.byteOffset, rest.byteLength);
-  // The BIN chunk follows the JSON chunk: length, type, data.
   const bin =
     rest.byteLength >= 8 ? rest.subarray(8, 8 + view.getUint32(0, true)) : new Uint8Array();
   return { json, bin };
@@ -97,7 +84,6 @@ const componentSize: Record<number, number> = {
   5126: 4,
 };
 
-/** The scalar values of an accessor (first component of each element). */
 function scalars(glb: Glb, index: number | undefined): number[] {
   const accessor = index === undefined ? undefined : list(glb.json["accessors"])[index];
   if (!accessor) return [];
@@ -164,7 +150,6 @@ const slots = [
   ],
 ] as const;
 
-/** A structured summary of an exported character GLB. */
 export function inspectGlb(bytes: Uint8Array): GlbSummary {
   const glb = parse(bytes);
   const { json } = glb;

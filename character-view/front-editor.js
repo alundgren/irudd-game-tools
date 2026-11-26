@@ -3,8 +3,6 @@ import { storeArtworkBlob } from "./turnaround.js";
 import * as T from "three";
 import { headFrame, registerFrontPairs, portraitAxes } from "./front-fit.js";
 
-// A geometry-only fit records landmarks. An optional colour transfer stores
-// just the visible area as an editable, portable layer in the face UV layout.
 export function frontEditor({
   getFace,
   getRenderer,

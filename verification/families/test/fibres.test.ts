@@ -1,10 +1,3 @@
-// Guide fibres: a sweep with figure.fibres is replaced by seeded strands that
-// follow its rings, rooted on the parent's surface, after the face fits seat
-// it. The same seed grows the same strands and a part that is not an
-// unpainted sweep is refused. Pelt locks are creature-plan.test.ts's. The
-// four-preset parity of portrait-dockworker and the conductors is the slow
-// gate's.
-
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -20,7 +13,6 @@ const isObject = (v: unknown): v is Mutable => typeof v === "object" && v !== nu
 const guide = "p-left-back-fringe";
 const isMesh = (o: T.Object3D | undefined): o is T.Mesh => o instanceof T.Mesh;
 
-/** portrait-dockworker, with `edit` applied to the features of part `id`. */
 function dockworker(id?: string, edit?: (features: Mutable) => void, added: string[] = []) {
   const raw: unknown = JSON.parse(
     readFileSync(join(fixturesDir, "portrait-dockworker.json"), "utf8"),
@@ -54,7 +46,6 @@ function strands(doc: CharacterDocument, game = false): Float32Array {
 test("a guide grows the same seeded strands, fewer in a game build", () => {
   const doc = read(dockworker());
   const first = strands(doc);
-  // Twenty strands of six-sided rings along every station.
   assert.equal((first.length / 3) % (20 * 6), 0);
   assert.deepEqual(strands(doc), first);
   const reseeded = read(

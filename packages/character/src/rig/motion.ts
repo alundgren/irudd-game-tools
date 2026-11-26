@@ -1,10 +1,3 @@
-// Generated motion clips: idle, walk, crouch and reach, then the creature
-// moves. Ported from buildClips in character-view/motion.js at 2761eb1.
-//
-// Hands curl their digits as they reach. Held props and authored arm holds
-// are not yet admitted by the family registry, so carried-pose tracks are
-// not built here.
-
 import * as T from "three";
 import {
   creatureClips,
@@ -47,7 +40,6 @@ function legChains(regions: ReadonlyMap<string, Region>): LegChain[] {
       upper,
       lower,
       spatial,
-      // A raised knee folds the leg, so stride from the hip-to-foot span.
       span: spatial ? hip.distanceTo(ankle) : upper + lower,
       a,
       b,
@@ -67,8 +59,6 @@ function legChains(regions: ReadonlyMap<string, Region>): LegChain[] {
 
 type Write = (bone: T.Bone | undefined, x: number, y: number, z: number) => void;
 
-// Solve a sagittal two-link chain at each key. On stance the sole stays at its
-// standing floor height. On swing it follows a lifted forward arc.
 function placeFoot(leg: LegChain, dz: number, lift: number, drop: number, write: Write): void {
   const { hip, knee, ankle, upper, lower } = leg;
   const z = ankle.z - hip.z + dz;
@@ -123,9 +113,6 @@ const knotWidth = (s: Region): number | undefined => {
   return knots?.length ? Math.max(...knots.map((k) => Math.max(k[3], k[4]))) : undefined;
 };
 
-// Arms that share one flank can sweep about the line through their shoulder
-// sockets. Both shoulders stay seated and the swing alone preserves spacing
-// between the two limbs. Elbows can still bend independently.
 function pairShoulderAxes(
   arms: ReadonlyArray<Region>,
   elbowMap: ReadonlyMap<Region, Elbow>,
@@ -159,7 +146,6 @@ function pairShoulderAxes(
     const axis = startB.clone().sub(startA).normalize();
     const arm = handA.clone().sub(startA);
     if (new T.Vector3().crossVectors(axis, arm).z < 0) axis.negate();
-    // A hanging wrist directly on this axis would hardly move.
     if (
       [a, b].some((s) => {
         const hand = handBase(s);
@@ -170,8 +156,6 @@ function pairShoulderAxes(
       })
     )
       continue;
-    // Make room for the sleeve before sweeping the pair. The upper limb passes
-    // the lower socket and needs a wider lane than the lower limb.
     const higher = startA.y >= startB.y ? a : b;
     const higherHand = handBase(higher);
     const hangsDown = (higherHand?.y ?? 0) <= (higher.points[0]?.y ?? 0);
@@ -206,8 +190,6 @@ export function buildClips(root: T.Bone, regions: ReadonlyMap<string, Region>): 
   const bounds = new T.Box3().makeEmpty();
   const all = [...regions.values()];
   for (const region of all) bounds.union(region.bounds);
-  // Without grasping arms, a creature reaches toward a sample with its head.
-  // Rotate only the first head or neck joint of each chain.
   const hasArms = all.some((s) => s.role === "upper arm" || s.fingers.size > 0);
   const parentOf = (region: Region): Region | undefined =>
     region.part.parent === null ? undefined : regions.get(region.part.parent);
@@ -239,16 +221,12 @@ export function buildClips(root: T.Bone, regions: ReadonlyMap<string, Region>): 
   }
   const armMovement = new Map<Region, ArmMovement>();
   const arms = all.filter((s) => s.role === "upper arm");
-  // Give additional pairs independent work. A hand carrying a separate object
-  // stays close to its rest pose while a free arm performs the reach.
   const hangs = (arm: Region) => {
     const base = arm.points[0];
     const tip = arm.points.at(-1);
     return elbows.has(arm) && !!base && !!tip && tip.clone().sub(base).normalize().y < -0.78;
   };
   if (arms.length === 2 && arms.every(hangs)) {
-    // A person reaching for something leads with one hand. The elbow stays below
-    // the shoulder and the other arm follows part of the way.
     for (const arm of arms)
       armMovement.set(arm, {
         reach: (arm.points[0]?.x ?? 0) < 0 ? 1 : 0.42,
@@ -257,8 +235,6 @@ export function buildClips(root: T.Bone, regions: ReadonlyMap<string, Region>): 
         natural: true,
       });
   }
-  // A hand closed around a handle keeps its grip through the reach, as does
-  // one on a held arm supporting a heavy prop.
   const regionOf = (id: string | null) => (id === null ? undefined : regions.get(id));
   const heldHands = new Set(
     all.filter((r) => {
@@ -279,7 +255,6 @@ export function buildClips(root: T.Bone, regions: ReadonlyMap<string, Region>): 
     ordered.forEach((arm, i) => {
       const forearm = all.find((s) => s.part.parent === arm.part.id && s.role === "forearm");
       const hand = all.find((s) => s.part.parent === (forearm ?? arm).part.id && s.role === "hand");
-      // Older single-sweep arms already have a middle bone for the elbow.
       if (!elbows.has(arm) && hand && arm.bones.length >= 3)
         elbows.set(arm, {
           hand,
@@ -308,7 +283,6 @@ export function buildClips(root: T.Bone, regions: ReadonlyMap<string, Region>): 
   const size = bounds.getSize(new T.Vector3());
   const limb = legs.length ? Math.min(...legs.map((l) => l.span)) : size.y * 0.42;
   const duration = clamp(1.24 * Math.sqrt(Math.max(0.1, limb) / 0.8), 0.72, 2.2);
-  // A plan-built animal's body is a sweep labelled "body"; its neck nods as it walks.
   const creatureBody = all.find((r) => r.part.label === "body");
   const planAnimal = creatureBody?.part.sweep !== undefined;
   const neckMotion = new Map<Region, { readonly reach: number; readonly skull: boolean }>();
@@ -383,8 +357,6 @@ export function buildClips(root: T.Bone, regions: ReadonlyMap<string, Region>): 
               }
         const side = (s.points[0]?.x ?? 0) >= 0 ? 1 : -1;
         if (s.role === "skirt" && s.bones.length === 3 && (name === "Walk" || name === "Crouch")) {
-          // Keep the hem above its rest floor while the hips lower. Splitting
-          // displacement across two joints gathers fabric toward the waist.
           const correction = Math.max(0, -drop - Math.max(0, s.bounds.min.y - 0.012));
           const hemSwing = name === "Walk" ? limb * 0.052 * sin : 0;
           for (let j = 1; j <= 2; j++) {
@@ -397,7 +369,6 @@ export function buildClips(root: T.Bone, regions: ReadonlyMap<string, Region>): 
             translations.set(bone, data);
           }
         } else if (s.role === "upper arm") {
-          // A held arm keeps its authored rest pose.
           if (s.part.hold) continue;
           const motion = armMovement.get(s);
           const pair: PairedAxis | undefined = pairedAxes.get(s);
@@ -447,9 +418,6 @@ export function buildClips(root: T.Bone, regions: ReadonlyMap<string, Region>): 
           } else if (name === "Idle") add(s.bones[0], 0.015 * sin, 0, side * 0.009 * sin);
           else if (name === "Crouch") add(s.bones[0], -0.32 * wave, 0, side * 0.09 * wave);
         } else if (name === "Walk" && neckMotion.has(s)) {
-          // With each footfall a short-necked animal nods, while a long neck
-          // carries the skull forward. The head joint counter-rotates to keep the
-          // gaze steadier than the neck, including across the loop seam.
           const { reach, skull } = neckMotion.get(s) ?? { reach: 0, skull: false };
           const footfall = Math.sin(2 * t * tau - 0.45);
           const pitch = (0.075 + 0.12 * reach) * footfall;

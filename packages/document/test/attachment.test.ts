@@ -1,15 +1,3 @@
-// Attachment policy: which hand-made attachment follows its parent's shape when
-// a generator rescales the parent, and which stays where it was authored.
-//
-// - Core parenting is a rigid metric frame. A hand-added horn keeps its stored
-//   offset from the head's centre, so a 5% scale sinks it into the head by 5% of
-//   the head's half-height (5.5 mm on the reference creature). The stored horn
-//   is untouched: the merge never rewrites a manual part.
-// - A parent with figure.assembly attaches children in its scaled frame. The
-//   same horn, authored in head units, stays seated on the growing head with
-//   its stored values unchanged.
-//
-// CPU only; part of the fast suite.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -54,7 +42,6 @@ function horn(head: Part, position: Vec3, size: Vec3): Part {
   });
 }
 
-/** World height of the head's crown and of the horn's base centre. */
 function seat(d: CharacterDocument): { crown: number; base: number } {
   const head = d.parts.find((p) => p.slot === "head");
   const crown = head && partPlacement(d, head.id, registry);
@@ -104,7 +91,6 @@ function scaled(s: DocumentState, revision: number): CharacterDocument {
 test("core parenting is rigid: a hand-added horn keeps its stored offset and sinks 5.5 mm", () => {
   let s = generated();
   const head = partBySlot(s, "head");
-  // The head is 0.22 m tall; its crown is 0.11 m above its centre.
   s = run(
     s,
     env,
@@ -126,7 +112,6 @@ test("core parenting is rigid: a hand-added horn keeps its stored offset and sin
 test("a figure-assembled head carries a hand-added horn through a 5% scale", () => {
   let s = generated();
   const head = partBySlot(s, "head");
-  // The same horn in head units: the head spans one unit along each axis.
   const [w, h, d] = head.size;
   s = run(
     s,

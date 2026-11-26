@@ -1,5 +1,3 @@
-// Revision protocol through the public entry: initialisation, manual commit,
-// stale writes, retries, undo, restore, proposals and per-document policy.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -105,7 +103,6 @@ test("retrying a committed request returns the original receipt; reusing its ID 
   );
   const first = reduce(s0, e, env);
   const original = committed(first.outcome).receipt;
-  // The head moves on; the retry still replays.
   const s2 = run(
     first.state,
     env,
@@ -175,7 +172,6 @@ test("undo appends a compensating revision and keeps the other actor's later edi
   assert.equal(s.history[3]?.undoes, 2);
   assert.deepEqual(partBySlot(s, "tail").size, tail.size);
   assert.equal(partBySlot(s, "head").label, "Jaw");
-  // Undoing twice is refused; undoing the undo redoes.
   assert.equal(
     rejected(reduce(s, envelope(human, 4, { type: "undo", target: 2 }), env).outcome).diagnostics[0]
       ?.code,
@@ -364,7 +360,6 @@ test("a stale acceptance is refused without damaging the draft, which stays revi
   assert.ok(preview.ok);
   assert.equal(preview.value.stale, true);
   assert.ok(preview.value.rebased.ok);
-  // Refine against the head, then accept.
   s = run(
     s,
     env,
@@ -382,7 +377,6 @@ test("a stale acceptance is refused without damaging the draft, which stays revi
     envelope(human, 2, { type: "proposal.accept", proposal: "prop-tail", version: 2 }),
   );
   assert.equal(partBySlot(s, "head").label, "Jaw");
-  // Rejecting a draft keeps the head.
   s = run(
     s,
     env,
@@ -423,8 +417,6 @@ test("a whole-document replacement is validated and stored as an explicit diff",
     s.proposals.get("prop-replace")?.changes.map((c) => c.path.join("/")),
     ["label", `parts/${tail.id}/color`],
   );
-  // Only the generator assigns slots and records the base: a replacement that
-  // moves a slot to another part ID, or rewrites the base, is refused.
   const renamedId = {
     ...doc,
     parts: doc.parts.map((p) => (p.id === tail.id ? { ...p, id: "p-newtail" } : p)),
@@ -491,7 +483,6 @@ test("removed part IDs are retired and cannot name a new part", () => {
     env,
   );
   assert.equal(rejected(again.outcome).diagnostics[0]?.code, "retired-id");
-  // Undo of the removal brings back the same part with the same ID.
   s = run(s, env, envelope(human, 2, { type: "undo", target: 2 }));
   assert.equal(partBySlot(s, "tail").id, tail.id);
 });
@@ -525,7 +516,6 @@ test("a manual document with artwork, a pose and a catalog part needs its blobs 
     assert.equal(rejected(step.outcome).diagnostics[0]?.code, code, label);
     assert.equal(step.state.head, 0);
   }
-  // Adding a paint reference to an asset that was never staged is refused.
   const late = blob("late");
   const step = reduce(
     s,

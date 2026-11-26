@@ -1,8 +1,3 @@
-// Control-cage surfaces. Ported from cageGeometry in character-view/control-cage.js
-// at 2761eb1: Catmull–Clark subdivision with creases, outward-facing closed
-// shells and split normals along creases. The document has already checked
-// the cage's topology (figure.cage), so the builder does not repeat it.
-
 import * as T from "three";
 import type { FigureCage } from "@irudd/document";
 
@@ -126,7 +121,6 @@ function subdivide(
   return { vertices: out, faces: quads, creases: nextSharp };
 }
 
-/** Closed shells should face out even if an imported cage used the opposite winding. */
 function orientShells(vertices: ReadonlyArray<T.Vector3>, faces: number[][]): number[][] {
   const { edges } = net(vertices, faces);
   const links = faces.map((): number[] => []);
@@ -168,7 +162,6 @@ function orientShells(vertices: ReadonlyArray<T.Vector3>, faces: number[][]): nu
   return result;
 }
 
-/** Give each smooth fan its own render vertex so a deliberate crease also splits normals. */
 function splitNormals(mesh: Mesh, faceted: boolean): Mesh {
   if (!mesh.creases.length && !faceted) return mesh;
   const { faceRings, edgeRings } = net(mesh.vertices, mesh.faces);
@@ -201,7 +194,6 @@ function splitNormals(mesh: Mesh, faceted: boolean): Mesh {
 
 export interface CageSurface {
   readonly geometry: T.BufferGeometry;
-  /** For each triangle of the geometry's index, the control face it came from. */
   readonly faces: ReadonlyArray<number>;
 }
 
@@ -209,11 +201,6 @@ export function cageGeometry(cage: FigureCage): T.BufferGeometry {
   return cageSurface(cage).geometry;
 }
 
-/**
- * The subdivided surface and the control face each triangle subdivides. A
- * chart with one coordinate per control point is subdivided with the cage
- * and becomes its texture coordinates; without one, `uv` is the unit frame's x and y.
- */
 export function cageSurface(
   cage: FigureCage,
   chart?: ReadonlyArray<readonly [number, number]>,

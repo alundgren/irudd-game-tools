@@ -1,7 +1,3 @@
-/**
- * Compare seeded adults on the editable mesh before clothing or paint.
- * node scripts/adult-diversity.mjs [first seed] [count] [output JSON]
- */
 import {writeFile} from "node:fs/promises";
 import {evaluateHuman,randomHuman,humanControls} from "../character-view/human-surface.js";
 import {dressHuman} from "../character-view/human-wardrobe.js";
@@ -13,8 +9,6 @@ const base=evaluateHuman({}), anchors=humanControls().ids;
 const regionOf=i=>base.names[base.boneIndices[i*4]];
 const bodyIds=Array.from(anchors).filter(i=>/pelvis|spine|arm|thigh|calf/.test(regionOf(i)));
 const headIds=Array.from(anchors).filter(i=>regionOf(i)==="head");
-// The cage has equal topology across subjects. Centre heads at the skull joint,
-// rescale both groups to 1.72 m and compare corresponding anatomical landmarks.
 function probe(s,ids,head){
   const joint=s.names.indexOf("head")*3,points=[];
   for(const i of ids)for(let d=0;d<3;d++)points.push((s.positions[i*3+d]-(head?s.joints[joint+d]:0))*1.72/s.height);

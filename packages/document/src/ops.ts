@@ -1,12 +1,3 @@
-// Typed edit operations. An edit command carries a list of these; they apply
-// in order to a working copy and the whole list either commits as one
-// revision or changes nothing.
-//
-// Transient editor state (selection, camera, drag previews, surface picks) is
-// never part of an operation. A pick in world space is resolved against the
-// revision the command names (`sculpt.at`), and only the resolved, part-local
-// values are stored.
-
 import { Schema } from "effect";
 import { diagnostic, fail, ok, type Checked, type Diagnostic } from "./diagnostics.js";
 import { isJsonObject, type Json } from "./json.js";
@@ -87,7 +78,6 @@ export const Operation = Schema.Union([
   op("part.remove", { part: PartId, cascade: Schema.Boolean }),
   op("part.set", { part: PartId, set: PartChanges }),
   op("part.rename", { part: PartId, label: Label }),
-  /** A gesture: translate in the parent frame, then rotate and scale locally. */
   op("part.transform", {
     part: PartId,
     translate: Schema.optionalKey(Finite3),
@@ -102,7 +92,6 @@ export const Operation = Schema.Union([
   }),
   op("sculpt.set", { part: PartId, edit: Displacement }),
   op("sculpt.remove", { part: PartId, edit: EditId }),
-  /** Sculpt at a world-space pick, resolved against the named revision. */
   op("sculpt.at", {
     part: PartId,
     edit: EditId,
@@ -123,13 +112,10 @@ export const Operation = Schema.Union([
     part: Schema.optionalKey(PartId),
     value: Schema.NullOr(JsonValue),
   }),
-  /** Re-run the document's generator with new parameters, keeping manual edits. */
   op("generation.steer", { params: JsonValue }),
-  /** Multiply the generator's `scale` parameter. */
   op("generation.scale", {
     factor: Schema.Finite.check(Schema.isBetween({ minimum: 0.05, maximum: 20 })),
   }),
-  /** Switch generator or parameters; `discardEdits` resets generated parts. */
   op("generation.rebuild", {
     generator: GeneratorId,
     version: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 1000 })),
@@ -146,18 +132,10 @@ export const Operations = Schema.Array(Operation).check(
 
 export interface OperationContext {
   readonly registry: Registry;
-  /** IDs once used in this document's history; they cannot name a new part. */
   readonly retired: ReadonlySet<string>;
-  /** Deterministic ID for a slot the generator adds during this command. */
   readonly idFor: (slot: string) => PartIdType;
 }
 
-/**
- * Rigid world frame of a part, composed up its parent chain in the core's
- * metric frames. It is the part's world placement only when no part on the
- * chain declares a scaled child basis; for family documents use
- * `partPlacement(doc, id, registry)`.
- */
 export function partFrame(doc: CharacterDocument, id: string): Frame | undefined {
   const byId = new Map<string, PartType>(doc.parts.map((p) => [p.id, p]));
   const chain: PartType[] = [];
@@ -173,7 +151,6 @@ export function partFrame(doc: CharacterDocument, id: string): Frame | undefined
   );
 }
 
-/** Normalised part coordinates (fractions of the half-extents) of a world point. */
 export function toPartLocal(
   doc: CharacterDocument,
   id: string,
@@ -184,7 +161,6 @@ export function toPartLocal(
   return placement && worldToNormalized(placement, world);
 }
 
-/** World-space position and offset of a sculpted displacement. */
 export function displacementInWorld(
   doc: CharacterDocument,
   partId: string,
@@ -201,7 +177,6 @@ export function displacementInWorld(
   };
 }
 
-/** Declare every capability the document uses, at this build's versions. */
 export function requireDeclaredFeatures(
   doc: CharacterDocument,
   registry: Registry,
@@ -431,7 +406,6 @@ function applyOne(
         return fail([
           diagnostic("missing-reference", at("digest"), `There is no asset ${o.digest}.`),
         ]);
-      // A picture's credit lives as long as the picture: removing it retires the credit too.
       return ok({
         ...doc,
         assets: doc.assets.filter((a) => a.digest !== o.digest),
@@ -529,7 +503,6 @@ function applyOne(
   }
 }
 
-/** Apply operations in order. The result is canonical but not yet validated. */
 export function applyOperations(
   doc: CharacterDocument,
   ops: ReadonlyArray<Operation>,

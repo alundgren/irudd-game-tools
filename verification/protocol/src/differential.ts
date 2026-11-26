@@ -1,14 +1,3 @@
-// Differential check: drive the real reducer through the published
-// @irudd/document entry and the independent model with the same requests, and
-// compare every outcome and the abstract state after it.
-//
-// The abstraction: field x is the label of part p-x, field y the label of
-// part p-y, value n is the label "value n". A model draft "q" is the real
-// proposal "prop-q", whose content renames one part. Each model project is one
-// real document. Setup creates both documents and, when the bounds start with
-// direct editing, lets agents edit directly; its request IDs never collide
-// with the model's.
-
 import {
   createRegistry,
   decodeWith,
@@ -102,7 +91,6 @@ function renameContent(field: Field, value: number) {
   };
 }
 
-/** The real command for a model command. */
 export function toRealCommand(c: ModelEnvelope["command"]): CommandEnvelopeInput["command"] {
   switch (c.type) {
     case "edit":
@@ -133,14 +121,12 @@ export function toRealCommand(c: ModelEnvelope["command"]): CommandEnvelopeInput
   }
 }
 
-/** The real request for a model request. */
 export function toReal(e: ModelEnvelope): CommandEnvelopeInput {
   return envelope(e.doc, e.actor, requestId(e.req), e.expected, toRealCommand(e.command));
 }
 
 export type RealWorld = Readonly<Record<ProjectName, DocumentState>>;
 
-/** Both real documents at revision 1; agents edit directly when `direct`. */
 export function initialRealWorld(direct = true): RealWorld {
   const create = (project: ProjectName): DocumentState => {
     const id = documentIds[project];
@@ -201,7 +187,6 @@ function fieldValue(state: DocumentState, field: Field): number | undefined {
   return valueOf(state.document?.parts.find((p) => p.id === partFor[field])?.label);
 }
 
-/** The model-visible part of a real document state, as a comparable string. */
 export function abstractReal(state: DocumentState): string {
   const doc = Object.fromEntries(fields.map((f) => [f, fieldValue(state, f)]));
   const history = state.history.map((r) => [
@@ -245,7 +230,6 @@ export function abstractReal(state: DocumentState): string {
   ]);
 }
 
-/** The same abstraction computed from the model. */
 export function abstractModel(p: ProjectState): string {
   const history = p.history.map((r) => [
     r.n,
@@ -283,10 +267,8 @@ export interface Mismatch {
 
 export interface DifferentialResult {
   readonly name: string;
-  /** Distinct model states compared (exhaustive) or traces run (random). */
   readonly cases: number;
   readonly steps: number;
-  /** How often the real reducer gave each outcome, by label. */
   readonly outcomes: Readonly<Record<string, number>>;
   readonly mismatch?: Mismatch;
 }
@@ -330,10 +312,6 @@ function compareStep(
   return { model: m.world, real: nextReal, outcome: m.outcome };
 }
 
-/**
- * Lock-step exhaustive comparison: every model-reachable state within the
- * bounds, every request in the universe from it.
- */
 export function exhaustive(b: Bounds, impl: Reduce = reduce): DifferentialResult {
   const envelopes = universe(b);
   type Node = { model: WorldState; real: RealWorld; trace: ReadonlyArray<ModelEnvelope> };
@@ -371,11 +349,6 @@ export function exhaustive(b: Bounds, impl: Reduce = reduce): DifferentialResult
   return { name: b.name, cases: seen.size, steps, outcomes };
 }
 
-/**
- * Seeded random traces over the universe, including retries of earlier
- * requests, reordering and requests for the other project. Traces are not
- * pruned at the bound's revision limit.
- */
 export function randomTraces(
   b: Bounds,
   seed: number,
@@ -392,8 +365,6 @@ export function randomTraces(
     let real = initialRealWorld(b.direct ?? true);
     const trace: ModelEnvelope[] = [];
     for (let i = 0; i < length; i++) {
-      // Mix fresh requests against the head (so traces get deep), retries and
-      // reuses of earlier requests, and arbitrary requests from the universe.
       const roll = random();
       const fresh = envelopes.filter(
         (e) =>
@@ -425,7 +396,6 @@ export function randomTraces(
   return { name: `${b.name} seed ${seed}`, cases: traces, steps, outcomes };
 }
 
-/** Outcome labels the model produced that the real runs never did. */
 export function missingOutcomes(
   required: Readonly<Record<string, number>>,
   ...seen: ReadonlyArray<Readonly<Record<string, number>>>
@@ -435,12 +405,9 @@ export function missingOutcomes(
     .sort();
 }
 
-// ── Named traces: fixed scenarios with the outcomes they must produce ──────
-
 export interface NamedTrace {
   readonly name: string;
   readonly direct: boolean;
-  /** Each request with the outcome the specification requires. */
   readonly steps: ReadonlyArray<readonly [ModelEnvelope, string]>;
 }
 
@@ -453,7 +420,6 @@ const on = (
 
 export const namedTraces: ReadonlyArray<NamedTrace> = [
   {
-    // The reviewer's chain: edit, undo 2, undo 3, undo 2, edit, undo 4, continued.
     name: "branched undo and undo of undo",
     direct: true,
     steps: [
@@ -462,7 +428,6 @@ export const namedTraces: ReadonlyArray<NamedTrace> = [
       [on("human", "u3", 3, { type: "undo", target: 3 }), "committed 4"],
       [on("human", "u4", 4, { type: "undo", target: 2 }), "committed 5"],
       [on("human", "u5", 5, { type: "edit", field: "x", value: 1 }), "committed 6"],
-      // Undoing 4 brings 3 back while 5 still undoes 2.
       [on("human", "u6", 6, { type: "undo", target: 4 }), "rejected:already-undone"],
       [on("human", "u6", 6, { type: "undo", target: 5 }), "rejected:conflict"],
       [on("human", "u6", 6, { type: "undo", target: 6 }), "committed 7"],
@@ -478,7 +443,6 @@ export const namedTraces: ReadonlyArray<NamedTrace> = [
     ],
   },
   {
-    // A person and an agent refine the same draft from version 1; the second is stale.
     name: "concurrent refinement of one draft",
     direct: false,
     steps: [
@@ -509,7 +473,6 @@ export const namedTraces: ReadonlyArray<NamedTrace> = [
     ],
   },
   {
-    // A draft accepted after the head moved is stale even when the field is untouched.
     name: "stale draft base",
     direct: true,
     steps: [
@@ -525,11 +488,6 @@ export const namedTraces: ReadonlyArray<NamedTrace> = [
   },
 ];
 
-/**
- * Run a named trace through the model and the real reducer in lock step. Both
- * must give the outcome the trace names, agree on every state, and the model
- * must hold its state invariants after every step.
- */
 export function runNamedTrace(
   t: NamedTrace,
   impl: Reduce = reduce,
@@ -558,22 +516,17 @@ export function runNamedTrace(
   return { outcomes };
 }
 
-// ── Broken implementations for the differential negative control ───────────
-
-/** Forgets request IDs: a retry is executed again as a new request. */
 export const forgetfulReduce: Reduce = (state, input, env) => {
   const step = reduce(state, input, env);
   if (step.outcome.kind !== "replayed" || typeof input !== "object" || input === null) return step;
   return reduce(state, { ...input, requestId: `retry-${step.outcome.receipt.requestId}` }, env);
 };
 
-/** Ignores the expected revision: a stale request is applied to the head. */
 export const staleReduce: Reduce = (state, input, env) => {
   if (typeof input !== "object" || input === null) return reduce(state, input, env);
   return reduce(state, { ...input, expectedRevision: state.head }, env);
 };
 
-/** Ignores draft versions: a refinement or acceptance of a stale version wins. */
 export const staleVersionReduce: Reduce = (state, input, env) => {
   if (typeof input !== "object" || input === null || !("command" in input))
     return reduce(state, input, env);

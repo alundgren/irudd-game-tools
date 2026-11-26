@@ -1,11 +1,3 @@
-// irudd-mcp: the workshop's MCP server for one paired agent, on stdio.
-//
-//   irudd mcp --credential <file> [--channel [--server <name>]]
-//
-// A person creates the credential with "irudd pair <agent-id>". The server
-// connects to the host that owns the credential's project and acts only as
-// that agent. stdout carries MCP messages; diagnostics go to stderr.
-
 import { parseArgs } from "node:util";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";

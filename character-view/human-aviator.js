@@ -21,7 +21,6 @@ const maps = new Map();
 function texture(raw, size, srgb) {
   const pixels = unpack(raw, Uint8Array),
     rgba = new Uint8Array(4 * size * size);
-  // Each colour plane is stored as horizontal differences to keep the packed maps small.
   for (let k = 0; k < 3; k++)
     for (let row = 0; row < size; row++) {
       const start = (k * size + row) * size;

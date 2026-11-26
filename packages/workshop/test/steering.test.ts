@@ -1,11 +1,3 @@
-// Steering through one host, in process over a real OS-local endpoint: the
-// durable outbox, recipient binding, the paired agent's inbox, acknowledgement
-// bound to the pairing, applied receipts, retries, restarts, revocation and
-// the Claude channel route.
-//
-// The T3 route here uses a FAKE transport that records what it is handed. It
-// proves the host's state machine, not delivery into a real conversation; the
-// named gate `pnpm --filter @irudd/hosts gate:t3` and the canary do that.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
@@ -205,7 +197,6 @@ test("a Claude channel route binds one exact MCP server instance and confirms ea
     } finally {
       mcp.close();
     }
-    // The instance went away: the route is offline and messages wait.
     await until(
       () => human.call("recipient.check", { agent: "claude" }),
       (v) => v.availability.state === "offline",

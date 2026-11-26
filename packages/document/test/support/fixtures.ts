@@ -1,4 +1,3 @@
-// Shared test helpers. Everything goes through the package's public entry.
 import {
   createRegistry,
   defaultFrameCreatureParams,
@@ -26,7 +25,6 @@ export const docId = Schema.decodeUnknownSync(DocumentId)("doc-fixture1");
 export const digest = Schema.decodeUnknownSync(Digest);
 export const catalogId = Schema.decodeUnknownSync(CatalogId);
 
-/** Small deterministic "artwork": distinct byte strings with real digests. */
 export function blob(name: string): {
   readonly digest: ReturnType<typeof digest>;
   readonly bytes: Uint8Array;
@@ -92,7 +90,6 @@ export function rejected(outcome: Outcome): Extract<Outcome, { kind: "rejected" 
   return outcome;
 }
 
-/** Apply envelopes in order, requiring each to commit. */
 export function run(
   state: DocumentState,
   env: Environment,
@@ -130,7 +127,6 @@ export function partBySlot(state: DocumentState, slot: string) {
   return p;
 }
 
-/** A hand-written manual document: two parts, a pose, painted artwork and a catalog part. */
 export function manualDocument(
   atlasBlob: { readonly digest: string; readonly bytes: Uint8Array },
   occluderBlob: { readonly digest: string; readonly bytes: Uint8Array },

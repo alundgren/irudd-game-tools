@@ -17,7 +17,6 @@ const gear = (f, id) => f.parts.find((p) => p.id === id);
 
 test("ordinary equipped draws carry editable gear without removing or reshaping animal regions", () => {
   const kinds = new Set();
-  // One full family deck of ordinary draws.
   for (let seed = 8700; seed < 8730; seed++) {
     const plan = randomCreaturePlan(seed);
     const dressed = validateForm(buildCreature(plan));

@@ -1,7 +1,3 @@
-// The editable adult human: typed data packs, the seeded draw, the surface
-// evaluator and the generator. Hosts load the packs once (`humanPackFiles`,
-// verified by SHA-256) and pass the decoded body to `humanAdultGenerator`.
-
 import { digestBrand, sha256Digest, type Digest } from "@irudd/document";
 import { readHumanBody, type HumanBody } from "./body.js";
 import { readHumanPaint, type HumanPaint } from "./paint-data.js";
@@ -10,11 +6,9 @@ export { rocketboxLicense } from "./credits.js";
 
 export interface HumanPackFile {
   readonly name: "body" | "captured" | "face" | "groom" | "cast" | "paint";
-  /** File name in packages/character/assets/human. */
   readonly file: string;
   readonly digest: Digest;
   readonly byteLength: number;
-  /** Where the packed arrays came from; each source's licence travels with exports that use it. */
   readonly sources: ReadonlyArray<string>;
 }
 
@@ -70,7 +64,6 @@ export const humanPackFiles: ReadonlyArray<HumanPackFile> = [
   },
 ];
 
-/** Verify and decode the packs. `read` returns a pack file's bytes by file name. */
 export async function loadHumanPacks(
   read: (file: string) => Promise<Uint8Array> | Uint8Array,
 ): Promise<HumanBody> {
@@ -87,7 +80,6 @@ export async function loadHumanPacks(
   return readHumanBody(body, captured, face, groom, cast);
 }
 
-/** The paint pack the textured presets need; the clay preset and the generator never read it. */
 export const humanPaintFile: HumanPackFile = {
   name: "paint",
   file: "human-paint.bin",
@@ -107,7 +99,6 @@ export const humanPaintFile: HumanPackFile = {
   ],
 };
 
-/** Verify and decode the paint pack. `read` returns its bytes by file name. */
 export async function loadHumanPaint(
   read: (file: string) => Promise<Uint8Array> | Uint8Array,
 ): Promise<HumanPaint> {
@@ -156,7 +147,6 @@ export {
   type PaintImage,
 } from "./paint-data.js";
 export * from "./cast-data.js";
-/** The pack format, for the one-off converter of the reference data. */
 export { readPack, writePack, type PackKind, type PackSpec } from "./pack.js";
 export * from "./catalogue.js";
 export {

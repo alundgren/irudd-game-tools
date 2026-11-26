@@ -1,19 +1,9 @@
-// Facial sculpting. Ported from deformFace in character-view/facial-sculpt.js
-// at 2761eb1, arithmetic in the same order so the vertices match. Local
-// displacements carry the UVs with the surface: X measures half-widths from
-// the centre, Y runs from chin to crown and +Z faces the camera.
-
 import type { FaceSculpt } from "@irudd/document";
 import * as T from "three";
 
 const bell = (x: number, y: number, cx: number, cy: number, rx: number, ry: number) =>
   Math.exp(-(((x - cx) / rx) ** 2) - ((y - cy) / ry) ** 2);
 
-/**
- * Move a face's eyes, mouth, lips, chin and smile by `sculpt`, and with
- * `includeStructure` its jaw, nose, brow and cheeks too. `chinFraction` of the
- * height below the chin is left out of the face's span. Unchanged at all ones.
- */
 export function deformFace(
   geometry: T.BufferGeometry,
   sculpt: FaceSculpt = {},

@@ -1,23 +1,9 @@
-// Pigment that follows the anatomy of a creature's limbs. Ported from
-// character-view/creature-limb-colour.js at 2761eb1.
-//
-// Its length is measured along the linked thigh, shin and foot (or upper
-// arm, forearm and hand), so the layers run on over each welded seam.
-//   A fleshy limb is paler on its inner face, creased darker at the joint and
-//   a little darker towards the foot, most on a hoofed leg.
-//   A bird leg is bare below the joint: the shank and foot take a horn colour.
-//   An arthropod leg has a pale membrane at each joint, a darker far segment
-//   and a dark tip.
-// `socks` with `limbFade` still fades the whole limb to its dark end. `socks`
-// alone colours the far parts in the plan, so no darker end is added here.
-
 import * as T from "three";
 import type { CreaturePlan } from "@irudd/document";
 import type { BuildPart } from "../view.js";
 
 const { smoothstep, clamp } = T.MathUtils;
 
-/** Tint a colour at a world point. */
 export type LimbTint = (color: T.Color, p: T.Vector3) => void;
 
 interface Segment {
@@ -58,7 +44,6 @@ export function limbPigments(
     }
     const firstSegment = segments[0];
     if (!length || !firstSegment) continue;
-    // A limb with no foot of its own ends a segment's length below its joint.
     if (segments.length === 1) length *= 2;
     const joint = firstSegment.size / length;
     const leg = !arm && limb?.kind === "leg" ? limb : undefined;
@@ -95,12 +80,10 @@ export function limbPigments(
       const crease = bell(at - joint, 0.03);
       const far = smoothstep(at, joint - 0.05, joint + 0.07);
       if (family === "arthropod") {
-        // The far segment is darker, the membrane of the joint pale, the tip nearly black.
         color.lerp(dark.copy(color).multiplyScalar(0.62), 0.75 * far);
         color.lerp(dark.copy(color).lerp(white, 0.5), 0.6 * bell(at - joint, 0.022));
         color.multiplyScalar(1 - 0.62 * smoothstep(at, 0.86, 0.98));
       } else if (family === "bird") {
-        // Bare horn: darker and greyer than the feathered or furred thigh.
         const grey = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
         color.lerp(dark.setScalar(grey), 0.3 * far).multiplyScalar(1 - 0.36 * far);
         color.multiplyScalar(1 - 0.14 * bell(at - joint, 0.02));
@@ -116,8 +99,6 @@ export function limbPigments(
             (hoofed ? 0.62 : 0.36) * smoothstep(at, hoofed ? 0.56 : 0.5, 0.96),
           );
       }
-      // Keep the body's native palette above the joint, arrive at the lower
-      // limb's darker colour before the foot, and keep the bottom readable.
       if (fade) color.lerp(shade, fade * 0.83 * smoothstep(at, 0.34, 0.97));
     };
     for (const id of chain.tinted) if (!byId.get(id)?.paint) result.set(id, tint);

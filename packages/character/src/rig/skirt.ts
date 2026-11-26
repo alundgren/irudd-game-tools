@@ -1,12 +1,3 @@
-// A skirt's cloth joints. Ported from addSkirtCage, weightSkirt and
-// animateSkirts in character-view/skirt-rig.js at 2761eb1.
-//
-// A grid of joints hangs from the skirt's waist joint, one station per row
-// and column of the pattern. The skin takes four ordinary joint weights per
-// vertex from the stations around it, and each clip carries the joints'
-// motion, baked from the legs that move in it, so a game needs no cloth
-// runtime or vertex animation.
-
 import * as T from "three";
 import { isMesh } from "../mesh.js";
 import type { Region } from "./region.js";
@@ -42,7 +33,6 @@ const item = <V>(list: ArrayLike<V>, i: number): V => {
   return v;
 };
 
-/** The cloth joints of a fitted skirt with a three-joint waist chain, added under its waist joint. */
 export function addSkirtCage(
   s: Region,
   bones: T.Bone[],
@@ -107,7 +97,6 @@ export function addSkirtCage(
       pins.push({ point: p, dir });
     }
   }
-  // The inset of nearby folds sets the usable clearance under this station.
   for (let i = 0; i < pts.length; i++) {
     const { c, r } = grid(uv.getX(i), 1 - uv.getY(i));
     for (const rr of [r, r + 1])
@@ -122,7 +111,6 @@ export function addSkirtCage(
   return { region: s, pins, centers, boneList, minRadius };
 }
 
-/** Weight a skirt's vertices to the four stations around each. */
 export function weightSkirt(
   cage: SkirtCage,
   g: T.BufferGeometry,
@@ -210,11 +198,6 @@ function envelope(
   return result;
 }
 
-/**
- * Bake each clip's cloth joint motion from the legs that move in it. The
- * skin has four ordinary joint weights per vertex; `regionIds` names the
- * part of each `_region` index on the skinned mesh.
- */
 export function animateSkirts(
   actor: T.Object3D,
   mesh: T.SkinnedMesh,

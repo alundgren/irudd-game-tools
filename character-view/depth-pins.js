@@ -14,7 +14,6 @@ export function validPins(pins) {
     )
   );
 }
-// Intersect the front surface at an exact XY position in the region's frame.
 export function frontDepth(geometry, x, y) {
   const a = geometry.attributes.position,
     indices = geometry.index?.array,

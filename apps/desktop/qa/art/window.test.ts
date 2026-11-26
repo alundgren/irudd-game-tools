@@ -1,8 +1,3 @@
-// The art panel's path through the desktop: the window methods it calls, main's
-// parameter checks, and the panel's own staging, reading and import helpers,
-// against the desktop's real project link (in-process host with the desktop's
-// translators). The IPC hop between preload and main is the only part left
-// out; it forwards the same values.
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -39,7 +34,6 @@ const repository = fileURLToPath(new URL("../../../../", import.meta.url));
 const fixtures = path.join(repository, "verification", "families", "fixtures");
 const assets = path.join(repository, "packages", "character", "assets");
 const registry = createRegistry({ features: familyFeatures, generators: [frameCreature] });
-// The desktop link keeps host state in the per-user root; keep it in a scratch root here.
 const stateRoot = fs.mkdtempSync(path.join(os.tmpdir(), "irudd-art-window-state-"));
 process.env["IRUDD_STATE_DIR"] = stateRoot;
 const scratch: string[] = [stateRoot];
@@ -53,7 +47,6 @@ function json(value: unknown): Json {
   return copy;
 }
 
-/** The renderer's typed caller (bridge.ts) over the window link, as preload hands it over IPC. */
 const windowCaller = (link: WorkshopLink): Workshop =>
   workshop({ call: (method, params) => link.call(method, params) });
 
@@ -160,10 +153,8 @@ test("a brief saved without its message is offered again as the same request, ne
     const [listed] = (await window.call("art.list", { documentId, all: true })).requests;
     assert.ok(listed);
     assert.equal(undelivered(listed), false, "a delivered brief is not offered again");
-    // The host's view of the same request had it stopped before writing the message.
     const orphan = { ...listed, steering: null };
     assert.equal(undelivered(orphan), true);
-    // The same brief built in another order is that request; another brief or agent is new.
     const { attachments, direction, ...rest } = brief;
     const reordered = { attachments, direction, ...rest };
     assert.equal(undeliveredRequestId([orphan], "claude", reordered), "window-orphan-0001");
@@ -173,7 +164,6 @@ test("a brief saved without its message is offered again as the same request, ne
     );
     assert.equal(undeliveredRequestId([orphan], "codex", brief), undefined);
     assert.equal(undeliveredRequestId([listed], "claude", brief), undefined);
-    // The card's send passes main's checks and lands on the same request.
     const again = await link.call("art.request", resendRequest(orphan));
     assert.ok(again.ok, JSON.stringify(again));
     const value: unknown = again.ok ? again.value : undefined;
@@ -182,7 +172,6 @@ test("a brief saved without its message is offered again as the same request, ne
     );
     assert.equal(value.artId, sent.artId);
     assert.equal(value.messageId, sent.messageId);
-    // Once the agent answered, it is no longer offered.
     await agent.call("art.submit", {
       artId: sent.artId,
       submissionId: "window-orphan-reply",
@@ -207,13 +196,11 @@ test("a brief saved without its message is offered again as the same request, ne
 
 test("the panel's brief, the agent's reply and a person's import travel the window path", async () => {
   await withWindow(async ({ link, window, agent, documentId, sheet }) => {
-    // The panel's own staging: the host measures what arrived.
     const view = await stagePicture(window, sheet);
     assert.equal(view.digest, sha256Digest(sheet));
     assert.equal(view.mediaType, sniffImage(sheet));
     assert.ok(view.width >= 512 && view.width === view.height);
 
-    // Turnaround: the panel waits for a region and a view before it sends.
     assert.deepEqual(briefNeeds("turnaround", [], []), [
       "a painted region",
       "a view of the character",
@@ -238,7 +225,6 @@ test("the panel's brief, the agent's reply and a person's import travel the wind
     const back = await readPicture(window, brief.artId, view.digest);
     assert.deepEqual(back.bytes, sheet);
 
-    // The paired agent answers from its own conversation.
     await agent.call("art.put", {
       digest: view.digest,
       mediaType: "image/webp",
@@ -261,14 +247,11 @@ test("the panel's brief, the agent's reply and a person's import travel the wind
     const listed = await window.call("art.list", { documentId, all: true });
     assert.equal(listed.requests[0]?.submissions[0]?.proposal?.status, "draft");
 
-    // A depth brief fits one painted part with its front and side views.
     assert.deepEqual(briefNeeds("depth", ["front"], []), [
       "one painted part to fit",
       "a side view",
     ]);
     assert.deepEqual(briefNeeds("depth", ["front", "side"], ["p-head"]), []);
-    // This link has no raster to fit a depth pass with: a person's import is
-    // checked and recorded, not proposed.
     const depth = await window.call("art.request", {
       agent: "claude",
       requestId: "window-brief-0002",
@@ -288,7 +271,6 @@ test("the panel's brief, the agent's reply and a person's import travel the wind
     assert.equal(depth.apply.available, false);
     const made = importedReply("depth", "Imported depth.png", { digest: view.digest });
     assert.ok("reply" in made);
-    // As the panel does: the untyped reply goes to main, which checks it against the schema.
     const outcome = await link.call("art.submit", {
       artId: depth.artId,
       submissionId: "window-import-0001",
@@ -300,11 +282,9 @@ test("the panel's brief, the agent's reply and a person's import travel the wind
     assert.equal(recorded.via, "person-import");
     assert.equal(recorded.by.kind, "human");
 
-    // A variation import must be a list of operations; a trace import is decoded by the host.
     assert.ok("problem" in importedReply("variation", "x", { json: { nope: 1 } }));
     assert.ok("problem" in importedReply("turnaround", "x", { json: [] }));
 
-    // Cancelling from the window closes the brief to later replies.
     const cancelled = await window.call("art.cancel", { artId: depth.artId });
     assert.equal(cancelled.state, "cancelled");
     await assert.rejects(

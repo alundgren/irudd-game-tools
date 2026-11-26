@@ -1,19 +1,3 @@
-// Typed binary packs for the adult human.
-//
-// The reference workshop shipped its human data as JSON holding base64 zlib
-// strings. The port converts each array once (verification/families/src/
-// human-pack.ts) into a pack: a small binary index followed by one zlib
-// stream per array. Each entry is declared here with its element type and,
-// where it is fixed, its length, so a reader gets typed arrays and refuses a
-// pack that is missing an entry, carries an unknown one or disagrees on type.
-//
-//   magic "IRHP", u32 version, u32 entry count
-//   per entry: u8 name length, ASCII name, u8 kind, u32 elements, u32 stored bytes
-//   the stored zlib streams in index order
-//
-// Decompression uses the platform's DecompressionStream, available in Node
-// and in the browser, so loading needs no extra library.
-
 export const packKinds = {
   u8: 1,
   u16: 2,
@@ -51,7 +35,6 @@ const kindByCode = new Map<number, PackKind>(kindList.map((k) => [packKinds[k], 
 export const packMagic = "IRHP";
 export const packVersion = 1;
 
-/** One declared entry: its element type and, when fixed, its element count. */
 export interface EntrySpec {
   readonly kind: PackKind;
   readonly elements?: number;
@@ -60,7 +43,6 @@ export type PackSpec = Readonly<Record<string, EntrySpec>>;
 
 export class PackError extends Error {}
 
-/** A decoded pack. Each accessor refuses an entry that is absent or of another type. */
 export class Pack {
   readonly #entries: ReadonlyMap<string, PackArrays[PackKind]>;
   readonly #what: string;
@@ -114,7 +96,6 @@ async function inflate(stored: Uint8Array): Promise<ArrayBuffer> {
   return new Response(stream).arrayBuffer();
 }
 
-/** Decode `bytes` as a pack that holds exactly the entries `spec` declares. */
 export async function readPack(bytes: Uint8Array, spec: PackSpec, what: string): Promise<Pack> {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   let at = 0;
@@ -178,7 +159,6 @@ export async function readPack(bytes: Uint8Array, spec: PackSpec, what: string):
   return new Pack(out, what);
 }
 
-/** Encode entries as a pack. `deflate` must produce a zlib stream (RFC 1950). */
 export function writePack(
   entries: ReadonlyArray<{
     readonly name: string;

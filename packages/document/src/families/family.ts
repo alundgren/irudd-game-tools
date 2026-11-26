@@ -1,9 +1,3 @@
-// Shared machinery for character family features.
-//
-// A family feature is a versioned, schema-checked payload on a part or on the
-// document. `family()` registers its definition and gives builders a typed
-// reader, so no consumer handles a payload as untyped JSON.
-
 import { Schema } from "effect";
 import type { Vec3 } from "../geometry.js";
 import type { Json, JsonObject } from "../json.js";
@@ -20,9 +14,7 @@ export interface Family<S extends Schema.Decoder<unknown>> {
   readonly scope: "document" | "part";
   readonly definition: FeatureDefinition;
   readonly schema: S;
-  /** The typed payload in `payloads`, or undefined when absent. Throws on an invalid payload. */
   readonly read: (payloads: JsonObject) => S["Type"] | undefined;
-  /** The JSON payload for a typed value. */
   readonly json: (value: S["Type"]) => Json;
 }
 
@@ -57,7 +49,6 @@ export function family<S extends Schema.Decoder<unknown>>(spec: {
   };
 }
 
-/** A finite number within the legacy editor's own bounds. */
 export const bounded = (minimum: number, maximum: number) =>
   Schema.Finite.check(Schema.isBetween({ minimum, maximum }));
 

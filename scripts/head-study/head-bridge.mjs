@@ -1,20 +1,9 @@
-// Serves the editable human's head to the Python head study over stdio.
-// Usage: node head-bridge.mjs [folder holding human-surface.js]
-// Requests are single JSON lines, replies are single JSON lines with base64 arrays:
-//   {"describe":true}
-//   {"evaluate":{"recipes":[...], "fits":[fit|null,...], "blink":0..1}}       cage vertices
-//   {"smooth":{"recipe":{...}, "fit":fit|null, "blink":0..1}}                  rendered (subdivided) vertices
-//   {"refine":{"human":{...}, "humanFit":fit|null, "positions":b64 f32, "indices":b64 u32, "region":"head"}}
-//   {"measure":{"human":{...}, "positions":b64 f32, "indices":b64 u32, "region":"head"}}
-// The generator modules are imported unchanged. `blink` adds the generator's own Blink
-// expression, because evaluateHuman has no expression argument and both scans have closed eyes.
 import { createInterface } from "node:readline";
 import { pathToFileURL } from "node:url";
 
 const base = process.argv[2] ? pathToFileURL(process.argv[2] + "/") : new URL("../../character-view/", import.meta.url);
 const S = await import(new URL("human-surface.js", base));
 const { evaluateHuman, smoothHumanSurface, expressionDisplacements, humanRange, humanControls } = S;
-// The study fits the measurements it was recorded with; later identity controls stay out.
 const humanAxes = S.humanFitAxes ?? S.humanAxes;
 
 const b64 = array => Buffer.from(array.buffer, array.byteOffset, array.byteLength).toString("base64");
@@ -26,7 +15,6 @@ function typed(text, Type) {
 function cage(recipe, fit, blink = 0) {
   const surface = evaluateHuman(recipe, fit ?? undefined);
   if (!blink) return surface;
-  // Same scaling as the expression morph targets in human-mesh.js.
   const delta = expressionDisplacements("Blink"), positions = surface.positions.slice();
   const amount = blink * surface.height / 1.72;
   for (let i = 0; i < positions.length; i++) positions[i] += amount * delta[i];
@@ -46,7 +34,6 @@ function headWeight(surface, vertices) {
 
 function describe() {
   const neutral = evaluateHuman({}), smooth = smoothHumanSurface(neutral), controls = humanControls();
-  // Lip, eyelid, mouth-interior and nail paint per smooth vertex, taken from any corner that uses it.
   const pigments = new Uint8Array(smooth.positions.length / 3 * 4);
   for (let corner = 0; corner < smooth.indices.length; corner++)
     pigments.set(smooth.pigments.subarray(smooth.uvFaces[corner] * 4, smooth.uvFaces[corner] * 4 + 4), smooth.indices[corner] * 4);

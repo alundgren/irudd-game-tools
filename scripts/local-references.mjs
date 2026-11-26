@@ -1,12 +1,3 @@
-// Private comparison material: what is installed here and how to rebuild it.
-//
-//   node scripts/local-references.mjs           list every optional set and what is missing
-//   node scripts/local-references.mjs --fetch   download and verify the MHR release archive
-//                                               into .reference-cache/mhr (about 190 MB)
-//
-// Reference rigs, scans and the fits and pictures made from them are ignored
-// by Git. The workshop builds and its tests pass without any of them.
-// docs/local-references.md explains each set.
 import { createHash } from "node:crypto";
 import { createReadStream, createWriteStream, existsSync } from "node:fs";
 import { mkdir, rename, rm } from "node:fs/promises";
@@ -25,8 +16,6 @@ export const mhrArchive = {
   file: ".reference-cache/mhr/assets.zip",
 };
 
-// Each set: the files the workshop or its documents look for, what they switch
-// on, and the commands that make them from the published source.
 export const referenceSets = [
   {
     name: "Momentum Human Rig, rest pose",
@@ -118,7 +107,6 @@ export const referenceSets = [
   },
 ];
 
-// Replaces examples/local-references.js in a browser bundle with what was found now.
 export function localReferencesPlugin() {
   return {
     name: "local-references",
@@ -141,7 +129,6 @@ async function sha256(file) {
   await pipeline(createReadStream(file), hash);
   return hash.digest("hex");
 }
-// Downloads the archive beside its final name and keeps it only when the hash matches.
 export async function fetchArchive(archive = mhrArchive, base = root) {
   const file = fileURLToPath(new URL(archive.file, base));
   if (!existsSync(file)) {

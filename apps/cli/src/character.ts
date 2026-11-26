@@ -1,11 +1,3 @@
-// Character files: save a document as a portable `.irudd-character` package
-// and open one into the project.
-//
-// The host does the work with the same service operation the desktop uses;
-// the CLI only resolves the path. Opening checks the whole file first and
-// writes nothing when the artwork, a pose or paint reference, a required
-// feature or a catalog does not fit this project.
-
 import fs from "node:fs";
 import path from "node:path";
 import type { Diagnostic } from "@irudd/document";
@@ -14,7 +6,6 @@ import { packageExtension } from "@irudd/workshop/contract";
 import { exit, positional, show, UsageError, withClient, type Verb } from "./commands.js";
 import * as format from "./format.js";
 
-/** A file-name-safe form of a label. */
 function safeName(label: string): string {
   const name = label
     .normalize("NFKD")

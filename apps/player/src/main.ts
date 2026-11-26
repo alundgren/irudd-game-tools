@@ -1,5 +1,3 @@
-// The offline GLB player: one self-contained HTML file with no network access.
-
 import { Player, mountControls } from "@irudd/player";
 import "@irudd/player/player.css";
 import "./style.css";

@@ -1,5 +1,3 @@
-// glTF animations target nodes globally. Collect the active scene's subtree
-// before exposing its clips, since each wardrobe rig bakes its own clearance.
 export function clipsForScene(gltf, index) {
   if (gltf.scenes.length === 1) return gltf.animations;
   const json = gltf.parser.json,

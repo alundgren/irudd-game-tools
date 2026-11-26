@@ -1,8 +1,6 @@
 import { BufferGeometry, Float32BufferAttribute, Vector3 } from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
-// Query the front surface and its painted UV at facial landmarks. Spatial
-// buckets make sampling two moving eyelids independent of face tessellation.
 export function faceProjector(g) {
   const pos = g.attributes.position,
     uv = g.attributes.uv,

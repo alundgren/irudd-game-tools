@@ -1,18 +1,9 @@
-// The prepared forms the desktop ships as starters, and the artwork they paint with.
-//
-// Only forms that verify against the frozen G0 exports at clay, Full, Game
-// and Portrait are listed (verification/families). Every
-// asset a listed form declares must resolve to bytes with a recorded origin:
-// a bundled sheet from @irudd/character, or a project blob listed below.
-// The build fails on anything else, so no unlicensed or private art ships.
-
 import { createHash } from "node:crypto";
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { bundledAsset } from "@irudd/character";
 import { digestBrand } from "@irudd/document";
 
-/** The verified forms, by fixture name. */
 export const verifiedForms = [
   "accepted-beetle",
   "arched-glider",
@@ -82,10 +73,6 @@ interface ProjectArtwork {
   readonly origin: { readonly kind: "project"; readonly license: "MIT"; readonly source: string };
 }
 
-/**
- * Project artwork embedded in tracked example forms, prepared into
- * verification/families/fixtures/blobs. Original art for this project.
- */
 const projectArtwork: ReadonlyArray<ProjectArtwork> = [
   {
     digest: "sha256:5610ea6c2945f2dfb88e1451cfea0f60fc383d982b56eb9bfad4349dc7ea549b",
@@ -262,10 +249,6 @@ function declared(document: unknown): { digest: string; mediaType: string; byteL
   });
 }
 
-/**
- * Copy the forms and the artwork they declare into `out`, and write
- * `artwork.json` (irudd.form-artwork v1) for the host's `loadForms`.
- */
 export function stageForms(
   repository: string,
   out: string,

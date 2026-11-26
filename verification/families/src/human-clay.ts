@@ -1,20 +1,3 @@
-// The seeded adult's clay export against G0, shared by the fast regression
-// (test/human-clay.test.ts) and the heavy gate (src/human-gate.ts).
-//
-// G0 exported seeded adults only dressed, at game and portrait, so the
-// undressed `#adult=SEED` clay references come from the frozen G0 build itself,
-// through its own Open form and Export GLB controls:
-//
-//   powershell -NoProfile -File verification/baseline/gpu-lock.ps1 verification/baseline/browser.py \
-//     export .reference-cache/g0/build .reference-cache/human-oracle \
-//     .reference-cache/g0/seeded/adult-491.form.json ... --presets clay
-//
-// A fresh export compares whole: every mesh bit for bit (the body skin, the
-// head skin with its five expressions, the eyes, the brows and lashes, the
-// teeth), the joints in the adult's standing posture, the Idle, Walk, Crouch
-// and Reach clips and the credits. The one planned difference is that joints
-// name their region by the document's part ID.
-
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import {
@@ -44,10 +27,6 @@ import { repository } from "./paths.js";
 
 export const humanOracleDir = join(repository, ".reference-cache", "human-oracle");
 
-/**
- * Every seeded adult of the frozen G0 fixtures, with the SHA-256 of its clay
- * reference export. 42 has a cast face and 8973 a scar that parts a brow.
- */
 export const adultClayReferences: ReadonlyArray<{
   readonly seed: number;
   readonly sha256: string;
@@ -65,7 +44,6 @@ export const adultClayReferences: ReadonlyArray<{
   { seed: 3782767734, sha256: "add68a01947e04599fdc1a772f4ef2ee0382ffa23082d6fc3204b24dffe965d1" },
 ];
 
-/** A store of adult documents, committing through the real reducer. */
 export function adultStore(body: HumanBody) {
   const env = memoryEnvironment(
     createRegistry({ features: familyFeatures, generators: [humanAdultGenerator(body)] }),
@@ -125,7 +103,6 @@ export async function clayBytes(doc: CharacterDocument, body: HumanBody): Promis
   return result.bytes;
 }
 
-/** Every attribute, index and morph target of each named mesh's primitives. */
 export function meshValues(glb: Glb): Map<string, Float64Array> {
   const out = new Map<string, Float64Array>();
   const meshes = records(glb.json["meshes"]);
@@ -146,11 +123,6 @@ export function meshValues(glb: Glb): Map<string, Float64Array> {
   return out;
 }
 
-/**
- * SHA-256 of every accessor in order, each value on a 1e-9 grid: the meshes,
- * the rig and the clips. The grid absorbs the last bit the posture solver's
- * quaternions may differ by.
- */
 export function accessorDigest(glb: Glb): string {
   const hash = createHash("sha256");
   const count = records(glb.json["accessors"]).length;
@@ -161,12 +133,9 @@ export function accessorDigest(glb: Glb): string {
 
 export interface ClayCheck {
   readonly comparison: Comparison;
-  /** Mesh values that are not bit-identical. */
   readonly meshes: ReadonlyArray<string>;
-  /** Accessors beyond 1e-15. */
   readonly accessors: ReadonlyArray<string>;
 }
-/** The whole comparison of a fresh clay export with its reference. */
 export function checkClay(
   reference: Uint8Array,
   fresh: Uint8Array,

@@ -25,7 +25,6 @@ def measure(mesh, names, yaw, height):
     ids = mesh.region_indices[triangles]
     region = np.where(ids[:, 1] == ids[:, 2], ids[:, 1], ids[:, 0])
     tx, ty, tz = x[triangles], y[triangles], z[triangles]
-    # Rasterize small blocks to bound temporary memory for long thin triangles.
     pixels, depths, owners = [], [], []
     for first in range(0, len(triangles), 128):
         a, b, d = (v[first:first + 128] for v in (tx, ty, tz))
@@ -48,7 +47,6 @@ def measure(mesh, names, yaw, height):
         depths.append(d[i, 0] + u[i,j,k] * (d[i,1] - d[i,0]) + v[i,j,k] * (d[i,2] - d[i,0]))
         owners.append(region[first + i])
     pixel, depth, owner = map(np.concatenate, (pixels, depths, owners))
-    # In each pixel the triangle nearest the camera has the greatest view depth.
     order = np.lexsort((-depth, pixel))
     front = order[np.r_[True, np.diff(pixel[order]) != 0]]
     result = {}

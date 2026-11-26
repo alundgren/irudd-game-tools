@@ -1,7 +1,3 @@
-// The preset outfits the port builds, by name. Kept apart from their
-// construction in ./outfits.ts so the generator's parameter schema and the
-// desktop main process read the names without the cloth and canvas code.
-
 export const presetOutfitNames = [
   "T-shirt and jeans",
   "Hoodie and joggers",

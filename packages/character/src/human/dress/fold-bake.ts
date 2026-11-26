@@ -1,9 +1,3 @@
-// Folds baked into a tailored garment's cloth for the game export
-// (character-view/human-fold-bake.js at 2761eb1). A game model is reduced to
-// fewer triangles than the folds were shaped with, so their broad
-// displacement is drawn into the garment's height tile first, with a little
-// occlusion in the recesses, and survives the reduction as relief.
-
 import * as T from "three";
 import type { Raster, RasterImage } from "../../raster.js";
 import type { DressMesh } from "./kit.js";
@@ -24,10 +18,6 @@ interface Panels {
   readonly source: ReadonlyArray<number>;
 }
 
-/**
- * The print charts on a tailored garment project front to back. The folds on
- * a knee and behind it differ, so give them separate halves of the tile.
- */
 function foldPanels(piece: DressMesh): Panels | null {
   const g = piece.mesh.geometry,
     p = g.getAttribute("position"),
@@ -89,7 +79,6 @@ function foldPanels(piece: DressMesh): Panels | null {
   return { geom, boneIndices, weights, indices, panels, source };
 }
 
-/** Each texel's fold height, per panel, from the nearest cloth over it. */
 function rasterFolds(
   panel: Panels,
   source: T.BufferGeometry,
@@ -137,7 +126,6 @@ function rasterFolds(
         }
       }
   }
-  // Extend the shading at an outside UV edge far enough for tile filtering.
   for (let pass = 0; pass < 2; pass++) {
     const from = zbuf.slice();
     for (let y = 1; y < h - 1; y++)
@@ -155,12 +143,6 @@ function rasterFolds(
   return folds;
 }
 
-/**
- * Transfer the broad displacement field to the height tile before reduction.
- * The short-wavelength yarn height and the existing roughness share the new
- * chart. Returns the piece with its paneled geometry and skin, or the piece
- * as it was when it has no folds or no woven surface to bake them into.
- */
 export function bakeGameFolds(raster: Raster, piece: DressMesh): DressMesh {
   const mesh = piece.mesh,
     m = mesh.material,
@@ -197,9 +179,6 @@ export function bakeGameFolds(raster: Raster, piece: DressMesh): DressMesh {
     surface = relief.getImageData(0, 0, 2 * w, h);
   const scale = 0.034,
     yarn = m.bumpScale;
-  // Recesses collect a little occlusion even on snug garments whose ridges
-  // stand completely above the resting cloth. Sample neighbouring ridges on
-  // the same panel. Denim also wears lighter on the raised yarn at a crease.
   const worn = /denim|jeans/i.test(m.name);
   const stride = 2 * w,
     reach = Math.max(2, Math.round(h / 60));

@@ -37,7 +37,6 @@ def body_mask(human):
         if opacity < .04:
             continue
         pen.polygon([tuple(v) for v in points[corners]], fill=round(255*opacity))
-    # Filtering near a UV seam must sample a flat tangent vector on either side.
     return ndimage.gaussian_filter(ndimage.minimum_filter(np.asarray(image) / 255., size=5), 2.)
 
 
@@ -54,7 +53,6 @@ def pack(source, destination):
         return np.asarray(im.resize((SIZE, SIZE), Image.Resampling.LANCZOS)) / 255
     n = 2 * pixels("*_NRM.png") - 1
     slope = n[..., :2] / np.maximum(.5, n[..., 2:3])
-    # Remove the donor's broad body shape. Small folds stay where a joint bends.
     slope -= ndimage.gaussian_filter(slope, (8, 8, 0))
     slope *= mask[..., None] * .94
     vec = np.dstack([slope, np.ones_like(mask)])

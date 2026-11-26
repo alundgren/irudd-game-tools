@@ -1,6 +1,3 @@
-// Flank markings painted into a creature's hide along its own spine. Ported
-// from character-view/creature-flank-markings.js at 2761eb1.
-
 import * as T from "three";
 
 const { smoothstep } = T.MathUtils;
@@ -11,10 +8,6 @@ const ocelli: ReadonlyArray<readonly [number, number, number, number]> = [
   [0.72, 0.13, 0.13, 0.38],
 ];
 
-/**
- * Paint at a station from the hips (0) to the shoulders (1) and a height
- * across the flank (0 at the midline, positive towards the back).
- */
 export type FlankPaint = (
   colour: T.Color,
   station: number,

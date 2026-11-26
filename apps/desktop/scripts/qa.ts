@@ -1,16 +1,3 @@
-// Hidden end-to-end run of the built desktop app on the hardware GPU.
-//
-//   pnpm --filter @irudd/desktop build
-//   pnpm --filter @irudd/desktop qa [-- --keep] [--scale 1.5]
-//
-// Starts the real app with --hidden (the window is never shown, so the
-// desktop foreground is untouched) on a fresh project, user-data and host
-// state directory, and drives it through its own page: start a form, select,
-// rename, resize, conflict, proposal preview/accept/reject by a paired agent,
-// undo and redo, export, playback, an inspection sheet, a reopened project and
-// an arbitrary GLB without a recipe. Dialogs are answered by replacing
-// dialog.showOpenDialog in this run's main process. Nothing here ships.
-
 import assert from "node:assert/strict";
 import {
   copyFileSync,
@@ -44,7 +31,6 @@ const projectDir = join(scratch, "project");
 const userData = join(scratch, "user-data");
 const stateDir = join(scratch, "state");
 const repository = resolve(appDir, "..", "..");
-// Exercise installed-style lookup, including forms, with no adjacent sources or node_modules.
 const distribution = join(scratch, "Workshop App");
 if (!installed) {
   mkdirSync(distribution);
@@ -79,7 +65,6 @@ interface Running {
   close(): Promise<void>;
 }
 
-/** Select the person's editor even when the isolated review worker attaches first. */
 async function editorPage(context: BrowserContext): Promise<Page> {
   const found = Promise.withResolvers<Page>();
   const watched = new Set<Page>();
@@ -110,10 +95,6 @@ async function editorPage(context: BrowserContext): Promise<Page> {
   }
 }
 
-/**
- * Start the real executable, as the launcher does, plus a DevTools endpoint on
- * an ephemeral loopback port that closes with the app.
- */
 async function launch(extra: string[]): Promise<Running> {
   const child = spawn(
     installed ?? electronExecutable(),
@@ -170,7 +151,6 @@ async function launch(extra: string[]): Promise<Running> {
       page,
       browser,
       async close() {
-        // Close the window as a person would; main closes the project on quit.
         await page.evaluate(() => window.close()).catch(() => undefined);
         const timeout = setTimeout(() => child.kill(), 20_000);
         await exited;
@@ -248,7 +228,6 @@ try {
     assert.equal(info.dpr, scale, "requested device scale in the real window");
   results.push({ step: "viewport", ms: 0, detail: JSON.stringify(info) });
   const [cw = 0, ch = 0, cssW = 0, cssH = 0] = info.canvas;
-  // clientWidth is rounded to whole CSS pixels, so allow one device pixel.
   assert.ok(Math.abs(cw - cssW * info.dpr) <= info.dpr, "viewport is drawn at device resolution");
   assert.ok(Math.abs(ch - cssH * info.dpr) <= info.dpr, "viewport is drawn at device resolution");
   assert.equal(existsSync(join(projectDir, "workshop.sqlite")), true);
@@ -356,7 +335,6 @@ try {
 
   await step("a stale proposal that conflicts with a manual edit", async () => {
     assert.ok(agent);
-    // Based on revision 1, before the person renamed the head to "snout".
     const created = await agent.call(
       "apply",
       envelope(
@@ -411,8 +389,6 @@ try {
     assert.match(history ?? "", /qa-agent/);
   });
 
-  // Real pointer input on the real canvas. The X arrow is found from the
-  // window's own frames: pixels that turn red when the Move gizmo appears.
   const position = async (part: string): Promise<number[]> => {
     assert.ok(agent);
     const head = await agent.call("inspect", { documentId });
@@ -428,7 +404,6 @@ try {
     page.evaluate(async () => {
       const canvas = document.querySelector("#viewport canvas");
       if (!(canvas instanceof HTMLCanvasElement)) throw new Error("No viewport canvas.");
-      // Capture right after the viewport draws in the same frame, while its drawing buffer is valid.
       const frame = (tool: string) =>
         new Promise<ImageBitmap>((resolve, reject) => {
           const b = document.getElementById(tool);
@@ -457,7 +432,6 @@ try {
           points.push([(i / 4) % moving.width, Math.floor(i / 4 / moving.width)]);
       }
       if (points.length < 20) throw new Error(`Only ${points.length} red gizmo pixels.`);
-      // The X handles lie on one line: its principal direction, and a point near one arrow.
       const mx = points.reduce((s, p) => s + p[0], 0) / points.length;
       const my = points.reduce((s, p) => s + p[1], 0) / points.length;
       let sxx = 0;
@@ -497,7 +471,6 @@ try {
     await page.mouse.move(arrow.x, arrow.y);
     await page.mouse.down();
     await page.mouse.move(arrow.x + arrow.ux * 60, arrow.y + arrow.uy * 60, { steps: 12 });
-    // Held: the gizmo has moved the part on screen, and nothing is committed yet.
     assert.equal(await revision(page), at, "a drag in progress commits nothing");
     assert.deepEqual(await position("p-body"), before, "the stored part stays put during the drag");
     await page.mouse.up();
@@ -532,7 +505,6 @@ try {
     await page.mouse.down();
     await page.mouse.move(box.x + 160, box.y + 90, { steps: 10 });
     await page.mouse.up();
-    // Two frames for any change to show, then the revision is unchanged.
     await page.evaluate(
       () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))),
     );
@@ -549,7 +521,6 @@ try {
     await page.mouse.move(arrow.x, arrow.y);
     await page.mouse.down();
     await page.mouse.move(arrow.x + arrow.ux * 50, arrow.y + arrow.uy * 50, { steps: 10 });
-    // The pointer stays held while the agent's edit of the same part commits.
     const remote = await agent.call("apply", {
       request: {
         format: "irudd.command",
@@ -582,7 +553,6 @@ try {
     await page.click("#banner button:has-text('Dismiss')");
   });
 
-  // Steering over the inbox route only: QA never pushes into a real T3, Claude or Codex conversation.
   await step("steer the paired agent: bind, send, acknowledge, apply, cancel", async () => {
     assert.ok(agent);
     await page.waitForSelector("#steering .steer-identity:has-text('qa-agent')");
@@ -626,7 +596,6 @@ try {
     await agent.call("inbox.applied", { messageId: message.messageId, documentId, requestId });
     await page.waitForSelector(`${item} .step.on:has-text('Applied in revision ${now + 1}')`);
 
-    // A draft is not a change: linked to a proposal, the message awaits review until accepted.
     await page.fill("#steering textarea", "Suggest a longer tail as a proposal");
     await page.click("#steering button:has-text('Send to qa-agent')");
     const drafted = "#steering .steer-messages li:has-text('Suggest a longer tail')";

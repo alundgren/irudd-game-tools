@@ -1,6 +1,5 @@
 import { Color, Float32BufferAttribute, MathUtils, Vector3 } from "three";
 
-// The plan limb that each built limb came from, by the name the plan gave it.
 function limbsByName(plan) {
   const counters = {}, named = new Map();
   for (const limb of plan?.limbs ?? []) for (let i = 0; i < limb.pairs; i++)
@@ -12,16 +11,6 @@ function limbsByName(plan) {
   return named;
 }
 
-// Pigment follows the anatomy of a limb. Its length is measured along the
-// linked thigh, shin and foot (or upper arm, forearm and hand), so the layers
-// run on over each welded seam.
-//   A fleshy limb is paler on its inner face, creased darker at the joint and
-//   a little darker towards the foot, most on a hoofed leg.
-//   A bird leg is bare below the joint: the shank and foot take a horn colour.
-//   An arthropod leg has a pale membrane at each joint, a darker far segment
-//   and a dark tip.
-// `socks` with `limbFade` still fades the whole limb to its dark end. `socks`
-// alone colours the far parts in the plan, so no darker end is added here.
 export function limbPigments(form, objects) {
   const plan = form.origin?.plan, skin = plan?.skin;
   const result = new Map();
@@ -59,7 +48,6 @@ export function limbPigments(form, objects) {
       length += size;
     }
     if (!length || !segments.length) continue;
-    // A limb with no foot of its own ends a segment's length below its joint.
     if (segments.length === 1) length *= 2;
     const joint = segments[0].size / length;
     const hoofed = !arm && limb?.end === "hoof";
@@ -88,12 +76,10 @@ export function limbPigments(form, objects) {
       }
       const crease = bell(at - joint, 0.03), far = MathUtils.smoothstep(at, joint - 0.05, joint + 0.07);
       if (family === "arthropod") {
-        // The far segment is darker, the membrane of the joint pale, the tip nearly black.
         color.lerp(dark.copy(color).multiplyScalar(0.62), 0.75 * far);
         color.lerp(dark.copy(color).lerp(white, 0.5), 0.6 * bell(at - joint, 0.022));
         color.multiplyScalar(1 - 0.62 * MathUtils.smoothstep(at, 0.86, 0.98));
       } else if (family === "bird") {
-        // Bare horn: darker and greyer than the feathered or furred thigh.
         grey = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
         color.lerp(dark.setScalar(grey), 0.3 * far).multiplyScalar(1 - 0.36 * far);
         color.multiplyScalar(1 - 0.14 * bell(at - joint, 0.02));
@@ -102,8 +88,6 @@ export function limbPigments(form, objects) {
         color.multiplyScalar(1 - 0.24 * crease);
         if (!skin.socks) color.lerp(dark.copy(color).multiplyScalar(0.5), (hoofed ? 0.62 : 0.36) * MathUtils.smoothstep(at, hoofed ? 0.56 : 0.5, 0.96));
       }
-      // Keep the body's native palette above the joint, arrive at the lower
-      // limb's darker colour before the foot, and keep the bottom readable.
       if (fade) color.lerp(shade, fade * 0.83 * MathUtils.smoothstep(at, 0.34, 0.97));
     }
     for (const part of form.parts) {

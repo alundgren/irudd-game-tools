@@ -1,22 +1,13 @@
-// Joints that a free tail of hair is skinned to, and how they move.
-// A groom marks which of its points are the tail, where it is tied and how long it hangs (`humanWeights.hairJoints`).
-// Here the tail gets two joints under the head, one at the tie and one half way down, and every clip gets their
-// motion: the tail hangs from the tie whatever the head does, turns with the head, rests on the neck and the back,
-// and follows a little late and a little past, like a weight on a spring.
-//   addTailJoints(regions, bones, index)   bones for every tail on the figure
-//   animateTails(actor, tails, clips)      their tracks in each clip
 import { AnimationMixer, Bone, LoopOnce, Matrix3, Quaternion, QuaternionKeyframeTrack, Vector3 } from "three";
 import { humanBinding } from "./human-mesh.js";
 
 const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
 const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 const UP = new Vector3(0, 1, 0);
-/** How the tail moves. `hang` is how far each joint hangs from the tie instead of standing with the head. */
 export const TAIL = { hang: [.7, .92], spring: [[12, .32], [8.5, .26]], reach: .45, clear: .96, sway: [.11, .24], bounce: [.04, .1] };
 
 export function addTailJoints(regions, bones, index) {
   const tails = [], found = new Map();
-  // Bones carry no turn in the fitting pose, so a bone stands where the offsets up its chain add to.
   const rest = bone => { const v = new Vector3(); for (let o = bone; o?.isBone; o = o.parent) v.add(o.position); return v; };
   for (const s of regions.values()) for (const source of s.meshes ?? []) {
     const meta = source.humanWeights?.hairJoints;
@@ -26,7 +17,6 @@ export function addTailJoints(regions, bones, index) {
     if (!head || !chest) continue;
     source.updateMatrixWorld(true);
     const matrix = source.matrixWorld, scale = new Vector3().setFromMatrixScale(matrix).y, tie = new Vector3(meta.tie[0] - meta.head[0], meta.tie[1] - meta.head[1], meta.tie[2] - meta.head[2]).applyMatrix3(new Matrix3().setFromMatrix4(matrix)).add(rest(head)), long = meta.long * scale;
-    // The middle line of the tail half way down and at its end.
     const pos = source.geometry.attributes.position, p = new Vector3(), sums = [new Vector3(), new Vector3()], n = [0, 0];
     for (let i = meta.from; i < meta.from + meta.count; i++) {
       p.fromBufferAttribute(pos, i).applyMatrix4(matrix);
@@ -39,7 +29,6 @@ export function addTailJoints(regions, bones, index) {
     const make = (name, at, parent, from) => {
       const made = new Bone();
       made.name = "J" + bones.length + "_" + name;
-      // Moved by the hair, never posed by hand.
       made.userData.garmentSupport = true;
       made.position.copy(at).sub(from);
       parent.add(made);
@@ -52,7 +41,6 @@ export function addTailJoints(regions, bones, index) {
     found.set(meta, tail);
     tails.push(tail);
   }
-  /** Moves the weights of a point of the tail from the bones of the body to its joints, the more the lower it hangs. */
   tails.weigh = meta => {
     const tail = found.get(meta);
     if (!tail) return null;
@@ -73,7 +61,6 @@ export function addTailJoints(regions, bones, index) {
   return tails;
 }
 
-// A value following its goal like a weight on a spring: late, and a little past it.
 function follow(goal, dt, omega, zeta, loop, cap) {
   const n = goal.length, out = goal.slice();
   if (n < 3) return out;
@@ -81,7 +68,6 @@ function follow(goal, dt, omega, zeta, loop, cap) {
   let x = goal[0], v = 0;
   const advance = (from, to) => { for (let i = 1; i <= steps; i++) { const g = from + (to - from) * i / steps; v += (omega * omega * (g - x) - 2 * zeta * omega * v) * h; x += v * h; } };
   if (loop) {
-    // Round the loop until the motion repeats.
     for (let round = 0; round < 6; round++) for (let k = 0; k < count; k++) { advance(goal[(k + count - 1) % count], goal[k]); out[k] = x; }
     out[n - 1] = out[0];
   } else for (let k = 1; k < n; k++) { advance(goal[k - 1], goal[k]); out[k] = x; }
@@ -90,17 +76,14 @@ function follow(goal, dt, omega, zeta, loop, cap) {
 
 const nearest = (p, a, b, out) => { out.subVectors(b, a); const t = clamp(p.clone().sub(a).dot(out) / (out.lengthSq() || 1), 0, 1); return out.multiplyScalar(t).add(a); };
 
-/** Where the two joints of a tail hang at each sampled pose: for each pose, the turn of each joint in the world. */
 function solve(tail, states, dt, loop, gait) {
   const { tie, mid, tip, restHead, restChest } = tail, still = states.length < 3, on = new Vector3(), q = new Quaternion();
   const rests = [mid, tip], lengths = [mid.distanceTo(tie), tip.distanceTo(mid)], dirs = [mid.clone().sub(tie).normalize(), tip.clone().sub(mid).normalize()];
-  // The tail keeps as clear of the neck and the back as it was cut.
   const clear = rests.map(p => p.distanceTo(nearest(p, restHead, restChest, on)) * TAIL.clear);
   const goals = rests.map((p, i) => states.map(s => {
     const rigid = p.clone().sub(restHead).applyMatrix4(s.matrix), hang = p.clone().sub(tie).applyAxisAngle(UP, s.yaw).add(s.tie);
     return rigid.lerp(hang, TAIL.hang[i]);
   }));
-  // A walker's head rolls from foot to foot and drops on each: the tail swings across once a stride and lifts off the back twice.
   if (gait) goals.forEach((list, i) => list.forEach((p, k) => {
     const s = states[k], t = k / (states.length - 1) * Math.PI * 2, reach = lengths[0] + (i ? lengths[1] : 0);
     const across = TAIL.sway[i] * reach * Math.sin(t), back = -TAIL.bounce[i] * reach * (.5 + .5 * Math.cos(2 * t + .6));
@@ -133,7 +116,6 @@ function solve(tail, states, dt, loop, gait) {
   });
 }
 
-/** Writes the motion of every tail into the clips, replacing what an earlier call wrote. */
 export function animateTails(actor, tails, clips) {
   if (!tails.length) return;
   const mixer = new AnimationMixer(actor), q = new Quaternion(), z = new Vector3();

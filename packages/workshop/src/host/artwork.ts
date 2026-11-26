@@ -1,13 +1,3 @@
-// Artwork shipped beside prepared forms, and its staging into a project.
-//
-// A forms directory may hold `artwork.json`: every file a form declares in
-// `assets`, with its SHA-256 digest, media type, size and origin (project art
-// under the repository's MIT licence, or credited third-party material). The
-// build writes it from an explicit list. Bytes are verified when the host
-// loads them, again by `putBlob` when `start` stages them, and a digest that
-// neither the project nor the forms can supply refuses the start before
-// anything is written.
-
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -15,17 +5,13 @@ import { Effect, Exit } from "effect";
 import { isJsonArray, isJsonObject, type Json } from "@irudd/document";
 import type { Project, Session } from "../contract/project.js";
 
-/** Where a shipped artwork file came from and the licence it ships under. */
 export interface ArtworkOrigin {
   readonly kind: "project" | "credited";
   readonly license: string;
-  /** Tracked source of the bytes, for example a path at a commit. */
   readonly source: string;
-  /** Credit text exports must carry; credited material only. */
   readonly credit?: string;
 }
 
-/** Bytes a prepared form declares in `assets`, shipped beside it with their origin. */
 export interface FormArtwork {
   readonly digest: string;
   readonly mediaType: string;
@@ -37,12 +23,10 @@ export const formArtworkFile = "artwork.json";
 export const formArtworkFormat = "irudd.form-artwork";
 export const formArtworkVersion = 1;
 
-/** One entry of `artwork.json`, as the build writes it. */
 export interface ArtworkRecord {
   readonly digest: string;
   readonly mediaType: string;
   readonly byteLength: number;
-  /** Path relative to the forms directory, with forward slashes. */
   readonly file: string;
   readonly origin: ArtworkOrigin;
 }
@@ -84,11 +68,6 @@ function recordOf(value: unknown): ArtworkRecord | undefined {
 const sha256 = (bytes: Uint8Array): string =>
   `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 
-/**
- * Read and verify the artwork manifest of a forms directory. No manifest means
- * no shipped artwork. Every problem is reported; a file whose bytes do not
- * match its digest is not offered.
- */
 export function readFormArtwork(
   directory: string,
   problems: string[],
@@ -136,7 +115,6 @@ export function readFormArtwork(
   return found;
 }
 
-/** Digests a document declares in `assets`, in order. */
 export function declaredAssets(document: Json): ReadonlyArray<string> {
   if (!isJsonObject(document)) return [];
   const assets = document["assets"];
@@ -162,12 +140,6 @@ export type StageOutcome =
       readonly digests: ReadonlyArray<string>;
     };
 
-/**
- * Make every asset a form declares available in the project's blob store
- * before the document is created. A digest the project already stores is
- * kept; a shipped file is staged through `putBlob`, which verifies it again.
- * Nothing is staged when any digest is unresolved.
- */
 export async function stageFormArtwork(
   project: Project,
   session: Session,

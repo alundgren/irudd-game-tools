@@ -1,6 +1,3 @@
-// Fast CLI checks that need no host: help, usage errors and the message an
-// operator sees when no host owns the project. Writes against a running host
-// are covered by the clients gate (apps/mcp/test/clients.gate.ts).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
@@ -29,7 +26,6 @@ function irudd(...args: string[]): Promise<{ code: number; stdout: string; stder
 }
 
 test("help, usage errors and a missing host give an operator the next step", async () => {
-  // Concurrent: each run is a cold Node start, and none needs a host.
   const [help, verb, unknown, noProject, badOption, noHost] = await Promise.all([
     irudd("help"),
     irudd("accept", "--help"),

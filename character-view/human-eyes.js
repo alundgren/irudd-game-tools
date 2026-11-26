@@ -4,7 +4,6 @@ import {randomStream} from "./random.js";
 import {unzlibSync} from "three/addons/libs/fflate.module.js";
 import stroma from "./human-iris-data.json" with {type: "json"};
 
-// Each iris runs from a warmer ring at the pupil, through its main colour, to a dark limbal ring.
 const irisTones={
   "dark brown":[[66,40,25],[88,54,33],[32,20,14]],
   brown:[[126,76,38],[130,83,47],[50,32,21]],
@@ -16,13 +15,10 @@ const irisTones={
 };
 export const eyeColorNames=Object.keys(irisTones);
 export const irisBaseTone = name => irisTones[name]?.[1];
-// The iris radius in the iris image, where 1 is the image edge. The image carries the limbus
-// and a narrow margin of white around it for the edge of the moving cornea.
 export const irisRadius=.7;
 const white=[224,218,211];
 
 const seedOf=form=>(form.origin?.seed??0)>>>0;
-// Dark irises are the common case. Lighter ones appear more often with lighter skin.
 export function defaultEyeColor(form){
   const skin=new T.Color(form.appearance?.skin??"#b98a6c"),light=.299*skin.r+.587*skin.g+.114*skin.b;
   const draw=randomStream(seedOf(form)^0x51ed27)();
@@ -36,8 +32,6 @@ export function defaultEyeColor(form){
 }
 
 const smooth=(v,a,b)=>{const t=Math.min(1,Math.max(0,(v-a)/(b-a)));return t*t*(3-2*t);};
-// The front of one eye along its own axis: pupil, iris, a soft limbus and the white around it.
-// It holds no light and no lid shadow. Those belong to the scene and to the socket.
 const irisPatterns = [];
 function stromaSampler(index, rotation) {
   const {width, height} = stroma;
@@ -63,8 +57,6 @@ export function irisPixels(name,seed=0,size=256){
     let c=white.slice();
     if(q<1.12){
       const fibres=sample(q,angle);
-      // The stroma is a shallow bowl: brightest at the collarette round the pupil, falling
-      // away to the limbal ring. Its fibres are low relief, so they stay quiet.
       const body=smooth(q,.36,.66),rim=smooth(q,.66,.98),ring=Math.exp(-(((q-.46)/.09)**2)),bowl=1-.2*smooth(q,.5,.92);
       const iris=[0,1,2].map(k=>{
         let v=tones[0][k]+(tones[1][k]-tones[0][k])*body;
@@ -73,8 +65,6 @@ export function irisPixels(name,seed=0,size=256){
       });
       const hole=1-smooth(r,pupil-.035,pupil+.03);
       for(let k=0;k<3;k++)iris[k]=iris[k]*(1-hole)+[9,8,9][k]*hole;
-      // The limbus is a gradient about a tenth of the iris radius wide, not a cut line. Just
-      // outside it the white is a little grey, where the cornea's edge overlies it.
       const inside=1-smooth(q,.9,1.08),halo=.1*(1-smooth(q,1,1.1));
       c=c.map((v,k)=>(v*(1-halo*[1,.9,.75][k]))*(1-inside)+iris[k]*inside);
     }
@@ -82,8 +72,6 @@ export function irisPixels(name,seed=0,size=256){
   }
   return out;
 }
-// The white of the eye as the socket shows it: faint mottling and a few fine vessels that
-// grow from both corners. The lids' shadow is laid over it per head, on the mesh.
 export function scleraPixels(seed=0,size=256){
   const next=randomStream(seed^0x2c1b3c6d),out=new Uint8ClampedArray(size*size*4);
   const vessels=Array.from({length:14},(_,k)=>{
@@ -117,7 +105,6 @@ function texture(pixels,width,height,srgb){
   map.anisotropy=4;map.needsUpdate=true;
   return map;
 }
-// One image, twice as wide as tall: the eye's front on the left and the socket's white on the right.
 function eyeTexture(name,seed,complexion){
   const capture = capturedIris(complexion);
   const key="eye/"+name+"/"+seed+(capture ? "/"+complexion : "");
@@ -148,14 +135,12 @@ function eyeTexture(name,seed,complexion){
   }
   return cache.get(key);
 }
-// The cornea is the smoothest surface on the head. The white is moist but far more diffuse.
 export const eyeRoughness={cornea:.26,white:.5};
 function roughnessTexture(){
   if(!cache.has("eye/roughness")){
     const size=128,pixels=new Uint8ClampedArray(2*size*size*4);
     for(let j=0;j<size;j++)for(let i=0;i<2*size;i++){
       const x=(i+.5)/size*2-1,y=1-(j+.5)/size*2,q=Math.hypot(x,y)/irisRadius;
-      // Top band of the sclera half (v > 0.87, unused by the sclera mesh) carries the wet tear meniscus roughness.
       const meniscus=i>=size&&(j+.5)/size<.13;
       const wet=i<size?1-smooth(q,1,1.1):0,value=meniscus?.15:eyeRoughness.white+(eyeRoughness.cornea-eyeRoughness.white)*wet;
       pixels.set([255,Math.round(255*value),0,255],(j*2*size+i)*4);
@@ -165,15 +150,9 @@ function roughnessTexture(){
   return cache.get("eye/roughness");
 }
 
-/* The opening the lids leave over the ball, as a viewer in front of the face sees it. A lid's
-   edge can stand a few millimetres proud of the ball and overhang it, so the opening is read
-   from what the lid skin covers: every point of the ball's front that has skin before it is
-   closed. `a` runs across one eye from the nose side outward and `y` runs up, both from the
-   ball's centre. */
 export function lidOpening(skin,centre,radius,side){
   const p=skin.geometry.attributes.position.array,index=skin.geometry.index.array;
   const wide=192,tall=128,spanA=1.02*radius,spanY=.68*radius,cellA=2*spanA/wide,cellY=2*spanY/tall;
-  // The ball's depth at each cell, then the frontmost skin over it.
   const open=new Uint8Array(wide*tall),ball=new Float32Array(wide*tall);
   for(let j=0;j<tall;j++)for(let i=0;i<wide;i++){
     const a=-spanA+(i+.5)*cellA,y=-spanY+(j+.5)*cellY,d=radius*radius-a*a-y*y;
@@ -200,7 +179,6 @@ export function lidOpening(skin,centre,radius,side){
       if(f*u[2]+g*v[2]+h*w[2]>ball[j*wide+i])open[j*wide+i]=0;
     }
   }
-  // In each column the opening is the tallest open run.
   const low=new Float32Array(wide).fill(NaN),high=new Float32Array(wide).fill(NaN);
   let first=-1,last=-1;
   for(let i=0;i<wide;i++){
@@ -215,7 +193,6 @@ export function lidOpening(skin,centre,radius,side){
     if(first<0)first=i;last=i;
   }
   if(first<0||last-first<12)return null;
-  // Keep the run of columns that holds the widest part, should stray openings lie beside it.
   let widest=first;
   for(let i=first;i<=last;i++)if(high[i]-low[i]>(high[widest]-low[widest]||0))widest=i;
   first=last=widest;
@@ -231,7 +208,6 @@ export function lidOpening(skin,centre,radius,side){
     const f=T.MathUtils.clamp((a-inner)/(outer-inner)*columns-.5,0,columns-1),k=Math.min(columns-2,Math.floor(f));
     return values[k]+(values[k+1]-values[k])*(f-k);
   };
-  // Past either corner the lids are closed on the corner's own height.
   const corner=k=>(bottom[k]+top[k])/2,close=a=>smooth(a,inner,inner+(outer-inner)/columns)*(1-smooth(a,outer-(outer-inner)/columns,outer));
   const at=a=>{
     const edge=a<(inner+outer)/2?corner(0):corner(columns-1),open=close(a);
@@ -239,15 +215,10 @@ export function lidOpening(skin,centre,radius,side){
   };
   return {inner,outer,at};
 }
-/* The ball each eye turns on, fitted to the base head's own eye vertices. Those cover the front
-   of a sphere and a cornea bulge, so their bounding box is neither centred on the sphere nor
-   as deep as it. Points that stand off the fitted sphere, the bulge, are left out and it is
-   fitted again. */
 export function eyeBalls(s,origin=[0,0,0]){
   return s.eyeGroups.map(ids=>{
     let use=Array.from(ids),centre=null,radius=0;
     for(let pass=0;pass<4&&use.length>=8;pass++){
-      // Least squares for |p|^2 = 2 c.p + k, about the points' mean to keep it well conditioned.
       const mean=[0,0,0];
       for(const id of use)for(let d=0;d<3;d++)mean[d]+=s.positions[id*3+d]/use.length;
       const m=new Float64Array(16),rhs=new Float64Array(4);
@@ -275,7 +246,6 @@ export function eyeBalls(s,origin=[0,0,0]){
     return {centre:new T.Vector3(centre[0]-origin[0],centre[1]-origin[1],centre[2]-origin[2]),radius};
   });
 }
-// Without a face to read, a plain almond.
 function almond(radius){
   const inner=-.66*radius,outer=.7*radius;
   return {inner,outer,at(a){
@@ -284,17 +254,9 @@ function almond(radius){
   }};
 }
 
-/* The colour the socket lays over the ball at one point of the opening, as a multiplier on
-   the white. Distances are millimetres on an average adult head. The brow and lids hide part
-   of the sky from the whole eye; the upper lid and its lashes shade a band below it; the
-   lower lid leaves a narrow contact line; both corners close in and turn pink; and the nose
-   corner carries the caruncle. */
 export function socketTint(above,below,fromInner,fromOuter,look){
   const hidden=Math.max(smooth(-above,0,.8),smooth(-below,0,.8));
   const lid=Math.exp(-Math.max(above,0)/1.5),lashes=Math.exp(-Math.max(above,0)/3.8),low=Math.exp(-Math.max(below,0));
-  // The upper lid is about a millimetre thick and carries the lash roots, so right under its
-  // edge the ball is nearly dark. The lower lid's edge is a moist ledge that faces up: it reads
-  // as a pale pink line between the lashes and the white, and takes the shadow's place there.
   const margin=Math.exp(-((Math.max(above,0)/.62)**2)),ledge=look.rim?(1-smooth(below,.45,1.05))*(1-smooth(-below,.1,.5)):0;
   const shade=look.sky*(1-.58*lid)*(1-.32*lashes)*(1-.48*margin)*(1-.36*low*(1-ledge))*(1-.45*hidden);
   const near=Math.max(lid,low),flesh=1-smooth(fromInner,.7,2.4),pink=.3*(1-smooth(fromOuter,0,3.2))+.16*near;
@@ -308,26 +270,16 @@ export function socketTint(above,below,fromInner,fromOuter,look){
 }
 function socketLook(form){
   const skin=new T.Color(form.appearance?.skin??"#b98a6c"),age=T.MathUtils.clamp(form.human?.age??0,0,1);
-  // Light reaches the ball off the lids and cheek, so the white takes a little of the skin's
-  // colour. It also yellows slightly with age.
   const cast=[skin.r,skin.g,skin.b].map((v,k)=>(1-.1+.1*Math.min(1,v/Math.max(skin.r,1e-3)))*[1,1-.02*age,1-.07*age][k]);
   const flesh=[.6,.3,.27].map((v,k)=>v*(.7+.3*Math.min(1,[skin.r,skin.g,skin.b][k]/Math.max(skin.r,1e-3))));
-  // The lid's inner edge is the skin's own colour, thinned and reddened.
   const rim=[.82,.5,.46].map((v,k)=>v*(.62+.38*Math.min(1,[skin.r,skin.g,skin.b][k]/Math.max(skin.r,1e-3))));
   return {sky:.84,cast,flesh,rim};
 }
 
 const gazeTargets=[["LookLeft",1,.32],["LookRight",1,-.32],["LookUp",0,-.23],["LookDown",0,.23]];
-// Anatomical sizes in metres on a 1.72 m adult: the visible iris, how much of the opening it
-// spans, and how far the upper lid normally overlaps it.
 const anatomy={iris:[.0108,.0124],irisOfOpening:.5,lidCover:.00215,coverShare:.78,pupilClear:.00055,sink:.0003,cornea:7.8/11.7,
-  // Share of the cornea's radius its normals are drawn with at the apex. See `humanEyes`.
   glint:.56};
 
-/* Both eyes as one mesh. Each eye has a strip of white fixed in the socket, which carries the
-   lids' shadow, and the front of the eye as a cap that alone turns with the gaze: cornea dome,
-   iris, limbus and a margin of white lying on the ball. The cap's surface joins the ball's, so
-   a highlight on it comes from the scene's lights and its shape. */
 export function humanEyes(skin,centres,material,plain,form,scale=1){
   const look=socketLook(form),mm=.001*scale;
   const fits=centres.map(({centre,radius})=>{
@@ -338,31 +290,24 @@ export function humanEyes(skin,centres,material,plain,form,scale=1){
     const a=opening.inner+.485*width;
     let bottom=0,top=0;
     for(const f of [-.25,0,.25]){const [b,t]=opening.at(a+f*iris);bottom+=b/3;top+=t/3;}
-    // The upper lid takes most of what the opening cannot show, as it does on a face at rest:
-    // it rests on the iris and stays clear of the pupil, and the lower lid meets the lower limbus.
     const most=iris/2-.36*iris/2-anatomy.pupilClear*scale;
     const cover=Math.min(most,Math.max(anatomy.coverShare*(iris-(top-bottom)),anatomy.lidCover*scale));
     return {centre,side,ball,opening,iris,a,y:top+cover-iris/2};
   });
-  // Both eyes look the same way: a shared height, and the same turn toward the nose.
   const pitch=fits.reduce((sum,f)=>sum+Math.asin(T.MathUtils.clamp(f.y/f.ball,-.6,.6)),0)/fits.length;
   const turn=fits.reduce((sum,f)=>sum+Math.asin(T.MathUtils.clamp(f.a/f.ball,-.6,.6)),0)/fits.length;
   const position=[],normal=[],uv=[],colour=[],index=[],moving=[],domed=[];
   const v=new T.Vector3(),n=new T.Vector3();
   for(const fit of fits){
     const {centre,side,ball,opening}=fit,start=position.length/3;
-    // The moving front is shaded for where it rests. What rests under a lid can turn into
-    // view, so there it keeps the shade of the lid's edge and no more.
     const tint=(a,y,least=-Infinity)=>{
       const [bottom,top]=opening.at(a);
       return socketTint(Math.max(least,(top-y)/mm),Math.max(least,(y-bottom)/mm),(a-opening.inner)/mm,(opening.outer-a)/mm,look);
     };
-    // A wide opening on a small ball reaches round its side. The strip stops short of the ball's outline.
     const onBall=(a,y,r)=>{
       const out=Math.hypot(a,y),keep=Math.min(1,.96*r/Math.max(out,1e-9));
       return v.set(side*a*keep,y*keep,Math.sqrt(r*r-(out*keep)**2));
     };
-    // The socket's strip. Its rows follow both lids, close together where the shading changes.
     const across=[-2.6,-.2,.6,1.6,2.8].map(d=>opening.inner+d*mm);
     const inner=across.at(-1),far=opening.outer-2.8*mm,spans=5;
     for(let k=1;k<spans;k++)across.push(inner+(far-inner)*k/spans);
@@ -370,7 +315,6 @@ export function humanEyes(skin,centres,material,plain,form,scale=1){
     const rows=9;
     across.forEach((a,i)=>{
       const [bottom,top]=opening.at(a),h=Math.max(0,top-bottom);
-      // The rows reach under both lids: a lid that stands proud shows the ball beneath it from below.
       const ys=[bottom-2.6*mm,bottom-.2*mm,bottom+Math.min(.4*mm,.12*h),bottom+Math.min(1.2*mm,.3*h),
         top-Math.min(2.6*mm,.45*h),top-Math.min(1.3*mm,.28*h),top-Math.min(.5*mm,.1*h),top+.2*mm,top+1.8*mm];
       for(const y of ys){
@@ -386,9 +330,6 @@ export function humanEyes(skin,centres,material,plain,form,scale=1){
         if(side>0)index.push(p,q,q+1,p,q+1,p+1);else index.push(p,q+1,q,p,p+1,q+1);
       }
     });
-    // Fitted 3D lower tear meniscus / wet edge along the edited lower lid opening.
-    // Stationary in the socket (never turns with gaze), with upward-tilted normals and glossy
-    // meniscus roughness so overhead light catches a genuine moist lower-lid waterline.
     const outer=ball+anatomy.sink*scale;
     const mStart=position.length/3,mCols=9,mA0=opening.inner+1.1*mm,mA1=opening.outer-.9*mm;
     for(let i=0;i<mCols;i++){
@@ -413,16 +354,12 @@ export function humanEyes(skin,centres,material,plain,form,scale=1){
       const p=mStart+(i-1)*2,q=mStart+i*2;
       if(side>0)index.push(p,q,q+1,p,q+1,p+1);else index.push(p,q+1,q,p,p+1,q+1);
     }
-    // The front of the eye, built about its own axis and then turned to where it rests.
     const first=position.length/3,r=fit.iris/2,corneal=anatomy.cornea*fit.iris;
     const seat=Math.sqrt(outer*outer-r*r)-Math.sqrt(corneal*corneal-r*r);
-    // The front carries as little white as its soft edge allows: white that turns with the gaze
-    // takes its resting shade along.
     const rings=[.3,.42,.62,.82,.95,1.03,1.08,1.13],around=16;
     const height=q=>{
       const rho=q*r,sphere=Math.sqrt(outer*outer-rho*rho);
       let z=q<1.03?Math.max(sphere,seat+Math.sqrt(corneal*corneal-rho*rho)):sphere;
-      // Clay has no paint, so the iris is cut in as a shallow dish with a deeper pupil.
       if(plain)z-=ball*((1-smooth(q,.78,.97))*(.05+.07*Math.max(0,1-q*q))+.07*(1-smooth(q,.32,.44)));
       return z;
     };
@@ -430,8 +367,6 @@ export function humanEyes(skin,centres,material,plain,form,scale=1){
     const place=(q,angle)=>{
       v.set(q*r*Math.cos(angle),q*r*Math.sin(angle),height(q)).applyQuaternion(aim);
       const a=side*v.x;
-      // Subtle corneal-bowl vertical light transmission: upper iris sits deeper under orbital shadow
-      // while lower-middle iris catches overhead light focused through the curved cornea.
       const bowlBias=1-.11*Math.sin(angle)*(1-smooth(q,.72,1));
       const shade=plain?[1,1,1]:[-.25,0,.25].reduce((sum,d)=>{
         const c=tint(a,v.y+d*mm,.25);return sum.map((s,k)=>s+c[k]/3);
@@ -457,7 +392,6 @@ export function humanEyes(skin,centres,material,plain,form,scale=1){
   geometry.setAttribute("uv",new T.Float32BufferAttribute(uv,2));
   if(!plain)geometry.setAttribute("color",new T.Float32BufferAttribute(colour,3));
   geometry.setIndex(index);
-  // The strip keeps the ball's own normals. The cap takes its shape's, and its rim the ball's.
   geometry.computeVertexNormals();
   const made=geometry.attributes.normal;
   for(const fit of fits){
@@ -467,11 +401,6 @@ export function humanEyes(skin,centres,material,plain,form,scale=1){
     }
   }
   for(let i=0;i<moving.length;i++)if(!moving[i])made.setXYZ(i,normal[i*3],normal[i*3+1],normal[i*3+2]);
-  /* The highlight in the eye is the scene's light reflected by the cornea. A light above the
-     head reflects from high on a true cornea, under the upper lid, and a baked file has no sky
-     to reflect lower down. So the cornea's normals, not its surface, are those of a steeper
-     dome about the same axis: the same light then shows in the upper iris, clear of the lid,
-     and still moves with the light, the viewer and the gaze. The rim keeps its true normals. */
   if(!plain)for(const fit of fits){
     const axis=n.fromBufferAttribute(made,fit.first).clone(),apex=new T.Vector3().fromBufferAttribute(geometry.attributes.position,fit.first);
     const corneal=anatomy.cornea*fit.iris;
@@ -481,7 +410,6 @@ export function humanEyes(skin,centres,material,plain,form,scale=1){
       const rho=v.length(),share=anatomy.glint+(1-anatomy.glint)*smooth(q,.4,1),sine=Math.min(.94,rho/(corneal*share));
       if(rho<1e-9)continue;
       v.multiplyScalar(sine/rho).addScaledVector(axis,Math.sqrt(1-sine*sine));
-      // Join the true normal toward the rim, where the dome meets the white.
       const keep=smooth(q,.86,1.03);n.fromBufferAttribute(made,i);
       v.lerp(n,keep).normalize();made.setXYZ(i,v.x,v.y,v.z);
     }
@@ -501,7 +429,6 @@ export function humanEyes(skin,centres,material,plain,form,scale=1){
     return [moved,leaned];
   });
   geometry.morphAttributes.position=turned.map(pair=>pair[0]);
-  // The cap's normals turn with it, so its highlight stays where the light puts it.
   geometry.morphAttributes.normal=turned.map(pair=>pair[1]);
   const m=material("#ffffff").clone();
   if(!plain){
@@ -509,7 +436,6 @@ export function humanEyes(skin,centres,material,plain,form,scale=1){
     m.roughnessMap=roughnessTexture();m.roughness=1;m.metalness=0;m.vertexColors=true;
   }
   const mesh=new T.Mesh(geometry,m);mesh.name="high-poly";mesh.userData.eyePiece="Iris";
-  // How each eye was fitted, for tests and measurement. Kept off userData, which exports.
   mesh.eyeFits=fits.map(f=>({side:f.side,centre:f.centre.clone(),ball:f.ball,iris:f.iris,opening:f.opening,first:f.first,count:f.count,pitch,turn}));
   return mesh;
 }

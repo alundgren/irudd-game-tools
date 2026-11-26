@@ -1,7 +1,3 @@
-// The seeded sequence of character-view/random.js at 2761eb1, so seeded
-// geometry and swatches draw the same numbers.
-
-/** A deterministic stream of numbers in [0, 1) from a 32-bit seed. */
 export function randomStream(seed: number): () => number {
   let state = seed >>> 0;
   return () => {

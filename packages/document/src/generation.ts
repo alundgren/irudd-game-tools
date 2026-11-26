@@ -1,23 +1,3 @@
-// Materialising a generator and regenerating without losing manual edits.
-//
-// A generated document stores the generator output it was derived from (the
-// base, B) next to the current parts (C). Regenerating produces a new output
-// (N) and merges three ways, field by field, for every slot:
-//
-//   C equals B       → the user did not touch the field: take N.
-//   N equals B       → the generator did not change it: keep C.
-//   both changed     → geometric fields carry the user's edit into N's frame;
-//                      other fields conflict unless both sides agree.
-//
-// Geometric transport uses the part's own normalised frame. A position edit is
-// the offset C − B expressed along B's axes in units of B's size, re-applied
-// along N's axes in units of N's size; size edits are ratios; rotation edits
-// are local quaternion deltas. Sculpt displacements are stored normalised, so
-// they carry unchanged as long as the part keeps its shape kind.
-//
-// Anything that cannot keep its meaning is an explicit, field-specific
-// conflict: the whole regeneration is refused and the document is unchanged.
-
 import { diagnostic, fail, ok, type Checked, type Diagnostic } from "./diagnostics.js";
 import { isJson, jsonEqual, type JsonObject } from "./json.js";
 import { digestJson } from "./sha256.js";
@@ -46,7 +26,6 @@ import {
 
 const decodePartId = Schema.decodeUnknownSync(PartIdSchema);
 
-/** Deterministic, collision-resistant part ID for a slot created by one request. */
 export function derivePartId(documentId: string, requestId: string, slot: string): PartId {
   const hex = digestJson([documentId, requestId, slot]).slice(
     "sha256:".length,
@@ -55,7 +34,6 @@ export function derivePartId(documentId: string, requestId: string, slot: string
   return decodePartId(`p-${hex}`);
 }
 
-/** Order slots so every parent precedes its children. */
 function topological(slots: ReadonlyArray<BaseSlot>): BaseSlot[] {
   const bySlot = new Map<string, BaseSlot>(slots.map((s) => [s.slot, s]));
   const out: BaseSlot[] = [];
@@ -132,7 +110,6 @@ export interface GenerateRequest {
   readonly params: unknown;
 }
 
-/** Parts and generation block for a freshly generated document. */
 export function generateParts(
   registry: Registry,
   request: GenerateRequest,
@@ -152,10 +129,6 @@ export function generateParts(
 }
 
 export interface RegenerateRequest extends GenerateRequest {
-  /**
-   * Replace every generated part with fresh output, dropping manual edits to
-   * them. Hand-made parts are kept while their parent survives.
-   */
   readonly discardEdits: boolean;
 }
 
@@ -163,7 +136,6 @@ function vecEqual(a: Vec3, b: Vec3): boolean {
   return a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
 }
 
-/** Carry a position edit from B's frame into N's frame. */
 export function transportOffset(c: Vec3, b: BaseSlot, n: BaseSlot): Vec3 {
   const local = div(rotate(quatConjugate(b.rotation), sub(c, b.position)), b.size);
   return add(n.position, rotate(n.rotation, mul(local, n.size)));
@@ -188,7 +160,6 @@ function conflictDiagnostic(c: Conflict, slot?: string): Diagnostic {
   });
 }
 
-/** Regenerate a generated document, preserving manual edits or reporting exact conflicts. */
 export function regenerate(
   doc: CharacterDocument,
   registry: Registry,
@@ -207,7 +178,6 @@ export function regenerate(
   const run = runGenerator(registry, request.generator, request.version, request.params);
   if (!run.ok) return run;
   const N = run.value.slots;
-  // Slot keys only mean the same thing within one generator.
   const comparable = previous.generator === run.value.generation.generator;
   const B = new Map<string, BaseSlot>(
     comparable ? previous.base.slots.map((s) => [s.slot, s]) : [],
@@ -220,8 +190,6 @@ export function regenerate(
   const slotIds = new Map<string, PartId>();
   for (const [slot, p] of C) slotIds.set(slot, p.id);
 
-  // Slots the user deleted stay deleted, along with anything the generator
-  // would hang beneath them.
   const suppressed = new Set<string>();
   for (const s of previous.base.slots) if (!C.has(s.slot) && comparable) suppressed.add(s.slot);
 
@@ -378,7 +346,6 @@ export function regenerate(
     return C.get(slot)?.id ?? idFor(slot);
   }
 
-  // Generated parts whose slot is gone.
   const removed = new Set<PartId>();
   const oldIds = new Map<string, PartId>();
   for (const [slot, c] of C) oldIds.set(slot, c.id);
@@ -386,7 +353,6 @@ export function regenerate(
     if (parts.has(c.id)) continue;
     removed.add(c.id);
     if (request.discardEdits) continue;
-    // A part nobody edited may simply disappear with its slot.
     const b = allOld.get(slot);
     const expectedParent = b?.parent == null ? null : (oldIds.get(b.parent) ?? null);
     const untouched = b !== undefined && jsonEqual(c, materialise(b, c.id, expectedParent));
@@ -404,7 +370,6 @@ export function regenerate(
     }
   }
 
-  // Hand-made parts stay while their parent does, reseated where the generator says.
   const def =
     comparable && previous.version === run.value.generation.version
       ? findGenerator(registry, previous.generator, previous.version)

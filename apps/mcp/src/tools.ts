@@ -1,8 +1,3 @@
-// MCP tools for a paired agent. The host stamps the agent's identity on every
-// command; these tools never carry an actor. There is no tool that accepts a
-// proposal, changes policy or pairs agents: those belong to a person, and the
-// host refuses them on an agent connection anyway.
-
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";

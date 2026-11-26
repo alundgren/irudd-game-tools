@@ -1,8 +1,3 @@
-// Starting forms a host offers: registered generators with named presets and
-// seeded variations, and prepared family documents ("forms") the host was
-// given. Only generators the host's registry really holds are listed, and a
-// reference generator says so.
-
 import fs from "node:fs";
 import path from "node:path";
 import {
@@ -28,30 +23,17 @@ export interface StarterDefinition {
   readonly reference: boolean;
   readonly description: string;
   readonly presets: ReadonlyArray<StarterPreset>;
-  /** Deterministic parameters for a seed, inside the generator's ranges. */
   readonly seed?: (seed: number) => unknown;
 }
 
-/** A prepared `irudd.character` document offered as a starting form. */
 export interface FormStarter {
   readonly id: string;
   readonly label: string;
   readonly description: string;
-  /** The whole document. `start` replaces its `id` (and `label`, when given) and sends `document.create`. */
   readonly document: Json;
-  /**
-   * Verified bytes for assets the document declares. `start` stages each
-   * through the project's blob store before it creates the document.
-   */
   readonly artwork?: ReadonlyArray<FormArtwork>;
 }
 
-/**
- * Prepared forms from a directory: every `*.json` file holding an
- * `irudd.character` document. The starter ID is the file name without `.json`.
- * Files that are not documents are reported, not skipped silently. Artwork the
- * forms declare comes from `artwork.json` beside them, verified by SHA-256.
- */
 export function loadForms(directory: string): {
   readonly forms: ReadonlyArray<FormStarter>;
   readonly problems: ReadonlyArray<string>;
@@ -100,12 +82,10 @@ export type ResolvedStarter =
   | { readonly kind: "generator"; readonly definition: StarterDefinition }
   | { readonly kind: "form"; readonly form: FormStarter };
 
-/** The registry this build ships: every ported family feature and the protocol's reference generator. */
 export function workshopRegistry(): Registry {
   return createRegistry({ features: familyFeatures, generators: [frameCreature] });
 }
 
-/** A small, fast, deterministic generator for seeds (mulberry32). */
 export function seededRandom(seed: number): () => number {
   let state = seed >>> 0;
   return () => {
@@ -182,7 +162,6 @@ const frameCreaturePresets: ReadonlyArray<StarterPreset> = [
   },
 ];
 
-/** Starters for the generators `workshopRegistry` holds. */
 export const workshopStarters: ReadonlyArray<StarterDefinition> = [
   {
     id: "frame-creature",
@@ -196,7 +175,6 @@ export const workshopStarters: ReadonlyArray<StarterDefinition> = [
   },
 ];
 
-/** What a host can offer from `registry` and its prepared forms. */
 export function startersView(
   registry: Registry,
   definitions: ReadonlyArray<StarterDefinition>,
@@ -264,7 +242,6 @@ export function startersView(
   return { view: { starters, families }, byId };
 }
 
-/** Every feature ID a document's payloads name, at document or part level. */
 function formFeatures(document: Json): ReadonlyArray<string> {
   const found = new Set<string>();
   const collect = (features: Json | undefined) => {

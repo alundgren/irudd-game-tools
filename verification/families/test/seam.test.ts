@@ -1,9 +1,3 @@
-// A classic figure's seam groups join their sweeps into owned patches, a
-// bare foot ends at the ball where its toes show, surface pulls move the
-// part's own surface, and the seat binds across the torso and both thighs.
-// Values G0 refused are refused, and an edit is undoable. The four-preset
-// parity of figure-42 and human-42 is the slow gate's.
-
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -45,11 +39,6 @@ const leg = ["left thigh", "left shin", "left foot", "left heel"].concat(
 );
 const seat = ["body", "left thigh", "right thigh"];
 
-/**
- * figure-42 kept to the parts labelled `keep` (an orphaned part becomes a
- * root) and its appearance, worn in `outfit`, with `edit` applied to each
- * kept part's features.
- */
 function figure(
   keep: ReadonlyArray<string>,
   edit?: (features: Mutable, label: string) => void,
@@ -72,7 +61,6 @@ function figure(
     "character.appearance": features["character.appearance"],
     "outfit.wardrobe": { outfit },
   };
-  // Declare a feature an edit introduces.
   const listed: unknown = raw["requires"];
   assert.ok(Array.isArray(listed));
   const requires = listed.filter(isObject);
@@ -109,7 +97,6 @@ const meshOf = (built: BuiltCharacter, label: string): T.Mesh => {
 const idOf = (built: BuiltCharacter, label: string): string =>
   [...built.parts.values()].find((p) => p.part.label === label)?.part.id ?? "";
 
-/** The rest length of a mesh along the part's z, in metres of its own frame. */
 const depthOf = (mesh: T.Mesh): number => {
   mesh.geometry.computeBoundingBox();
   const box = mesh.geometry.boundingBox;
@@ -135,7 +122,6 @@ test("each seam group joins its own sweeps", () => {
 });
 
 test("a bare foot ends at the ball where a toe of its group shows", () => {
-  // A seated toe stays out of the join, so the foot is its plain sweep.
   const footDepth = (toeGroup: boolean) =>
     withBuilt(
       figure(["left foot", "left toe 1"], (f, label) => {
@@ -227,7 +213,6 @@ test("seam groups, pulls and foot sections G0 refused are refused", () => {
     /seam group but is not a sweep/,
     "a seam group without a sweep",
   );
-  // A group joins at most 48 regions.
   const raw = documentJson(figure(leg));
   const kept: unknown = isObject(raw) ? raw["parts"] : undefined;
   assert.ok(isObject(raw) && Array.isArray(kept));
@@ -238,7 +223,6 @@ test("seam groups, pulls and foot sections G0 refused are refused", () => {
   const crowded = readDocument({ ...raw, parts }, { registry: familyRegistry });
   assert.ok(crowded.ok);
   assert.throws(() => buildView(crowded.value), /at most 48/);
-  // Preparation refuses a legacy seam or foot section on a part that is not a sweep.
   const legacy = (extra: Mutable) => ({
     parts: [
       {
@@ -256,8 +240,6 @@ test("seam groups, pulls and foot sections G0 refused are refused", () => {
   for (const extra of [{ seamGroup: "figure" }, { footSection: "sole" }])
     assert.throws(() => prepareForm("odd-lump", legacy(extra)), UnsupportedForm);
 });
-
-// ── A pull edit reaches the export and undoes ───────────────────────────────
 
 const human = { kind: "human", id: "user" } as const;
 let request = 0;
@@ -310,8 +292,6 @@ test("dropping a shin's pulls is one undoable edit that changes the export", asy
 });
 
 test("a joined thigh moved far from its figure leaves the rest of the rig whole", () => {
-  // G0 joined a seam group on one grid over the whole group, so moving one thigh 35 m away
-  // coarsened it until the arms lost their surface and their elbow and wrist joints.
   const doc = figure(["body", "left thigh", "left shin", "right upper arm", "right forearm"]);
   const thigh = doc.parts.find((p) => p.label === "left thigh");
   assert.ok(thigh);
@@ -330,13 +310,11 @@ test("a joined thigh moved far from its figure leaves the rest of the rig whole"
   const moved = edited.state.document;
   assert.ok(moved);
   withBuilt(moved, (built) => {
-    // As the editor shows it: each part keeps a joined surface.
     for (const { part, object } of built.parts.values()) {
       assert.ok(isMesh(object) && built.blendOwners.has(object), `${part.label} is joined`);
       const count = object.geometry.getAttribute("position").count;
       assert.ok(count > 900, `${part.label} keeps its surface (${count} vertices)`);
     }
-    // As the export skins it: every limb keeps its three joints, the torso its one.
     const rig = skinCharacter(built);
     try {
       const bones = new Map<string, number>();

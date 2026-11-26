@@ -1,13 +1,3 @@
-// G0 baseline: distil the cached run into verification/baseline/baseline.json.
-//
-// usage: G0_DIR=PATH/.reference-cache/g0 node verification/baseline/freeze.mjs [OUT_FILE]
-//
-// The tracked baseline holds text measurements only (counts, hashes, digests, timings and
-// variance envelopes), never exported bytes or images. Its "observed" block describes this
-// run; the port compares against "frozen", and "gaps" lists what this run could not cover.
-// OUT_FILE defaults to baseline.json beside this script; check.mjs writes elsewhere and
-// compares, so the checked-in file must regenerate byte for byte from the cache.
-// Private reference material contributes text only: ids, labels, credits and hashes.
 import { readFile, writeFile, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
@@ -46,7 +36,6 @@ const varFresh = await read("capture-fresh/variance.json");
 const seededFile = (await readdir(G0)).find((f) => /^seeded-\d+\.json$/.test(f));
 const seeded = seededFile ? await read(seededFile) : null;
 
-// Content digests of fresh exports, read once from glb.mjs.
 const { glbSummary } = await import("./glb.mjs");
 const digestOf = async (dir, name) => glbSummary(await readFile(`${G0}/${dir}/${name}`));
 const exports = {};
@@ -65,9 +54,6 @@ for (const [name, f] of Object.entries(adult?.files ?? {})) {
   const s = await digestOf("export-adult", name);
   adultExports[name] = { preset: f.preset, sha256: f.sha256, contentDigest: s.contentDigest, counts: s.counts, integrity: s.integrity, status: f.status };
 }
-// Each r0 shot: the retained PNG's file hash and, from compare.py pixels, its decoded
-// [width, height, mode, pixel digest]. Ports compare the decoded record; the file hash names
-// the exact retained frame.
 const shots = (cap, pix) =>
   Object.fromEntries(
     Object.entries(cap?.runs[0]?.glbs ?? {}).map(([k, v]) => [k, { glbSha256: v.sha256, status: v.status, stats: v.stats, portrait: v.portraitAvailable, clips: v.clips, expressions: v.expressions,
@@ -82,7 +68,6 @@ const motionLikeRest = (pix) => {
   const same = motion.filter((k) => f[k].pixelSha256 === f[k.split("/")[0] + "/threequarter.png"]?.pixelSha256);
   return { motionShots: motion.length, pixelIdenticalToRestThreeQuarter: same.length, clips: [...new Set(motion.map((k) => k.split("/motion-")[1].replace(/\.png$/, "")))] };
 };
-// Records from browser.py with absolute machine paths left out.
 const withoutPaths = (r) => r && Object.fromEntries(Object.entries(r).filter(([k]) => !["build", "command"].includes(k)));
 
 const gaps = [];
@@ -100,7 +85,6 @@ gaps.push(
   "Captures are single-machine (RTX 5070 Ti, ANGLE D3D11, Chrome headless). Cross-machine tolerance needs a second machine.",
 );
 
-// Measured observations the port should know about, computed from this run.
 const findings = [];
 const ev = exportVariance?.summary;
 if (ev) findings.push(`Fresh exports repeat in content: ${ev.sameContentDigest}/${ev.files} share the content digest and ${ev.sameImagePixels}/${ev.files} the decoded image pixels across a forward and a reverse run, but only ${ev.sameBytes}/${ev.files} are byte-identical. The embedded images are identical; GLTFExporter writes them into the binary buffer in encode-completion order, so bufferView order and file hash vary. Identify artifacts by file hash and compare parity by content digest and pixels.`);
@@ -148,22 +132,17 @@ if (flows) {
 const baseline = {
   item: "workshop-desktop-port / inventory (G0) / check baseline",
   reference: { commit: manifest?.referenceCommit, inventoryCheckout: inventory?.commit, runtimeTreeVsReference: inventory?.runtimeTreeVsReference },
-  // Where each kind of evidence ran. A shared checkout can move while a long run is in flight,
-  // so each record names the commit it saw; runtime identity is checked against the reference.
   provenance: {
     suite: Object.fromEntries(Object.entries(suite).map(([k, v]) => [k, v && { commit: v.commit, dirty: v.dirty, finishedAt: v.finishedAt }])),
     inventory: inventory && { commit: inventory.commit, generatedAt: inventory.generatedAt },
     build: manifest?.builds && { files: manifest.builds.runs[0], note: "exports and captures load these exact files from the cached build directory" },
     pipelineEndCommit: manifest?.commit,
-    // G0_NOTES (a JSON array of strings) replaces the hand-written notes; otherwise they are kept.
     notes: process.env.G0_NOTES ? JSON.parse(process.env.G0_NOTES) : previousNotes,
   },
   toolchain: manifest?.toolchain,
   dependencies: inventory?.dependencies,
   frozen: {
     corpus: {
-      // sha256 = working-tree bytes of the checkout named in "checkout"; gitBlob and
-      // canonicalSha256 = the stored (LF) blob, equal in every clone. See eol.mjs.
       checkout: inventory?.checkout,
       hashes: inventory?.hashes,
       counts: inventory?.counts,
@@ -188,9 +167,7 @@ const baseline = {
       fresh: capFresh && { sessions: sessionOf(capFresh), envelope: varFresh?.envelope, worst: varFresh?.worst?.slice(0, 5), repeats: repeatsOf(pixFresh), reencode: reFresh?.summary, motion: motionLikeRest(pixFresh), r0: shots(capFresh, pixFresh) },
     },
     workflows,
-    // Offline (no provider) AI tab and hybrid starting forms driven in the editor.
     flows: flows && { session: flows.session, image: { file: flows.image.file.replaceAll("\\", "/").split("/").slice(-2).join("/"), sha256: flows.image.sha256 }, buildFiles: flows.buildFiles, hybrid: flows.hybrid, proposal: flows.proposal },
-    // What the optional private references switch on, from a local install. Text only.
     referenceMaterial: refConfig && {
       config: { commit: refConfig.commit, trackedClean: refConfig.trackedClean, shell: refConfig.shell, sets: refConfig.sets, values: refConfig.values, installed: refConfig.installed, builds: refConfig.builds, focusedTests: refConfig.focused },
       public: withoutPaths(refPublic),
@@ -204,7 +181,6 @@ const baseline = {
   findings,
   gaps,
 };
-// Indent the outer levels and keep each leaf record on one line, so a diff names the entry.
 const pretty = (v, depth = 0, pad = "") =>
   depth >= 4 || v === null || typeof v !== "object" || !Object.keys(v).length
     ? JSON.stringify(v)

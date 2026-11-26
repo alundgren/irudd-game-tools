@@ -6,7 +6,6 @@ import { evaluateHuman, smoothHumanSurface } from "./human-surface.js";
 import { measureProportions, proportionEnds, proportionFitted, proportions } from "./human-proportions.js";
 import { proportionMatcher } from "./human-proportion-match.js";
 
-// Just enough of a page for the panel: elements that remember what was set on them.
 function page() {
   const made = new Map();
   function element(id = "") {
@@ -55,7 +54,6 @@ function page() {
   return $;
 }
 
-// A head as a reference mesh, drawn where the dialog draws an aligned reference.
 function headMesh(human) {
   const smooth = smoothHumanSurface(evaluateHuman(human)),
     head = smooth.names.indexOf("head"),
@@ -88,7 +86,6 @@ test("proportions marked on a reference are read, fitted with chosen controls an
     let working = humanForm({ height: 1.72, cheeks: 0.2 }),
       loaded = { name: "generated" },
       free = true;
-    // The editable head's skin hangs in the scene away from the origin of its rest space.
     const skin = new Mesh(new BufferGeometry()),
       group = new Group();
     skin.position.set(0, 1.6, 0);
@@ -116,7 +113,6 @@ test("proportions marked on a reference are read, fitted with chosen controls an
       note: (text) => notes.push(text),
       render() {},
     });
-    // A click on the reference pane where a point of the scene shows.
     const click = (point, pane = 0) => {
       const seen = new Vector3(...point).project(camera),
         at = { button: 0, clientX: pane * 400 + ((seen.x + 1) / 2) * 400, clientY: ((1 - seen.y) / 2) * 600 };
@@ -138,18 +134,15 @@ test("proportions marked on a reference are read, fitted with chosen controls an
     assert.equal(tool.active(), true);
     assert.equal($("hfit-prop-panel").hidden, false);
     assert.match($("hfit-prop-hint").textContent, /one corner of the mouth/);
-    // The places of the chosen proportion are shown on the editable head.
     assert.equal(skin.children.length, 1);
     assert.equal(skin.children[0].children.filter((o) => o.isMesh).length, 2);
 
-    // A click on the artist's own head marks nothing.
     click(proportionEnds(working, "mouthWidth")[0], 1);
     assert.match(notes.at(-1), /left pane/);
     assert.equal(rows().length, 0);
 
     for (const id of ["mouthWidth", "eyeLength", "noseWidth", "mouthToChin"]) mark(id);
     const table = rows();
-    // A height down the middle of the face is read and listed, and not handed to the fit.
     assert.deepEqual(table.map((row) => row[0]), ["Mouth width", "Nose width", "Eye length", "Mouth line to chin (reading)"]);
     assert.equal(proportionFitted("mouthToChin"), false);
     assert.match($("hfit-prop-hint").textContent, /This one is a reading/);
@@ -160,17 +153,14 @@ test("proportions marked on a reference are read, fitted with chosen controls an
       assert.equal(yours, measureProportions(working)[id].toFixed(1));
     }
     assert.match($("hfit-prop-pick").options[0].textContent, /✓/);
-    // Marks sit on the reference and show only with it.
     assert.equal(target.children.length, 1);
     assert.ok(target.children[0].children.filter((o) => o.isMesh).length >= 8);
 
-    // The suggested controls are ticked; one of them is left out by the artist.
     const boxes = () => Object.fromEntries($("hfit-prop-controls").children.map((label) => [label.children[1], label.children[0]]));
     assert.equal(boxes()["Mouth width"].checked, true);
     assert.equal(boxes()["Eye size"].checked, true);
     assert.equal(boxes()["Nostril width"].checked, true);
     assert.equal(boxes().headWidth.checked, false);
-    // No control is offered for the reading.
     assert.equal(boxes().chinHeight, undefined);
     assert.equal(boxes().mouthLevel, undefined);
     boxes()["Nostril width"].checked = false;
@@ -189,18 +179,15 @@ test("proportions marked on a reference are read, fitted with chosen controls an
     for (const row of entry.proportions.proportions) {
       assert.ok(Math.abs(row.beforeMm - measureProportions(before)[row.id]) < 1e-9);
       assert.ok(Math.abs(row.afterMm - after[row.id]) < 1e-9);
-      // The nostrils' own control was left out; the other nose control still reaches the reading.
       assert.ok(Math.abs(row.afterMm - row.referenceMm) < 0.3, row.id);
     }
     assert.ok(!entry.proportions.controls.some((c) => c.key === "nostrilWidth" || c.key === "chinHeight"));
     assert.equal(working.human.nostrilWidth ?? 0, 0);
-    // The reading stays where it was, and stays listed.
     assert.ok(Math.abs(after.mouthToChin - measureProportions(before).mouthToChin) < 0.3);
     assert.match($("hfit-prop-reading").textContent, /^Proportions · Mouth width .* · controls: .*Mouth width 0\.00 → 0\.\d\d/);
     assert.equal(rows()[0][2], after.mouthWidth.toFixed(1));
     assert.match(notes.at(-1), /Undo step/);
 
-    // Kept eye openings: the eye's control is named as left alone and no longer offered.
     $("hfit-eyes").checked = true;
     $("hfit-eyes").fire("change");
     assert.match($("hfit-prop-kept").textContent, /Eye size \(eye openings kept\)/);
@@ -210,12 +197,10 @@ test("proportions marked on a reference are read, fitted with chosen controls an
     assert.equal($("hfit-prop-kept").textContent, "");
     assert.equal(boxes()["Eye size"].checked, true);
 
-    // A row's button removes its mark.
     const remove = $("hfit-prop-list").tBodies[0].children[0].children[4].children[0];
     remove.onclick();
     assert.deepEqual(rows().map((row) => row[0]), ["Nose width", "Eye length", "Mouth line to chin (reading)"]);
 
-    // Another tool taking the pointer ends the marking; the marks stay for the next time.
     free = false;
     tool.sync();
     assert.equal(tool.active(), false);
@@ -227,7 +212,6 @@ test("proportions marked on a reference are read, fitted with chosen controls an
     $("hfit-prop").onclick();
     assert.equal(rows().length, 3);
 
-    // Another reference starts without marks.
     loaded = { name: "another" };
     tool.sync();
     assert.equal($("hfit-prop-list").hidden, true);

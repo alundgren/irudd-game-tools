@@ -6,7 +6,6 @@ import { humanRegions } from "./human-mesh.js";
 import { dressHuman, dressedHuman } from "./human-wardrobe.js";
 import { skinCharacter } from "./skin.js";
 
-// The rendered and skinned character, as the editor preview and the export build it.
 function character(form) {
   const material = new T.MeshStandardMaterial(), root = new T.Group();
   const build = humanRegions(form, () => material, true, (s) => dressedHuman(s, form, () => material, true)), parts = new Map();
@@ -27,7 +26,6 @@ function wearing(seed, outfit) {
 const hung = (rig) => rig.skeleton.bones.filter((b) => b.userData.garmentSupport && /_(Skirt|Dress|Robe)_\d_\d$/.test(b.name));
 const surface = (rig) => rig.actor.children.find((o) => o.isSkinnedMesh && o.name === "Character surface");
 
-// Where the surface is in the pose the actor holds: its hung cloth and the skin of its legs, round the hips.
 function clothAndLegs(rig) {
   rig.actor.updateMatrixWorld(true);
   rig.skeleton.update();
@@ -35,7 +33,6 @@ function clothAndLegs(rig) {
   const joints = new Set(hung(rig).map((b) => rig.skeleton.bones.indexOf(b))), sides = rig.posture.sides;
   const legs = new Set(sides.flatMap((s) => [s.hipBone, s.kneeBone]).map((b) => rig.skeleton.bones.indexOf(b)));
   const hips = rig.posture.pelvisBone.getWorldPosition(new T.Vector3()), cloth = [], skin = [];
-  // The ground is under the lowest point that is not hung cloth: a sole.
   let ground = Infinity;
   for (let i = 0; i < mesh.geometry.attributes.position.count; i++) {
     let onJoints = 0, onLegs = 0;
@@ -47,7 +44,6 @@ function clothAndLegs(rig) {
   }
   return { cloth, skin, ground };
 }
-// The share of leg skin, at heights and in directions the cloth covers, that stands outside the cloth.
 function through({ cloth, skin }, slack = .012) {
   const cell = (a, y) => Math.floor((a + Math.PI) / (Math.PI * 2) * 24) % 24 + 24 * Math.floor(y / .04), far = new Map();
   for (const [a, y, r] of cloth) far.set(cell(a, y), Math.max(far.get(cell(a, y)) ?? 0, r));

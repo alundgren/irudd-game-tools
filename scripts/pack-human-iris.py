@@ -25,8 +25,6 @@ def pack(archive, destination):
                 raise ValueError("Missing CC0 statement for " + colour)
             im = Image.open(io.BytesIO(assets.read(stem + "_eye.png"))).convert("RGB")
             light = np.asarray(im).astype(float) @ [.22, .67, .11]
-            # The upper-right eyeball on each authored 1024 px sheet. Centre
-            # on the pupil, and find the limbus where it gives way to sclera.
             yy, xx = np.indices(light.shape)
             pupil = (light < 22) & ((xx-722)**2+(yy-304)**2 < 39**2)
             cy, cx = yy[pupil].mean(), xx[pupil].mean()
@@ -37,8 +35,6 @@ def pack(archive, destination):
             rings = annulus(np.arange(150))
             radius = 101 + np.argmax(np.gradient(gaussian_filter(rings.mean(axis=1), 1.6))[101:135])
             tile = np.log(18 + annulus(np.linspace(.31, 1, height)*radius))
-            # Remove whole-ring brightness and broad directional illumination;
-            # keep individual crypts, split fibres and the collarette.
             local = tile - np.median(tile, axis=1, keepdims=True)
             local -= gaussian_filter(local, (13, 21), mode=("nearest","wrap"))
             signed = np.uint8(np.clip(128 + 110*np.tanh(local/.42), 0, 255))

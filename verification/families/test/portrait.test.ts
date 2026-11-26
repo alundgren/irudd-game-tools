@@ -1,12 +1,3 @@
-// Portrait plates: rasters of the core `portrait-plate` role, bound as a front
-// plate on a figure.front-fit pass or a side plate on a finishing
-// figure.profile-fit, both at version 2. A previous reader diagnoses the
-// versions as a capability, older fixtures read unchanged, each binding
-// resolves to a declared raster of its role, exports list the plates of parts
-// that show and refuse plates whose bytes are missing, and an edit removing a
-// plate undoes and reopens. Texture parity is the slow gate's
-// (field-athlete-portrait).
-
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -58,7 +49,6 @@ const front: `sha256:${string}` =
 const side: `sha256:${string}` =
   "sha256:7362f0830dceb91b3ab8b3d116fef4cd1f01683d53e2c6965318f45542eb2590";
 
-/** A fixture's raw JSON, with `edit` applied. */
 function raw(name: string, edit?: (doc: Mutable) => void): unknown {
   const value: unknown = JSON.parse(readFileSync(join(fixturesDir, name + ".json"), "utf8"));
   assert.ok(isObject(value));
@@ -66,7 +56,6 @@ function raw(name: string, edit?: (doc: Mutable) => void): unknown {
   return value;
 }
 
-/** The fields of field-athlete-portrait's head features or of its asset `digest`. */
 function head(doc: Mutable): Mutable {
   const parts = doc["parts"];
   assert.ok(Array.isArray(parts));
@@ -234,8 +223,6 @@ test("a textured export refuses plates whose bytes are missing", () => {
   assert.equal(bundledAsset(digestBrand(front)), undefined, "plates are project bytes");
 });
 
-// ── Undo and reopen ─────────────────────────────────────────────────────────
-
 const human = { kind: "human", id: "user" } as const;
 let request = 0;
 function envelope(
@@ -280,7 +267,6 @@ test("removing a side plate is one undoable edit that reopens", () => {
     part: "p-head",
     value: traced,
   };
-  // The plate stays declared only while a fit binds it.
   const dangling = reduce(created.state, envelope(doc, 1, { type: "edit", ops: [strip] }), env);
   assert.equal(dangling.outcome.kind, "rejected");
   const removed = reduce(

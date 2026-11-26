@@ -1,7 +1,3 @@
-// Print the structured summary of exported GLBs as JSON.
-//
-//   node --import ../../packages/document/test/support/register.ts src/inspect.ts FILE.glb...
-
 import { readFileSync } from "node:fs";
 import { inspectGlb } from "@irudd/character";
 

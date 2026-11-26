@@ -1,9 +1,3 @@
-// What the adult human is made of, as typed constants: the rig, the shape
-// controls and where their measured shapes came from. The packed arrays these
-// names index are in `body.ts`; the values here are transcribed from the
-// reference workshop's data files at 2761eb14 (character-view/human-*.json).
-
-/** Bones of the MakeHuman / MPFB2 game rig, in the order the packed weights index them. */
 export const boneNames = [
   "ball_l",
   "ball_r",
@@ -60,7 +54,6 @@ export const boneNames = [
 ] as const;
 export type BoneName = (typeof boneNames)[number];
 
-/** Each bone's parent; the pelvis hangs from the rig root. */
 export const boneParents: ReadonlyArray<BoneName | "Root"> = [
   "foot_l",
   "foot_r",
@@ -116,13 +109,11 @@ export const boneParents: ReadonlyArray<BoneName | "Root"> = [
   "clavicle_r",
 ];
 
-/** Packed vertex counts: the skin cage with eyes and helpers, then one marker per bone. */
 export const surfaceVertices = 17596;
 export const bodyVertices = 13380;
 export const bodyTriangles = 26756;
 export const packedVertices = surfaceVertices + boneNames.length;
 
-/** Body and face targets of the base mesh, each packed as a negative (0) and positive (1) shape. */
 export const bodyAxes = [
   "shoulders",
   "waist",
@@ -188,7 +179,6 @@ export const bodyAxes = [
   "submentalFullness",
 ] as const;
 
-/** Face identity controls fitted in this repository, packed like the body axes. */
 export const identityAxes = [
   "faceTaper",
   "faceRound",
@@ -227,7 +217,6 @@ export const identityAxes = [
   "cheekSkew",
 ] as const;
 
-/** Local head controls acting on the skin cage: CC0 MakeHuman community targets. */
 export const sculptAxes = [
   "lidDefinition",
   "earDefinition",
@@ -319,7 +308,6 @@ export const sculptSources: ReadonlyArray<Credit> = [
   },
 ];
 
-/** A displacement field sampled on a regular grid around the head. */
 export interface FieldLayout {
   readonly origin: readonly [number, number, number];
   readonly shape: readonly [number, number, number];
@@ -327,7 +315,6 @@ export interface FieldLayout {
   readonly anchor: readonly [number, number, number];
 }
 
-/** Seven portrait foundations: the facial measurements of authored CC0 MakeHuman characters. */
 export const portraitAxes = [
   "portraitSiyanda",
   "portraitHideko",
@@ -388,7 +375,6 @@ export const portraitCredits: Readonly<Record<(typeof portraitAxes)[number], Cre
   },
 };
 
-/** Face foundations measured on artist-modelled heads of the Microsoft Rocketbox library (MIT). */
 export const castShapeAxes = [
   "castM03",
   "castM04",
@@ -410,7 +396,6 @@ export const rocketboxCredit = {
   commit: "0943055db6ec570bcef9f2c8b41c9e5467c808f9",
 } as const;
 
-/** Faces registered from HSRD-100 scans (Digital Reality Lab, CC BY 4.0). */
 export const capturedAxes = [
   "scan0023",
   "scan0028",
@@ -445,7 +430,6 @@ export const captureCredit = {
     "Registered face and iris photographs and fitted facial measurements to the editable adult mesh.",
 } as const;
 
-/** Expression shapes packed with the body. */
 export const expressionNames = [
   "Blink",
   "BroadSmile",
@@ -454,7 +438,6 @@ export const expressionNames = [
   "Smile",
 ] as const;
 
-/** Body morph names the evaluator mixes from frame, age, ancestry, muscle and weight. */
 export const ancestryFamilies = ["african", "asian", "caucasian"] as const;
 export const sexes = ["female", "male"] as const;
 export const stages = ["young", "old"] as const;
@@ -471,15 +454,11 @@ export const ancestryMorphs: ReadonlyArray<string> = ancestryFamilies.flatMap((f
   sexes.flatMap((sex) => stages.map((stage) => `${family}-${sex}-${stage}`)),
 );
 
-/** A Rocketbox cast member a drawn adult may wear, from the workshop's cast catalogue. */
 export interface CastPerson {
   readonly subject: string;
   readonly rig: "female" | "male";
-  /** Age of the cast member's measured home body; absent means the workshop's default of 0.3. */
   readonly age: number | undefined;
-  /** Another avatar whose face shape and pigment a draw may borrow. */
   readonly donor: string | undefined;
-  /** The photographed face skin, as linear RGB. */
   readonly tone: readonly [number, number, number];
 }
 

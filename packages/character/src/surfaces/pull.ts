@@ -1,13 +1,7 @@
-// Local surface pulls. Ported from character-view/surface-pull.js at 2761eb1.
-//
-// Pulls live in the part's own frame. A separate reach on each local axis
-// keeps the influence spherical in world space on a non-uniformly scaled part.
-
 import * as T from "three";
 import type { SurfacePull } from "@irudd/document";
 import { isMesh } from "../mesh.js";
 
-/** Move `v`, in the part's frame, by every pull whose reach it lies within. */
 export function pullPoint(v: T.Vector3, pull: SurfacePull): T.Vector3 {
   const [x, y, z] = pull.at;
   const [rx, ry, rz] = pull.reach;
@@ -17,7 +11,6 @@ export function pullPoint(v: T.Vector3, pull: SurfacePull): T.Vector3 {
   };
   const primary = weight(x);
   const twin = pull.mirrorX === undefined ? 0 : weight(2 * pull.mirrorX - x);
-  // Do not double the offset where symmetric influence regions overlap.
   const a = Math.max(primary, twin);
   const side = primary + twin ? (primary - twin) / (primary + twin) : 0;
   v.x += a * side * pull.offset[0];
@@ -26,19 +19,12 @@ export function pullPoint(v: T.Vector3, pull: SurfacePull): T.Vector3 {
   return v;
 }
 
-/** The meshes a part owns: its own and its children's, up to the next part. */
 function ownedMeshes(object: T.Object3D, visit: (mesh: T.Mesh) => void, first = true): void {
   if (!first && object.userData["partId"] !== undefined) return;
   if (isMesh(object)) visit(object);
   for (const child of object.children) ownedMeshes(child, visit, false);
 }
 
-/**
- * Pull the surface of every mesh `root` owns. Each mesh takes a private copy
- * of its geometry, since built-in pieces share theirs, and its normals are
- * recomputed from the pulled positions. `replaced` hears of each copy, so
- * notes kept about the original geometry can follow it.
- */
 export function pullSurface(
   root: T.Object3D,
   pulls: ReadonlyArray<SurfacePull>,

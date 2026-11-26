@@ -1,7 +1,5 @@
 import { CanvasTexture, Float32BufferAttribute, SRGBColorSpace } from "three";
 
-// The horizontal coordinate runs around the upper, with the seam under the sole.
-// Heel to toe runs down the chart; the tongue and facings meet at the instep.
 const cache = new WeakMap();
 function upperMaterial(base, kind) {
   const variants = cache.get(base) ?? new Map();
@@ -21,7 +19,6 @@ function upperMaterial(base, kind) {
   }
   const sport = kind === "trainer", flat = kind === "flat", tall = kind === "boot";
   fill([dye(1), "#808080", sport ? "#b5b5b5" : "#929292"]);
-  // Suede/leather grain is much finer than the quarter panels and eyelets.
   for (let j=0; j<1800; j++) {
     const hash = Math.imul(j+1, 2654435761) >>> 0;
     const x = (hash >> 8) & 255, y = (Math.imul(hash, 1274126177) >>> 21) & 255;
@@ -57,8 +54,6 @@ function upperMaterial(base, kind) {
     }
     layers.forEach(ctx=>ctx.restore());
   }
-  // Low flats leave a plain vamp. Riding boots have a stitched throat rather
-  // than laces disappearing up the shaft.
   if (!flat && !tall) {
     const count = sport ? 5 : 4, start = sport ? 68 : 80;
     const cord = sport ? dye(1.2,.55) : dye(.42);

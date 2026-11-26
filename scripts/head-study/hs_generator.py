@@ -15,7 +15,7 @@ from pathlib import Path
 
 import numpy as np
 
-import _paths  # noqa: F401
+import _paths
 from hb_raster import visible_faces
 from hb_generator import source_hash
 
@@ -164,14 +164,12 @@ class HeadTopology:
         lid = np.array([[*row[np.isin(row, cut)], lid_centre] for row in ring])
         shell = np.concatenate([faces[inside], lid])
         points = np.vstack([vertices, vertices[cut].mean(0)])
-        used, compact = np.unique(shell, return_inverse=True)  # only the head, so the views frame it tightly
+        used, compact = np.unique(shell, return_inverse=True)
         seen = visible_faces(points[used], compact.reshape(-1, 3), pixels_per_metre=1800.0)
         seen = seen[: inside.sum()]
         on_skin = np.zeros(len(vertices), dtype=bool)
         on_skin[faces[inside][seen]] = True
-        # A hidden face between visible corners is only too small to win a pixel.
         outside = faces[inside][seen | on_skin[faces[inside]].all(1)]
-        # Slivers of the mouth lining seen between the lips are not skin: keep the one connected skin.
         group = np.arange(len(vertices))
         for _ in range(64):
             lowest = group[outside].min(1)

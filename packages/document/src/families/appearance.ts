@@ -1,5 +1,3 @@
-// Character appearance: palette, skin, built-in face paint, hair and clothing tones.
-
 import { Schema } from "effect";
 import { bounded, family, Hex } from "./family.js";
 import { FigureRecipe } from "./figure-recipe.js";
@@ -9,7 +7,6 @@ export const hairStyles = ["Crop", "Sweep", "Coils", "Bald"] as const;
 
 const multiplier = bounded(0.35, 2);
 
-/** Face sculpt multipliers, 1 being the built-in face. */
 export const FaceSculpt = Schema.Struct({
   jaw: Schema.optionalKey(multiplier),
   nose: Schema.optionalKey(multiplier),
@@ -36,7 +33,6 @@ export type Tones = typeof Tones.Type;
 export const Appearance = Schema.Struct({
   palette: Schema.Literals(palettes),
   skin: Hex,
-  /** Built-in face paint: 0 middle-aged man, 1 older man, 2 older weathered face, 3 younger woman. */
   face: Schema.optionalKey(Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 3 }))),
   hair: Schema.Literals(hairStyles),
   hairColor: Hex,
@@ -57,12 +53,6 @@ export const characterAppearance = family({
   toJson: (v) => v,
 });
 
-/**
- * Where a generated character came from: the legacy generator number, the
- * kind it made, its seed and, for a figure, the recipe it was made from.
- * Provenance only; builders do not read it. A creature plan's own body plan
- * is the `creature.plan` feature, which the build does read.
- */
 export const CharacterOrigin = Schema.Struct({
   generator: Schema.optionalKey(Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 64 }))),
   kind: Schema.Literals(["human", "creature", "creature plan", "figure", "human surface"]),

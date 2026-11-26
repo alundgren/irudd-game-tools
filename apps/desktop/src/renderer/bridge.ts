@@ -1,9 +1,3 @@
-// Typed access to `window.workshop`, the bridge the preload exposes.
-//
-// Every reply arrives as `unknown` and is shape-checked here before the page
-// uses it. Main has already run the host's result guards on host replies, so
-// these checks are light: they give each reply its type without assertions.
-
 import type { MethodParams, MethodResults } from "@irudd/workshop/wire";
 import type {
   AppInfo,
@@ -140,7 +134,6 @@ export class CallFailed extends Error {
   }
 }
 
-/** Light per-method shape checks; main has already run the host's guards. */
 function shaped<M extends WindowMethod>(method: M, value: unknown): value is MethodResults[M] {
   switch (method) {
     case "documents":

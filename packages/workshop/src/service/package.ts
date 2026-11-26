@@ -1,20 +1,3 @@
-// Portable character package, format "irudd.character-package" version 1.
-//
-// A ZIP file (extension `.irudd-character`) with:
-//
-//   manifest.json        what the package holds: document identity, revision
-//                        and digest, journal anchor, required features,
-//                        catalog dependencies by digest, metadata namespaces
-//                        and one record per artwork file
-//   document.json        the head document, canonical JSON, readable alone
-//   history.jsonl        the whole journal, one canonical entry per line, so
-//                        history, receipts, drafts, policy and undo survive
-//   assets/<hex>.<ext>   every blob any revision references, as raw bytes
-//
-// The journal stays authoritative: opening recovers it with `openJournal`
-// and requires its head to be document.json byte for byte. Older
-// `irudd.document-archive` JSON files keep opening through `archive.ts`.
-
 import {
   canonicalJson,
   diagnostic,
@@ -110,14 +93,11 @@ const Manifest = Schema.Struct({
 });
 export type PackageManifest = typeof Manifest.Type;
 
-/** Largest JSON part of a package, uncompressed. */
 const maxJsonBytes = 256 * 1024 * 1024;
 
-/** Where a diagnostic points, as a person reads it: `poses[0].joints[0].part`. */
 const where = (path: ReadonlyArray<string | number>): string =>
   path.map((p, i) => (typeof p === "number" ? `[${p}]` : i === 0 ? p : `.${p}`)).join("");
 
-/** A message naming the first few problems, for a person or an agent reading one line. */
 export function summarize(lead: string, diagnostics: ReadonlyArray<Diagnostic>): string {
   const shown = diagnostics
     .slice(0, 3)
@@ -158,7 +138,6 @@ function parseJson(bytes: Uint8Array): { ok: true; value: unknown } | { ok: fals
 
 export interface DecodedPackage extends DecodedArchive {
   readonly manifest: PackageManifest;
-  /** document.json as stored, for the caller to validate against this build. */
   readonly document: unknown;
 }
 
@@ -212,7 +191,6 @@ export function decodePackage(bytes: Uint8Array): Result.Result<DecodedPackage, 
     );
   const manifest = decoded.success;
 
-  // Every file is accounted for: the three parts and one per listed asset.
   const expected = new Set(["manifest.json", "document.json", "history.jsonl"]);
   const diagnostics: Diagnostic[] = [];
   manifest.assets.forEach((asset, i) => {
@@ -318,7 +296,6 @@ export function decodePackage(bytes: Uint8Array): Result.Result<DecodedPackage, 
   });
 }
 
-/** A ZIP character package or a legacy JSON document archive, by its first bytes. */
 export function decodeAnyArchive(
   bytes: Uint8Array,
 ): Result.Result<DecodedPackage | DecodedArchive, ArchiveRejected> {

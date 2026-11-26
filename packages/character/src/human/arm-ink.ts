@@ -1,9 +1,3 @@
-// Arm ink at the textured presets: a forearm mark or a full-arm sleeve drawn
-// on its own canvas and laid on the arm through a cylindrical chart that
-// follows this figure's joints (character-view/human-arm-ink.js at 2761eb1).
-// The charts replace the arm's texture coordinates; the inked material keeps
-// the body skin's roughness without its relief maps.
-
 import * as T from "three";
 import { context2d, type Raster } from "../raster.js";
 import { boneNames, type BoneName } from "./catalogue.js";
@@ -21,7 +15,6 @@ const isArmSleeve = (name: string) => armSleeveStyles.includes(name);
 const isArmInk = (name: string | undefined): name is ArmInkStyle =>
   armInkStyles.some((style) => style === name);
 
-/** Which body bones carry charted arm ink for a chosen style. */
 export function armInkBones(name: string | undefined): ReadonlyArray<BoneName> {
   if (!isArmInk(name)) return [];
   return isArmSleeve(name) ? ["upperarm_l", "lowerarm_l"] : ["lowerarm_l"];
@@ -33,14 +26,11 @@ const smooth = (v: number, a: number, b: number) => {
   return t * t * (3 - 2 * t);
 };
 
-/** A chart: a smoothed vertex's coordinates on the ink canvas. */
 export type ArmInkChart = (vertex: number) => readonly [number, number];
 
 const joint = (surface: SmoothSurface, name: BoneName) =>
   new T.Vector3().fromArray(surface.joints, 3 * boneNames.indexOf(name));
 
-// The forearm chart follows the elbow and wrist of this figure. Its seam lies on the
-// inside of the arm. The visible design wraps from the outside onto the front.
 function forearmChart(surface: SmoothSurface, bone: BoneName): ArmInkChart {
   const sideTag = bone.endsWith("_r") ? "r" : "l";
   const sign = sideTag === "r" ? -1 : 1;
@@ -61,11 +51,6 @@ function forearmChart(surface: SmoothSurface, bone: BoneName): ArmInkChart {
   };
 }
 
-/**
- * One cylindrical sleeve chart over the upper arm (v from 0.50 to 0.92) and
- * the forearm (v from 0.08 to 0.50), continuous across the elbow, so shared
- * elbow vertices get identical coordinates; the inner-arm seam is at u = 0/1.
- */
 function sleeveChart(surface: SmoothSurface, sideTag: "l" | "r"): ArmInkChart {
   const sign = sideTag === "r" ? -1 : 1;
   const shoulder = joint(surface, sideTag === "r" ? "upperarm_r" : "upperarm_l");
@@ -113,14 +98,12 @@ function sleeveChart(surface: SmoothSurface, sideTag: "l" | "r"): ArmInkChart {
   };
 }
 
-/** The chart an arm region of this style is laid out on. */
 export function armInkChart(surface: SmoothSurface, bone: BoneName, name: string): ArmInkChart {
   return isArmSleeve(name)
     ? sleeveChart(surface, bone.endsWith("_r") ? "r" : "l")
     : forearmChart(surface, bone);
 }
 
-// --- Forearm marks ---
 function drawSwift(ctx: CanvasRenderingContext2D): void {
   const path = (outline: string) => ctx.fill(new Path2D(outline));
   path(
@@ -164,10 +147,6 @@ function drawFern(ctx: CanvasRenderingContext2D): void {
   }
 }
 
-// --- Full-arm graphic tattoo sleeves (512 x 768 canvas; y=0 shoulder, y=0.5 elbow, y=1 wrist) ---
-// All sleeves keep x < 0.065*w and x > 0.935*w pure white bare skin so the inner-arm seam stays clean,
-// and terminate crisply inside y in [0.10*h, 0.90*h] above the wrist and below the shoulder cap.
-
 function drawLeaf(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -180,7 +159,6 @@ function drawLeaf(
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(angle);
-  // Crisp silhouette leaf blade
   ctx.fillStyle = dark;
   ctx.beginPath();
   ctx.moveTo(0, 0);
@@ -188,7 +166,6 @@ function drawLeaf(
   ctx.bezierCurveTo(length * 0.74, width * 0.48, length * 0.28, width * 0.62, 0, 0);
   ctx.closePath();
   ctx.fill();
-  // Negative-space carved midrib vein & fine side ticks keep leaves crisp at 300px and close-up
   ctx.strokeStyle = "white";
   ctx.lineWidth = Math.max(2.2, width * 0.13);
   ctx.lineCap = "round";
@@ -225,12 +202,10 @@ function drawBotanicalSleeve(
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 
-  // Twin counter-weaving vines so botanical structure reads from front, side, and 3/4 views
   const stem1X = (t: number) => cx + w * (0.18 * Math.sin(t * Math.PI * 2.0 + phase));
   const stem2X = (t: number) => cx - w * (0.17 * Math.sin(t * Math.PI * 2.0 + phase + 0.45));
   const stemY = (t: number) => h * (0.115 + 0.76 * t);
 
-  // Secondary counter-vine (gives continuous wrap-around rhythm across bicep & forearm)
   for (let i = 0; i < 64; i++) {
     const t0 = i / 64,
       t1 = (i + 1) / 64;
@@ -242,7 +217,6 @@ function drawBotanicalSleeve(
     ctx.stroke();
   }
 
-  // Primary sweeping botanical vine stem (bold taper from upper arm to wrist)
   for (let i = 0; i < 64; i++) {
     const t0 = i / 64,
       t1 = (i + 1) / 64;
@@ -254,7 +228,6 @@ function drawBotanicalSleeve(
     ctx.stroke();
   }
 
-  // Bold alternating laurel/fern leaf silhouettes on BOTH vines (carved white midribs for 300px clarity)
   const drawBranchLeaves = (
     stemFn: (t: number) => number,
     count: number,
@@ -281,7 +254,6 @@ function drawBotanicalSleeve(
       if (primary && i % 2 === 0) {
         drawLeaf(ctx, x, y, ang - side * 0.46, safeLen * 0.64, wid * 0.64, mid);
       } else if (primary) {
-        // Curling botanical berry tendril
         ctx.strokeStyle = dark;
         ctx.lineWidth = 3.8;
         ctx.beginPath();
@@ -304,7 +276,6 @@ function drawBotanicalSleeve(
   drawBranchLeaves(stem2X, 14, 0.25, 0.84, false);
   drawBranchLeaves(stem1X, 16, 0, 1.04, true);
 
-  // Open negative-space elbow halo collar (y ~ 0.50*h) framed by twin botanical tendrils
   const ey = h * 0.5;
   ctx.fillStyle = "white";
   ctx.fillRect(xMin, ey - 28, xMax - xMin, 56);
@@ -333,13 +304,11 @@ function drawBotanicalSleeve(
   ctx.beginPath();
   ctx.ellipse(cx, ey, 52, 33, 0.12, Math.PI * 0.75, Math.PI * 2.25);
   ctx.stroke();
-  // Flanking small botanical buds on the elbow collar
   for (const sign of [-1, 1]) {
     drawLeaf(ctx, cx + sign * 62, ey, sign > 0 ? 0 : Math.PI, 44, 20, dark);
     drawLeaf(ctx, cx + sign * 116, ey, sign > 0 ? 0 : Math.PI, 36, 17, mid);
   }
 
-  // Crisp shoulder crown & bold botanical wrist cuff termination (cleanly above wrist crease)
   const capY = h * 0.115;
   ctx.strokeStyle = dark;
   ctx.lineWidth = 6.8;
@@ -427,7 +396,6 @@ function drawEngravedSleeve(
   ctx.lineCap = "round";
   ctx.lineJoin = "miter";
 
-  // Vertical architectural spine connecting deltoid, elbow collar, and wrist cuff
   ctx.strokeStyle = mid;
   ctx.lineWidth = 3.0;
   ctx.beginPath();
@@ -435,7 +403,6 @@ function drawEngravedSleeve(
   ctx.lineTo(cx, h * 0.89);
   ctx.stroke();
 
-  // 1. Shoulder sunburst / geometric crown cap (y = 0.11..0.22*h)
   const capY = h * 0.17;
   for (let k = -5; k <= 5; k++) {
     const a = -Math.PI * 0.5 + k * 0.22;
@@ -448,7 +415,6 @@ function drawEngravedSleeve(
     ctx.lineTo(cx + Math.cos(a) * r1, capY + Math.sin(a) * r1 * 0.55);
     ctx.stroke();
   }
-  // Bold chevron crown band
   ctx.strokeStyle = dark;
   ctx.lineWidth = 8.5;
   ctx.beginPath();
@@ -457,14 +423,12 @@ function drawEngravedSleeve(
   ctx.lineTo(xMax - 24, h * 0.21);
   ctx.stroke();
 
-  // 2. Upper-arm engraved diamond panel (y = 0.23..0.44*h)
   const upY = h * 0.335;
   drawHatchedDiamond(ctx, cx, upY, 112, 76, 8.5, Math.PI * 0.25, mid, 2.8);
   ctx.strokeStyle = dark;
   ctx.lineWidth = 8.0;
   drawDiamond(ctx, cx, upY, 112, 76);
   ctx.stroke();
-  // Negative-space inner diamond channel + bold core medallion
   ctx.fillStyle = "white";
   drawDiamond(ctx, cx, upY, 76, 50);
   ctx.fill();
@@ -478,7 +442,6 @@ function drawEngravedSleeve(
   ctx.beginPath();
   ctx.arc(cx, upY, 6, 0, Math.PI * 2);
   ctx.fill();
-  // Flanking side chevrons wrapping bicep cleanly inside seam margins
   for (const sign of [-1, 1]) {
     ctx.strokeStyle = dark;
     ctx.lineWidth = 5.5;
@@ -496,7 +459,6 @@ function drawEngravedSleeve(
     ctx.stroke();
   }
 
-  // 3. Signature open negative-space elbow collar (y = 0.455..0.545*h)
   const elY = h * 0.5;
   ctx.fillStyle = "white";
   ctx.fillRect(xMin, elY - 34, xMax - xMin, 68);
@@ -513,7 +475,6 @@ function drawEngravedSleeve(
     ctx.lineTo(xMax - 6, elY + dy);
     ctx.stroke();
   }
-  // Open negative-space elbow diamond eye
   ctx.fillStyle = "white";
   drawDiamond(ctx, cx, elY, 54, 32);
   ctx.fill();
@@ -521,7 +482,6 @@ function drawEngravedSleeve(
   ctx.lineWidth = 6.5;
   drawDiamond(ctx, cx, elY, 46, 26);
   ctx.stroke();
-  // Engraved tick marks flanking the elbow collar
   for (const sign of [-1, 1]) {
     for (let k = 0; k < 5; k++) {
       const tx = cx + sign * (72 + k * 24);
@@ -532,7 +492,6 @@ function drawEngravedSleeve(
     }
   }
 
-  // 4. Forearm geometric spear & engraved diamond column (y = 0.56..0.82*h)
   const loY = h * 0.695;
   const shift = (next() - 0.5) * 6;
   drawHatchedDiamond(ctx, cx, loY, 96, 92, 8.0, -Math.PI * 0.25, mid, 2.6);
@@ -548,7 +507,6 @@ function drawEngravedSleeve(
   drawDiamond(ctx, cx, loY, 48, 46);
   ctx.stroke();
   drawHatchedDiamond(ctx, cx, loY, 32, 30, 6.5, Math.PI * 0.25, dark, 2.6);
-  // Crisp geometric chevron brackets flanking the forearm panel
   for (const dy of [-48, 0, 48]) {
     for (const sign of [-1, 1]) {
       const bx = cx + sign * (108 + (dy === 0 ? 18 : 4));
@@ -562,7 +520,6 @@ function drawEngravedSleeve(
     }
   }
 
-  // 5. Crisp tiered geometric wrist cuff termination (y = 0.84..0.90*h)
   const wrY = h * 0.865;
   ctx.fillStyle = dark;
   ctx.fillRect(xMin + 8, wrY - 9, xMax - xMin - 16, 13);
@@ -570,7 +527,6 @@ function drawEngravedSleeve(
   ctx.fillRect(xMin + 8, wrY + 4, xMax - xMin - 16, 7);
   ctx.fillStyle = dark;
   ctx.fillRect(xMin + 14, wrY + 11, xMax - xMin - 28, 4.5);
-  // Terminal geometric dots cleanly above wrist crease
   for (let px = xMin + 24; px <= xMax - 24; px += 22) {
     ctx.fillStyle = Math.abs(px - cx) < 12 ? dark : mid;
     ctx.beginPath();
@@ -595,7 +551,6 @@ function drawCartographicSleeve(
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 
-  // 1. Original mathematical topographic iso-contours via marching squares on analytic peaks
   const peaks: ReadonlyArray<readonly [number, number, number, number, number]> = [
     [0.5 + (next() - 0.5) * 0.06, 0.26, 0.16, 0.11, 1.0],
     [0.36, 0.35, 0.11, 0.08, 0.55],
@@ -611,7 +566,6 @@ function drawCartographicSleeve(
         dv = (v - pv) / sv;
       z += amp * Math.exp(-(du * du + dv * dv));
     }
-    // Keep elbow collar (v ~ 0.50), seam margins, and shoulder/wrist margins open
     const elbowClear = 1 - 0.95 * Math.exp(-(((v - 0.5) / 0.055) ** 2));
     const marginClear =
       smooth(u, 0.08, 0.18) *
@@ -675,11 +629,9 @@ function drawCartographicSleeve(
     ctx.stroke();
   }
 
-  // 2. Sweeping curvilinear transit / meridian double-rail tracks running shoulder -> elbow -> wrist
   const trackX = (t: number) =>
     cx + w * (0.16 * Math.sin(t * Math.PI * 1.85 - 0.35) - 0.04 * Math.cos(t * Math.PI * 3.1));
   const trackY = (t: number) => h * (0.11 + 0.77 * t);
-  // Crisp white negative-space channel under primary rail so transit tracks cut cleanly across contours
   ctx.strokeStyle = "white";
   ctx.lineWidth = 24;
   ctx.beginPath();
@@ -689,7 +641,6 @@ function drawCartographicSleeve(
     else ctx.moveTo(trackX(t), trackY(t));
   }
   ctx.stroke();
-  // Parallel double rails (bold main rail + crisp companion rail)
   for (const [off, lw, col] of [
     [-5.5, 10.2, dark],
     [8.0, 4.8, dark],
@@ -705,7 +656,6 @@ function drawCartographicSleeve(
     }
     ctx.stroke();
   }
-  // Secondary branching spur track arcing around the upper forearm
   ctx.strokeStyle = dark;
   ctx.lineWidth = 5.0;
   ctx.beginPath();
@@ -713,7 +663,6 @@ function drawCartographicSleeve(
   ctx.bezierCurveTo(cx + 95, h * 0.6, cx + 110, h * 0.73, trackX(0.86) + 8, trackY(0.86));
   ctx.stroke();
 
-  // 3. Curvilinear latitude / longitude elbow wrap band (y ~ 0.50*h)
   const elY = h * 0.5;
   ctx.fillStyle = "white";
   ctx.fillRect(xMin, elY - 22, xMax - xMin, 44);
@@ -729,7 +678,6 @@ function drawCartographicSleeve(
     ctx.lineTo(xMax - 6, elY + dy);
     ctx.stroke();
   }
-  // Degree graduation ticks along the elbow meridian band
   for (let px = xMin + 18; px <= xMax - 18; px += 16) {
     const major = Math.round((px - cx) / 16) % 3 === 0;
     ctx.strokeStyle = major ? dark : mid;
@@ -740,7 +688,6 @@ function drawCartographicSleeve(
     ctx.stroke();
   }
 
-  // 4. Open-centre cartographic compass rose medallion on upper forearm
   const rx = cx - 4,
     ry = h * 0.655;
   ctx.fillStyle = "white";
@@ -757,7 +704,6 @@ function drawCartographicSleeve(
   ctx.beginPath();
   ctx.arc(rx, ry, 43, 0, Math.PI * 2);
   ctx.stroke();
-  // 8-point compass star with muted rust north pointer
   for (let k = 0; k < 8; k++) {
     const a = -Math.PI * 0.5 + k * Math.PI * 0.25;
     const len = k % 2 === 0 ? 34 : 22;
@@ -778,7 +724,6 @@ function drawCartographicSleeve(
   ctx.lineWidth = 3.2;
   ctx.stroke();
 
-  // Transit station nodes along the main meridian rail
   for (const [t, isHub] of [
     [0.18, true],
     [0.35, false],
@@ -796,7 +741,6 @@ function drawCartographicSleeve(
     ctx.fill();
   }
 
-  // 5. Measured coordinate wrist cuff termination (y = 0.86..0.905*h) & shoulder cap arc
   const capY = h * 0.115;
   ctx.strokeStyle = dark;
   ctx.lineWidth = 6.0;
@@ -828,7 +772,6 @@ function drawCartographicSleeve(
   }
 }
 
-/** The body skin with the arm ink as its colour map, or the skin itself for no ink. */
 export function inkedSkin(
   skin: T.MeshStandardMaterial,
   raster: Raster,
@@ -859,8 +802,6 @@ export function inkedSkin(
   const result = skin.clone();
   result.name = name + (sleeve ? " arm ink" : " forearm ink");
   result.map = map;
-  // Arm art uses cylindrical coordinates. The body relief maps belong to the
-  // skin's own layout; roughness stays matched to the body skin.
   result.normalMap = result.roughnessMap = null;
   delete result.userData["bodySkin"];
   result.addEventListener("dispose", () => map.dispose());

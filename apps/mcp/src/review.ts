@@ -1,11 +1,3 @@
-// MCP review tools: export a committed revision and look at the GLB it made.
-//
-// The project's host renders with the desktop's isolated review worker; these
-// tools never drive a screen or capture the person's window. Images come back
-// as MCP image content, read from the host by SHA-256 and re-hashed before
-// they are returned, so each one is bound to the revision, document digest and
-// GLB in the manifest beside it.
-
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
@@ -18,7 +10,6 @@ import {
 } from "@irudd/workshop/wire";
 import type { HostConnection } from "./connection.js";
 
-/** Images returned inline by default; the rest are listed for review_image. */
 const defaultInline = 6;
 const maxInline = 12;
 
@@ -103,7 +94,6 @@ function gpuLine(gpu: { renderer: string; software: boolean }): string {
   return `${gpu.renderer}${gpu.software ? " (SOFTWARE FALLBACK)" : ""}`;
 }
 
-/** The inspection without the raw GLB inventory, which metrics summarise. */
 function manifest(view: InspectReviewView, inline: ReadonlyArray<string>): unknown {
   const { inventory: _inventory, ...rest } = view;
   return {

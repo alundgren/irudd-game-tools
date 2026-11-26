@@ -42,7 +42,6 @@ from playwright.sync_api import sync_playwright
 
 VIEWPORT = {"width": 1280, "height": 800}
 SOFTWARE = ("swiftshader", "llvmpipe", "softpipe", "basic render", "software", "gdi generic")
-# Player camera presets (examples/play-model.js directions) captured for every GLB.
 VIEWS = ["threequarter", "front", "side", "back", "overhead", "portrait", "portrait-side", "portrait-oblique"]
 
 
@@ -76,9 +75,6 @@ def glb_brief(path):
             "animations": len(g.get("animations", []))}
 
 
-# The editor writes no status for its own random starting adult, so sessions start on the
-# tracked "ranger" study: its "Loaded ..." status appears only after startWorkshop has loaded
-# every asset and run openExample, which is the editor's own readiness point.
 READY_ROUTE = "#study=ranger"
 
 
@@ -275,7 +271,6 @@ def cmd_references(args):
         record["studyList"] = {"count": len(studies), "referenceFits": [s for s in studies if s[1].endswith(" · 3D reference fits")]}
         record["pageErrors"] = errors
         context.close()
-        # Fit a 3D reference is offered on an adult human, so open the seeded #adult route.
         context, page, errors = open_editor(browser, args.build, "#adult=42")
         wait_status(page, "t.includes('Opened adult draw 42')")
         page.locator('[data-tab="sculpt"]').click()
@@ -284,7 +279,6 @@ def cmd_references(args):
         record["fit3dReference"] = {"route": "#adult=42", "openDialog": page.evaluate("document.querySelector('dialog[open]')?.id ?? null"),
                                     "modelList": options(page, "#hfit-source"), "pageErrors": errors}
         context.close()
-        # Each reference-fit study opens through its #study= route and exports at Game detail.
         for value, label in record["studyList"]["referenceFits"]:
             context, page, errors = open_editor(browser, args.build, f"#study={value}")
             status = wait_status(page, "t.startsWith('Loaded')||t.startsWith('Unknown')")
@@ -294,7 +288,6 @@ def cmd_references(args):
             record["studies"][value] = {"label": label, "status": status, "export": {**{k: report[name][k] for k in ("bytes", "sha256", "status")}, "contentDigest": content_digest(out / name)},
                                         "asset": glb_asset(out / name), "pageErrors": errors}
             context.close()
-        # #study=ID&compare=3d opens Fit a 3D reference on a study linked to an installed rig.
         for value, _ in record["studyList"]["referenceFits"][:2] or [("mhr-f1", None)]:
             context, page, errors = open_editor(browser, args.build, f"#study={value}&compare=3d")
             try: wait_status(page, "t.startsWith('Loaded')||t.startsWith('Unknown')", 120000)
@@ -305,7 +298,6 @@ def cmd_references(args):
                 "modelChosen": page.locator("#hfit-source").input_value() if page.locator("#hfit-source").count() else None,
                 "pageErrors": errors}
             context.close()
-        # #compare-mhr: from file:// the editor replaces itself with rig-study.html when installed.
         context = browser.new_context(viewport=VIEWPORT, device_scale_factor=1); page = context.new_page(); errors = []
         page.on("pageerror", lambda ex: errors.append(str(ex)))
         page.goto(editor + "#compare-mhr"); page.wait_for_timeout(8000)
@@ -334,7 +326,6 @@ def cmd_flows(args):
     clear = "document.querySelector('#status').textContent=''"
     with sync_playwright() as pw:
         browser = launch(pw)
-        # Hybrid: the editor draws the seed, so each draw is saved and reopened in a new session.
         context, page, errors = open_editor(browser, args.build)
         record["session"] = session_record(browser, page, renderer_of(page, "#viewport"), args)
         hybrids = []
@@ -370,7 +361,6 @@ def cmd_flows(args):
         record["hybrid"]["reopenPageErrors"] = errors
         context.close()
 
-        # Proposal review offline: no workshop server, so Generate exports the request.
         context, page, errors = open_editor(browser, args.build)
         ai = record["proposal"] = {"connected": page.evaluate("document.querySelector('meta[name=\"workshop-agent\"]')?.content ?? null"), "rounds": []}
         page.locator('[data-tab="ai"]').click()
@@ -407,8 +397,6 @@ def cmd_flows(args):
                 row["inspectStatus"] = wait_status(page, "t.length>0&&!t.startsWith('Exporting')", 600000)
                 row["afterInspect"] = {s: visible(s) for s in ("#inspect-export", "#export-review-compare", "#refine-send")}
                 row["refineSend"] = {"text": page.locator("#refine-send").text_content(), "disabled": page.locator("#refine-send").is_disabled()}
-                # Export review: the refinement request carries the inspected views; a second
-                # inspected round adds the side-by-side comparison with the earlier proposal.
                 refinements = []
                 for k in range(2):
                     page.evaluate(clear)
@@ -440,7 +428,6 @@ def cmd_flows(args):
             row["decisionStatus"] = wait_status(page, "t.length>0")
             ai["rounds"].append(row)
             if decision == "accept":
-                # Attach a visual reference before the next request; it must travel with it.
                 page.evaluate(clear)
                 page.locator("#reference-file").set_input_files(args.image)
                 ai["referenceAttach"] = {"status": wait_status(page, "t.length>0"), "roles": options(page, "#reference-role")}

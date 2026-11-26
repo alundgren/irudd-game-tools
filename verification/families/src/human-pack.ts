@@ -1,13 +1,3 @@
-// One-off conversion of the reference workshop's human data into typed packs.
-//
-// Reads character-view/human-*.json (unchanged since 2761eb14) and writes
-// packages/character/assets/human/human-body.bin, human-captured.bin,
-// human-face.bin, human-groom.bin, human-cast.bin and human-paint.bin. The
-// shipped builder never reads the JSON; it reads only the packs, through the
-// entries packages/character/src/human/body.ts declares.
-//
-//   node --import ../../packages/document/test/support/register.ts src/human-pack.ts
-
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
@@ -183,7 +173,6 @@ for (const [card, value] of Object.entries(faceData))
     if (card !== "eyes" && !Object.hasOwn(humanFaceSpec, `${card}.${key}`))
       throw new Error(`Face ${card}.${key} has no pack entry.`);
 
-// The paint pack: G0's encoded images byte for byte, and its tables.
 const dataUrl = (v: unknown, name: string): Uint8Array => {
   const match = typeof v === "string" ? /^data:([^;]+);base64,(.*)$/s.exec(v) : null;
   if (!match) throw new Error(`${name} is not a data URL.`);
@@ -359,7 +348,6 @@ for (const [name, spec] of Object.entries(humanPaintSpec)) {
   paint.push({ name, kind: spec.kind, data });
 }
 
-// The groom pack: every authored groom's arrays as G0 packs them.
 const groom: { name: string; kind: PackKind; data: ArrayBufferView }[] = [];
 for (const [name, spec] of Object.entries(humanGroomSpec)) {
   const [key = "", array = ""] = name.split("/");
@@ -378,7 +366,6 @@ for (const [key, value] of Object.entries(groomData))
     )
       throw new Error(`Groom ${key}/${array} has no pack entry.`);
 
-// The cast pack: each member's figure and each outfit fitted to them, as G0 packs them.
 const near = (a: ReadonlyArray<number>, b: ReadonlyArray<number>) =>
   a.length === b.length && a.every((v, i) => v === b[i]);
 if (Object.keys(castData).join() !== castFigureNames.join())
@@ -470,7 +457,6 @@ if (
 )
   throw new Error("Unexpected cast surface maps.");
 
-/** Where a cast pack entry's array lies in the reference's figure or fitted outfit. */
 function castArray(owner: Raw, key: string, what: string): unknown {
   const [group = "", rest = ""] = key.split(/\.(.*)/s);
   if (["source", "uv", "index", "smooth"].includes(key)) return record(owner["surface"], what)[key];
@@ -513,7 +499,6 @@ for (const [name, spec] of Object.entries(humanCastSpec)) {
   });
   castSeen.add(name);
 }
-// Every packed array of a figure or fitted outfit has an entry; pictures are in the paint pack.
 const strings = (v: unknown, at: string, out: string[]) => {
   if (typeof v === "string") out.push(at);
   else if (isRecord(v))

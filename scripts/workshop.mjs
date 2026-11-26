@@ -1,43 +1,8 @@
-import { validWorldMarks } from "../character-view/spatial-guide.js";
-import {
-  referenceInstructions,
-  validReferences,
-} from "../character-view/visual-references.js";
-import { agentDesign } from "../character-view/variations.js";
 import { createServer } from "node:http";
-import { paintVariation, fitArtwork, paintDepth } from "./art-direction.mjs";
-import { codexJob } from "./codex-worker.mjs";
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
-import { validateForm, readProposal } from "../character-view/recipe.js";
 
-export async function codexVariation(brief, signal, repair) {
-  const prompt =
-    "You are the geometry author for a game character editor. Use the JSON brief as design input. Do not use tools, access the filesystem or execute code. Return a single JSON proposal following replyFormat. Preserve ids on retained parts.\n" +
-    referenceInstructions(brief.references) +
-    "\n" +
-    JSON.stringify(agentDesign(brief)) +
-    (repair
-      ? "\nThe editor could not apply your first proposal. Return a complete corrected proposal for this same request. Preserve the original design intent.\n" +
-        JSON.stringify(repair)
-      : "");
-  return (
-    await codexJob(
-      prompt,
-      [...(brief.views ?? []), ...(brief.references ?? [])].map((v) => ({
-        data: v.jpeg,
-      })),
-      signal,
-      { effort: "medium" },
-    )
-  ).result;
-}
-export function workshopServer(
-  page,
-  generate = codexVariation,
-  art = { paint: paintVariation, fit: fitArtwork, depth: paintDepth },
-) {
-  let busy = false;
+export function workshopServer(page) {
   return createServer(async (req, res) => {
     const url = "http://127.0.0.1:" + req.socket.localPort;
     const json = (status, body) => {
@@ -65,12 +30,7 @@ export function workshopServer(
         "Content-Type": "text/html; charset=utf-8",
         "Cache-Control": "no-store",
       });
-      return res.end(
-        html.replace(
-          "</head>",
-          '<meta name="workshop-agent" content="local"></head>',
-        ),
-      );
+      return res.end(html);
     }
     if (req.method === "GET") {
       const file =
@@ -104,134 +64,7 @@ export function workshopServer(
         }
       }
     }
-    if (
-      req.method !== "POST" ||
-      !["/variation", "/turnaround", "/trace-map", "/portrait-depth"].includes(
-        req.url,
-      )
-    )
-      return json(404, { error: "Unknown route." });
-    if (
-      req.headers.origin !== url ||
-      req.headers["content-type"] !== "application/json"
-    )
-      return json(403, { error: "Generate from the local workshop." });
-    if (busy)
-      return json(409, { error: "Another variation is being generated." });
-    busy = true;
-    const controller = new AbortController();
-    const timeout = setTimeout(
-      () => controller.abort(),
-      req.url === "/trace-map" ? 240_000 : 420_000,
-    );
-    res.on("close", () => {
-      if (!res.writableEnded) controller.abort();
-    });
-    try {
-      const chunks = [];
-      let length = 0;
-      for await (const chunk of req) {
-        length += chunk.length;
-        chunks.push(chunk);
-        if (length > 8_000_000)
-          return json(413, { error: "Form is too large." });
-      }
-      let brief;
-      try {
-        brief = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-        if (
-          (req.url === "/trace-map"
-            ? brief.format !== "irudd.trace-request.v1"
-            : brief.format !== "irudd.form-request.v1") ||
-          typeof brief.requestId !== "string" ||
-          typeof brief.revision !== "string" ||
-          typeof brief.instructions !== "string" ||
-          brief.instructions.length > 2000
-        )
-          throw new Error("Malformed variation request.");
-        if (req.url === "/variation") {
-          if (
-            brief.surfaceMarks !== undefined &&
-            !validWorldMarks(brief.surfaceMarks)
-          )
-            throw new Error(
-              "Surface marks need named positions and unit normals.",
-            );
-          validateForm(brief.current);
-          validateForm(brief.preview);
-        } else if (
-          !Number.isFinite(brief.height) ||
-          brief.height < 0.15 ||
-          brief.height > 6 ||
-          !Array.isArray(brief.views) ||
-          brief.views.length !== 2
-        )
-          throw new Error("Artwork needs two views and a physical height.");
-        if (
-          brief.references !== undefined &&
-          (req.url === "/trace-map" || !validReferences(brief.references))
-        )
-          throw new Error("Choose up to two valid visual references.");
-        if (
-          brief.sourceView !== undefined &&
-          (req.url !== "/turnaround" || !validReferences([brief.sourceView]))
-        )
-          throw new Error("The source turnaround is invalid.");
-        if (brief.repair && JSON.stringify(brief.repair).length > 60000)
-          throw new Error("The repair map is too large.");
-        if (
-          brief.views &&
-          (!Array.isArray(brief.views) ||
-            brief.views.length > 2 ||
-            brief.views.some(
-              (v) =>
-                typeof v.jpeg !== "string" ||
-                v.jpeg.length >
-                  (["/trace-map", "/portrait-depth"].includes(req.url)
-                    ? 850000
-                    : 170000) ||
-                !v.jpeg.startsWith("/9j/"),
-            ))
-        )
-          throw new Error("Invalid camera views.");
-      } catch (err) {
-        return json(400, { error: err.message });
-      }
-      if (req.url === "/portrait-depth")
-        return json(200, await art.depth(brief, controller.signal));
-      if (req.url === "/turnaround")
-        return json(200, await art.paint(brief, controller.signal));
-      if (req.url === "/trace-map")
-        return json(200, await art.fit(brief, controller.signal));
-      let repair;
-      for (let attempt = 0; attempt < 2; attempt++) {
-        const raw = await generate(brief, controller.signal, repair);
-        try {
-          const proposal = readProposal(raw, brief, brief.revision);
-          return json(200, proposal);
-        } catch (error) {
-          if (attempt === 1)
-            throw new Error(
-              "The corrected proposal could not be applied. " + error.message,
-            );
-          timeout.refresh();
-          repair = {
-            problem: error.message,
-            previousReply: JSON.stringify(raw).slice(0, 55000),
-          };
-        }
-      }
-    } catch (error) {
-      if (!res.destroyed)
-        json(502, {
-          error: controller.signal.aborted
-            ? "Generation timed out. Your current form is safe."
-            : error.message,
-        });
-    } finally {
-      clearTimeout(timeout);
-      busy = false;
-    }
+    return json(404, {error:"Unknown route."});
   });
 }
 

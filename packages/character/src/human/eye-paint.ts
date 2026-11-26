@@ -1,8 +1,3 @@
-// The eyes' textures at the textured presets (irisPixels, scleraPixels,
-// eyeTexture, roughnessTexture and defaultEyeColor in
-// character-view/human-eyes.js at 2761eb1). One image twice as wide as tall
-// holds the eye's front on the left and the socket's white on the right.
-
 import * as T from "three";
 import { context2d, type Raster } from "../raster.js";
 import { capturedSkinNames } from "./captured.js";
@@ -11,7 +6,6 @@ import { randomStream } from "./identity.js";
 import type { HumanPaint } from "./paint-data.js";
 
 type Rgb = [number, number, number];
-// Each iris runs from a warmer ring at the pupil, through its main colour, to a dark limbal ring.
 const irisTones: Readonly<Record<string, readonly [Rgb, Rgb, Rgb]>> = {
   "dark brown": [
     [66, 40, 25],
@@ -57,7 +51,6 @@ const smooth = (v: number, a: number, b: number) => {
 };
 const at = (a: ArrayLike<number>, i: number) => a[i] ?? 0;
 
-/** Dark irises are the common case; lighter ones appear more often with lighter skin. */
 export function defaultEyeColor(skinColour: string, seed: number): string {
   const skin = new T.Color(skinColour),
     light = 0.299 * skin.r + 0.587 * skin.g + 0.114 * skin.b;
@@ -101,7 +94,6 @@ function stromaSampler(map: Uint8Array, rotation: number) {
   };
 }
 
-// The front of one eye along its own axis: pupil, iris, a soft limbus and the white around it.
 function irisPixels(
   paint: HumanPaint,
   name: string,
@@ -147,7 +139,6 @@ function irisPixels(
   return out;
 }
 
-// The white of the eye as the socket shows it: faint mottling and a few fine vessels from both corners.
 function scleraPixels(seed: number, size: number): Uint8ClampedArray {
   const next = randomStream(seed ^ 0x2c1b3c6d),
     out = new Uint8ClampedArray(size * size * 4);
@@ -219,7 +210,6 @@ function cached(paint: HumanPaint, key: string, make: () => T.CanvasTexture): T.
   return found;
 }
 
-/** The eye's front and the socket's white, with a captured skin's own iris photograph over the drawn one. */
 export function eyeTexture(
   raster: Raster,
   paint: HumanPaint,
@@ -267,7 +257,6 @@ export function eyeTexture(
   });
 }
 
-// The cornea is the smoothest surface on the head. The white is moist but far more diffuse.
 const eyeRoughness = { cornea: 0.26, white: 0.5 };
 export function eyeRoughnessTexture(raster: Raster, paint: HumanPaint): T.CanvasTexture {
   return cached(paint, "eye/roughness", () => {
@@ -278,7 +267,6 @@ export function eyeRoughnessTexture(raster: Raster, paint: HumanPaint): T.Canvas
         const x = ((i + 0.5) / size) * 2 - 1,
           y = 1 - ((j + 0.5) / size) * 2,
           q = Math.hypot(x, y) / irisRadius;
-        // The top band of the sclera half carries the wet tear meniscus.
         const meniscus = i >= size && (j + 0.5) / size < 0.13;
         const wet = i < size ? 1 - smooth(q, 1, 1.1) : 0,
           value = meniscus
@@ -290,5 +278,4 @@ export function eyeRoughnessTexture(raster: Raster, paint: HumanPaint): T.Canvas
   });
 }
 
-/** The main colour of a named iris, sRGB bytes; none for an unknown name. */
 export const irisBaseTone = (name: string): Rgb | undefined => irisTones[name]?.[1];

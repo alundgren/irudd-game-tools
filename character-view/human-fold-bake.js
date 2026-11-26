@@ -1,7 +1,5 @@
 import { BufferAttribute, BufferGeometry, CanvasTexture, SRGBColorSpace } from "three";
 
-// The print charts on a tailored garment project front to back. The folds
-// on a knee and behind it differ, so give them separate halves of the tile.
 export function foldPanels(mesh) {
   const g = mesh.geometry, p = g.attributes.position, uv = g.attributes.uv;
   const groups = [new Map(),new Map()], source=[], panels=[], indices=[];
@@ -65,7 +63,6 @@ function raster(panel,source,heights,w,h) {
       if(z>=zbuf[at]){zbuf[at]=z;folds[at]=u*heights[a]+v*heights[b]+k*heights[c];}
     }
   }
-  // Extend the shading at an outside UV edge far enough for tile filtering.
   for(let pass=0;pass<2;pass++) {
     const from=zbuf.slice();
     for(let y=1;y<h-1;y++)for(let x=1;x<2*w-1;x++){
@@ -79,8 +76,6 @@ function raster(panel,source,heights,w,h) {
   return folds;
 }
 
-// Transfer the broad displacement field to the height tile before reduction.
-// The short-wavelength yarn height and the existing roughness share the new chart.
 export function bakeGameFolds(mesh) {
   const m=mesh.material, source=mesh.geometry, heights=mesh.foldMetres;
   if (!heights || !m?.map?.image || !m.bumpMap?.image || m.normalMap ||
@@ -96,9 +91,6 @@ export function bakeGameFolds(mesh) {
   }
   const image=paint.getImageData(0,0,2*w,h),surface=relief.getImageData(0,0,2*w,h);
   const scale=.034, yarn=m.bumpScale;
-  // Recesses collect a little occlusion even on snug garments whose ridges
-  // stand completely above the resting cloth. Sample neighbouring ridges on
-  // the same panel. Denim also wears lighter on the raised yarn at a crease.
   const worn = /denim|jeans/i.test(m.name ?? "");
   const stride = 2*w, reach = Math.max(2, Math.round(h/60));
   for(let i=0;i<fold.length;i++){

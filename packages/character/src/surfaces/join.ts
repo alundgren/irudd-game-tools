@@ -1,8 +1,3 @@
-// Surface joins: seat a part's root patch inside its parent's surface and give
-// it the parent's joint ownership. Ported from character-view/surface-join.js
-// at 2761eb1, in the same arithmetic and iteration order so the vertices and
-// ownership tables match.
-
 import * as T from "three";
 import type { FigureJoin } from "@irudd/document";
 import type { BlendOwners } from "./blend.js";
@@ -30,9 +25,7 @@ interface Node {
 }
 
 export interface SurfaceIndex {
-  /** The closest surface point. */
   nearest(point: T.Vector3): Hit;
-  /** The outermost surface crossed looking back along `outward`, else the closest point. */
   exterior(point: T.Vector3, outward: T.Vector3): Hit;
 }
 
@@ -45,13 +38,8 @@ interface Table {
 
 type Ranks = Map<string, number>;
 
-/** Joined ownership and the cage faces each triangle came from, by mesh and by geometry. */
 export interface JoinState {
   readonly owners: Map<T.Mesh, BlendOwners>;
-  /**
-   * Control faces per triangle of each cage geometry. A build warp gives a
-   * mesh a fresh geometry without them, as G0 does, so its faces no longer join.
-   */
   readonly cageFaces: WeakMap<T.BufferGeometry, ReadonlyArray<number>>;
 }
 
@@ -71,10 +59,6 @@ function ownMeshes(root: T.Object3D): T.Mesh[] {
   return result;
 }
 
-/**
- * A bounding volume tree over the carrier's own triangles in world metres, so
- * fitting a small root only visits triangles that could be nearer.
- */
 export function surfaceIndex(root: T.Object3D): SurfaceIndex | null {
   const faces: Face[] = [];
   for (const mesh of ownMeshes(root)) {
@@ -168,7 +152,6 @@ export function surfaceIndex(root: T.Object3D): SurfaceIndex | null {
   return { nearest, exterior };
 }
 
-/** Keep a vertex through game mesh reduction. */
 function pinVertex(mesh: T.Mesh, index: number): void {
   let pins = mesh.geometry.getAttribute("lodAnchor");
   if (!pins) {
@@ -270,10 +253,6 @@ function atCarrier(hit: Hit, carrier: string, owners: JoinState["owners"]): Rank
   return ranks;
 }
 
-/**
- * Textile piping, a fin ray or a raised stripe follows the carrier along its
- * whole path. Each cross section moves as one to keep its thickness.
- */
 function seatStrip(
   mesh: T.Mesh,
   carrier: string,
@@ -339,10 +318,6 @@ interface Anchor {
   readonly ranks: Ranks;
 }
 
-/**
- * Move the root patch onto the carrier and blend the rest of the part, with
- * everything attached to it, smoothly toward that offset and ownership.
- */
 function seatBranch(
   mesh: T.Mesh,
   id: string,
@@ -371,7 +346,6 @@ function seatBranch(
     const hit = index.nearest(at);
     const delta = hit.point.clone().addScaledVector(hit.normal, -join.depth).sub(at);
     if (retainMount) {
-      // Keep the seated patch and its carrier triangles during mesh reduction.
       pinVertex(mesh, i);
       for (const vertex of hit.face.indices) pinVertex(hit.face.mesh, vertex);
     }
@@ -448,10 +422,6 @@ function seatBranch(
   deform(mesh, id);
 }
 
-/**
- * Turn a scute so its outer face follows the carrier, sink its base pin to the
- * join depth, then seat its base patch.
- */
 function seatPlate(
   mesh: T.Mesh,
   id: string,
@@ -480,16 +450,6 @@ function seatPlate(
   seatBranch(mesh, id, carrier, join, index, state, retainMount);
 }
 
-/**
- * Seat every joined part on its parent, shallowest first, so a root seated on
- * a part that was itself joined meets its final surface.
- *
- * With `retainMount` (game detail) a scute's seated base, or a grown plate's
- * socket on an animated plated axis, and the carrier triangles under it are
- * pinned through mesh reduction. Parts on rigid face
- * hardware or fibre guides, and their children, seat after the face fits
- * (`afterFaceFits`), the rest before.
- */
 export function fitSurfaceJoins(
   parts: ReadonlyArray<BuildPart>,
   objects: ReadonlyMap<string, T.Object3D>,
@@ -529,7 +489,6 @@ export function fitSurfaceJoins(
     if (!index) continue;
     if (join.end === "base") seatPlate(mesh, part.id, part.parent, join, index, state, retainMount);
     else if (join.end === "along") seatStrip(mesh, part.parent, join, index, state);
-    // A plate on an animated plated axis keeps its socket through mesh reduction.
     else
       seatBranch(
         mesh,

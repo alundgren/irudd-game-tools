@@ -1,9 +1,3 @@
-// The GLB library: the project's exports and files the person opened.
-//
-// The renderer only ever sees entry IDs. Main maps an ID to a path it chose
-// itself: a file in the project's `exports` directory, or a file the person
-// picked in an open dialog during this or an earlier session.
-
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -19,7 +13,6 @@ export function isGlb(bytes: Uint8Array): boolean {
   );
 }
 
-/** A file-name-safe form of a label. */
 export function safeName(label: string): string {
   const name = label
     .normalize("NFKD")
@@ -48,7 +41,6 @@ export class Library {
     this.opened = readList(this.listFile);
   }
 
-  /** Exports go into `<project>/exports`. Without a project there are no exports. */
   setProject(directory: string | undefined): void {
     this.exportsDir = directory === undefined ? undefined : path.join(directory, "exports");
   }
@@ -93,9 +85,7 @@ export class Library {
       let names: string[] = [];
       try {
         names = fs.readdirSync(this.exportsDir).filter((n) => n.toLowerCase().endsWith(".glb"));
-      } catch {
-        // No exports yet.
-      }
+      } catch {}
       for (const name of names) {
         const entry = this.entry(path.join(this.exportsDir, name), "export:" + name, "export");
         if (entry) entries.push(entry);
@@ -116,7 +106,6 @@ export class Library {
     return { entry, bytes: new Uint8Array(fs.readFileSync(found.file)) };
   }
 
-  /** Remember a file the person picked and read it. */
   open(file: string): LibraryFile | null {
     const resolved = path.resolve(file);
     this.opened = [resolved, ...this.opened.filter((f) => f !== resolved)].slice(0, 50);
@@ -125,7 +114,6 @@ export class Library {
     return this.read(this.openedId(resolved));
   }
 
-  /** Write an export into the project's exports directory, never replacing a file. */
   saveExport(name: string, bytes: Uint8Array): LibraryEntry {
     const dir = this.exportsDir;
     if (!dir) throw new Error("Open a project before exporting.");

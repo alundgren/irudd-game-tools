@@ -1,8 +1,3 @@
-// Source updates for the installed app, following Scope's model: check the
-// pinned branch, build the new commit on this computer beside the running
-// version, then wait for the person to restart. A failed or canceled build
-// leaves the running version and its links untouched; a retry starts over.
-
 import path from "node:path";
 import type { UpdateAction, UpdateStatus } from "../../shared/api.js";
 import {
@@ -16,13 +11,10 @@ import {
 import { activateBuild, prepareBuild, relaunch, remoteHead } from "./process.js";
 
 export interface UpdaterOptions {
-  /** The running app's resources\app directory. */
   readonly appDirectory: string;
   readonly installation: Installation | undefined;
   readonly onChange: (status: UpdateStatus) => void;
-  /** Arguments for the reopened app, computed when the person restarts. */
   readonly relaunchArgs: () => ReadonlyArray<string>;
-  /** Quit this app after the new one has been asked to start. */
   readonly quit: () => void;
 }
 
@@ -92,7 +84,6 @@ export class Updater {
     return this.value;
   }
 
-  /** Check the branch and build a newer commit. Idempotent while a check runs. */
   check(): Promise<void> {
     const installation = this.options.installation;
     if (!installation || this.value.phase === "ready") return Promise.resolve();
@@ -189,7 +180,6 @@ export class Updater {
     this.options.quit();
   }
 
-  /** Make the prepared build current and reopen the app on it. */
   async restart(): Promise<void> {
     const installation = this.options.installation;
     if (!installation || this.value.phase !== "ready" || !this.value.next)
@@ -210,7 +200,6 @@ export class Updater {
     this.reopen();
   }
 
-  /** Return to the previous build and reopen the app on it. */
   async rollback(): Promise<void> {
     const installation = this.options.installation;
     if (!installation) throw new Error("Rollback is available in the installed app.");
@@ -228,18 +217,11 @@ export class Updater {
     this.reopen();
   }
 
-  /** Remove builds no link or running process uses. */
-  /**
-   * Complete what a killed update step left and remove builds no role or
-   * running process uses. Skipped while another step holds the installation.
-   */
   async prune(): Promise<void> {
     const installation = this.options.installation;
     if (!installation) return;
     try {
       await prune(installation.root, [path.resolve(this.options.appDirectory, "..", "..", "..")]);
-    } catch {
-      // Housekeeping; a later start retries.
-    }
+    } catch {}
   }
 }

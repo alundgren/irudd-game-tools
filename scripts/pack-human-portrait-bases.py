@@ -60,7 +60,6 @@ def pack(source, targets, out):
     weights = np.exp(-(dist**2 - dist[:, :1]**2) / (2 * .009**2))
     weights /= weights.sum(axis=1, keepdims=True)
     attenuation = np.clip(1 - (dist[:, 0] - .015) / .030, 0, 1)
-    # Ease to a zero boundary so offsets are continuous beyond the sampled volume.
     edge = np.indices(shape)
     edge = np.minimum(edge, np.array(shape)[:, None, None, None] - 1 - edge).min(axis=0)
     attenuation *= np.clip(edge.ravel()/2, 0, 1)
@@ -80,8 +79,6 @@ def pack(source, targets, out):
             with gzip.open(path, "rb") as data:
                 changes = np.loadtxt(data, comments="#", ndmin=2)
             full[changes[:, 0].astype(int)] += changes[:, 1:] * gain
-        # One continuous vector field for skin, lip rims, eyes and nearby helpers.
-        # A point's motion depends on where it is on the edited head.
         samples = full[ids[head[near]]] * .1
         field = np.einsum("ij,ijk->ik", weights, samples).reshape((*shape, 3))
         field = gaussian_filter(field, (.75, .75, .75, 0)) * attenuation.reshape((*shape, 1))

@@ -45,7 +45,6 @@ def ambient_visibility(vertices, faces, samples=192, size=512):
     total = np.zeros(len(vertices))
     blocked = np.zeros_like(total)
     for index in range(samples):
-        # Equal-area spiral on the sphere. A surface receives its outward hemisphere.
         basis = view_basis(np.degrees(index * 2.39996322972865),
                            np.degrees(np.arcsin(1 - 2 * (index + 0.5) / samples)))
         _, _, depth = rasterize(vertices, faces, basis, centre, density, size, size)
@@ -55,7 +54,6 @@ def ambient_visibility(vertices, faces, samples=192, size=512):
         gap = depth[y, x] - cam[:, 2]
         weight = np.maximum(0, normals @ basis[2])
         bias = 0.0006 + 0.0007 / np.maximum(0.15, weight)
-        # Fade self-intersections at grazing angles and occluders beyond 25–45 mm.
         hit = np.clip((gap-bias)/0.0018, 0, 1) * np.clip((0.045-gap)/0.020, 0, 1)
         blocked += weight * hit
         total += weight

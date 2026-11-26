@@ -1,22 +1,10 @@
-// A native portrait layer on the adult's painted face (applyNativePortrait in
-// character-view/native-portrait.js at 2761eb1).
-//
-// The layer is G0's bake of a front and a profile photograph in the face
-// paint's layout: colour variation around a neutral 128, masked by its alpha.
-// Three multiplies the face map by the material colour in linear light, so the
-// tinted face is kept everywhere and only the layer's relative detail is added
-// inside its mask, scaled by the skin's own brightness. The layer follows a
-// change of skin tone because the tint is the adult's current one.
-
 import * as T from "three";
 import { context2d, drawable, type Raster, type RasterImage } from "../raster.js";
 
-/** Paint `layer` into the face `mesh` wears, as G0 does once the face and its eyes are built. */
 export function applyNativePortrait(mesh: T.Mesh, layer: RasterImage, raster: Raster): void {
   const material: T.Material | T.Material[] = mesh.material;
   if (!(material instanceof T.MeshStandardMaterial) || !material.userData["faceLayout"])
     throw new Error("A native portrait layer paints the adult's painted face.");
-  // G0 keeps a lower share on the open cheeks of a Weathered scars face, which is not ported.
   if (material.userData["quietCheeks"])
     throw new Error("A native portrait over quiet cheeks is not ported.");
   const source = drawable(material.map?.image);

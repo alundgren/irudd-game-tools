@@ -1,19 +1,3 @@
-// Native launchers of the per-user installation, compiled on the installing
-// machine by the .NET Framework compiler that ships with Windows (as Scope does).
-//
-//   <root>\Irudd Workshop.exe   starts the current build's desktop app
-//       --player                opens the current build's offline GLB player
-//       --wait-pid <pid> ...    waits for an updating app to exit, then starts
-//       --create-shortcut <lnk> <description> [arguments]
-//   <root>\bin\irudd.exe        (IRUDD_CLI) runs the current build's CLI, or
-//       host ... / mcp ...      its headless host or stdio MCP server,
-//                               with the build's own executable as Node
-//
-// Each launch resolves the current build from installation.json first, so a
-// running app or MCP session keeps its build while an update or rollback
-// switches it. The activator replaces that file in one rename, so a launch
-// sees either the old or the new build, never a half-done switch. A preview
-// installation without the file falls back to the `current` junction.
 
 using System;
 using System.Diagnostics;
@@ -100,9 +84,6 @@ internal static class IruddLauncher
                 return child.ExitCode;
             }
 #else
-            // Start through the shell so the app inherits no console or pipe handles: a
-            // caller waiting for this launcher's output must not wait for the app to exit.
-            // The app takes its environment from this process.
             Environment.SetEnvironmentVariable("ELECTRON_RUN_AS_NODE", null);
             if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("IRUDD_AGENT_COMMAND")))
                 Environment.SetEnvironmentVariable("IRUDD_AGENT_COMMAND", Path.Combine(root, "bin", "irudd.exe"));
@@ -162,7 +143,6 @@ internal static class IruddLauncher
         {
             try
             {
-                // Share delete so the activator's replacing rename never waits for a launch.
                 using (FileStream stream = new FileStream(state, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
                 using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
                     text = reader.ReadToEnd();
@@ -204,7 +184,6 @@ internal static class IruddLauncher
         }
         catch (ArgumentException)
         {
-            // Already exited.
         }
     }
 

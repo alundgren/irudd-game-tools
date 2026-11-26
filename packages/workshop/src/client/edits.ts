@@ -1,15 +1,10 @@
-// Helpers clients share to build commands: request IDs, envelopes and
-// generator steering from partial parameters.
-
 import { randomBytes } from "node:crypto";
 import { commandFormat, commandVersion, isJson, type Json } from "@irudd/document";
 
-/** A fresh request ID. Reuse the same ID to retry a request whose reply was lost. */
 export function newRequestId(prefix = "req"): string {
   return `${prefix}-${randomBytes(12).toString("hex")}`;
 }
 
-/** A command envelope without an actor: the host stamps the caller's actor. */
 export function envelope(
   documentId: string,
   expectedRevision: number,
@@ -29,7 +24,6 @@ export function envelope(
 const isObject = (value: Json | undefined): value is { readonly [key: string]: Json } =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-/** RFC 7386 merge: objects merge key by key, `null` removes a key, anything else replaces. */
 export function mergePatch(target: Json, patch: Json): Json {
   if (!isObject(patch)) return patch;
   const result: Record<string, Json> = isObject(target) ? { ...target } : {};
@@ -40,10 +34,6 @@ export function mergePatch(target: Json, patch: Json): Json {
   return result;
 }
 
-/**
- * Turn `a.b=value` assignments into a merge patch. A value that parses as JSON
- * is used as JSON (`2`, `true`, `"text"`, `{...}`); anything else is a string.
- */
 export function assignmentsPatch(assignments: ReadonlyArray<string>): Json {
   let patch: Json = {};
   for (const assignment of assignments) {
@@ -56,9 +46,7 @@ export function assignmentsPatch(assignments: ReadonlyArray<string>): Json {
     try {
       const parsed: unknown = JSON.parse(raw);
       if (isJson(parsed)) value = parsed;
-    } catch {
-      // Plain text stays a string.
-    }
+    } catch {}
     const nested = keys.reduceRight<Json>((inner, key) => ({ [key]: inner }), value);
     patch = mergePatch(patch, nested);
   }

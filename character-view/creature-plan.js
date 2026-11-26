@@ -20,10 +20,6 @@ import {
   wingStructures,
 } from "./wing-surface.js";
 
-// A creature is described as a body plan: one spine with a free posture and
-// any number of limb groups placed along it. Every limb is built from real
-// joints, so the same plan walks, reaches and can be posed. The plan is kept
-// on the form and can be edited and rebuilt.
 const rad = Math.PI / 180;
 const { clamp, lerp } = MathUtils;
 const num = (v, a, b, fallback) =>
@@ -49,10 +45,6 @@ const mix = (a, b, t) => {
 const shade = (color, t) =>
   mix(color, t < 0 ? "#000000" : "#ffffff", Math.abs(t));
 
-// Muscle and joint outlines of a limb segment. Each row is a place along the
-// segment with a width and a depth relative to its straight taper. A segment
-// is staged: the muscle sits near its root, the limb narrows to tendon and
-// bone, and the joint at its far end stands out again as a knee, hock or wrist.
 const outlines = {
   plain: [[0.16, 1, 1], [0.42, 1.12, 1.12], [0.82, 1, 1]],
   thigh: [[0.04, 1.3, 1.72], [0.26, 1.3, 1.74], [0.56, 0.94, 1.1], [0.82, 0.76, 0.82], [0.95, 1.04, 1.16]],
@@ -141,8 +133,6 @@ function readLimb(raw = {}) {
       end: pick(raw.end, creatureOptions.armEnd),
       digits: whole(raw.digits, 1, 6, 3),
       hand: num(raw.hand, 0.4, 3, 1),
-      // A resting gesture: the left hand lifts and the right relaxes, or
-      // the reverse below zero.
       ...(num(raw.raise, -80, 80, 0) ? { raise: num(raw.raise, -80, 80, 0) } : {}),
     };
   if (kind === "wing") {
@@ -152,15 +142,12 @@ function readLimb(raw = {}) {
       rise: num(raw.rise, -30, 85, 22),
       sweep: num(raw.sweep, -40, 70, 18),
       chord: num(raw.chord, 0.03, 1.5, 0.3),
-      // What carries the surface. A plain wing is one smooth blade.
       structure: pick(raw.structure, wingStructures),
     };
     if (wing.structure === "plain") return wing;
     const [least, most] = wingCounts[wing.structure];
     return {
       ...wing,
-      // Fingers of a bat wing, primaries of a feathered wing or the main
-      // veins of an insect wing.
       ribs: whole(raw.ribs, least, most, { bat: 4, feather: 9, insect: 5 }[wing.structure]),
       bend: num(raw.bend, 0, 1, 0.5),
       notch: num(raw.notch, 0, 1, 0.4),
@@ -209,7 +196,6 @@ export function readCreaturePlan(raw = {}) {
       arch: num(s.arch, -40, 40, 6),
       profile: pick(s.profile, creatureOptions.profile),
       stance: num(s.stance, 0.05, 3, 0.55),
-      // Girth multipliers at five stations from the hips to the shoulders.
       bulge: Array.from({ length: 5 }, (_, i) =>
         num(s.bulge?.[i], 0.4, 2.2, 1),
       ),
@@ -241,7 +227,6 @@ export function readCreaturePlan(raw = {}) {
       brow: num(h.brow, 0, 1, 0.35),
       nostrils: h.nostrils !== false,
       whiskers: h.whiskers === true,
-      // Where the animal is looking at rest, in degrees to its left.
       ...(num(h.turn, -50, 50, 0) ? { turn: num(h.turn, -50, 50, 0) } : {}),
     },
     limbs: (Array.isArray(raw.limbs)
@@ -314,12 +299,9 @@ const girthProfiles = {
         0.82 * Math.exp(-(((t - 0.76) / 0.16) ** 2)),
       ),
 };
-// Round both ends so the trunk closes like a body and not like a pipe.
 const endCap = (t) =>
   Math.sqrt(Math.max(0.06, 1 - (1 - Math.min(1, Math.min(t, 1 - t) / 0.13)) ** 2));
 
-// Sample the spine in the sagittal plane. Station 0 is the rear of the body
-// and station 1 the front. Pitch is degrees above horizontal.
 export function spineFrame(plan) {
   const s = plan.spine,
     k = plan.scale,
@@ -350,13 +332,9 @@ export function spineFrame(plan) {
     return [g * Math.sqrt(s.flat), g / Math.sqrt(s.flat)];
   };
   const hasLegs = plan.limbs.some((l) => l.kind === "leg");
-  // Stand the rear of the spine at the stance height, or rest a legless
-  // body on the floor.
   let lowest = Infinity;
   for (let i = 0; i <= steps; i++)
     lowest = Math.min(lowest, points[i].y - radius(i / steps)[1] * Math.cos(pitches[i]));
-  // A legless body with fins, wings or tentacles swims or hovers at the
-  // stance height. Any other legless body rests on the floor.
   const floats =
     !hasLegs &&
     plan.limbs.some((l) => ["fin", "wing", "tentacle"].includes(l.kind));
@@ -395,8 +373,6 @@ function constructCreature(raw = {}, unavailableHands) {
     spine = spineFrame(plan);
   const parts = [],
     links = {};
-  // The coat. A pale underside lies under the chosen markings and the ends
-  // of the limbs can darken, as they do on many animals.
   const lean = clamp((plan.spine.rear + plan.spine.front) / 2, 0, 90);
   const coat = (zone) => {
     const marked = {...(skin.markings ? {markings:skin.markings} : {}), ...(skin.coat ? {coatZone:zone} : {})};
@@ -433,7 +409,6 @@ function constructCreature(raw = {}, unavailableHands) {
     ...(skin.blend ? { blendSkin: true } : {}),
     ...coat(zone),
   });
-  // Skin that stays a separate piece, such as a jaw or a brow.
   const fleshy = (zone = "body") => ({
     surface: skin.surface,
     motionRole: "rigid",
@@ -446,8 +421,6 @@ function constructCreature(raw = {}, unavailableHands) {
     if (parent) links[part.id] = parent;
     return part.id;
   }
-  // World-space centres with [halfWidth, halfDepth] become a sweep whose
-  // pivot is the first joint.
   function sweep(id, points, radii, color, extra, parent, pivot = points[0]) {
     return add(
       {
@@ -488,15 +461,11 @@ function constructCreature(raw = {}, unavailableHands) {
       parent,
     );
   }
-  // A limb segment runs from joint to joint. Both ends reach a little past
-  // the joint with a rounded cap, so a bent joint stays closed.
   function segment(id, a, b, ra, rb, color, extra, parent, outline = "plain", muscle = 1) {
     const axis = b.clone().sub(a),
       length = axis.length();
     axis.normalize();
     const swell = (v) => 1 + (v - 1) * muscle;
-    // A thigh or an upper arm starts with a full cap that sinks into the
-    // trunk and reads as a haunch or a shoulder.
     const rooted = ["thigh", "drumstick", "upper", "column"].includes(outline)
       ? 0.74 + 0.3 * Math.min(1, muscle)
       : 0.74;
@@ -518,16 +487,12 @@ function constructCreature(raw = {}, unavailableHands) {
       a,
     );
   }
-  // The long cuticle of a walking arthropod is rigid between hinges. Its
-  // muscular femur swells above a narrow basal joint, while the blade of the
-  // tibia tapers out of the knee. The original sweep stays editable and rigged.
   function cuticle(id, a, b, rootRadius, tipRadius, role, parent, row) {
     const axis = b.clone().sub(a), length = axis.length();
     axis.normalize();
     const bow = new Vector3(0, .45, row < .5 ? -.75 : .75);
     bow.addScaledVector(axis,-bow.dot(axis)).normalize();
     const femur = role === "thigh";
-    // station, breadth, depth and camber relative to segment length
     const section = femur ? [
       [-.035,.73,.83,0], [.035,1.15,1.32,0], [.15,.58,.66,.013],
       [.26,.98,1.42,.035], [.47,1.3,1.72,.060], [.72,.84,1.12,.052],
@@ -546,7 +511,6 @@ function constructCreature(raw = {}, unavailableHands) {
     sweep(id,points,radii,femur ? skin.base : mix(skin.base,skin.accent,.12),
       { ...organic(role, femur ? "body" : "end"), blendSkin:false },parent,a);
   }
-  // Trunk.
   const stations = [0, 0.035, 0.1, 0.2, 0.33, 0.47, 0.6, 0.73, 0.85, 0.94, 0.985, 1];
   const serpent = !plan.limbs.some((l) => l.kind === "leg");
   const trunkStations = serpent ? [...stations].reverse() : stations;
@@ -560,8 +524,6 @@ function constructCreature(raw = {}, unavailableHands) {
   const front = spine.at(1),
     rear = spine.at(0),
     girth = plan.spine.girth * k;
-  // How far a point on one side of the body lies inside the trunk, measured
-  // across the body.
   const trunkDepth = (p, side) => {
     let frame = rear,
       least = Infinity;
@@ -580,13 +542,11 @@ function constructCreature(raw = {}, unavailableHands) {
     return Math.abs(high) < 1 ? Math.max(0, w * Math.sqrt(1 - high * high) - side * p.x) : 0;
   };
 
-  // Limbs.
   let detail = 2;
   const sidesOf = (limb) =>
     limb.side === "left" ? [1] : limb.side === "right" ? [-1] : [1, -1];
   const budget = () => {
     const h = plan.head;
-    // Everything outside the limbs: trunk, girdles, tail, back and heads.
     let count =
       parts.length +
       8 +
@@ -646,7 +606,6 @@ function constructCreature(raw = {}, unavailableHands) {
   for (const limb of plan.limbs) {
     for (let i = 0; i < limb.pairs; i++) {
       const u = limb.pairs === 1 ? 0.5 : i / (limb.pairs - 1);
-      // Order each group from the front of the body to the rear.
       const station =
         limb.pairs === 1
           ? (limb.from + limb.to) / 2
@@ -686,8 +645,6 @@ function constructCreature(raw = {}, unavailableHands) {
           );
           const span = ankle.clone().sub(root),
             length = span.length();
-          // Hind limbs carry the knee forward and fore limbs carry the
-          // elbow back, as in running animals.
           const kneeSign = station < 0.56 ? 1 : -1;
           const forward = new Vector3(0, 0, kneeSign);
           let knee, hock;
@@ -717,7 +674,6 @@ function constructCreature(raw = {}, unavailableHands) {
             insect: ["femur", "tibia"],
             pillar: ["column", "column"],
           }[limb.style];
-          // An upright body carries its legs on a pelvis.
           if (i === 0 && side === sidesOf(limb)[0] && Math.sin(frame.pitch) > 0.72 && limb.style !== "insect") {
             pelvises++;
             ball(
@@ -729,8 +685,6 @@ function constructCreature(raw = {}, unavailableHands) {
               "body",
             );
           }
-          // A level body carries each leg on a haunch or a shoulder: a
-          // slab of muscle on the flank that joins the limb to the back.
           if (limb.style !== "insect" && Math.sin(frame.pitch) <= 0.72) {
             const rise = Math.min(d * 0.85, r0 * 3.2);
             ball(
@@ -765,8 +719,6 @@ function constructCreature(raw = {}, unavailableHands) {
             carrier = id + " shin",
             endRole = footRole;
           if (hock) {
-            // The long lower bone of a digitigrade leg keeps its angle while
-            // the two joints above it fold.
             segment(foot, hock, ankle, r2 * 0.92, r2 * 0.86, skin.base, footRole, carrier, "shank", limb.muscle);
             carrier = foot;
             foot = id + " toes";
@@ -778,8 +730,6 @@ function constructCreature(raw = {}, unavailableHands) {
               : limb.end === "paddle" ? skin.accent : shade(skin.base, -.18);
             const geometry = footCage(limb.end, limb.style, limb.digits, ankle.y / r);
             if (limb.end === "point" && limb.style === "mammal") {
-              // The rear and fore shin lean in opposite directions. Seat
-              // the flexible upper collar into the actual distal shin.
               const towardShin=knee.clone().sub(ankle).normalize();
               const right=new Vector3(toeDir.z,0,-toeDir.x);
               for (const v of geometry.vertices) {
@@ -926,7 +876,6 @@ function constructCreature(raw = {}, unavailableHands) {
             handReach = limb.end === "hand" ? 0.182 * handScale * limb.hand
               : limb.end === "pincer" ? 0.182 * wristScale * limb.hand : g * 1.7;
           let upperDir, lowerDir, hinge, elbow, wrist;
-          // A long arm is raised until the hand clears the floor.
           const gesture = limb.raise ?? 0,
             lifted = side > 0 === gesture > 0 ? Math.abs(gesture) : -0.35 * Math.abs(gesture),
             bend = (limb.elbow + Math.max(0, lifted) * 0.55) * rad;
@@ -936,8 +885,6 @@ function constructCreature(raw = {}, unavailableHands) {
               -Math.sin(drop),
               Math.cos(drop) * Math.sin(yaw),
             ).normalize();
-            // The elbow folds the forearm toward the front of the body.
-            // An arm that already points forward folds upward instead.
             const ahead = Math.max(0, upperDir.z);
             hinge = new Vector3().crossVectors(
               upperDir,
@@ -955,7 +902,6 @@ function constructCreature(raw = {}, unavailableHands) {
           const r0 = g * 0.4,
             r1 = g * 0.33,
             r2 = g * 0.25;
-          // Each pair of arms hangs from a shoulder girdle across the trunk.
           if (side === sidesOf(limb)[0]) {
             yokes++;
             ball(
@@ -1081,18 +1027,10 @@ function constructCreature(raw = {}, unavailableHands) {
           ).normalize();
           const chord = limb.chord * k;
           if (limb.structure !== "plain") {
-            // A structured wing hangs its surface from a jointed arm. The
-            // chord follows the body from chest to hips, so the wings of an
-            // upright animal fold down its back, and a wing keeps its shape
-            // wherever it sits along the spine. The arm is sized by the wing
-            // alone, so a change of girth or of place only moves the wing.
             const stout = { bat: 0.036, feather: 0.042, insect: 0.019 }[limb.structure];
             const bone = stout * (0.6 * span + 0.95 * chord);
             const axis = rear.centre.clone().sub(front.centre).normalize(),
               above = new Vector3(0, -axis.z, axis.y);
-            // A wing swept back along the body folds against the flank: its
-            // leading edge runs low and its surface faces out, as on a bird
-            // at rest.
             const folded = smooth(clamp((Math.abs(dir.dot(axis)) - 0.55) / 0.4, 0, 1));
             const rearward = axis
               .clone()
@@ -1101,8 +1039,6 @@ function constructCreature(raw = {}, unavailableHands) {
               .lerp(above.clone().addScaledVector(out, -0.3).normalize(), folded)
               .normalize();
             root.addScaledVector(above, -folded * chord * 0.8);
-            // Move the wing out until the part past the shoulder is clear of
-            // the trunk.
             let sunk = 0;
             for (const along of [0.3, 0.5, 0.7, 0.9])
               for (const across of [0, 0.35, 0.7])
@@ -1230,8 +1166,6 @@ function constructCreature(raw = {}, unavailableHands) {
           );
         } else {
           const id = label(side, "tentacle");
-          // A fan turns each pair further around the body, so the arms of
-          // an upright animal leave it like the spokes of a wheel.
           const droop = limb.droop * rad,
             yaw =
               limb.forward * rad +
@@ -1248,7 +1182,6 @@ function constructCreature(raw = {}, unavailableHands) {
             Math.sin(yaw),
           ).normalize();
           const fall = new Vector3(side * 0.25 * Math.cos(yaw), -1, 0.25 * Math.sin(yaw)).normalize();
-          // The tip hooks back up and out, and no two arms hang alike.
           const hook = new Vector3(side * 0.7 * Math.cos(yaw), 0.75, 0.7 * Math.sin(yaw)).normalize();
           const around = new Vector3(-Math.sin(yaw), 0, side * Math.cos(yaw));
           const phase = i * 2.1 + (side > 0 ? 0 : 1.3);
@@ -1257,9 +1190,6 @@ function constructCreature(raw = {}, unavailableHands) {
           for (let j = 1; j <= steps; j++) {
             const t = j / steps;
             if (plan.anatomyRevision === 2) {
-              // Integrate the arm at fixed length. The proximal muscle fans
-              // away from the mantle, while the unsupported tip can turn
-              // through a full hook without shortening the arm.
               const curl = limb.curl;
               const reach = .43 + .08 * Math.sin(phase);
               const turn = Math.max(0, (t - reach) / (1 - reach));
@@ -1270,7 +1200,6 @@ function constructCreature(raw = {}, unavailableHands) {
               const dir = new Vector3(side * Math.cos(bearing)*Math.cos(angle),
                 Math.sin(angle), Math.sin(bearing)*Math.cos(angle));
               const next = points.at(-1).clone().addScaledVector(dir, span / steps);
-              // Lower arms spread along the floor when they reach it.
               if (next.y < .018*k) {
                 const depth = .018*k - next.y;
                 next.y += depth;
@@ -1314,11 +1243,9 @@ function constructCreature(raw = {}, unavailableHands) {
     }
   }
 
-  // Details that hang on the limbs and the underside.
   const has = (name) => detail > 0 && plan.details.includes(name);
   if (has("spurs"))
     for (const a of anchors) {
-      // A spur leaves the joint on the outside of its bend.
       const dir = a.mid.clone().sub(a.root.clone().lerp(a.end, 0.5));
       if (dir.lengthSq() < 1e-8) dir.set(0, 0, -1);
       dir.normalize();
@@ -1370,7 +1297,6 @@ function constructCreature(raw = {}, unavailableHands) {
       );
     }
 
-  // Tail.
   const tail = plan.tail;
   if (tail.kind !== "none") {
     const [rw, rd] = spine.at(0.06).radius;
@@ -1391,7 +1317,6 @@ function constructCreature(raw = {}, unavailableHands) {
       swayAxis = new Vector3(0, 1, 0);
     for (let j = 1; j <= count; j++) {
       const t = j / count;
-      // Positive lift curls the tail upward. A stinger arches over the back.
       const turn = stinger
         ? (150 * rad) / count
         : (tail.lift * rad * (0.4 + 1.2 * t)) / count;
@@ -1473,7 +1398,6 @@ function constructCreature(raw = {}, unavailableHands) {
       );
   }
 
-  // Dorsal ornament.
   const back = plan.back;
   if (back.kind !== "none" && !growthFamilies.includes(back.kind)) {
     const n = back.kind === "sail" ? Math.max(3, back.count) : back.count;
@@ -1518,7 +1442,6 @@ function constructCreature(raw = {}, unavailableHands) {
       }
   }
 
-  // Heads.
   const head = plan.head,
     headFrames = [];
   for (let n = 0; n < head.count; n++) {
@@ -1552,8 +1475,6 @@ function constructCreature(raw = {}, unavailableHands) {
       .multiplyScalar(0.5)
       .addScaledVector(dir, neckLength + fd * 0.4);
     if (plan.anatomyRevision === 2 && head.count > 1) {
-      // A steep neck contributes almost no sideways reach. Separate the skulls
-      // at the tips of the branches while keeping their roots on the shoulders.
       const turn = (head.turn ?? 0) * rad;
       const spanAxis = new Vector3(Math.cos(turn), 0, -Math.sin(turn));
       const lateral = neckEnd.clone().sub(front.centre).dot(spanAxis);
@@ -1590,7 +1511,6 @@ function constructCreature(raw = {}, unavailableHands) {
         { ...fleshy(), motionRole: "head" }, neckId, yawDegrees);
     else ball(headId, centre, axes, skin.base, organic("head"), neckId, [0, yawDegrees, 0]);
     const rigid = (surface = "plain") => ({ surface, motionRole: "rigid" });
-    // A point on the head from azimuth and elevation in its own frame.
     const onHead = (az, el, scale = 1) => {
       const radius = skull ? skullSurfaceRadius(skull, az, el) : .5;
       return centre
@@ -1613,7 +1533,6 @@ function constructCreature(raw = {}, unavailableHands) {
       lipWidth = axes[0] * 0.5;
     let jawed = false;
     if (head.snout === "muzzle") {
-      // An upper snout and a hinged lower jaw.
       jawed = true;
       const reach = muzzleLength * 1.05 + axes[2] * 0.24;
       const start = onHead(0, -0.08, 0.5);
@@ -1820,8 +1739,6 @@ function constructCreature(raw = {}, unavailableHands) {
         return [r, r];
       });
       if (plan.anatomyRevision === 2) {
-        // A short-legged animal carries the same curved trunk pitched forward at the root.
-        // Rotating the whole curve keeps its length and the tangent of the nostril pad.
         const profile = points.map(point => {
           const delta = point.clone().sub(start);
           return [delta.dot(facing), delta.y];
@@ -1861,7 +1778,6 @@ function constructCreature(raw = {}, unavailableHands) {
     if (head.mouth && !jawed && head.snout === "none")
       ball("mouth" + tag, lipAt, [lipWidth, hs * 0.035, hs * 0.09], "#3a2422", rigid(), headId, [0, yawDegrees, 0]);
 
-    // Eyes.
     const eyeRadius = hs * 0.15 * head.eyeSize * (head.eyes > 4 ? 0.74 : 1);
     const placements = {
       front: { az: 0.5, el: 0.36 },
@@ -1909,8 +1825,6 @@ function constructCreature(raw = {}, unavailableHands) {
           const offset = at.clone().addScaledVector(point,radius).sub(centre);
           const x = offset.dot(across)/axes[0], y = offset.dot(up)/axes[1], z = offset.dot(facing)/axes[2];
           const base = onHead(Math.atan2(x,z),Math.atan2(y,Math.hypot(x,z)),.91);
-          // The cage lives in units of the eye radius. Removing world-space roundoff
-          // keeps its vertices identical when a body edit simply translates the skull.
           return base.sub(at).multiplyScalar(1e7/radius).round().multiplyScalar(1e-7);
         };
         const orbit = creatureOrbit({head,gaze:direction,up,side,seatOnSkull});
@@ -1986,7 +1900,6 @@ function constructCreature(raw = {}, unavailableHands) {
         );
     });
 
-    // Crest.
     const cs = hs * head.crestSize;
     if (head.crest === "horns" || head.crest === "ears" || head.crest === "antennae")
       for (const side of [1, -1]) {
@@ -2072,8 +1985,6 @@ function constructCreature(raw = {}, unavailableHands) {
           headId,
         );
       }
-    // Crests that grow out of the skull: every root is flared and sunk
-    // below the surface, so the horn reads as bone and not as a peg.
     const keratin = mix(skin.pale, "#ae8e68", 0.34),
       horny = { ...rigid("horn"), hornSwatch: 2 };
     const grown = (name, n, at, girthAt, color = keratin, extra = horny, parent = headId) => {
@@ -2089,7 +2000,6 @@ function constructCreature(raw = {}, unavailableHands) {
     };
     const boss = (t) => 1 + 0.6 * Math.max(0, 1 - t / 0.18) ** 2;
     const ridged = (t, i) => 1 + (i % 2 === 0 ? 0.12 : -0.05) * (1 - t);
-    // Loops of world points become one capped cage region.
     const leaf = (id, rings, color, extra, parent = headId) => {
       const sides = rings[0].length,
         rows = rings.length,
@@ -2116,7 +2026,6 @@ function constructCreature(raw = {}, unavailableHands) {
           const j = (i + 1) % sides;
           faces.push([r * sides + i, r * sides + j, (r + 1) * sides + j, (r + 1) * sides + i]);
         }
-      // Mirrored loops wind the other way; keep every face looking outward.
       let volume = 0;
       for (const f of faces)
         for (let i = 1; i < f.length - 1; i++)
@@ -2125,7 +2034,6 @@ function constructCreature(raw = {}, unavailableHands) {
       const vertices = all.map((v) => v.clone().sub(pivot).multiplyScalar(1 / unit).toArray().map((x) => Number(x.toFixed(4))));
       return cage(id, pivot, [unit, unit, unit], { vertices, faces, levels: 1 }, color, extra, parent);
     };
-    // A flat vane along a path, widest across `normal`.
     const vane = (id, points, widths, normal, thick, color, extra, parent = headId) =>
       leaf(
         id,
@@ -2228,7 +2136,6 @@ function constructCreature(raw = {}, unavailableHands) {
       );
     }
     if (head.crest === "fan") {
-      // A sail along the midline from the brow to the nape, on three rays.
       const rows = 9,
         ray = (az, el) => outward(az, el).multiplyScalar(0.55).addScaledVector(up, 0.65).addScaledVector(facing, -0.3).normalize();
       const station = (t) => {
@@ -2282,7 +2189,6 @@ function constructCreature(raw = {}, unavailableHands) {
         }
         vane("plume feather " + (j + 1) + tag, points, widths, across, hs * 0.02, j % 2 ? skin.pale : skin.accent, rigid());
       }
-    // Details of the neck and head.
     const nape = up.clone().addScaledVector(dir, -up.dot(dir));
     if (nape.lengthSq() < 0.02) nape.copy(facing).negate();
     nape.normalize();
@@ -2440,8 +2346,6 @@ function constructCreature(raw = {}, unavailableHands) {
         }
   }
 
-  // A thoracic shield is seated on the flank. Each opening overlaps its
-  // rotating femur, so the leg can swing through the collar when it walks.
   for (const row of socketRows) {
     if (!row.length) continue;
     const plate = coxalShields(row);
@@ -2449,9 +2353,7 @@ function constructCreature(raw = {}, unavailableHands) {
       [plate.unit,plate.unit,plate.unit],plate.cage,mix(skin.base,skin.accent,.20),
       {surface:skin.surface,motionRole:"rigid"}, "body");
   }
-  // Worn layers go on last, over the finished anatomy.
   if (plan.dress) {
-    // Leave room for any pack and for grown organs, whatever is carried.
     const dressCap = 128 - 12 - (growthFamilies.includes(plan.back.kind) ? 14 : 0);
     dressCreature({
       plan,
@@ -2500,8 +2402,6 @@ function constructCreature(raw = {}, unavailableHands) {
     links,
     { metric: true },
   );
-  // One skin joins at most 48 regions. Past that the smallest outer pieces
-  // stay separate, so a many-limbed plan still builds.
   const joined = form.parts.filter((p) => p.blendSkin);
   if (joined.length > 46) {
     const rank = (p) =>
@@ -2534,9 +2434,6 @@ function constructCreature(raw = {}, unavailableHands) {
   return equipCreature(applyBackGrowth(form, plan, spine),plan,spine,unavailableHands);
 }
 
-// Starting points that cover different anatomy. Each is an ordinary plan
-// with a way of living in mind: what it eats, how it moves and what it
-// defends itself with.
 const marks = (kind, color, spacing, coverage, seed, angle = 0) => ({
   kind,
   color,
@@ -2546,7 +2443,6 @@ const marks = (kind, color, spacing, coverage, seed, angle = 0) => ({
   seed,
 });
 export const creaturePresets = {
-  // A plains browser: deep chest, long neck, hooves and a fly-whisk tail.
   "Four-legged grazer": {
     spine: { length: 1.05, girth: 0.22, front: 12, arch: 5, stance: 0.68, profile: "barrel", bulge: [1.12, 0.98, 1.08, 1.2, 1.02] },
     head: { neck: 0.42, neckPitch: 54, neckGirth: 0.82, size: 0.95, shape: "long", snout: "muzzle", snoutLength: 0.9, jaw: 0.05, eyePlace: "side", eyeSize: 1.15, lids: 0.3, brow: 0.2, crest: "ears", crestSize: 1.15 },
@@ -2556,7 +2452,6 @@ export const creaturePresets = {
     details: ["mane", "tail tuft"],
     skin: { coat: { family: "pelt", graded: true, contrast: .80, density: .92, seed: 195 }, base: "#a67c4e", accent: "#3b2a1e", pale: "#f1e4c8", eye: "#5b3d22", belly: 0.85, socks: 0.4, markings: marks("Rosettes", "#6d4a2b", 0.2, 0.42, 3) },
   },
-  // A pursuit predator balanced over its hips by a heavy tail.
   "Two-legged runner": {
     spine: { length: 0.84, girth: 0.2, rear: 10, front: 34, arch: 4, stance: 0.84, profile: "pear", bulge: [1.1, 1.14, 1.04, 0.96, 0.86] },
     head: { neck: 0.3, neckPitch: 58, neckGirth: 0.9, size: 1.1, shape: "long", snout: "muzzle", snoutLength: 1.25, jaw: 0.32, teeth: 5, brow: 0.75, lids: 0.25, eyePlace: "side", crest: "crown", crestSize: 0.8 },
@@ -2569,7 +2464,6 @@ export const creaturePresets = {
     details: ["spurs"],
     skin: { coat: { family: "plumage", graded: true, contrast: .80, density: .92, seed: 194 }, base: "#4c7a72", accent: "#e2874d", pale: "#ecdcc0", eye: "#f2c14a", belly: 0.85, socks: 0.5, markings: marks("Bands", "#24403c", 0.2, 0.4, 11, 14) },
   },
-  // A four-armed bargainer: two arms to hold the goods and two to haggle.
   "Upright four-armed trader": {
     anatomyRevision: 2,
     dress: { kind: "sage", color: "#274958", trim: "#cf9659", size: .9, layers: 3, seed: 32 },
@@ -2584,7 +2478,6 @@ export const creaturePresets = {
     details: ["tusks", "frill"],
     skin: { base: "#6f4f86", accent: "#e3b04f", pale: "#eadfc8", eye: "#f0c84a", belly: 0.75, socks: 0.55, markings: marks("Spots", "#48305c", 0.09, 0.3, 17) },
   },
-  // An ambusher that waits with folded striking arms.
   "Raised forebody hunter": {
     anatomyRevision: 2,
     spine: { length: 1.3, girth: 0.17, rear: 2, front: 78, arch: 0, stance: 0.5, profile: "tube", bulge: [1.15, 1.42, 0.86, 0.74, 0.94] },
@@ -2598,7 +2491,6 @@ export const creaturePresets = {
     details: ["spurs"],
     skin: { base: "#5c8038", accent: "#d7df62", pale: "#f0e7bb", eye: "#e8d24a", belly: 0.8, socks: 0.4, markings: marks("Bands", "#35501f", 0.13, 0.26, 5) },
   },
-  // A burrow hunter with grasping pincers and a sting held over its back.
   "Six-legged crawler": {
     anatomyRevision: 2,
     spine: { length: 1.2, girth: 0.17, flat: 1.35, front: 4, arch: 3, stance: 0.3, profile: "tube", bulge: [0.9, 1.3, 0.72, 1.12, 0.96] },
@@ -2612,7 +2504,6 @@ export const creaturePresets = {
     details: [],
     skin: { base: "#6b3f33", accent: "#d98a3a", pale: "#ecd6a8", eye: "#d7c24a", belly: 0.7, socks: 0.6, markings: marks("Bands", "#3d231c", 0.11, 0.3, 4) },
   },
-  // A tide-flat forager that probes the mud with ten short legs.
   "Radial many-legged walker": {
     anatomyRevision: 2,
     spine: { length: 0.62, girth: 0.17, rear: 86, front: 80, arch: 4, stance: 0.34, profile: "pear" },
@@ -2625,7 +2516,6 @@ export const creaturePresets = {
     back: { kind: "none" },
     skin: { base: "#c8961e", accent: "#5d7a2a", pale: "#ead9b6", eye: "#7a8c3a", belly: 0.8, socks: 0.3, markings: marks("Spots", "#8f6a12", 0.07, 0.3, 9) },
   },
-  // A cliff glider with a keeled chest and a steering fan.
   "Winged glider": {
     spine: { length: 0.9, girth: 0.15, front: 16, arch: 4, stance: 0.42, profile: "wedge", bulge: [0.9, 0.95, 1.05, 1.25, 1] },
     head: { neck: 0.24, neckPitch: 42, shape: "long", snout: "beak", eyePlace: "side", eyeSize: 1.2, brow: 0.5, crest: "crown" },
@@ -2638,7 +2528,6 @@ export const creaturePresets = {
     details: ["dewlap"],
     skin: { base: "#3f5f86", accent: "#e9b651", pale: "#e9e3d2", eye: "#f1cf52", belly: 0.9, socks: 0.4, markings: marks("Bands", "#22364f", 0.18, 0.3, 8, 20) },
   },
-  // An open-water chaser, dark above and pale below.
   "Finned swimmer": {
     anatomyRevision: 2,
     spine: { length: 1.5, girth: 0.2, flat: 0.78, front: 2, arch: 2, stance: 0.6, profile: "wedge" },
@@ -2651,7 +2540,6 @@ export const creaturePresets = {
     back: { kind: "sail", count: 6, height: 0.26 },
     skin: { coat: { family: "wet skin", graded: true, contrast: .80, density: .92, seed: 191 }, base: "#2f6f7d", accent: "#f0a35a", pale: "#e6efe6", eye: "#d9e04f", belly: 1, markings: marks("Bands", "#1d4852", 0.24, 0.32, 2, 30) },
   },
-  // A reef drifter that tastes the water with its arms.
   "Tentacled drifter": {
     anatomyRevision: 2,
     spine: { length: 0.55, girth: 0.24, rear: 88, front: 90, arch: 0, stance: 0.5, profile: "barrel" },
@@ -2664,7 +2552,6 @@ export const creaturePresets = {
     back: { kind: "none" },
     skin: { base: "#8b4f6e", accent: "#f0c15c", pale: "#f1dfd2", eye: "#5fc7c0", belly: 0.6, markings: marks("Rosettes", "#f0c15c", 0.16, 0.34, 21) },
   },
-  // A slow browser that answers every threat with armour and a club.
   "Armoured browser": {
     dress: { kind: "warden", color: "#47524c", trim: "#ad785b", size: .91, layers: 2, seed: 67 },
     spine: { length: 1.25, girth: 0.25, flat: 1.3, front: 6, arch: 8, stance: 0.64, profile: "barrel", bulge: [1.05, 1.15, 1.2, 1.1, 0.95] },
@@ -2675,7 +2562,6 @@ export const creaturePresets = {
     details: ["frill", "shoulder spikes", "belly plates"],
     skin: { base: "#6f6a4a", accent: "#b5482f", pale: "#e9dfc0", eye: "#c9892f", belly: 0.6, socks: 0.5, markings: marks("Spots", "#4a4630", 0.12, 0.34, 31) },
   },
-  // A shoreline stalker on stilt legs with a spear of a bill.
   "Long-necked wader": {
     spine: { length: 0.7, girth: 0.17, rear: 6, front: 26, arch: 6, stance: 0.95, profile: "pear", bulge: [1, 1.15, 1.1, 0.95, 0.8] },
     head: { billProfile: "spear", neck: 0.62, neckPitch: 66, neckGirth: 0.55, size: 0.8, shape: "long", snout: "bill", snoutLength: 1.7, eyePlace: "side", eyeSize: 1.1, lids: 0.2, brow: 0.3, crest: "crown", crestSize: 0.9 },
@@ -2688,7 +2574,6 @@ export const creaturePresets = {
     details: ["dewlap"],
     skin: { coat: { family: "plumage", graded: true, contrast: .80, density: .92, seed: 194 }, base: "#c96f5a", accent: "#f4d06a", pale: "#f6ece0", eye: "#f4d06a", belly: 0.9, socks: 0.85, markings: null },
   },
-  // A reef diplomat in court dress, one hand raised in greeting.
   "Court envoy": {
     anatomyRevision: 2,
     family: "envoy",
@@ -2704,7 +2589,6 @@ export const creaturePresets = {
     skin: { faceMarking: "Facial disc", base: "#2f8f8a", accent: "#f08a5d", pale: "#eaf3df", eye: "#f6c453", belly: 0.85, socks: 0.4, limbFade: true, markings: marks("Spots", "#1d5f66", 0.1, 0.34, 12) },
     dress: { kind: "herald", cut: 2, device: "swallow", color: "#b3202e", trim: "#f0c24f", layers: 3, size: 1.05, seed: 7 },
   },
-  // A dockside guard: a pursuit predator in plate, helm and tassets.
   "Harbour warden": {
     anatomyRevision: 2,
     family: "stalker",
@@ -2720,7 +2604,6 @@ export const creaturePresets = {
     skin: { base: "#c8622f", accent: "#3ec1c9", pale: "#f3e2c2", eye: "#f7d154", belly: 0.9, socks: 0.6, limbFade: true, markings: marks("Bands", "#5a2416", 0.2, 0.42, 21, 12) },
     dress: { kind: "warden", cut: 2, device: "tide", color: "#27408b", trim: "#e8ecf2", layers: 3, size: 1.05, seed: 3 },
   },
-  // A long-necked caravan browser under a fringed saddle cloth.
   "Dune nomad": {
     anatomyRevision: 2,
     family: "grazer",
@@ -2733,7 +2616,6 @@ export const creaturePresets = {
     skin: { faceMarking: "Forehead blaze", base: "#d9b36a", accent: "#c2452d", pale: "#fbf1d8", eye: "#3b2a1e", belly: 0.9, socks: 0.55, limbFade: true, markings: marks("Rosettes", "#9a6b2c", 0.2, 0.42, 5) },
     dress: { kind: "nomad", cut: 2, device: "sunburst", color: "#128a98", trim: "#f6ecd0", layers: 3, size: 1.1, seed: 11 },
   },
-  // A small round scholar, mostly eyes, in a violet gown.
   "Moss sage": {
     anatomyRevision: 2,
     family: "hopper",
@@ -2749,7 +2631,6 @@ export const creaturePresets = {
     skin: { coat: { family: "pelt", graded: true, contrast: .80, density: .92, seed: 186 }, base: "#7d9a45", accent: "#e3572f", pale: "#f2efcf", eye: "#f7c531", belly: 0.9, socks: 0, markings: marks("Marbled", "#4f6a2a", 0.18, 0.4, 9) },
     dress: { kind: "sage", cut: 2, device: "oak", color: "#6a3aa2", trim: "#f3d36b", layers: 3, size: 1, seed: 5 },
   },
-  // A four-armed scout from the night country in field leathers.
   "Signal ranger": {
     anatomyRevision: 2,
     family: "envoy",
@@ -2767,9 +2648,6 @@ export const creaturePresets = {
   },
 };
 
-// Draw a whole creature. An ecological family settles how the animal lives
-// and a biome settles its palette; one family in thirty is the free draw
-// below. Outfits follow: worn layers on some, carried equipment on others.
 export function randomCreaturePlan(seed = 1) {
   const drawn = drawFamily(seed);
   let plan;
@@ -2798,26 +2676,20 @@ export function randomCreaturePlan(seed = 1) {
     if (plan.head.count === 1 && drawn.draw() < 0.8) plan.head.turn = Math.round(lerp(-28, 28, drawn.draw()));
   }
   plan.family = drawn.family;
-  // A head reads against the whole animal, not against the girth alone.
   plan.head.size = Math.max(plan.head.size, Math.min(1.7, (0.2 * plan.spine.length) / plan.spine.girth));
   plan.head.eyeSize = Math.max(plan.head.eyeSize, 1);
   for (const leg of plan.limbs) {
     if (leg.kind !== "leg" || leg.pairs < 2 || leg.fan > 100 || plan.spine.rear > 60) continue;
-    // Each leg of a row needs daylight between it and the next.
     const across = 2 * plan.spine.girth * (leg.style === "pillar" ? 0.62 : leg.style === "insect" ? 0.34 : 0.46);
     const room = () => (Math.abs(leg.to - leg.from) * plan.spine.length) / (leg.pairs - 1) / (2.2 * across);
     leg.girth = clamp(Math.min(leg.girth, room()), Math.min(0.7, leg.girth), 3);
     while (leg.pairs > 2 && room() < leg.girth) leg.pairs--;
   }
   if (plan.skin.socks > 0) plan.skin.limbFade = true;
-  // The coat and the principal markings use independent draws. A coat follows
-  // the spine and the creature's way of moving, underneath any bands or spots.
   if (drawn.plan && randomStream(seed ^ 0x37c665ad)() < .76)
     plan.skin = drawCreatureCoat(plan, seed);
   const dress = drawDress(plan, seed, drawn.dressOdds);
   if (dress) plan.dress = dress;
-  // A broad secondary marking belongs to exposed flanks. Keep its selection
-  // independent of the anatomy, equipment and existing small-scale markings.
   const flankDraw = randomStream(seed ^ 0xc7e41d29);
   if (!dress && plan.back.kind !== "spiral shell" && flankDraw() < .62) {
     const choices = plan.family === "swimmer" || plan.family === "drifter"
@@ -2830,7 +2702,6 @@ export function randomCreaturePlan(seed = 1) {
   const carried = drawCreatureEquipment(plan, seed);
   if (carried && drawn.draw() < (dress ? 0.35 : drawn.kitOdds) * (growthFamilies.includes(plan.back.kind) ? 0.4 : 1)) {
     plan.equipment = carried;
-    // The ensemble leaves the pack's place on the trunk free.
     if (dress) {
       const busyBack = plan.back.kind !== "none" && plan.limbs.some(limb =>
         limb.kind === "leg" && limb.style === "insect" && limb.pairs >= 3);
@@ -2840,8 +2711,6 @@ export function randomCreaturePlan(seed = 1) {
   return readCreaturePlan(plan);
 }
 
-// The free draw. Posture, limb groups and the head are independent draws,
-// so one seed can combine parts that no family combines.
 export function freeCreaturePlan(seed = 1) {
   const draw = randomStream(seed),
     between = (a, b) => a + (b - a) * draw(),
@@ -2983,8 +2852,6 @@ export function freeCreaturePlan(seed = 1) {
   plan.back = drawBackGrowth(plan, seed);
   placeDrawnAnatomy(plan);
   if (wingAt < 0) return outfitDraw(plan, seed);
-  // The wing takes after the rest of the animal. It has a draw of its own,
-  // so the body a seed gives does not depend on how wings are built.
   const own = randomStream((seed ^ 0x9e3779b9) >>> 0),
     span = (a, b) => a + (b - a) * own();
   const structure = suggestWingStructure(plan, own());
@@ -3002,13 +2869,10 @@ export function freeCreaturePlan(seed = 1) {
   return outfitDraw(plan, seed);
 }
 
-// Worn layers for an existing plan: always an ensemble when the animal
-// can wear one, in a livery that stands apart from its hide.
 export function drawCreatureDress(plan, seed) {
   return drawDress(readCreaturePlan(plan), seed, 1);
 }
 
-// Equipment never takes slots away from the body or its grown surface.
 export function drawCreatureEquipment(plan, seed) {
   const candidate = drawEquipment(plan, seed);
   if (!candidate) return null;
@@ -3026,8 +2890,6 @@ function outfitDraw(plan, seed) {
   return plan;
 }
 
-// Which kind of wing suits an animal. `draw` is a number from 0 to 1 that
-// settles the choice where the anatomy leaves it open.
 export function suggestWingStructure(plan, draw = 0) {
   const head = plan.head ?? {},
     legs = (plan.limbs ?? []).filter((l) => l.kind === "leg");
@@ -3046,16 +2908,11 @@ export function suggestWingStructure(plan, draw = 0) {
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const paint = ["color", "surface", "markings", "skinTint", "paint"];
 
-// Change the body plan of a creature that may have been sculpted by hand.
-// Regions the plan change leaves alone keep their hand edits, added regions
-// stay when their carrier survives, and repainted regions keep their paint.
 export function rebuildCreature(form, raw) {
   if (!form?.origin?.plan) return buildCreature(raw);
   let base = buildCreature(form.origin.plan);
   const unavailableHands = new Set();
   if (raw?.equipment?.handling === "offer" || form.origin.plan.equipment?.handling === "offer") {
-    // Respect a hand the artist removed or converted into a different end.
-    // A newly generated hand can still become the carrier on this rebuild.
     for (const p of base.parts.filter(p=>p.shape==="hand")) {
       const kept=form.parts.find(q=>q.id===p.id);
       if (!kept || kept.shape!=="hand" || kept.grip?.fingers<2) unavailableHands.add(p.id);
@@ -3084,7 +2941,6 @@ export function rebuildCreature(form, raw) {
     }
   }
   const ids = new Set(parts.map((p) => p.id));
-  // A region the sculptor removed takes the regions it carried with it.
   for (let i = 0; i < parts.length; i++)
     if (parts[i].parent != null && !ids.has(parts[i].parent)) {
       ids.delete(parts[i].id);
@@ -3131,9 +2987,6 @@ export function rebuildCreature(form, raw) {
   return refitPlanShingles(base, form, next, result);
 }
 
-// Change part of a body plan. Sections merge field by field. `limbs` replaces
-// every limb group, while setLimbs, removeLimbs and addLimbs edit them in
-// place. Indices refer to the groups before the change.
 export function steerCreaturePlan(current, change = {}) {
   if (!change || typeof change !== "object" || Array.isArray(change))
     throw new Error("Describe the body plan change as an object.");
@@ -3165,12 +3018,10 @@ export function steerCreaturePlan(current, change = {}) {
     for (const { index, ...set } of change.setLimbs ?? []) {
       if (!plan.limbs[index])
         throw new Error("There is no limb group " + index + ".");
-      // Another wing structure counts other ribs.
       const restructured =
         set.structure !== undefined &&
         set.structure !== plan.limbs[index].structure &&
         set.ribs === undefined;
-      // A new kind starts from that kind's own proportions.
       plan.limbs[index] =
         set.kind && set.kind !== plan.limbs[index].kind
           ? {
@@ -3192,6 +3043,5 @@ export function steerCreaturePlan(current, change = {}) {
   return readCreaturePlan(plan);
 }
 
-// What an assisting model needs to know to steer a body plan.
 export const creaturePlanInstructions =
   'A creature is built from a body plan: one spine with a free posture and up to 8 limb groups along it. Every limb has real joints, so the result walks, swims or flies, can be posed and exports with its clips. Start a new creature with {op:"buildCreature",preset?,plan?}. A preset is a starting plan and plan changes it. Change the current plan creature with {op:"steerCreature",set}. Both take the same partial plan: spine, head, tail, back and skin merge field by field, scale and details replace their value, limbs replaces every limb group, and setLimbs:[{index,...fields}], removeLimbs:[index] and addLimbs:[group] edit groups in place (indices before the change). steerCreature keeps hand sculpting and added regions on everything the change leaves alone, so prefer it to setPart for anatomy. Stations run along the spine from 0 at the hips to 1 at the chest. Angles are degrees. spine: length and girth in metres before scale, flat (width to depth), rear and front (tilt of each end above horizontal: 0 and 8 is a level quadruped, 0 and 80 a raised forebody, 85 and 88 upright), arch, profile, stance (height of the hips; a legless body with fins, wings or tentacles floats there and any other legless body rests on the ground), bulge (five girth multipliers from hips to shoulders). A limb group: kind, pairs 1-6, side, from and to (stations of its first and last pair), girth, muscle. Legs add style (mammal: knee forward; bird: a third long foot bone; insect: knee above the hip, set splay 35-60; pillar: a column), splay (degrees out from vertical), fan (degrees the feet spread around the body, up to 240 for a radial stance), end and digits. Ordinary random draws use anatomyRevision:2. This uses the existing end and digit controls for a cloven hoof, spread toes, padded digits, webbed foot or tarsal hooks. Set anatomyRevision:2 to give an older plan these feet and the shaped cranium and mouth. Legs always reach the ground. Set sockets:true on insect legs to grow fitted shields at the trunk. Arms add length, drop (0 straight out, 90 hanging), forward, elbow, end, digits and hand. Wings add length, rise, sweep, chord and structure: plain is one smooth blade, bat is skin stretched between an arm and long fingers, feather is overlapping flight feathers and rows of coverts on a folded arm, and insect is a pleated film on branching veins. A bat, feather or insect wing also takes ribs (2-5 fingers, 4-12 primary feathers or 3-8 main veins), bend (0-1, how far the arm folds at the elbow and wrist), notch (0-1: the scallops between fingers, the slots between primary tips or the bays between veins), point (0 a broad round tip, 1 a narrow pointed one), pattern (none, tips, bars or eyespot) and seed (an unsigned integer that varies feathers and veins). Give a new wing the structure its animal would grow. Fins add length, sweep, chord. Tentacles add length, droop, forward, fan (degrees the pairs turn around the body; 180*(pairs-1)/pairs makes an even ring of arms at one station) and curl (-1 to 1, how far the tip hooks back up). head: count 0-3, neck, neckPitch, neckGirth, size, shape, snout, snoutLength, jaw (gape 0-1) and teeth (per side, muzzle only), nostrils, eyes 0-8, eyeSize, eyePlace, stalks, lids, brow, crest, crestSize, whiskers, ear (original, lance, swept, tufted, fan or lop on an ear crest), muzzleProfile (original, feline, canine, grazing or rooting on a muzzle), billProfile (original, spear, spoon, crusher, shear or scythe on a beak or bill), turn (degrees the resting head looks to its left, -50 to 50). tail: kind, length, girth, lift, sway (degrees the resting tail curls to one side). An arm group also takes raise (-80 to 80: the left hand lifts in a resting gesture while the right relaxes, or the reverse below zero). dress: optional {kind,color,trim,layers,size,seed,device} of worn layers fitted to the anatomy: herald (scalloped collar, pauldrons, sash and tabard), warden (metal gorget, cuirass, guards, greaves and helm), sage (cloak or stole, collar, medallion and circlet), nomad (saddle cloth or poncho, straps and leg wraps) or ranger (bandolier, belt, loincloth, bracers and plume). device embroiders a swallow, oak, tide, compass or sunburst on the cloth; color is the cloth and trim the metal or border; layers 1 keeps the signature pieces, 2 adds limb pieces and 3 adds headwear. Each piece is an ordinary region. Set dress to null to undress. back: kind, count, height. A spiral shell grows a coiled whorl, flared lip and growth ribs. Shingles grow overlapping keratin plates; gill fans grow paired feathered respiratory branches; drum sacs grow paired resonators with a recessed opening; a shag mantle grows rooted, trailing locks of insulating fibres. Contour plumage grows overlapping, quilled vanes along the back and flanks; count sets their rows and spread sets their wrap. For these families, spread (0-1) controls coverage around the trunk and seed varies the growth. Count sets shingle or pelt rows, or organ pairs. equipment: optional {kind,station,hang,size,side,mount,color,seed,handling}. Courier handling "offer" moves the original dispatch tube into an available hand with a thumb and two fingers, creates editable Present dispatch and animated Offer dispatch. Set "packed" to stow it. Creatures without a grasp carry the tube in their pack. A high pack can face the flank or back. Hang -1.42 to 0.85 wraps the load from high on the back down the flank. Choose none, courier satchel, trader panniers or survey kit. Station 0.14-0.85 runs from hips to shoulders; size 0.55-1.45 scales the load; side left or right carries its main bag. Adjust fields with steerCreature. Setting equipment to null removes it. details: any of the listed extras. skin.faceMarking applies Eye stripe, Facial disc, Cheek flashes or Forehead blaze around the skull in its own hide colours. Use None to remove it. skin.flankMarking places a Lateral stripe, Saddle or Flank ocelli on the torso in its accent and pale colours. Use None to remove it. skin.limbFade toggles continuous ankle and wrist colour on a dark-tipped limb. skin.coat takes family (plumage, pelt, scutes or wet skin), contrast 0-1, density .55-1.8, optional graded dorsal and throat colours, and unsigned seed. Set coat to null for plain hide. skin: base, accent, pale and eye colours, surface, belly (pale underside 0-1), socks (dark limb ends 0-1), blend, and markings or null. Give the animal a way of living and let each choice follow from it: what it eats decides the mouth, how it moves decides the legs and tail, and what hunts it decides armour, colour and eye position.';

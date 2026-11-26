@@ -1,9 +1,3 @@
-// One continuous hide for a creature built from a plan: every organ of its
-// skin is charted into a 1024² atlas and baked with albedo, roughness and a
-// tangent-space normal map from the same 3D field, so the pattern runs on
-// across separate parts and welded seams. Ported from
-// character-view/creature-hide.js at 2761eb1.
-
 import * as T from "three";
 import type { CreaturePlan, FigureMarkings } from "@irudd/document";
 import { context2d, type Raster } from "../raster.js";
@@ -22,7 +16,6 @@ const { clamp, smoothstep } = T.MathUtils;
 const HIDE_SIZE = 1024;
 const CHART_MARGIN = 4;
 
-// Exact linear [0..1] to sRGB [0..255].
 const LIN_TO_SRGB = Uint8Array.from({ length: 4096 }, (_, i) => {
   const x = i / 4095;
   const s = x <= 0.0031308 ? 12.92 * x : 1.055 * x ** (1 / 2.4) - 0.055;
@@ -31,20 +24,16 @@ const LIN_TO_SRGB = Uint8Array.from({ length: 4096 }, (_, i) => {
 const toSrgbByte = (v: number): number =>
   LIN_TO_SRGB[v <= 0 ? 0 : v >= 1 ? 4095 : (v * 4095 + 0.5) | 0] ?? 0;
 
-/** What the hide reads from the build. */
 export interface HideScene {
   readonly plan: CreaturePlan;
   readonly parts: ReadonlyArray<BuildPart>;
   readonly objectOf: (id: string) => T.Object3D | undefined;
   readonly owners: (mesh: T.Mesh) => BlendOwners | undefined;
-  /** Hand digits by mesh; charting a hand remaps its digit vertices. */
   readonly hands: Map<T.Mesh, ReadonlyArray<Digit>>;
-  /** Whether a part's wardrobe fit leaves it bare or as it is. */
   readonly skinShows: (part: BuildPart) => boolean;
   readonly raster: Raster;
 }
 
-/** The shape G0 named the part by. */
 function legacyShape(part: BuildPart): string {
   if (part.sweep) return "sweep";
   if (part.cage) return "cage";
@@ -65,11 +54,6 @@ export function isCreatureHidePart(part: BuildPart, skin: CreaturePlan["skin"]):
   );
 }
 
-/**
- * Perceptual visibility [0..1] of a creature's authored marking pattern: 0
- * for unpatterned skin, 0.14 for countershading, and the sRGB luminance and
- * chroma contrast for patterned kinds.
- */
 export function patternVisibility(skin: CreaturePlan["skin"]): number {
   const m = skin.markings;
   if (!m) return 0;
@@ -86,7 +70,6 @@ export function patternVisibility(skin: CreaturePlan["skin"]): number {
   const dg = ag - bg;
   const db = ab - bb;
   const dist = Math.sqrt(0.3 * dr * dr + 0.59 * dg * dg + 0.11 * db * db);
-  // Very light-on-light markings read softer in bright scenes.
   const avgL = 0.5 * (0.299 * (ar + br) + 0.587 * (ag + bg) + 0.114 * (ab + bb));
   const brightPenalty = avgL > 0.72 ? 1 - 0.38 * clamp((avgL - 0.72) / 0.22, 0, 1) : 1;
   return clamp((dist * brightPenalty) / 0.28, 0, 1);
@@ -135,7 +118,6 @@ function makeMarkingSampler(m: FigureMarkings): MarkingSampler {
         const underside = -(ny * cos - nz * sin) + 0.07 * Math.sin(phase + 2 * z + 0.3 * x) + nWarp;
         return smoothstep(underside, 0.66 - 1.6 * cov, 1.22 - 1.6 * cov);
       }
-      // A gentle 3D domain warp gives painted biological curves without moving spot centres.
       if (organicWarp) {
         const wf = 1.35;
         const wa = kind === "Bands" ? 0.06 : 0.055;
@@ -199,7 +181,6 @@ interface KnotSegment {
   readonly start: number;
 }
 
-/** Parallel-transported segments of a sweep's knots in world space. */
 function knotSegments(
   knots: ReadonlyArray<readonly number[]>,
   matrixWorld: T.Matrix4,
@@ -257,11 +238,6 @@ function sameKind(array: unknown, length: number): NumberArray {
 const corner = (index: T.BufferAttribute | null, t: number, k: number): number =>
   index ? index.getX(3 * t + k) : 3 * t + k;
 
-/**
- * Split an indexed geometry so a vertex on a chart boundary is duplicated
- * into each chart. A hand's digit vertices are remapped so finger skinning
- * stays exact on every seam vertex.
- */
 function assignChartTriangles(
   scene: HideScene,
   mesh: T.Mesh,
@@ -277,7 +253,6 @@ function assignChartTriangles(
     for (let t = 0; t < triCount; t++) buckets[triChartIds[t] ?? 0]?.push(t);
     return { buckets, srcOrder: undefined };
   }
-  // (old vertex, chart) -> new vertex, so vertices inside a chart stay shared.
   const map = new Map<number, number>();
   const srcOrder: number[] = [];
   const newIndices = new Uint32Array(idx.count);
@@ -364,7 +339,6 @@ interface Chart {
   rect: readonly [number, number, number, number];
 }
 
-/** Clean, non-overlapping charts for every hide organ. */
 function buildHideCharts(
   scene: HideScene,
   entries: ReadonlyArray<{ readonly part: BuildPart; readonly mesh: T.Mesh }>,
@@ -398,11 +372,6 @@ function buildHideCharts(
       rect: unplaced,
     });
   };
-  /**
-   * Area of the charted triangles, and a local projection normalised over
-   * each chart. A joined sweep keeps its raw coordinates in single precision,
-   * as G0 does, while its bounds use the exact values.
-   */
   const chartArea = (
     mesh: T.Mesh,
     tris: ReadonlyArray<number>,
@@ -458,7 +427,6 @@ function buildHideCharts(
     const hand = scene.hands.has(mesh);
     const shape = legacyShape(part);
 
-    // Unjoined sweeps, ellipsoids, cones and cylinders already have bijective coordinates.
     const uv = geo.getAttribute("uv");
     if (
       !owners &&
@@ -485,7 +453,6 @@ function buildHideCharts(
       continue;
     }
 
-    // Joined sweeps unwrap as left and right half cylinders along their knots.
     const knots = part.sweep?.knots;
     if (owners && knots && knots.length > 1) {
       const { segs, total } = knotSegments(knots, mesh.matrixWorld);
@@ -561,8 +528,6 @@ function buildHideCharts(
       }
     }
 
-    // Feet, toes, hands and boxes take four dominant-normal projections, so
-    // splayed toes and fingers never overlap.
     if (hand || shape === "box" || part.organ.extremity) {
       geo.computeBoundingBox();
       const box = geo.boundingBox;
@@ -612,8 +577,6 @@ function buildHideCharts(
       continue;
     }
 
-    // Heads and rounded organs take two sagittal Lambert azimuthal
-    // equal-area hemispheres, +X and -X, with no pinched pole.
     geo.computeBoundingBox();
     const box = geo.boundingBox;
     if (!box) continue;
@@ -662,7 +625,6 @@ function buildHideCharts(
   return charts;
 }
 
-/** Binary-split, area-proportional rectangle packing. */
 function packHideCharts(charts: Chart[], size = HIDE_SIZE): void {
   if (!charts.length) return;
   const totalW = charts.reduce((s, c) => s + c.weight, 0);
@@ -700,7 +662,6 @@ function packHideCharts(charts: Chart[], size = HIDE_SIZE): void {
   split(items, [0, 0, size, size]);
 }
 
-/** A swept organ's own proximal-to-distal frame, in metres. */
 interface ReliefAxis {
   readonly start: T.Vector3;
   readonly dir: T.Vector3;
@@ -801,7 +762,6 @@ const limbRoles: ReadonlySet<string> = new Set([
   "hand",
 ]);
 
-/** The hide's colour, height and roughness at a point, from the plan and each organ's own layers. */
 function createHideEvaluator(
   scene: HideScene,
   limbTints: ReadonlyMap<string, LimbTint>,
@@ -846,7 +806,6 @@ function createHideEvaluator(
     if (lenAcc > 1e-4) spineLen = lenAcc;
   }
 
-  // Eyes frame the skin around them.
   const eyes = parts.flatMap((part) => {
     if (!part.organ.eye) return [];
     const obj = objectOf(part.id);
@@ -855,7 +814,6 @@ function createHideEvaluator(
     return [{ x: wp.x, y: wp.y, z: wp.z, r: Math.max(0.015, ...part.size) }];
   });
 
-  // The hide's seed comes from the palette and the markings.
   const seedStr = `${skin.base}|${skin.accent}|${skin.pale}|${skin.markings?.seed ?? 0}`;
   let hideSeed = 0x51a7c3d1;
   for (let i = 0; i < seedStr.length; i++)
@@ -874,7 +832,6 @@ function createHideEvaluator(
     : baseLuma;
   const darkCountershade = skin.markings?.kind === "Countershade" && markLuma < baseLuma * 1.05;
 
-  // Deeper and middle tones per colour, so a recoloured organ keeps its own hue.
   const toneCache = new Map<string, Tones>();
   const deriveTones = (hex: string): Tones => {
     const cached = toneCache.get(hex);
@@ -951,7 +908,6 @@ function createHideEvaluator(
   const surfaceNormal = new T.Vector3();
   const hasBirdLeg = plan.limbs.some((limb) => limb.kind === "leg" && limb.style === "bird");
 
-  // Each organ's own colour and marking layers, with the artist's edits.
   const markCache = new Map<string, MarkingSampler>();
   const getMark = (m: FigureMarkings | undefined): MarkingSampler | undefined => {
     if (!m) return undefined;
@@ -1064,7 +1020,6 @@ function createHideEvaluator(
       mAlpha = mAlpha * wA + slot(baseOutB, 3) * wB;
     }
 
-    // 1. Coordinates along the spine and from its back to its belly, continuous over every organ.
     let tSpine = 0.5;
     let vertical = 0;
     let upAlign = ny;
@@ -1091,13 +1046,11 @@ function createHideEvaluator(
       }
     }
 
-    // Macro organic fBm, low frequency.
     const mf = 2.6 / scaleRef;
     const nMac1 = noise3(px * mf, py * mf, pz * mf, hideSeed ^ 0x19a3);
     const nMac2 = noise3(px * mf * 2.1, py * mf * 2.1, pz * mf * 2.1, hideSeed ^ 0x62b1);
     const fbmMac = 0.68 * nMac1 + 0.32 * nMac2 - 0.5;
 
-    // The head reads world up directly, so its crown, brow and cheeks articulate.
     const upMix = layerA.isHead
       ? ny * 0.78 + clamp(vertical, -1, 1) * 0.22
       : upAlign * 0.54 + clamp(vertical, -1.2, 1.2) * 0.46;
@@ -1106,10 +1059,8 @@ function createHideEvaluator(
     const ventral = smoothstep(-dorsalCoord, 0.22, 0.82);
     const shoulder = smoothstep(tSpine, 0.44, 0.72) * (1 - smoothstep(tSpine, 1.08, 1.48));
 
-    // Authored markings hold wherever a mark is present.
     const markGuard = layerA.mark?.kind === "Countershade" ? 1 - 0.35 * mAlpha : 1 - 0.58 * mAlpha;
 
-    // 2. Anatomical tonal depth, strongest on barely patterned hides.
     const tones = layerA.tones;
     const dorsalStrength = (0.14 + 0.4 * flatBoost) * markGuard;
     const dMix = dorsal * dorsalStrength * (0.86 + 0.22 * shoulder);
@@ -1117,7 +1068,6 @@ function createHideEvaluator(
     g += (tones.dg - g) * dMix;
     b += (tones.db - b) * dMix;
 
-    // A pale throat and belly where a dark countershade hid the undercoat.
     if (darkCountershade && !layerA.under && skin.belly > 0.04) {
       const vLift = ventral * 0.28 * skin.belly;
       r += (softPaleCol.r - r) * vLift;
@@ -1125,7 +1075,6 @@ function createHideEvaluator(
       b += (softPaleCol.b - b) * vLift;
     }
 
-    // 3. Mottling and an accent wash on the crown, shoulders and flanks of barely patterned hides.
     if (flatBoost > 0.42 && !layerA.isLimb) {
       const fb = clamp((flatBoost - 0.42) / 0.58, 0, 1);
       const flankBand =
@@ -1153,7 +1102,6 @@ function createHideEvaluator(
       b += (tones.db - b) * fMix;
     }
 
-    // 4. Restrained framing around the eyes.
     for (const eye of eyes) {
       const dx = px - eye.x;
       const dy = (py - eye.y) * 1.25;
@@ -1175,7 +1123,6 @@ function createHideEvaluator(
       }
     }
 
-    // The material follows the animal's own longitudinal and lateral axes.
     const layer = layerB && wA < 0.5 ? layerB : layerA;
     relief.px = px;
     relief.py = py;
@@ -1250,7 +1197,6 @@ function createHideEvaluator(
   };
 }
 
-/** An owner of a joined vertex; G0 reads these arrays by the charted vertex index. */
 function owned(array: Uint8Array | Float32Array, i: number): number {
   const value = array[i];
   if (value === undefined) throw new Error("A charted hide vertex has no blend owner.");
@@ -1263,7 +1209,6 @@ function layerAt(layers: ReadonlyArray<Layer | undefined>, i: number): Layer {
   return layer;
 }
 
-/** Rasterize every packed chart into albedo, roughness and tangent-space normal maps. */
 function rasterizeHideAtlas(
   scene: HideScene,
   charts: ReadonlyArray<Chart>,
@@ -1281,7 +1226,6 @@ function rasterizeHideAtlas(
   const mppBuf = new Float32Array(count).fill(0.002);
   const filled = new Uint8Array(count);
 
-  // The background is the base skin colour, so no mipmap level shows a halo.
   const bgCol = new T.Color(evaluator.skin.base);
   const bgR = toSrgbByte(bgCol.r);
   const bgG = toSrgbByte(bgCol.g);
@@ -1308,7 +1252,6 @@ function rasterizeHideAtlas(
   const n2 = new T.Vector3();
   const nm = new T.Matrix3();
 
-  // Charts on one mesh write the same final coordinates.
   const meshUvs = new Map<T.Mesh, Float32Array>();
   for (const ch of charts)
     if (!meshUvs.has(ch.mesh))
@@ -1341,14 +1284,12 @@ function rasterizeHideAtlas(
       const i0 = corner(idx, t, 0);
       const i1 = corner(idx, t, 1);
       const i2 = corner(idx, t, 2);
-      // Canvas pixels: y = 0 at the top, where uv.y is 1.
       const x0 = ix + (locU[i0] ?? 0) * (iw - 1);
       const y0 = iy + (1 - (locV[i0] ?? 0)) * (ih - 1);
       const x1 = ix + (locU[i1] ?? 0) * (iw - 1);
       const y1 = iy + (1 - (locV[i1] ?? 0)) * (ih - 1);
       const x2 = ix + (locU[i2] ?? 0) * (iw - 1);
       const y2 = iy + (1 - (locV[i2] ?? 0)) * (ih - 1);
-      // Exact coordinates with texel centre alignment.
       finalUv[2 * i0] = (x0 + 0.5) / size;
       finalUv[2 * i0 + 1] = 1 - (y0 + 0.5) / size;
       finalUv[2 * i1] = (x1 + 0.5) / size;
@@ -1365,7 +1306,6 @@ function rasterizeHideAtlas(
       const det = (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0);
       if (Math.abs(det) < 1e-6) continue;
       const invDet = 1 / det;
-      // Metres per texel, for a physically consistent normal slope.
       const area3d = triangleArea3D(p0, p1, p2);
       const areaPx = 0.5 * Math.abs(det);
       const mpp = clamp(Math.sqrt(area3d / Math.max(0.25, areaPx)), 0.0004, 0.025);
@@ -1399,7 +1339,6 @@ function rasterizeHideAtlas(
           const b1 = (dx * (y2 - y0) - dy * (x2 - x0)) * invDet;
           const b2 = ((x1 - x0) * dy - (y1 - y0) * dx) * invDet;
           const b0 = 1 - b1 - b2;
-          // A small edge tolerance prevents hairline cracks before dilation.
           if (b0 < -0.015 || b1 < -0.015 || b2 < -0.015) continue;
           const c0 = b0 < 0 ? 0 : b0;
           const c1 = b1 < 0 ? 0 : b1;
@@ -1422,7 +1361,6 @@ function rasterizeHideAtlas(
           let layerB: Layer | undefined;
           let wA = 1;
           if (!sameOwner && owners && ownerLayers) {
-            // A boundary triangle blends its dominant and secondary owners.
             const dom = k0 >= k1 && k0 >= k2 ? i0 : k1 >= k2 ? i1 : i2;
             const firstOwner = owned(owners.first, dom);
             layerA = layerAt(ownerLayers, firstOwner);
@@ -1451,7 +1389,6 @@ function rasterizeHideAtlas(
   for (const [mesh, uvs] of meshUvs)
     mesh.geometry.setAttribute("uv", new T.Float32BufferAttribute(uvs, 2));
 
-  // Dilate covered texels into the gutters so filtering and simplification never sample empty texels.
   const nextFilled = new Uint8Array(filled);
   const at = (a: ArrayLike<number>, i: number): number => a[i] ?? 0;
   for (let pass = 0; pass < 6; pass++) {
@@ -1499,7 +1436,6 @@ function rasterizeHideAtlas(
     if (!any) break;
   }
 
-  // Tangent-space normals from the dilated height, +X right and +Y down the canvas.
   const normalData = new Uint8ClampedArray(count * 4);
   const bumpMetres = evaluator.bumpMetres;
   for (let y = 0; y < size; y++) {
@@ -1547,10 +1483,6 @@ function canvasFromPixels(
   return c;
 }
 
-/**
- * Bake one hide texture set shared by every organ of a creature's skin.
- * Returns the IDs of the parts the hide covers; the rest keep their own finish.
- */
 export function bakeCreatureHide(
   scene: HideScene,
   limbTints: ReadonlyMap<string, LimbTint>,
@@ -1559,7 +1491,6 @@ export function bakeCreatureHide(
   const handled = new Set<string>();
   const { plan } = scene;
   const skin = plan.skin;
-  // Older saved coats keep their original material and coordinates.
   if (skin.coat && !skin.coat.graded && !skin.flankMarking && plan.anatomyRevision !== 2)
     return handled;
   const entries: Array<{ readonly part: BuildPart; readonly mesh: T.Mesh }> = [];
@@ -1594,7 +1525,6 @@ export function bakeCreatureHide(
   });
   hideMaterial.name = "Creature hide";
   hideMaterial.userData["creatureHide"] = true;
-  // G0 exports this flag, which marks textures the material owns, as a material extra.
   hideMaterial.userData["ownedHideTextures"] = true;
   for (const { part, mesh } of entries) {
     mesh.geometry.deleteAttribute("color");

@@ -1,8 +1,3 @@
-// How each body region is dressed for an outfit. Ported from fitWardrobe in
-// character-view/wardrobe.js at 2761eb1: a base layer or pressure suit
-// refits each region with a clothing role, easing it in or out and
-// recolouring it. Pure, so views can tell which sheets an outfit needs.
-
 import {
   digestBrand,
   type Appearance,
@@ -12,14 +7,12 @@ import {
   type OutfitWear,
 } from "@irudd/document";
 
-/** What a fit reads of a view (a `BuildView`). */
 interface Dressed {
   readonly outfit: OutfitName;
   readonly appearance: Appearance | undefined;
   readonly parts: ReadonlyArray<Worn>;
 }
 
-/** What a fit reads of a part (a `BuildPart`). */
 interface Worn {
   readonly wear: OutfitWear;
 }
@@ -31,19 +24,13 @@ const dyes: Readonly<Record<Appearance["palette"], readonly [string, string, str
   Polar: ["#718f99", "#c88e54", "#c6d6d1"],
 };
 
-/** How one region is dressed in the view's outfit. */
 export interface RegionFit {
   readonly role: OutfitRoleName;
-  /** A pressure suit, which carries equipment and the expedition textile. */
   readonly suit: boolean;
-  /** The region keeps its own surface and paint. */
   readonly preserve: boolean;
-  /** The region is left as bare skin. */
   readonly bare: boolean;
-  /** Skirts and accessories are not worn with the outfit. */
   readonly hide: boolean;
   readonly color: string;
-  /** Radial ease: sweep knot radii, or the primitive's horizontal scale. */
   readonly amount: number;
   readonly cloth: string;
   readonly trim: string;
@@ -82,11 +69,6 @@ const layerOverClothes: Partial<Record<OutfitRoleName, number>> = {
   foot: 0.88,
 };
 
-/**
- * How `part` is dressed in the view's outfit, or nothing when the outfit
- * leaves regions as authored (Anatomy, Work clothes) or the part has no
- * clothing role.
- */
 export function regionFit(view: Dressed, part: Worn): RegionFit | undefined {
   const role = part.wear.role;
   if (view.outfit === "Anatomy" || view.outfit === "Work clothes" || !role) return undefined;
@@ -113,8 +95,6 @@ export function regionFit(view: Dressed, part: Worn): RegionFit | undefined {
         : role === "thigh" || role === "upper arm" || role === "torso"
           ? "#364b48"
           : "#535c58";
-  // A bare region is the body itself, so clothing sits on it with ease
-  // instead of being cut down from a clothed surface.
   const amount = preserve
     ? 1
     : part.wear.bare
@@ -129,12 +109,10 @@ export function regionFit(view: Dressed, part: Worn): RegionFit | undefined {
   return { role, suit, preserve, bare, hide, color, amount, ...dyed };
 }
 
-/** The bundled expedition suit sheet (`expedition.atlas.webp`) the pressure suit is cut from. */
 export const expeditionAtlas: Digest = digestBrand(
   "sha256:90eda5840127e933ca4df505079c11e5bc174744031f11592ae2585cbd83c221",
 );
 
-/** Regions the pressure suit dresses in the expedition textile. */
 export const expeditionRoles: ReadonlySet<OutfitRoleName> = new Set([
   "torso",
   "head",
@@ -147,7 +125,6 @@ export const expeditionRoles: ReadonlySet<OutfitRoleName> = new Set([
   "pelvis",
 ]);
 
-/** Whether the view wears the expedition textile anywhere. */
 export const wearsExpedition = (view: Dressed): boolean =>
   view.parts.some((part) => {
     const fit = regionFit(view, part);

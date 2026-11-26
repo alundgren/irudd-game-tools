@@ -8,15 +8,11 @@ const samples = 720;
 const linear = Array.from({length: 256}, (_, byte) => new T.Color(byte / 255, 0, 0).convertSRGBToLinear().r);
 let tones;
 
-/** Fit the combed hair painting to the wearer's crown, ears and nape. The mesh
- * UVs follow the actual hairline. Undo that warp before sampling the painting
- * so a high ear shortens the strands without bending them over the temple. */
 export function sweptScalpTexture(lines, skin, hair, reversed, roots = null) {
   const boundary = Array.from({length: samples}, (_, i) => {
     const angle = i * 360 / samples - 180;
     return lines[angle > 0 ? 0 : 1](Math.abs(angle));
   });
-  // Under rooted locks the painting is the hair beneath them: `roots` is the line they grow from, by side.
   const rootEdge = roots && Array.from({length: samples}, (_, i) => {
     const angle = i * 360 / samples - 180;
     return roots[angle > 0 ? 0 : 1](Math.abs(angle));
@@ -38,7 +34,6 @@ export function sweptScalpTexture(lines, skin, hair, reversed, roots = null) {
       const elevation = 90 - Math.hypot(dx, dy) / .495 * (96 - edge);
       const paintedEdge = 30 * cosine - 18 * Math.max(0, -cosine);
       const radius = .455 * (90 - elevation) / (90 - paintedEdge);
-      // Continue the outermost painted strands a short way into a low nape.
       const r = radius < .468 ? radius : Math.max(.36, .468 - (radius - .468) * .35);
       const u = Math.floor((.5 + (reversed ? -1 : 1) * Math.sin(angle) * r) * size);
       const v = Math.floor((.5 - cosine * r) * size);
@@ -48,8 +43,6 @@ export function sweptScalpTexture(lines, skin, hair, reversed, roots = null) {
       let shade = linear[tone], clear = 1;
       if (rootEdge) {
         const inside = elevation - T.MathUtils.lerp(rootEdge[index % samples], rootEdge[(index + 1) % samples], t - index);
-        // Across the forehead and the temples the locks themselves are the hairline: the painting ends under them.
-        // Round the sideburns and the nape it still carries the short hair that fades into the skin.
         const frontal = T.MathUtils.smoothstep(Math.abs(angle) * degrees, 96, 62);
         clear = T.MathUtils.lerp(1, T.MathUtils.smoothstep(inside, 2.5, 4.5), frontal);
         shade *= T.MathUtils.lerp(.8, .5, T.MathUtils.smoothstep(inside, -1, 5));

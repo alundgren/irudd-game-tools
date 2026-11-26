@@ -14,7 +14,7 @@ from pathlib import Path
 
 import numpy as np
 
-import _paths  # noqa: F401  (adds scripts/human-benchmark to the import path)
+import _paths
 from hb_mesh import read_glb
 from hb_raster import visible_faces
 
@@ -32,7 +32,6 @@ SOURCES = {
         "license_url": "https://creativecommons.org/licenses/by/3.0/",
         "attribution": "Infinite, 3D Head Scan by Lee Perry-Smith (www.triplegangers.com, www.ir-ltd.net), "
                        "licensed under CC BY 3.0. Modified: welded, scaled and placed on a 1.72 m editable human.",
-        # The file has no unit. These guesses only start the search; the fit decides.
         "metres_per_unit": (0.044, 0.051, 0.058),
         "pitch_degrees": (0,),
         "blink": 1.0,
@@ -51,11 +50,10 @@ SOURCES = {
         "license_url": "https://www.si.edu/openaccess",
         "attribution": "National Portrait Gallery, Smithsonian Institution; transfer from the National Museum of American History.",
         "draco": True,
-        "flat_cut": True,  # the cast ends in a modelled flat base that is not anatomy
-        "metres_per_unit": (0.001,),  # the package records millimetres
+        "flat_cut": True,
+        "metres_per_unit": (0.001,),
         "pitch_degrees": (-60, -45, -30, -15),
         "blink": 1.0,
-        # Surface of the cast that is hair or a casting cap, not skin.
         "not_skin": {"chin and jaw": "beard", "cranium": "hair flattened under the casting cap",
                      "neck": "the cast ends under the jaw"},
     },
@@ -97,7 +95,7 @@ def outside_faces(vertices, faces):
     rim = edges[index[count == 1]]
     points, lids = [vertices], []
     if len(rim):
-        group = np.arange(len(vertices))  # union-find over rim vertices, one group per loop
+        group = np.arange(len(vertices))
 
         def root(i):
             while group[i] != i:
@@ -189,7 +187,7 @@ def load_raw(name, cache):
         vertices = np.fromfile(prefix.with_suffix(".positions.f32"), "<f4").reshape(-1, 3).astype(np.float64)
         faces = np.fromfile(prefix.with_suffix(".indices.u32"), "<u4").reshape(-1, 3).astype(np.int64)
         document = folder / "document.json"
-        if document.exists():  # the publisher's display orientation
+        if document.exists():
             model = json.loads(document.read_text(encoding="utf-8"))["models"][0]
             vertices = vertices @ _quaternion(model["rotation"]).T
     else:

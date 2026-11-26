@@ -1,7 +1,3 @@
-// Whole-store verification, used by `Project.verify`, backups and restores.
-// It never writes documents and never caches: every journal is recovered from
-// its rows, every blob is re-hashed.
-
 import {
   Digest,
   DocumentId,

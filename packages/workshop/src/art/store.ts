@@ -1,20 +1,3 @@
-// The art request log: briefs a person sent to a paired agent and every reply
-// that came back. It lives beside the steering outbox in the host's per-user
-// state (`hosts/<key>/art.sqlite`), never in the project, because it records
-// which conversation a brief went to. The artwork itself is in the project's
-// blob store, and an accepted reply is an ordinary proposal in the journal.
-//
-// Stored JSON is decoded with the wire schemas on every read.
-//
-// A reply that becomes a proposal is written in two steps around the journal
-// commit, because the log and the project are separate files. First a
-// `pending` row records the whole submission with its journal request ID and
-// proposal ID; then the proposal is committed; then one transaction moves the
-// row into `submissions`. A host that stops between the steps finds the
-// pending row on its next start and settles it from the journal: a committed
-// request becomes the proposed submission, an uncommitted one is dropped so
-// the agent's retry runs again.
-
 import { Schema } from "effect";
 import fs from "node:fs";
 import path from "node:path";
@@ -35,7 +18,6 @@ export class ArtStoreFailed extends Error {
   }
 }
 
-// Version 2: a submission whose proposal commit has not been settled yet.
 const pendingTable = `CREATE TABLE pending (
      art_id TEXT NOT NULL REFERENCES requests (art_id),
      submission_id TEXT NOT NULL,
@@ -129,7 +111,6 @@ export interface StoredRequest {
   readonly requestId: string;
   readonly messageId: string;
   readonly brief: ArtBrief;
-  /** The brief's attachments as measured, in brief order. */
   readonly files: ReadonlyArray<StoredFile>;
   readonly createdAt: number;
   readonly createdBy: Actor;
@@ -177,7 +158,6 @@ export class ArtStore {
     this.db = db;
   }
 
-  /** Open or create the log for this project; a log of another project is set aside. */
   static open(options: {
     readonly directory: string;
     readonly projectId: string;
@@ -221,7 +201,6 @@ export class ArtStore {
     } else {
       const stored = db.prepare("SELECT value FROM meta WHERE key = 'version'").get();
       if (Number(stored?.["value"]) === 1) {
-        // Version 1 had no pending submissions; adding the table is the whole migration.
         db.exec("BEGIN IMMEDIATE");
         try {
           db.exec(pendingTable);
@@ -270,7 +249,6 @@ export class ArtStore {
     return stored;
   }
 
-  /** Remove a request whose brief could not be sent. It has no submissions. */
   deleteRequest(artId: string): void {
     this.db.prepare("DELETE FROM requests WHERE art_id = ?").run(artId);
   }
@@ -328,7 +306,6 @@ export class ArtStore {
     return stored;
   }
 
-  /** Record a submission before its proposal is committed. */
   insertPending(p: StoredPending): StoredPending {
     this.db
       .prepare(
@@ -361,7 +338,6 @@ export class ArtStore {
     return row ? pendingOf(row) : undefined;
   }
 
-  /** Every unsettled submission, oldest request first. */
   pending(artId?: string): StoredPending[] {
     return this.db
       .prepare(
@@ -372,14 +348,12 @@ export class ArtStore {
       .map(pendingOf);
   }
 
-  /** The proposal was not committed: forget the pending row. */
   dropPending(artId: string, submissionId: string): void {
     this.db
       .prepare("DELETE FROM pending WHERE art_id = ? AND submission_id = ?")
       .run(artId, submissionId);
   }
 
-  /** The proposal is committed: the pending row becomes a proposed submission, in one transaction. */
   finishPending(artId: string, submissionId: string): StoredSubmission {
     const existing = this.submission(artId, submissionId);
     if (existing) {

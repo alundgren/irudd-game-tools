@@ -1,28 +1,3 @@
-// Field-level addressing, diffs and guarded patches.
-//
-// A change names one atomic unit of the document by identifier, never by array
-// index, so it keeps its meaning when other entities are added or removed:
-//
-//   ["label"] ["requires"] ["catalog"] ["generation"]
-//   ["features", feature] ["extensions", namespace]
-//   ["extensions", "irudd.asset-credits", digest]   one picture's credit
-//   ["parts", id]                         whole part (add or remove)
-//   ["parts", id, field]                  label parent shape position rotation size
-//                                         color paint slot component
-//   ["parts", id, "sculpt", editId]       one displacement
-//   ["parts", id, "features", feature]    one family payload
-//   ["poses", id] ["assets", digest]
-//
-// Undo, proposals and conflict reports all use these paths. A patch carries the
-// value it expects to replace, so applying it to a document that has moved on
-// reports exactly which fields conflict.
-//
-// The asset-credit record is the one extension addressed inside: a diff between
-// two records in their written form names each credit, so concurrent proposals
-// that credit different pictures merge. Two changes that leave one credit in
-// the same state agree; any other difference at a credit is a conflict. A
-// record in any other form changes as a whole, as every other extension does.
-
 import { Schema } from "effect";
 import { diagnostic, fail, ok, type Checked, type Diagnostic } from "./diagnostics.js";
 import { isJsonObject, jsonEqual, type Json, type JsonObject } from "./json.js";
@@ -56,9 +31,7 @@ export type Path = ReadonlyArray<string>;
 
 export type Change = {
   readonly path: Path;
-  /** Absent when the path did not exist before. */
   readonly before?: Json;
-  /** Absent when the change removes the path. */
   readonly after?: Json;
 };
 
@@ -100,7 +73,6 @@ export function pathKey(path: Path): string {
   return path.join("\u0000");
 }
 
-/** True when one path addresses the other or something inside it. */
 export function pathsOverlap(a: Path, b: Path): boolean {
   const n = Math.min(a.length, b.length);
   for (let i = 0; i < n; i++) if (a[i] !== b[i]) return false;
@@ -271,12 +243,10 @@ function setPart(
   return ok({ ...doc, parts });
 }
 
-/** True for the path of one credit in the asset-credit record. */
 export function isCreditPath(path: Path): boolean {
   return path.length === 3 && path[0] === "extensions" && path[1] === assetCreditsNamespace;
 }
 
-/** Set or remove one credit. A record this build cannot edit by credit is refused, never replaced. */
 function setCredit(
   doc: CharacterDocument,
   path: Path,
@@ -310,11 +280,6 @@ function setCredit(
   });
 }
 
-/**
- * The credits of a record in its written form (sorted by digest, every entry
- * a valid credit, no other fields), so a diff by credit reproduces it exactly.
- * Empty for an absent record; undefined for any other form.
- */
 function writtenCredits(value: Json | undefined): Map<string, JsonObject> | undefined {
   const entries = creditEntries(value);
   if (!entries || value === undefined) return entries;
@@ -325,7 +290,6 @@ function writtenCredits(value: Json | undefined): Map<string, JsonObject> | unde
   return entries;
 }
 
-/** Set (or with `undefined`, remove) the value at a path. The result is canonical. */
 export function setAt(
   doc: CharacterDocument,
   path: Path,
@@ -370,7 +334,6 @@ export function setAt(
           if (!v.ok) return v;
           next = { ...rest, [id]: v.value };
         }
-        // Keys are validated as FeatureId / Namespace by the document decoder.
         return ok(head === "features" ? { ...doc, features: next } : { ...doc, extensions: next });
       }
       case "poses": {
@@ -461,11 +424,6 @@ function creditDiff(
   }
 }
 
-/**
- * A whole-record change, as earlier builds wrote them, applied by credit when
- * the record moved on since: the credits it adds, changes and removes, each
- * checked on its own. Any other change is applied as it is.
- */
 function byCredit(doc: CharacterDocument, c: Change): ReadonlyArray<Change> {
   if (c.path.length !== 2 || c.path[0] !== "extensions" || c.path[1] !== assetCreditsNamespace)
     return [c];
@@ -478,7 +436,6 @@ function byCredit(doc: CharacterDocument, c: Change): ReadonlyArray<Change> {
   return out;
 }
 
-/** Field-level difference. `applyChanges(a, diff(a, b))` yields `b`. */
 export function diff(a: CharacterDocument, b: CharacterDocument): Change[] {
   const out: Change[] = [];
   for (const head of ["label", "requires", "catalog", "generation"] as const) {
@@ -517,10 +474,6 @@ export function invert(changes: ReadonlyArray<Change>): Change[] {
   }));
 }
 
-/**
- * Apply changes whose `before` must match the document. All conflicting paths
- * are reported together; nothing is applied unless every change applies.
- */
 export function applyChanges(
   doc: CharacterDocument,
   changes: ReadonlyArray<Change>,
@@ -531,8 +484,6 @@ export function applyChanges(
     for (const c of byCredit(current, whole)) {
       const present = getAt(current, c.path);
       if (!jsonEqual(present, c.before)) {
-        // Both sides left this credit in the same state, such as two proposals
-        // that each compacted the credit of a picture removed earlier.
         if (isCreditPath(c.path) && jsonEqual(present, c.after)) continue;
         conflicts.push(
           diagnostic("conflict", c.path, `${c.path.join("/")} changed since this edit was made.`, {

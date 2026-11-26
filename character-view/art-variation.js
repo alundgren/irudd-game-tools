@@ -88,8 +88,6 @@ export async function fitMapWithAgent(
   const attempts = [];
   for (let i = 0; i < 2; i++) {
     const map = await post("/trace-map", brief, signal);
-    // An isolated portrait fills the whole panel. The agent's outlined head
-    // can end just above the chin, especially when it separated the neck.
     const root =
       isolatedFace &&
       map.regions?.find(
@@ -116,7 +114,6 @@ export async function fitMapWithAgent(
           map: portraitMap,
         };
       } catch {
-        /* Retry the individual outlines below. */
       }
     }
     attempts.push(map);
@@ -172,7 +169,6 @@ export async function fitMapWithAgent(
         best = { form, map: fittedMap, missed, uncalibrated };
       }
     } catch {
-      /* Try the other map when its root or graph is invalid. */
     }
   }
   if (best) return best;
@@ -396,8 +392,6 @@ export async function paintWithAgent(
         ".";
   } catch (error) {
     signal?.throwIfAborted();
-    // A failed fit still leaves usable artwork and an editable 3D candidate.
-    // Protected whole-form edits require a valid named mapping.
     if (!target && request.preserve.length)
       throw new Error(
         "Could not match the protected regions. " + error.message,
@@ -419,8 +413,6 @@ export async function paintWithAgent(
     portraitRoot &&
     (sourcePart?.shape === "head" || sourcePart?.anatomy === "face")
   ) {
-    // An isolated human portrait has complete front/profile contours. A single
-    // continuous scalp, jaw and neck avoids gaps between overlapping lofts.
     try {
       const surface = traceOutline(portraitRoot.id, atlas, art.height, [
         [],

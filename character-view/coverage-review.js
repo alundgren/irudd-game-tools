@@ -1,7 +1,5 @@
 import * as T from "three";
 
-// Render exported region IDs through the same skin and morph transforms.
-// This distinguishes uncovered anatomy from a shadow or skin-coloured cloth.
 export function garmentCoverage(form, model) {
   const native = Boolean(form.human);
   if (!native && (!form.parts.some((p) => p.bare) || !form.parts.some((p) => p.visibleIn))) return null;
@@ -88,9 +86,6 @@ export function garmentCoverage(form, model) {
   };
 }
 
-// Skin can already show through a full-detail garment. Report enclosed
-// islands separately from reduction errors. A deliberate cutout can also
-// enclose skin, so the readings describe visible pixels and their borders.
 export function enclosedSkin(mask, size, labels) {
   const visited = new Uint8Array(mask.length), queue = new Uint32Array(mask.length);
   const patches = [];
@@ -115,9 +110,6 @@ export function enclosedSkin(mask, size, labels) {
   return patches.sort((a,b) => b.pixels-a.pixels).slice(0, 5);
 }
 
-// Interior garment pixels are less sensitive to subpixel silhouette and cuff
-// changes. Use this comparison only for two detail levels of the same outfit
-// and pose, measured with the same camera.
 export function exposedSkinPixels(full, game, size, fullLabels, gameLabels) {
   if (full.length !== size * size || game.length !== full.length)
     throw new Error("Coverage masks must use the same square camera.");

@@ -99,8 +99,6 @@ def fit(name, frame):
     di = (d - m["scan_origin"]) @ m["scan_axes"].T
     good = lambda i: norm(ni[i]) < 0.145 and norm(di[i]) < 0.165
     marks = np.array([i for i in interior + outer if good(i)])
-    # Head tilt and donor pose are already removed in the capture. Use the stable facial extent
-    # in the image plane. A ray on the chin outline can strike the neck well behind the chin.
     nxy = (m["native_marks"] + 0.5 - 512) * np.array([1, -1]) * 0.135 / 512
     dxy = (m["scan_marks"] + 0.5 - 512) * np.array([1, -1]) * 0.135 / 512
     nx, dx = nxy[marks].mean(0), dxy[marks].mean(0)
@@ -117,7 +115,6 @@ def fit(name, frame):
     xyz = aligned(d)
     base = n[marks]
     moves = xyz[marks] - base
-    # Image-plane silhouette can shape the jaw, but only the central visible skin supplies depth.
     moves[:, 2] = np.where(np.isin(marks, outer), 0, moves[:, 2])
     moves[:, 2] = 0.009 * np.tanh(moves[:, 2] / 0.009)
     headCenter = n[1]
@@ -178,7 +175,6 @@ def fit(name, frame):
         * step((0.020 - norm(actual - baseline[ref.face])) / 0.009)
     )
     diff = actual - baseline[ref.face]
-    # Spread reliable observations over a physical neighbourhood and carry the socket as a unit.
     dist, near = cKDTree(fp).query(fp, k=120)
     wt = np.exp(-(dist**2) / (2 * 0.0045**2)) * dense[near]
     adjust = (
@@ -194,13 +190,11 @@ def fit(name, frame):
     desired = baseline.copy()
     desired[ref.face] += 0.8 * dense[:, None] * adjust
     socket_moves = broad(np.array(ref.eyes))
-    # Perspective and the scan head's residual yaw must not place one entire eye behind the other.
     socket_moves[:, 2] = np.mean(socket_moves[:, 2])
     for eye, move in zip(ref.eyes, socket_moves):
         rr = norm(verts - eye)
         w = 1 - step((rr - 0.016) / 0.012)
         desired = desired * (1 - w[:, None]) + move * w[:, None]
-    # Fit the visible anatomy using regularised least squares through the actual subdivision stencils.
     ids = np.arange(nat.meta["bodyVertices"])
     roi = norm(cage[ids] - headCenter) < 0.23
     roi &= (cage[ids, 1] > headCenter[1] - 0.15) & (

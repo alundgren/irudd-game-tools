@@ -1,10 +1,5 @@
-// The joints a hanging garment measures where it is fitted, which human/drape.ts
-// turns into bones and moves. Kept apart from the rig so the garments that
-// describe them depend on nothing above them.
-
 type V3 = readonly [number, number, number];
 
-/** The joints a hanging garment hangs from, as the garment measured them where it was fitted. */
 export interface ClothJoints {
   readonly name: string;
   readonly columns: number;

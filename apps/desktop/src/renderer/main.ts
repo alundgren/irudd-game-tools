@@ -1,11 +1,3 @@
-// The workshop window: project, outliner, viewport, properties, proposals,
-// history and the GLB library.
-//
-// Every change the person makes is one command envelope sent through the
-// shared host as the person: one gesture, one rename or one field edit is one
-// revision. The window shows what the host committed, so edits from agents,
-// the CLI or another window appear as they land.
-
 import "@irudd/player/player.css";
 import "./style.css";
 import {
@@ -45,10 +37,7 @@ const host = workshop(api);
 const viewportPaint = new ViewportPaint();
 let displaySequence = 0;
 let headRequest = 0;
-/** The same features and generators the host's registry holds; the adult joins once its packs are read. */
 let registry = createRegistry({ features: familyFeatures, generators: [frameCreature] });
-
-// ── State ───────────────────────────────────────────────────────────────────
 
 let app: AppInfo | undefined;
 let project: ProjectState["project"] = null;
@@ -56,11 +45,6 @@ let documentId: string | undefined;
 let view: InspectView | undefined;
 let doc: CharacterDocument | undefined;
 let preview: { proposal: string; version: number } | undefined;
-/**
- * The character and revision a gizmo drag started on. The release commits
- * against exactly this base; any other commit to that character during the
- * drag cancels it, so a move never lands silently on a changed character.
- */
 let dragBase: { documentId: string; revision: number; part: string } | undefined;
 let busy = false;
 
@@ -94,8 +78,6 @@ function failure(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-// ── Viewport ────────────────────────────────────────────────────────────────
-
 const viewport = new EditorViewport(byId("viewport", HTMLDivElement), {
   onPick: (part) => selectPart(part),
   onDragStart: (part) => {
@@ -127,22 +109,15 @@ for (const [name, b] of Object.entries(toolButtons))
 
 function selectPart(part: string | null): void {
   viewport.select(part);
-  // Mark the row in place: rebuilding the tree would swallow a double-click.
   for (const row of outliner.querySelectorAll<HTMLElement>(".row"))
     row.classList.toggle("selected", row.dataset["part"] === part);
   renderProperties();
 }
 
-// ── Commands ────────────────────────────────────────────────────────────────
-
 function requestId(): string {
   return `desk-${crypto.randomUUID()}`;
 }
 
-/**
- * Send one command as the person against the revision on screen. A refusal
- * is shown and the screen goes back to the committed document.
- */
 async function commit(
   command: Record<string, unknown>,
   what: string,
@@ -232,7 +207,6 @@ async function rename(id: string, label: string): Promise<void> {
   );
 }
 
-/** The person's latest revision still in force, or the latest undo of theirs (for redo). */
 function lastOwn(kind: "undoable" | "redoable"): HistoryItem | undefined {
   const items = [...(view?.history ?? [])].reverse();
   return items.find(
@@ -248,8 +222,6 @@ function lastOwn(kind: "undoable" | "redoable"): HistoryItem | undefined {
 async function undo(target: number, what: string): Promise<void> {
   await commit({ type: "undo", target }, what);
 }
-
-// ── Outliner ────────────────────────────────────────────────────────────────
 
 const outliner = byId("outliner", HTMLUListElement);
 
@@ -301,8 +273,6 @@ function renderOutliner(): void {
     });
   outliner.append(...branch(null));
 }
-
-// ── Properties ──────────────────────────────────────────────────────────────
 
 const properties = byId("properties", HTMLDivElement);
 
@@ -392,8 +362,6 @@ function renderProperties(): void {
     ),
   );
 }
-
-// ── Proposals ───────────────────────────────────────────────────────────────
 
 const proposals = byId("proposals", HTMLDivElement);
 
@@ -508,8 +476,6 @@ function renderProposals(): void {
     );
 }
 
-// ── History ─────────────────────────────────────────────────────────────────
-
 const history = byId("history", HTMLOListElement);
 const historyFilter = byId("history-filter", HTMLSelectElement);
 const attribution = byId("attribution", HTMLParagraphElement);
@@ -584,10 +550,7 @@ async function renderAttribution(): Promise<void> {
   }
 }
 
-// ── Agents ──────────────────────────────────────────────────────────────────
-
 const agents = byId("agents", HTMLDivElement);
-/** The last pairing message, kept across re-renders. */
 let pairingNote = "";
 
 async function renderAgents(): Promise<void> {
@@ -643,16 +606,12 @@ async function renderAgents(): Promise<void> {
   }
 }
 
-// ── Steering ────────────────────────────────────────────────────────────────
-
 const steering = mountSteering(byId("steering", HTMLDivElement), {
   host,
   documentId: () => documentId,
   failure,
 });
 api.onSteer((notice) => steering.notice(notice));
-
-// ── Artwork ─────────────────────────────────────────────────────────────────
 
 const art = mountArt(byId("art", HTMLDivElement), {
   host,
@@ -678,14 +637,11 @@ api.onCommit((notice) => {
   if (notice.documentId === documentId) void art.refresh();
 });
 
-// ── Project and documents ───────────────────────────────────────────────────
-
 const projectLabel = byId("project-label", HTMLSpanElement);
 const documentSelect = byId("document", HTMLSelectElement);
 const startSelect = byId("start", HTMLSelectElement);
 const randomHuman = byId("random-human", HTMLButtonElement);
 
-/** Save needs a character; open needs a project. Looked up by ID so it works before setup. */
 function syncCharacterFiles(): void {
   const save = document.getElementById("character-save");
   const open = document.getElementById("character-open");
@@ -721,7 +677,6 @@ function renderAll(): void {
   renderUpgrade();
 }
 
-/** Let the person explicitly move a stored head to the feature versions in this build. */
 function renderUpgrade(): void {
   if (!view || !documentId || view.access.mode !== "upgrade-required" || preview) return;
   const base = { documentId, revision: view.revision };
@@ -737,7 +692,6 @@ function renderUpgrade(): void {
 
 let adultPaint: Promise<HumanPaintSources> | undefined;
 
-/** Keep document controls and project switching available when a surface cannot be drawn. */
 async function displayDocument(character: CharacterDocument | undefined): Promise<boolean> {
   const seq = ++displaySequence;
   const element = byId("viewport", HTMLDivElement);
@@ -775,7 +729,6 @@ async function showHead(): Promise<void> {
   }
 }
 
-/** Show the head of the current document, as the host has committed it. */
 async function loadDocument(): Promise<void> {
   const seq = ++headRequest;
   if (!documentId) {
@@ -842,7 +795,6 @@ async function loadStarters(): Promise<void> {
   for (const s of list.starters) {
     const reference = Reflect.get(s, "kind") !== "form" && s.reference;
     const label = reference ? `${s.label} (protocol reference)` : s.label;
-    // A generator without a default preset starts from one of its named presets or a new seed.
     if (s.presets.length && !s.presets.some((p) => p.id === "default")) {
       for (const p of s.presets)
         startSelect.append(new Option(`${label}: ${p.label}`, `${s.id}/preset/${p.id}`));
@@ -856,7 +808,6 @@ async function loadStarters(): Promise<void> {
   startSelect.disabled = startSelect.options.length < 2;
 }
 
-/** What a starter menu entry asks the host to start: the starter and its preset or seed. */
 function startChoice(value: string): {
   readonly starter: string;
   readonly preset?: string;
@@ -918,10 +869,6 @@ async function adopt(state: ProjectState): Promise<void> {
   if (project) await art.refresh();
   await refreshLibrary();
 }
-
-// ── Character files ─────────────────────────────────────────────────────────
-// Save and open go through the project host, the same operation as
-// `irudd save` and `irudd open`. Opening checks the whole file first.
 
 const characterSave = byId("character-save", HTMLButtonElement);
 const characterOpen = byId("character-open", HTMLButtonElement);
@@ -1012,8 +959,6 @@ api.onCommit((notice) => {
     void loadDocuments();
 });
 
-// ── Undo, redo and keys ─────────────────────────────────────────────────────
-
 async function undoLast(): Promise<void> {
   const item = lastOwn("undoable");
   if (item) await undo(item.revision, `Undo ${item.summary ?? `revision ${item.revision}`}`);
@@ -1047,8 +992,6 @@ document.addEventListener("keydown", (e) => {
     else selectPart(null);
   }
 });
-
-// ── Library and player ──────────────────────────────────────────────────────
 
 const workshopPane = byId("workshop", HTMLElement);
 const libraryPane = byId("library", HTMLElement);
@@ -1154,7 +1097,6 @@ const exportPreset = byId("export-preset", HTMLSelectElement);
 const exportPresets: ReadonlyArray<ReviewPreset> = ["clay", "full", "game", "portrait"];
 const exportOutfits = byId("export-outfits", HTMLInputElement);
 
-/** A wardrobe export needs saved outfits; the box is off for a document without them. */
 function syncOutfits(): void {
   const looks = doc ? (outfitLooks.read(doc.features)?.looks.length ?? 0) : 0;
   exportOutfits.disabled = looks === 0;
@@ -1167,7 +1109,6 @@ function syncOutfits(): void {
   );
 }
 
-/** An issued review artifact's bytes, read in chunks from the host. */
 async function artifactBytes(sha256: string): Promise<Uint8Array> {
   const parts: Uint8Array[] = [];
   let offset = 0;
@@ -1188,8 +1129,6 @@ async function artifactBytes(sha256: string): Promise<Uint8Array> {
   return all;
 }
 
-// Export goes through the project host and its review worker, exactly as the
-// CLI and agents do: the same revision, preset, provenance and SHA-256.
 byId("export", HTMLButtonElement).onclick = async () => {
   if (!doc || !view || !documentId) return;
   const preset = exportPresets.find((p) => p === exportPreset.value) ?? "clay";
@@ -1221,8 +1160,6 @@ byId("export", HTMLButtonElement).onclick = async () => {
     showBanner("error", `Export failed: ${failure(error)}`);
   }
 };
-
-// ── Start ───────────────────────────────────────────────────────────────────
 
 app = await api.app();
 mountUpdates(api);

@@ -1,7 +1,3 @@
-// A creature plan's coat: one pigment field along the spine that the welded
-// trunk and its separate limbs share. Ported from
-// character-view/creature-coat.js at 2761eb1.
-
 import * as T from "three";
 import type { CreatureCoat, CreaturePlan } from "@irudd/document";
 import type { BuildPart } from "../view.js";
@@ -32,7 +28,6 @@ interface Segment {
   readonly at: number;
 }
 
-/** The spine organ of a creature, its knots and its built object. */
 export function spineOf(
   parts: ReadonlyArray<BuildPart>,
   objectOf: (id: string) => T.Object3D | undefined,
@@ -41,10 +36,6 @@ export function spineOf(
   return part && { part, object: objectOf(part.id) };
 }
 
-/**
- * The coat's coordinates follow the spine, with tangent extension beyond
- * its ends, so separate limbs and the welded trunk see the same pigment.
- */
 export function creatureCoatField(
   plan: CreaturePlan,
   parts: ReadonlyArray<BuildPart>,
@@ -125,9 +116,6 @@ export function creatureCoatField(
       const distal = 1 - edge(p.y / Math.max(0.1, height + radius), 0.11, 0.57);
       out.copy(base);
       const c = coat.contrast;
-      // The species' original light/dark field stays visible. Add one recognisable
-      // signal track that follows the flank and sweeps up towards the collar.
-      // Limbs retain their primary colour instead of acquiring a full-body print.
       const zone = part.coatZone ?? "body";
       const head = part.motion === "head";
       const limb = zone === "end" || limbRoles.has(part.motion ?? "");
@@ -147,7 +135,6 @@ export function creatureCoatField(
       if (!limb) {
         const shoulder = edge(t, 0.46, 0.65) * (1 - edge(t, 1.06, 1.29));
         const rear = edge(t, -0.36, -0.15) * (1 - edge(t, 0.43, 0.63));
-        // Large colour fields describe the animal at figure distance.
         if (coat.graded) {
           const ridge = y * 0.66 + up * 0.34;
           const mantle = edge(ridge + 0.1 * Math.sin(flow + phase), -0.08, 0.83);
@@ -177,7 +164,6 @@ export function creatureCoatField(
               : 1;
         const track = (0.36 + 0.48 * shoulder + 0.18 * rear) * duty * c * accentBudget;
         out.lerp(light, outer * track * 0.61).lerp(accent, core * track);
-        // A mantle has its largest distinct value shape on the shoulders and back.
         if (!existing && !head) {
           const cap = edge(y * 0.8 + up * 0.25, 0.26, 0.8) * (0.55 + 0.45 * shoulder);
           const edgeTint =
@@ -211,10 +197,6 @@ function standard(mesh: T.Mesh): T.MeshStandardMaterial {
   return material;
 }
 
-/**
- * Paint the coat into a coated part outside the hide, with its undercoat
- * beneath and its markings over it. False when the part takes no coat.
- */
 export function applyCreatureCoat(
   mesh: T.Mesh,
   part: BuildPart,
@@ -228,7 +210,6 @@ export function applyCreatureCoat(
   const geom = mesh.geometry;
   const pos = geom.getAttribute("position");
   const normals = geom.getAttribute("normal");
-  // A coat swatch would also chart the organ; no frozen form paints one outside the hide.
   if (part.organ.coatSwatch)
     throw new Error(`Part ${part.id} would take a coat swatch, which is not ported.`);
   const material = standard(mesh).clone();

@@ -17,12 +17,10 @@ HERE = Path(__file__).resolve().parent
 RELEASE = "https://github.com/facebookresearch/MHR/releases/download/v1.0.1/assets.zip"
 RELEASE_SHA256 = "e4f4f205cd87c0fa106577ba1de4fc763e4eb197c924461d2ef7e6944e9d6b94"
 REGIONS = ["head", "neck", "torso", "upper arms", "forearms", "hands", "thighs", "shins", "feet"]
-# Parameters the pose solve may move: shoulders to wrists, hips to toes and fingers.
 POSE_FREE = list(range(33, 40)) + list(range(43, 50)) + list(range(50, 68)) + list(range(68, 122))
-# Skeleton proportion parameters with a non-zero official range, and that range.
 PROPORTIONS = {139: 1.1, 140: 0.4, 141: 0.2, 142: 1.0, 143: 1.0, 144: 0.2, 145: 0.2,
                146: 0.5, 149: 0.5, 150: 1.0, 153: 0.1}
-LIMB_ROWS = 14  # the first seven segments of the convention, both sides
+LIMB_ROWS = 14
 
 
 def region_of(joint):
@@ -80,7 +78,7 @@ class Rig:
 
     def _run(self, identity, parameters, correctives=True):
         vertices, state = self.model(identity, parameters, torch.zeros(1, 72), correctives)
-        return vertices[0] / 100.0, state[0, :, :3] / 100.0  # centimetres to metres
+        return vertices[0] / 100.0, state[0, :, :3] / 100.0
 
     def parameters(self, proportions=None, pose=None):
         p = torch.zeros(1, 204)
@@ -121,7 +119,7 @@ class Rig:
             optimiser.zero_grad()
             p = fixed.clone()
             p[0, POSE_FREE] = free
-            _, joints = self._run(ident, p, correctives=False)  # joints do not depend on them
+            _, joints = self._run(ident, p, correctives=False)
             d = joints[end] - joints[start]
             d = d / d.norm(dim=1, keepdim=True)
             loss = (weight * (1 - (d * want).sum(1))).sum() + 2e-4 * (free ** 2).sum()

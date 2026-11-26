@@ -2,7 +2,6 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseSync } from "@swc/core";
 
-// The release contract of the local renderer. Changing it requires updating this inventory.
 const bridgeMethods = [
   "app",
   "call",
@@ -37,7 +36,6 @@ function fields(value: unknown): Fields {
   return isRecord(value) ? value : {};
 }
 
-/** Match syntax independently of whitespace, comments and type annotations. */
 function* nodes(value: unknown): Generator<Fields> {
   if (Array.isArray(value)) {
     for (const entry of value) yield* nodes(entry);

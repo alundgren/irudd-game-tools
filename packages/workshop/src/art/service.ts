@@ -1,39 +1,3 @@
-// Art requests through the project host.
-//
-// A person sends a typed brief to one paired agent. The host checks the
-// brief against the document revision and the attached pictures, stores it,
-// and sends it as a steering message to that agent's bound conversation, so
-// the brief reaches exactly the conversation the person paired. The host
-// never launches a model, a tool or a child process for art: the reply comes
-// from the paired agent (or a person importing a file the agent could not
-// make), on a connection authenticated with the brief's pairing.
-//
-// A valid reply becomes a proposal on the brief's revision through the
-// submitter's own session, so the journal records who drafted it. The
-// proposal stays reviewable even when the person edited the head meanwhile;
-// accepting it then needs a fresh brief or a refinement, as with any stale
-// proposal. Translators turn a reply into operations. Variation replies carry
-// their operations; other kinds need a translator the host was given, and
-// without one a valid reply is recorded, not proposed.
-//
-// The request log (`art.sqlite`), the steering outbox and the project are
-// separate files, so every step that writes more than one of them is either
-// idempotent on retry or settled when the host starts. A brief stored without
-// its steering message is sent again by a retry with the same request ID,
-// unless the agent already answered it; a host start never sends it. A reply
-// that becomes a proposal is recorded as pending before the journal commit
-// and settled from the journal's receipt; the journal request ID is derived
-// from the reply itself, so a retry with a fresh submission ID finds the
-// committed proposal instead of drafting a second one. A proposal the journal
-// lost to a restored older backup is drafted again once, and one an art log
-// version 1 host committed under its submission-derived ID is adopted.
-//
-// An art proposal also writes the document's `irudd.asset-credits`: who made
-// each picture it adds, how it arrived and what the submitter stated about
-// its rights. Accepting the proposal makes that attribution part of the
-// character, so backups, archives and exports carry it. Removing a picture
-// retires its credit in the reducer.
-
 import { Effect } from "effect";
 import { createHash } from "node:crypto";
 import {
@@ -102,12 +66,6 @@ export class ArtError extends Error {
   }
 }
 
-/**
- * What a translator is given: the brief, the document at the brief's
- * revision, the reply, its measured files, and the verified bytes of any
- * project blob (the reply's picture, the brief's attachments, the document's
- * sheets).
- */
 export interface ArtTranslatorInput {
   readonly brief: ArtBrief;
   readonly document: CharacterDocument;
@@ -116,70 +74,42 @@ export interface ArtTranslatorInput {
   readonly read: (digest: string) => Promise<Uint8Array>;
 }
 
-/** Operations, and what the reply carried that they leave out, for the proposal's summary. */
 export interface ArtTranslation {
   readonly operations: ReadonlyArray<Json>;
   readonly notes?: ReadonlyArray<string>;
 }
 
-/**
- * Turns one kind of reply into document operations. Throwing rejects the
- * reply with the error's message; nothing is proposed. Throwing an
- * `ArtError` instead fails the call without recording the reply, for a
- * translator that cannot run now (its raster is not ready): the same
- * submission is translated again when it is retried.
- */
 export interface ArtTranslator {
   readonly kind: ArtKind;
-  /**
-   * Trace only: the intent it answers. Absent: the default fit, which every
-   * trace brief without an intent asks for.
-   */
   readonly intent?: TraceIntent;
-  /** A short name recorded with every proposal it makes, such as `repaint`. */
   readonly id: string;
   translate(
     input: ArtTranslatorInput,
   ): ReadonlyArray<Json> | ArtTranslation | Promise<ReadonlyArray<Json> | ArtTranslation>;
-  /**
-   * Why a brief of this kind cannot be answered at its revision, such as a
-   * target part that cannot take the fit; checked when the person sends it.
-   */
   check?(brief: ArtBrief, document: CharacterDocument): string | undefined;
-  /** Lines the steering prompt adds to the kind's instructions. */
   readonly guidance?: ReadonlyArray<string>;
 }
 
-/** Variation replies are operations already; the reducer validates them. */
 export const variationTranslator: ArtTranslator = {
   kind: "variation",
   id: "operations",
   translate: ({ reply }) => (reply.kind === "variation" ? reply.operations : []),
 };
 
-/** Who is calling, as the dispatcher bound them. */
 export interface ArtCaller {
   readonly actor: Actor;
   readonly role: "human" | "agent";
   readonly session: Session;
   readonly link?: AgentLink;
-  /** Uploads are kept per connection. */
   readonly key: string;
 }
 
-/**
- * Points between the writes of one art call, for tests that stop the host
- * there: after a brief is stored and before its steering message; after a
- * submission is recorded as pending; after its proposal is committed; and
- * after the submission is recorded, before the steering link.
- */
 export type ArtCut =
   | "request-stored"
   | "submission-pending"
   | "proposal-committed"
   | "submission-recorded";
 
-/** Who a steering link is made for: an agent and the pairing the brief went to. */
 interface Pairing {
   readonly agent: string;
   readonly pairingId: string;
@@ -190,12 +120,9 @@ export interface ArtOptions {
   readonly store: ArtStore;
   readonly steering: Steering;
   readonly pairings: PairingSource;
-  /** Commit through the dispatcher, so commit events and steering re-checks follow. */
   readonly apply: (caller: ArtCaller, request: unknown) => Promise<ApplyResult>;
   readonly now?: () => number;
-  /** Digests this build ships with their own origin; submitting their bytes credits nobody new. */
   readonly shipped?: (digest: string) => boolean;
-  /** Test hook: called at each `ArtCut`. It may end the process or throw to stop the call there. */
   readonly cut?: (point: ArtCut) => void;
 }
 
@@ -206,7 +133,6 @@ interface Upload {
   received: number;
 }
 
-/** Which translator answers a brief: its kind, and for a trace brief that builds, `trace:build`. */
 type ArtRoute = ArtKind | "trace:build";
 const route = (kind: ArtKind, intent: TraceIntent | undefined): ArtRoute =>
   kind === "trace" && intent === "build" ? "trace:build" : kind;
@@ -254,16 +180,10 @@ const unavailable: Record<Exclude<ArtRoute, "variation">, ArtApply> = {
 
 const hex = (text: string) => createHash("sha256").update(text).digest("hex");
 
-/** The request ID is stable per project, agent and the person's request ID. */
 export function artRequestId(projectId: string, agent: string, requestId: string): string {
   return "art-" + hex(`${projectId}\u0000${agent}\u0000${requestId}`).slice(0, 24);
 }
 
-/**
- * The journal request ID of the proposal a reply makes: the same request,
- * route, submitter and reply always give the same ID, whatever submission ID
- * carried it, so a retry after a lost reply replays the committed proposal.
- */
 export function artCommandId(
   artId: string,
   via: "agent" | "person-import",
@@ -275,12 +195,10 @@ export function artCommandId(
 
 const sameActor = (a: Actor, b: Actor): boolean => a.kind === b.kind && a.id === b.id;
 
-/** The journal request ID a host before reply-derived IDs gave a submission's proposal. */
 export function legacyArtCommandId(artId: string, submissionId: string): string {
   return `art.${hex(`${artId}\u0000${submissionId}`).slice(0, 40)}`;
 }
 
-/** The proposal a reply makes, on the brief's revision. */
 function proposalCommand(
   request: StoredRequest,
   reply: ArtReply,
@@ -306,7 +224,6 @@ function proposalCommand(
   } as const;
 }
 
-/** Equal as JSON, whatever the key order a client sent. */
 const sameJson = (a: unknown, b: unknown): boolean => {
   const x: unknown = JSON.parse(JSON.stringify(a));
   const y: unknown = JSON.parse(JSON.stringify(b));
@@ -318,7 +235,6 @@ const replyDigest = (reply: ArtReply): string => {
   return "sha256:" + hex(isJson(json) ? canonicalJson(json) : JSON.stringify(json));
 };
 
-/** What each kind asks of the paired agent, condensed from the G0 art director prompts. */
 const kindInstructions: Record<ArtRoute, ReadonlyArray<string>> = {
   variation: [
     "Act as geometry author. Return document operations against the brief's revision; keep the IDs of parts you retain.",
@@ -343,17 +259,6 @@ const kindInstructions: Record<ArtRoute, ReadonlyArray<string>> = {
   ],
 };
 
-/**
- * The operations with the reply's attribution for every new picture they
- * add, written as the document's `irudd.asset-credits`. A picture the base
- * document already declares, or one the build ships with its own origin,
- * keeps whatever credit it has. A picture the document no longer declares
- * has no credit to inherit: a stale entry for its bytes, from a build that
- * kept credits of removed pictures, is replaced, and other such entries are
- * compacted away. The reducer retires the credit of an asset the operations
- * remove. A reply may not write the extension itself, and a record that
- * cannot be read is never overwritten.
- */
 function creditOperations(
   document: CharacterDocument,
   ops: ReadonlyArray<Json>,
@@ -367,7 +272,6 @@ function creditOperations(
   },
 ): Json[] | Diagnostic {
   const declared = new Set<string>(document.assets.map((a) => a.digest));
-  // The assets declared once the operations ran, in their order.
   const present = new Set(declared);
   const added: string[] = [];
   for (const [i, op] of ops.entries()) {
@@ -405,7 +309,6 @@ function creditOperations(
       );
     credits.push(credit.value);
   }
-  // A newly declared picture never inherits an entry left from before it was removed.
   const fresh = (d: string) => present.has(d) && !declared.has(d);
   const stale = readAssetCredits(document);
   const inherits = stale.ok && stale.value.some((c) => fresh(c.digest));
@@ -440,7 +343,6 @@ export class Art {
     this.translators.set("variation", variationTranslator);
   }
 
-  /** Register a translator for its kind. Returns the function that removes it. */
   register(translator: ArtTranslator): () => void {
     const at = route(translator.kind, translator.intent);
     this.translators.set(at, translator);
@@ -477,13 +379,10 @@ export class Art {
     };
   }
 
-  /** A connection closed: drop its unfinished uploads. */
   disconnected(key: string): void {
     for (const id of this.uploads.keys())
       if (id.startsWith(key + "\u0000")) this.uploads.delete(id);
   }
-
-  // ── Uploads ─────────────────────────────────────────────────────────────
 
   async put(
     caller: ArtCaller,
@@ -549,7 +448,6 @@ export class Art {
     };
   }
 
-  /** Measure a stored blob: it must be a picture this module accepts. */
   private async measure(
     digest: string,
     path: ReadonlyArray<string | number>,
@@ -585,8 +483,6 @@ export class Art {
     return { digest, mediaType: info.mediaType, byteLength: info.byteLength, ...size };
   }
 
-  // ── Requests ────────────────────────────────────────────────────────────
-
   async request(
     person: Actor,
     p: { readonly agent: string; readonly requestId: string; readonly brief: ArtBrief },
@@ -604,7 +500,6 @@ export class Art {
           );
         const delivered = await this.redeliver(person, existing);
         if (delivered) return this.view(delivered);
-        // The stored brief went to a pairing that is gone and nothing answered it: start again.
       }
       const brief = p.brief;
       const problems: Diagnostic[] = [];
@@ -659,7 +554,6 @@ export class Art {
             );
           else atlases.add(part.paint.atlas);
         }
-        // A source sheet is the one the selected regions paint from at this revision.
         const [atlas] = atlases;
         if (atlas !== undefined && atlases.size === 1)
           for (const [i, a] of brief.attachments.entries())
@@ -684,7 +578,6 @@ export class Art {
             diagnostic("schema", ["brief", "attachments"], "Attach at least the whole view."),
           );
       }
-      // A translator checks the brief's target at this revision, such as a portrait for depth.
       const refusal = this.translators.get(briefRoute(brief))?.check?.(brief, at.document);
       if (refusal) problems.push(diagnostic("schema", ["brief", "parts"], refusal));
       if (brief.kind === "variation")
@@ -717,7 +610,6 @@ export class Art {
         throw new ArtError("AgentNotPaired", `Agent ${p.agent} is not paired with this project.`, {
           agent: p.agent,
         });
-      // Stored first, so the steering prompt finds the brief when it is built.
       this.options.steering.requireConnected(p.agent);
       const stored = store.insertRequest({
         artId,
@@ -736,7 +628,6 @@ export class Art {
     });
   }
 
-  /** Send a stored brief as its steering message. A brief nobody answered is removed when that fails. */
   private async deliver(person: Actor, stored: StoredRequest): Promise<void> {
     const { store, steering } = this.options;
     try {
@@ -755,12 +646,6 @@ export class Art {
     }
   }
 
-  /**
-   * A retried request: its brief is stored, but the host may have stopped
-   * before the steering message was written. Send it now. Undefined when the
-   * brief went to a pairing that was replaced and nothing answered it, so the
-   * caller starts the request again.
-   */
   private async redeliver(
     person: Actor,
     stored: StoredRequest,
@@ -773,8 +658,6 @@ export class Art {
       if (!(error instanceof SteeringError)) throw error;
     }
     if (stored.closed) return stored;
-    // The agent found the brief without its message and already replied:
-    // sending it now would ask the conversation a second time.
     const answered =
       store.submissions(stored.artId).length > 0 || store.pending(stored.artId).length > 0;
     if (answered) return stored;
@@ -786,7 +669,6 @@ export class Art {
     return store.request(stored.artId) ?? stored;
   }
 
-  /** The person's words for the conversation; `instructions` adds how to answer. */
   private summary(artId: string, brief: ArtBrief, files: ReadonlyArray<StoredFile>): string {
     const lines = [
       `Art request ${artId}: ${brief.kind}, an ${artBriefFormat} v1 brief for ${brief.documentId} at revision ${brief.revision}.`,
@@ -809,7 +691,6 @@ export class Art {
     return lines.join("\n").slice(0, 8000);
   }
 
-  /** The steering prompt's answer lines for a message that carries a brief; undefined otherwise. */
   instructions(
     message: SteeringMessage,
     cli: { readonly irudd: string; readonly cred: string },
@@ -905,8 +786,6 @@ export class Art {
     });
   }
 
-  // ── Replies ─────────────────────────────────────────────────────────────
-
   async submit(
     caller: ArtCaller,
     p: { readonly artId: string; readonly submissionId: string; readonly reply: ArtReply },
@@ -914,7 +793,6 @@ export class Art {
     return this.serial(async () => {
       const { store, project } = this.options;
       const request = this.own(caller, p.artId);
-      // A submission the host stopped in the middle of is settled before anything else.
       await this.settle(store.pending(request.artId));
       const digest = replyDigest(p.reply);
       const seen = store.submission(request.artId, p.submissionId);
@@ -925,9 +803,6 @@ export class Art {
             `Submission ${p.submissionId} already carried a different reply. Use a new submission ID.`,
             { artId: request.artId, submissionId: p.submissionId },
           );
-        // A project restored from an older backup may have lost the proposal
-        // this reply made. The same submitter's retry drafts it again under
-        // its recorded proposal and journal request IDs.
         const via = caller.role === "agent" ? "agent" : "person-import";
         if (
           seen.proposal &&
@@ -944,7 +819,6 @@ export class Art {
               { artId: request.artId, diagnostics: problems },
             );
         }
-        // The steering link is the last write; a retry makes it if the host stopped before.
         if (seen.proposal && seen.via === "agent" && caller.role === "agent")
           await this.linkSteering(this.link(caller), request, seen.proposal.requestId);
         return this.result("replayed", seen, request);
@@ -998,10 +872,6 @@ export class Art {
             `The brief asks for a ${brief.kind} reply, not ${p.reply.kind}.`,
           ),
         ]);
-      // The same reply again stands for its earlier submission, unless the
-      // journal no longer has that submission's proposal (an older backup was
-      // restored): then it is drafted afresh. A discarded proposal is still in
-      // the journal, so a discarded reply is not proposed again.
       let earlier: StoredSubmission | undefined;
       for (const s of store.submissions(request.artId)) {
         if (s.replyDigest !== digest || s.state === "rejected") continue;
@@ -1050,9 +920,6 @@ export class Art {
           }),
           request,
         );
-      // A host before journal request IDs came from the reply derived them
-      // from the submission ID. Its proposal, committed before it could record
-      // the submission, is this submission's when nothing else claims it.
       const legacy = await this.legacyProposal(caller, request, p.submissionId);
       if (legacy) {
         const submission = store.insertSubmission({
@@ -1071,7 +938,6 @@ export class Art {
       if (!prepared.ok) return reject(prepared.diagnostics, files);
       const credited = prepared.ops;
       const requestId = artCommandId(request.artId, via, caller.actor.id, digest);
-      // A proposal committed for this very reply before the host stopped keeps its ID.
       const prior = await Effect.runPromise(project.receipt(brief.documentId, requestId));
       const proposalId = prior?.proposal?.id ?? (await this.nextProposal(request));
       const pending = store.insertPending({
@@ -1088,7 +954,6 @@ export class Art {
           proposalCommand(request, p.reply, proposalId, requestId, credited, prepared.notes),
         );
       } catch (error) {
-        // The commit may have landed before the failure: the journal decides.
         await this.settle([pending]);
         throw error;
       }
@@ -1104,12 +969,6 @@ export class Art {
     });
   }
 
-  /**
-   * Settle submissions left pending by a host that stopped mid-call. One
-   * whose proposal the journal committed becomes the proposed submission and
-   * is linked to its steering message; the rest are dropped, so a retry runs
-   * them again.
-   */
   private async settle(pending: ReadonlyArray<StoredPending>): Promise<number> {
     const { store, project } = this.options;
     let settled = 0;
@@ -1135,11 +994,6 @@ export class Art {
     return settled;
   }
 
-  /**
-   * After a restart: settle every pending submission, and link each open
-   * request's latest proposal to its steering message if the host stopped
-   * before it could.
-   */
   async recover(): Promise<{ readonly settled: number; readonly linked: number }> {
     return this.serial(async () => {
       const { store, steering, pairings } = this.options;
@@ -1170,7 +1024,6 @@ export class Art {
     });
   }
 
-  /** The next free `prop-<art id>-<n>`, counting the log and the journal. */
   private async nextProposal(request: StoredRequest): Promise<string> {
     const { store, project } = this.options;
     const prefix = `prop-${request.artId}-`;
@@ -1186,7 +1039,6 @@ export class Art {
     return prefix + String(n + 1);
   }
 
-  /** The reply's operations on the brief's revision, with its credits, or why there are none. */
   private async prepare(
     caller: ArtCaller,
     request: StoredRequest,
@@ -1223,7 +1075,6 @@ export class Art {
         notes = made.notes ?? [];
       } else ops = made;
     } catch (error) {
-      // The translator cannot run now: nothing is recorded and a retry translates again.
       if (error instanceof ArtError) throw error;
       return {
         ok: false,
@@ -1253,11 +1104,6 @@ export class Art {
     return { ok: true, ops: credited, notes };
   }
 
-  /**
-   * True when the journal has neither the proposal a submission recorded nor
-   * a receipt for its request: the project was restored from a backup taken
-   * before it. A discarded or accepted proposal is still in the journal.
-   */
   private async lost(
     request: StoredRequest,
     proposal: { readonly id: string; readonly requestId: string },
@@ -1269,7 +1115,6 @@ export class Art {
     return (await Effect.runPromise(project.receipt(documentId, proposal.requestId))) === undefined;
   }
 
-  /** True when another submission of the same reply already has a proposal in the journal. */
   private async recovered(request: StoredRequest, seen: StoredSubmission): Promise<boolean> {
     for (const s of this.options.store.submissions(request.artId))
       if (
@@ -1282,7 +1127,6 @@ export class Art {
     return false;
   }
 
-  /** Draft a recorded submission's lost proposal again under its recorded IDs. */
   private async redraft(
     caller: ArtCaller,
     request: StoredRequest,
@@ -1314,13 +1158,6 @@ export class Art {
     return outcome.kind === "rejected" ? outcome.diagnostics : [];
   }
 
-  /**
-   * The proposal an earlier host committed for this submission under its
-   * submission-derived journal request ID, when it is unmistakably this
-   * reply's: a proposal.create receipt for this request's proposal series,
-   * authored by this caller on the brief's revision, that no recorded or
-   * pending submission claims.
-   */
   private async legacyProposal(
     caller: ArtCaller,
     request: StoredRequest,
@@ -1357,7 +1194,6 @@ export class Art {
     return { id, version: 1, requestId, baseRevision: proposal.baseRevision };
   }
 
-  /** The kind's picture shape: a square sheet, or a depth view framed like the front view. */
   private shape(
     request: StoredRequest,
     kind: "turnaround" | "depth",
@@ -1390,7 +1226,6 @@ export class Art {
     return undefined;
   }
 
-  /** Link the proposal to the steering message, acknowledging it first if the agent has not. */
   private async linkSteering(
     link: Pairing,
     request: StoredRequest,
@@ -1406,12 +1241,9 @@ export class Art {
         requestId,
       });
     } catch (error) {
-      // An already applied message keeps its link; the proposal stands on its own.
       if (!(error instanceof SteeringError)) throw error;
     }
   }
-
-  // ── Views ───────────────────────────────────────────────────────────────
 
   private link(caller: ArtCaller): AgentLink {
     const link = caller.link;
@@ -1425,7 +1257,6 @@ export class Art {
     return link;
   }
 
-  /** A request this caller may see. Another agent's request, or an earlier pairing's, is missing. */
   private own(caller: ArtCaller, artId: string): StoredRequest {
     const request = this.options.store.request(artId);
     if (caller.role === "agent") {
@@ -1529,7 +1360,6 @@ export class Art {
     };
   }
 
-  /** Requests and replies are checked and written one at a time. */
   private serial<T>(step: () => Promise<T>): Promise<T> {
     const run = this.queue.then(step, step);
     this.queue = run.then(

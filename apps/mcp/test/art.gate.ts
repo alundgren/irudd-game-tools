@@ -1,19 +1,3 @@
-// art gate: a real headless host process, CLI processes for the person and
-// the paired agent (--credential), and an MCP SDK client driving `irudd mcp`
-// over stdio, all against one open project.
-//
-//   pnpm --filter @irudd/mcp gate:art
-//
-// It covers a brief with two picture attachments sent from the CLI, the agent
-// reading it over MCP with the pictures as image content, its variation reply
-// drafted as its own proposal, the person's preview, accept and undo; a reply
-// after the person's manual edit (stale, head kept); a depth brief answered
-// from the agent CLI and recorded (no depth family yet), then saved to disk
-// and compared byte for byte; a person's import with its stated author and
-// licence; an accepted MCP reply whose picture becomes a credited asset; a
-// duplicate and a replayed reply; cancellation; and an invalid reply. The host runs with --no-push and
-// an inbox route, so it never calls T3 Code, Claude Code or Codex; no model
-// makes these pictures. The SDK client stands in for the paired session.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
@@ -42,7 +26,6 @@ const stringEnv: Record<string, string> = Object.fromEntries(
 );
 const doc = "doc-artgate1";
 
-/** A solid PNG with a square mark, written to the scratch directory. */
 function png(
   name: string,
   width: number,
@@ -206,7 +189,6 @@ test(
       const caps = await cliJson("art", "capabilities");
       assert.equal(field(caps.value, "producer"), "paired-agent");
 
-      // A variation brief with two pictures, from the person's CLI.
       let mark = Date.now();
       const transport = new StdioClientTransport({
         command: process.execPath,
@@ -270,7 +252,6 @@ test(
       });
       assert.equal(field(duplicate.value, "submission", "duplicateOf"), submissionId);
 
-      // The person reviews it like any proposal.
       const proposals = await cliJson("proposals", doc);
       assert.ok(JSON.stringify(proposals.value).includes(proposal));
       assert.equal((await cli("preview", doc, proposal)).code, 0);
@@ -280,7 +261,6 @@ test(
       assert.equal(field(outbox.value, "steering", "status"), "applied");
       assert.equal((await cliJson("undo", doc, "2", "--base", "head")).code, 0);
 
-      // A reply after the person's manual edit is drafted on the brief's revision.
       const staleId = await request(
         "--kind",
         "variation",
@@ -303,7 +283,6 @@ test(
       assert.equal(field(head.value, "revision"), 4);
       assert.equal(field(head.value, "document", "parts", 1, "label"), "Person's skull");
 
-      // An invalid reply is recorded and proposes nothing.
       const invalid = await tool(client, "art_submit", {
         artId: staleId,
         summary: "Bad",
@@ -312,7 +291,6 @@ test(
       assert.equal(invalid.isError, true);
       assert.equal(field(invalid.value, "submission", "state"), "rejected");
 
-      // A depth brief answered from the agent's CLI: checked, recorded, saved.
       const depthId = await request(
         "--kind",
         "depth",
@@ -356,7 +334,6 @@ test(
         license: "CC-BY-4.0",
       });
 
-      // An accepted MCP reply credits the picture it adds; the person's import above was only recorded.
       const creditId = await request(
         "--kind",
         "variation",
@@ -416,7 +393,6 @@ test(
       );
       assert.ok(fs.existsSync(path.join(saveDir, "brief.json")));
 
-      // A cancelled brief refuses the agent's later reply.
       const cancelId = await request("--kind", "variation", "--direction", "Never mind.");
       assert.equal((await cliJson("art", "cancel", cancelId)).code, 0);
       const late = await tool(client, "art_submit", {
@@ -427,7 +403,6 @@ test(
       assert.equal(late.isError, true);
       assert.match(late.summary, /ArtClosed/);
 
-      // The agent cannot send or cancel briefs.
       const agentRequest = await cli(
         "art",
         "request",

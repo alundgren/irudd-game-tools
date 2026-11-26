@@ -49,7 +49,6 @@ def check_fresh_exports(original, current, gate_file):
             name = f"{entry['name']}-{preset['preset']}.glb"
             playback = []
             with TemporaryDirectory() as scratch:
-                # Another family run can replace its output. Both players must read the same verified file.
                 model = Path(scratch) / name
                 shutil.copyfile(gate_file.parent / preset["preset"] / name, model)
                 sha = digest(model)
@@ -86,8 +85,6 @@ def compare_cameras(ctx, root, player, reference, frozen, export_report=None):
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.set_viewport_size({"width": 1280, "height": 800})
         page.goto(build.as_uri())
-        # The legacy page sizes the canvas to a fractional CSS height set by its controls.
-        # Match both drawing buffers and projections before comparing rasterized geometry.
         page.locator("#stage").evaluate("e => Object.assign(e.style, {width:'960px', height:'800px', minHeight:'800px'})")
     for name in ["fen-crown", "harbour-trader", "festival-wardrobe", "portrait-gaze"]:
         model = root / "examples" / (name + ".glb")
@@ -117,7 +114,6 @@ def compare_cameras(ctx, root, player, reference, frozen, export_report=None):
             field("Camera").select_option(view)
             compare_frame(view)
         if name == "portrait-gaze":
-            # Use the actual controls and sample a turned face with a held and released gaze.
             def set_control(control, value):
                 control.fill(str(value))
                 control.dispatch_event("change")

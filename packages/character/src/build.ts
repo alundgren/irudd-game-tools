@@ -1,9 +1,3 @@
-// Build a character document into a Three.js scene.
-//
-// Ported from createCharacter in character-view/model.js at 2761eb1, family by
-// family. Only the families in @irudd/document's family registry reach this
-// builder, so every branch here corresponds to a typed payload.
-
 import * as T from "three";
 import {
   armAccess,
@@ -74,82 +68,47 @@ import type { HumanBody } from "./human/body.js";
 import { buildHuman, isHumanDocument, type HumanBuild } from "./human/build.js";
 import type { HumanPaintSources } from "./human/complexion.js";
 
-/** Export presets of the workshop's GLB detail control. */
 export const presets = ["clay", "full", "game", "portrait"] as const;
 export type Preset = (typeof presets)[number];
 
-/** Supplies the material for a colour and finish. Equal inputs give the same material. */
 export type MaterialSource = (color: string, finish: Finish) => T.Material;
 
-/** Materials for the cap and strands of rooted hair, which only grooms use. */
 export type GroomMaterialSource = (color: string, finish: "scalp" | "strands") => T.Material;
 
-/** The vertex-coloured materials of wing surfaces: one shared, and one per feathered game wing. */
 export type WingMaterialSource = (color: string, finish: "wing" | "feathered wing") => T.Material;
 
 export interface BuiltPart {
   readonly part: BuildPart;
   readonly object: T.Object3D;
-  /**
-   * Where the part's children attach: the part's mesh itself (the figure's
-   * scaled frame), or a mount under it that rescales to the legacy frame size
-   * or, for a part without figure.assembly, back to the rigid frame.
-   */
   readonly mount: T.Object3D;
 }
 
 export interface BuiltCharacter {
   readonly view: BuildView;
   readonly group: T.Group;
-  /** Built parts in assembly order. */
   readonly parts: ReadonlyMap<string, BuiltPart>;
-  /**
-   * The document's build warp, mapping a rest world point (as
-   * `partPlacements` gives it) to the built one. Each part's built pivot is
-   * the warped rest pivot; its rotation and scale are as placed.
-   */
   readonly warp: ((v: T.Vector3) => T.Vector3) | undefined;
-  /** Joined skin ownership of each blended mesh. */
   readonly blendOwners: ReadonlyMap<T.Mesh, BlendOwners>;
-  /** Digit chains of each hand mesh, for the skin's finger joints. */
   readonly hands: ReadonlyMap<T.Mesh, ReadonlyArray<Digit>>;
-  /**
-   * Face surfaces, each with its binding in head-height units when it is
-   * painted. The skin exports each as its own mesh with expressions.
-   */
   readonly faces: ReadonlyMap<T.Mesh, HeadSpace | undefined>;
-  /** An adult human: each region's bone and the authored skin weights of its pieces. */
   readonly human?: HumanBuild;
   dispose(): void;
 }
 
 export interface BuildOptions {
   readonly materials: MaterialSource;
-  /** Groom cap and strand materials. Without them grooms take `materials` with a plain finish. */
   readonly groomMaterials?: GroomMaterialSource | undefined;
-  /** Wing surface materials. Without them a textured wing takes `materials` with a plain finish. */
   readonly wingMaterials?: WingMaterialSource | undefined;
-  /**
-   * Finish the surfaces as the full preset does: bake turnaround paint from
-   * `paint` and paint markings into vertex colours. Without it the build is
-   * uniform, as clay is: painted parts take their part colour material.
-   */
   readonly finish?: {
     readonly paint?: PaintAtlases | undefined;
-    /** The built-in heads' face paint. Without it their faces take the skin's material. */
     readonly faces?: FacePaint | undefined;
-    /** Portrait plates. A finished build of a part that shows a plate needs it. */
     readonly plates?: PortraitPlates | undefined;
   };
-  /** Build for game detail: jointed sweeps keep anchored cross sections for simplification. */
   readonly game?: boolean;
-  /** The adult body pack, needed to build documents irudd.human-adult generated. */
   readonly human?: HumanBody | undefined;
-  /** The adult's prepared skin, face and eye paint, needed to texture documents irudd.human-adult generated. */
   readonly humanPaint?: HumanPaintSources | undefined;
 }
 
-/** One uniform clay material, as the Clay detail preset exports. */
 export function clayMaterials(): MaterialSource {
   const clay = new T.MeshStandardMaterial({ color: "#adb4ad", roughness: 0.86 });
   return () => clay;
@@ -163,10 +122,6 @@ function sweepSides(part: BuildPart): number {
       : 28;
 }
 
-/**
- * Level cross sections: a painted sweep's unless it follows its path, and a
- * seamed sweep drawn straight up, such as a classic figure's neck.
- */
 function levelSections(part: BuildPart, knots: ReadonlyArray<Knot>): boolean {
   const first = knots[0];
   const last = knots.at(-1);
@@ -180,11 +135,6 @@ function levelSections(part: BuildPart, knots: ReadonlyArray<Knot>): boolean {
   );
 }
 
-/**
- * The knots a sweep is built through: eased by a refit, or, for a bare foot
- * whose toes show in its seam group, ending at the ball of the foot so the
- * toes take over. A refitted foot keeps the full length of its last.
- */
 function sweepKnots(
   part: BuildPart,
   knots: ReadonlyArray<Knot>,
@@ -205,7 +155,6 @@ function sweepKnots(
   return [...knots.slice(0, -2), end];
 }
 
-/** Core primitives occupy a unit box before the part transform applies its size. */
 function capsuleGeometry([x, y, z]: BuildPart["size"]): T.BufferGeometry {
   const length = Math.max(x, y, z);
   const diameter = Math.min(x, y, z);
@@ -217,17 +166,12 @@ function capsuleGeometry([x, y, z]: BuildPart["size"]): T.BufferGeometry {
   return capsule;
 }
 
-/** What a part's geometry leaves for later passes: cage face lists and skirt fold relief. */
 interface SurfaceNotes {
   readonly cageFaces: WeakMap<T.BufferGeometry, ReadonlyArray<number>>;
   readonly reliefs: WeakMap<T.BufferGeometry, Float32Array>;
-  /** Geometry for the game preset: wings and a creature plan's hands draw fewer faces. */
   readonly game: boolean;
-  /** A creature built from a plan, whose hands build for game detail. */
   readonly planned: boolean;
-  /** Texture coordinates for a cage, one per control point. */
   readonly chart: BillChart["uv"] | undefined;
-  /** A child of the part shows in this outfit and shares its seam group, as a bare foot's toes do. */
   readonly toes: boolean;
 }
 
@@ -238,7 +182,6 @@ function partGeometry(
   surfaces: SurfaceNotes,
 ): T.BufferGeometry {
   const geometry = authoredGeometry(part, fit, hand, surfaces);
-  // A refitted region is eased radially: a sweep through its knots, anything else here.
   if (fit && !part.sweep && !fit.preserve) geometry.scale(fit.amount, 1, fit.amount);
   return geometry;
 }
@@ -261,7 +204,6 @@ function authoredGeometry(
       sweepSides(part),
       part.foot,
     );
-    // A face, or hair cut from one, is sculpted to its portrait.
     const traced = part.anatomy === "face" || part.sourceHair;
     if (traced && part.paint) portraitSurface(geometry, part.paint.trace, part.paint.depth?.field);
     if (part.paint) fitDepth(geometry, part.paint.depth?.pins, part.paint.trace.height);
@@ -297,11 +239,6 @@ function authoredGeometry(
   }
 }
 
-/**
- * Give cage carriers of path-following trims, and those trims, their own
- * materials tagged for the game optimizer, which keeps their detail. Ported
- * from createCharacter in character-view/model.js.
- */
 function tagAttachmentDetail(view: BuildView, parts: ReadonlyMap<string, BuiltPart>): void {
   const carriers = new Set(
     view.parts
@@ -328,10 +265,6 @@ function tagAttachmentDetail(view: BuildView, parts: ReadonlyMap<string, BuiltPa
   }
 }
 
-/**
- * Ease each fitted garment outside its parent and the garments fitted on it
- * before. Ported from createCharacter in character-view/model.js.
- */
 function fitGarments(
   view: BuildView,
   parts: ReadonlyMap<string, BuiltPart>,
@@ -345,8 +278,6 @@ function fitGarments(
     if (!p.fitted || p.parent === null || !mesh || !host || !mesh.visible || !isMesh(mesh))
       continue;
     const layers = inner.get(p.parent) ?? [];
-    // A mantle also covers the limbs under it: a skirt the legs, a shoulder cut
-    // the thighs, shins and arms as its arm access lets them through.
     const limbs: T.Object3D[] = [];
     const cut = p.mantle;
     if (cut) {
@@ -376,7 +307,6 @@ function fitGarments(
   }
 }
 
-/** Multiply a dyed garment's colours, and those of what it carries, by its dye. */
 function dyeLayer(object: T.Object3D, dye: T.Color): void {
   object.traverse((node) => {
     if (!isMesh(node)) return;
@@ -393,10 +323,6 @@ function dyeLayer(object: T.Object3D, dye: T.Color): void {
 
 const groomShades = [0.75, 0.92, 1.05, 1.17];
 
-/**
- * Grow the cap and strand layers of a groom as children of the part: over
- * the part's own surface, or a built-in head's face, whose hair it replaces.
- */
 function growGroom(object: T.Object3D, groom: FigureGroom, options: BuildOptions): void {
   const scalp = isMesh(object)
     ? object
@@ -437,12 +363,6 @@ function canBlend(part: BuildPart): boolean {
 const jointedRoles = new Set(["upper arm", "forearm"]);
 const roleOf = (part: BuildPart | undefined) => part?.motion ?? part?.wear.role;
 
-/**
- * Pin a jointed sweep's limb sections (and a rigid cuff's on a jointed
- * parent) so game simplification keeps the shape skinning bends. A plated
- * carrier whose axis animates keeps every ring. Ported from
- * retainSweepSections in character-view/surface.js.
- */
 function retainSections(view: BuildView, part: BuildPart, geometry: T.BufferGeometry): void {
   if (!part.sweep || part.blend) return;
   const parent = part.parent === null ? undefined : view.byId.get(part.parent);
@@ -465,11 +385,6 @@ function retainSections(view: BuildView, part: BuildPart, geometry: T.BufferGeom
   geometry.setAttribute("lodAnchor", new T.BufferAttribute(pins, 1));
 }
 
-/**
- * Join each classic figure seam group, then the blended skin. A seam group
- * keeps its parts' own materials; its parts own their patches as a blended
- * skin's do. Ported from blendSkin in character-view/blended-skin.js.
- */
 function blendSkin(
   view: BuildView,
   parts: ReadonlyMap<string, BuiltPart>,
@@ -513,13 +428,6 @@ function blendSkin(
   return owners;
 }
 
-/**
- * An adult with parts added by hand, such as wings on the chest (the "human
- * region" branch of createCharacter in character-view/model.js at 2761eb1
- * builds every other part as usual). The added parts are built as a
- * character of their own and hung from the regions they name as parents, after
- * the regions in document order; their parts keep the document's parents.
- */
 function withHandMadeParts(
   doc: CharacterDocument,
   human: BuiltCharacter,
@@ -539,7 +447,6 @@ function withHandMadeParts(
       parts: handMade.map((p) =>
         p.parent !== null && ids.has(p.parent) ? p : { ...p, parent: null },
       ),
-      // Document-level features describe the adult, whose builder reads them.
       features: {},
     },
     { ...options, human: undefined },
@@ -584,7 +491,6 @@ export function buildCharacter(doc: CharacterDocument, options: BuildOptions): B
   const plan = view.plan;
   if (plan?.dress)
     throw new Error("This build does not support creature livery (creature.plan.dress).");
-  // A creature plan's hide, eyes and bills are drawn on the host's raster.
   const creatureRaster = plan && options.finish ? options.finish.paint?.raster : undefined;
   if (plan && options.finish && !creatureRaster)
     throw new Error("Finishing a creature plan's hide needs a raster.");
@@ -599,7 +505,6 @@ export function buildCharacter(doc: CharacterDocument, options: BuildOptions): B
   const cageFaces = new WeakMap<T.BufferGeometry, ReadonlyArray<number>>();
   const reliefs = new WeakMap<T.BufferGeometry, Float32Array>();
   const faces = new Map<T.Mesh, HeadSpace | undefined>();
-  // Volumes on one sheet share its texture, so the export embeds it once.
   const sheets = new Map<string, T.Texture | undefined>();
   const baked = new Map<string, T.Texture | undefined>();
   const sheetOf = (atlas: Digest): T.Texture | undefined => {
@@ -616,7 +521,6 @@ export function buildCharacter(doc: CharacterDocument, options: BuildOptions): B
     region: RegionViews | undefined,
     color: string,
   ): T.Material => {
-    // Parts with the same binding, such as mirrored copies, share one bake.
     const key = canonicalJson({ ...binding });
     if (!baked.has(key)) {
       const texture = atlases && bakePaint(atlases, binding, region);
@@ -627,7 +531,6 @@ export function buildCharacter(doc: CharacterDocument, options: BuildOptions): B
     return texture ? paintedMaterial(texture, color) : new T.MeshStandardMaterial({ color });
   };
   const kit = atlases && view.outfit === "Pressure suit" ? expeditionKit(atlases) : undefined;
-  /** The expedition textile of a suited region, tinted white as G0 cuts it. */
   const suitMaterial = (fit: RegionFit): T.Material | undefined => {
     const binding = expeditionRoles.has(fit.role) ? kit?.get(fit.role) : undefined;
     return binding && bakedMaterial(binding, undefined, "#ffffff");
@@ -649,7 +552,6 @@ export function buildCharacter(doc: CharacterDocument, options: BuildOptions): B
       part.color,
     );
   };
-  // Body pieces of one look share their meshes, as the legacy library's clones do.
   const libraries = new Map<string, Record<PieceName, T.Group>>();
   const facePaint = options.finish?.faces;
   const plateSource = (digest: Digest | undefined): PortraitPlates => {
@@ -677,7 +579,6 @@ export function buildCharacter(doc: CharacterDocument, options: BuildOptions): B
     if (part.piece.piece === "head") fitHead(object, part, look);
     return object;
   };
-  /** Drop a head's own neck under a neck region, and resculpt its face for the part. */
   const fitHead = (object: T.Group, part: BuildPart, look: Appearance): void => {
     const parent = part.parent === null ? undefined : view.byId.get(part.parent);
     if (parent?.anatomy === "neck")
@@ -705,7 +606,6 @@ export function buildCharacter(doc: CharacterDocument, options: BuildOptions): B
     for (const child of object.children)
       if (isMesh(child) && child.userData["faceSurface"]) faces.set(child, undefined);
   };
-  /** A part's own surface: its geometry, finish and what the wardrobe adds to it. */
   const partMesh = (part: BuildPart, fit: RegionFit | undefined): T.Mesh => {
     let digits: ReadonlyArray<Digit> | undefined;
     const bill = plan && creatureRaster ? billChart(part, plan.head) : undefined;
@@ -725,19 +625,16 @@ export function buildCharacter(doc: CharacterDocument, options: BuildOptions): B
     if (options.game && options.finish) retainSections(view, part, geometry);
     const object = new T.Mesh(geometry, materialOf(part, fit));
     if (digits) hands.set(object, digits);
-    // A mantle's trim and lining are vertex colours over its cloth; clay drops them.
     if (part.mantle) {
       if (options.finish) {
         const material: T.Material | T.Material[] = object.material;
         if (!Array.isArray(material)) {
           object.material = material.clone();
           object.material.vertexColors = true;
-          // The game budget keeps more of a skirt's folds.
           if (part.mantle.kind === "Skirt") object.material.userData["foldedCloth"] = true;
         }
       } else geometry.deleteAttribute("color");
     }
-    // Feathers, veins and skin carry their own colours vertex by vertex; clay drops them.
     if (part.wing) {
       if (options.finish) {
         const feathered = part.wing.structure === "feather" && options.game;
@@ -770,14 +667,7 @@ export function buildCharacter(doc: CharacterDocument, options: BuildOptions): B
     if (part.hairCap) separateCap(object, part, part.hairCap);
     return object;
   };
-  /** Hair layers cut from a traced head, with the lining each seats on its head. */
   const linings = new Map<T.Mesh, ReadonlyArray<number>>();
-  /**
-   * Separate a traced face's painted hair: a hair layer keeps only the hair;
-   * a face keeps a receded head, its hair a removable shell over it whose
-   * scalp a textured build paints under the hairline. A groomed face sheds
-   * the shell, as the groom replaces it.
-   */
   const separateCap = (object: T.Mesh, part: BuildPart, cap: HairCap): void => {
     const outer: T.Material | T.Material[] = object.material;
     const hair = separateHair(object.geometry, cap, !part.groom);
@@ -800,7 +690,6 @@ export function buildCharacter(doc: CharacterDocument, options: BuildOptions): B
   };
   for (const part of view.parts) {
     const piece = pieceOf(part);
-    // A built-in piece is dressed by its own look, so the wardrobe does not refit it.
     const fit = piece ? undefined : regionFit(view, part);
     const object: T.Object3D = piece ?? partMesh(part, fit);
     if (part.groom) growGroom(object, part.groom, options);
@@ -817,7 +706,6 @@ export function buildCharacter(doc: CharacterDocument, options: BuildOptions): B
     object.position.fromArray(part.position);
     object.scale.fromArray(part.size);
     object.quaternion.fromArray(part.rotation);
-    // Hair laid over a head gives way to the groom the head grows.
     const groomed = part.parent !== null && Boolean(view.byId.get(part.parent)?.groom);
     object.visible = !fit?.hide && visibleIn(view, part) && !(part.hairLayer && groomed);
     object.userData["partId"] = part.id;
@@ -836,7 +724,6 @@ export function buildCharacter(doc: CharacterDocument, options: BuildOptions): B
   }
   for (const { part, object } of built.values())
     ((part.parent === null ? undefined : built.get(part.parent)?.mount) ?? group).add(object);
-  // Hair cut from a traced head seats its lining on the head it lies over.
   for (const { part, object } of built.values()) {
     const lining = isMesh(object) ? linings.get(object) : undefined;
     const head = part.parent === null ? undefined : built.get(part.parent);
@@ -846,7 +733,6 @@ export function buildCharacter(doc: CharacterDocument, options: BuildOptions): B
   fitGarments(view, built, reliefs);
   const blendOwners = blendSkin(view, built, options.materials);
   const warp = view.build && warpBuild(group, view.build, built, blendOwners);
-  // An adult head shades its nape into a joined neck below it.
   for (const { part, object } of built.values()) {
     if (part.piece?.cranialProfile !== "adult" || part.frontFits.length || part.profileFit)
       continue;
@@ -855,8 +741,6 @@ export function buildCharacter(doc: CharacterDocument, options: BuildOptions): B
     if (neck && isMesh(neck) && blendOwners.has(neck) && face && isMesh(face))
       shadeNape(face, neck);
   }
-  // A face's fits, in the reference order: an early side contour before
-  // joins seat on the face, then each front pass, then a finishing contour.
   const faceOf = (object: T.Object3D): T.Mesh | undefined => {
     if (isMesh(object) && object.userData["faceSurface"]) return object;
     const child = object.children.find((c) => c.userData["faceSurface"]);
@@ -866,7 +750,6 @@ export function buildCharacter(doc: CharacterDocument, options: BuildOptions): B
     if (!part.profileFit && !part.frontFits.length) continue;
     const face = faceOf(object);
     if (!face) continue;
-    // A built-in head shares its face with the other heads of its look.
     if (part.piece) {
       const binding = faces.get(face);
       faces.delete(face);
@@ -882,7 +765,6 @@ export function buildCharacter(doc: CharacterDocument, options: BuildOptions): B
     { owners: blendOwners, cageFaces },
     Boolean(options.game),
   );
-  // Clay gives fitted eyes its one material; the textured presets their own.
   const eyeMaterial = options.finish ? null : options.materials("#adb4ad", "plain");
   const fitEyes = (finish: boolean): void => {
     for (const { part, object } of built.values()) {
@@ -920,7 +802,6 @@ export function buildCharacter(doc: CharacterDocument, options: BuildOptions): B
       );
     }
   }
-  // Front plates draw over the face once its fits and side plate are done.
   if (options.finish)
     for (const { part, object } of built.values()) {
       const front = part.frontFits.flatMap((pass) => (pass.plate ? [pass.plate] : []));
@@ -935,7 +816,6 @@ export function buildCharacter(doc: CharacterDocument, options: BuildOptions): B
       );
     }
   fitEyes(true);
-  // Face hardware seats after the fits, then clears the fitted face.
   fitSurfaceJoins(
     view.parts,
     new Map([...built].map(([id, b]) => [id, b.object])),
@@ -967,7 +847,6 @@ export function buildCharacter(doc: CharacterDocument, options: BuildOptions): B
   growGuideFibres(view, new Map([...built].map(([id, b]) => [id, b.object])), blendOwners, {
     finish: Boolean(options.finish),
     gameBudget: options.game ? Math.floor(0.4 * gameTriangleTarget) : 0,
-    // One vertex-coloured material for every strand of a finished build; clay keeps its one.
     material: () => {
       if (fibreMaterial) return fibreMaterial;
       fibreMaterial = options.materials("#ffffff", "plain");
@@ -981,7 +860,6 @@ export function buildCharacter(doc: CharacterDocument, options: BuildOptions): B
   });
   if (options.finish) {
     const objectOf = (id: string): T.Object3D | undefined => built.get(id)?.object;
-    // A refitted region is cloth: only skin left bare or kept as it is takes markings.
     const skinShows = (part: BuildPart): boolean => {
       const fit = regionFit(view, part);
       return !fit || fit.preserve || fit.bare;
@@ -989,7 +867,6 @@ export function buildCharacter(doc: CharacterDocument, options: BuildOptions): B
     const limbTints: ReadonlyMap<string, LimbTint> = plan
       ? limbPigments(plan, view.parts, objectOf)
       : new Map();
-    // A creature plan's skin is one baked hide; its coat paints the coated parts left outside it.
     const hidden =
       plan && creatureRaster
         ? bakeCreatureHide(
@@ -1030,9 +907,7 @@ export function buildCharacter(doc: CharacterDocument, options: BuildOptions): B
         });
         continue;
       }
-      // Large triangles are refined for markings except on joined skins, hands and faces.
       const joined = Boolean(owners) || hands.has(object) || faces.has(object);
-      // The undercoat is painted first and the markings lie over it.
       if (part.undercoat) paintMarkings(object, part.undercoat, joined);
       paintLimbPigment(object, tint);
       if (part.markings) paintMarkings(object, part.markings, joined);

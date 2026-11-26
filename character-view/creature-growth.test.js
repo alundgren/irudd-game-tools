@@ -17,7 +17,6 @@ import { growPlateField } from "./plate-growth.js";
 const organ = (p) => p.plateSite || /gill fan|drum sac|ruff lock/.test(p.id);
 
 test("consecutive body draws combine selectable coats with distinct body plans", () => {
-  // Two full family decks of ordinary draws.
   const plans = Array.from({ length: 60 }, (_, n) =>
     randomCreaturePlan(8700 + n),
   );

@@ -1,11 +1,6 @@
-// Verification of artwork bytes before they are stored. A blob is stored only
-// when its bytes hash to the digest, fit the document size limit and start
-// with the signature of the media type they claim.
-
 import { diagnostic, mediaTypes, type Diagnostic } from "@irudd/document";
 import { createHash } from "node:crypto";
 
-/** The largest blob a document may reference (`AssetEntry.byteLength`). */
 export const maxBlobBytes = 64 * 1024 * 1024;
 
 const digestPattern = /^sha256:[0-9a-f]{64}$/;
@@ -23,7 +18,6 @@ const startsWith = (bytes: Uint8Array, at: number, signature: ReadonlyArray<numb
 
 const ascii = (text: string): number[] => Array.from(text, (c) => c.charCodeAt(0));
 
-/** The media type the bytes' signature identifies, among the ones documents accept. */
 export function sniffMediaType(bytes: Uint8Array): string | undefined {
   if (startsWith(bytes, 0, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return "image/png";
   if (startsWith(bytes, 0, [0xff, 0xd8, 0xff])) return "image/jpeg";

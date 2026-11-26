@@ -1,10 +1,3 @@
-// Garments of one cast member worn by another: the same person, face and hair
-// in another member's top and bottom (character-view/human-cast-wardrobe.js at
-// 2761eb1). Each supported combination was fitted to the receiver beforehand
-// (the cast pack's fitted outfits); here the fitted figure is put in the form
-// the cast build reads, and its picture is put together from art the cast
-// already carries.
-
 import {
   castBodySkin,
   castFigures,
@@ -25,7 +18,6 @@ import {
 import { randomStream } from "./identity.js";
 import type { HumanPaint } from "./paint-data.js";
 
-/** The style fields an outfit is saved in: the name of a top and of a bottom. Absent means the person's own. */
 export interface CastOutfitStyle {
   readonly castTop?: string | undefined;
   readonly castBottom?: string | undefined;
@@ -35,13 +27,11 @@ const at = (a: ArrayLike<number>, i: number) => a[i] ?? 0;
 const codeOf = (slot: "top" | "bottom", name: string | undefined): CastPieceCode | undefined =>
   castPieceCodes.find((code) => castPieces[code][slot] === name);
 
-/** Every top and every bottom the wardrobe holds, by name. */
 export const castTopNames: ReadonlyArray<string> = castPieceCodes.map((c) => castPieces[c].top);
 export const castBottomNames: ReadonlyArray<string> = castPieceCodes.map(
   (c) => castPieces[c].bottom,
 );
 
-/** The outfits a cast member can wear, own first. None for a member with no fitted outfits. */
 export function castOutfits(
   name: CastFigureName,
 ): ReadonlyArray<{ readonly castTop: string; readonly castBottom: string }> {
@@ -57,7 +47,6 @@ export function castOutfits(
   ];
 }
 
-// The fitted combination a style asks for, or null for the person's own clothes.
 function chosen(name: CastFigureName, style: CastOutfitStyle): CastVariant | null {
   const receiver = castReceivers[name];
   if (!receiver) return null;
@@ -66,7 +55,6 @@ function chosen(name: CastFigureName, style: CastOutfitStyle): CastVariant | nul
   return receiver.variants.find((v) => v.top === top && v.bottom === bottom) ?? null;
 }
 
-/** What is wrong with a style's outfit for this member: [] when it can be worn as saved. */
 export function castOutfitProblems(name: CastFigureName, style: CastOutfitStyle): string[] {
   const problems: string[] = [];
   if (style.castTop !== undefined && !codeOf("top", style.castTop))
@@ -85,7 +73,6 @@ export function castOutfitProblems(name: CastFigureName, style: CastOutfitStyle)
   return problems;
 }
 
-/** The outfit as worn, the person's own when the style asks for nothing fitted; null for a member the wardrobe has not fitted. */
 export function wornCastOutfit(
   name: CastFigureName,
   style: CastOutfitStyle,
@@ -96,7 +83,6 @@ export function wornCastOutfit(
   return { top: pick?.top ?? receiver.own, bottom: pick?.bottom ?? receiver.own, own: !pick };
 }
 
-/** Sources of the borrowed pieces, for the credit: avatar paths besides the member's own. */
 export function castOutfitSubjects(name: CastFigureName, style: CastOutfitStyle): string[] {
   const pick = chosen(name, style),
     own = castReceivers[name]?.own;
@@ -110,7 +96,6 @@ export function castOutfitSubjects(name: CastFigureName, style: CastOutfitStyle)
   ];
 }
 
-/** An outfit for a seed: the same seed gives the same outfit. `keep` is the share that stay in their own clothes. */
 export function drawCastOutfit(name: CastFigureName, seed: number, keep = 0.4): CastOutfitStyle {
   const all = castOutfits(name);
   if (all.length < 2) return {};
@@ -120,7 +105,6 @@ export function drawCastOutfit(name: CastFigureName, seed: number, keep = 0.4): 
   return picked ? { castTop: picked.castTop, castBottom: picked.castBottom } : {};
 }
 
-// Rows of whole numbers that stood for shares of one.
 function shares(values: ArrayLike<number>, size: number): Float32Array {
   const out = new Float32Array(values.length);
   for (let i = 0; i < values.length; i += size) {
@@ -131,7 +115,6 @@ function shares(values: ArrayLike<number>, size: number): Float32Array {
   return out;
 }
 
-// The receiver's authored face shape on the fitted figure: its head points are the receiver's own.
 function carried(values: Float32Array, like: Uint16Array): Float32Array {
   const out = new Float32Array(like.length * 3);
   for (let i = 0; i < like.length; i++) {
@@ -141,7 +124,6 @@ function carried(values: Float32Array, like: Uint16Array): Float32Array {
   return out;
 }
 
-/** A figure as the cast build reads it, and the outfit it was fitted in (null for the member's own). */
 export interface WornFigure {
   readonly figure: CastFigureData;
   readonly fitted: CastVariant | null;
@@ -149,10 +131,6 @@ export interface WornFigure {
 
 const made = new WeakMap<HumanCast, Map<string, CastFigureData>>();
 
-/**
- * The figure a member wears in the outfit a style names: the member's own
- * figure when the style names no fitted outfit.
- */
 export function castOutfit(
   cast: HumanCast,
   name: CastFigureName,
@@ -168,7 +146,6 @@ export function castOutfit(
   if (known) return { figure: known, fitted: pick };
   const packed = cast.variant(name, pick),
     field = packed.field;
-  // Each handle's weights are shares of one.
   const starts = field.starts,
     raw = field.weights,
     weights = new Float32Array(raw.length);
@@ -218,7 +195,6 @@ export function castOutfit(
   return { figure: fitted, fitted: pick };
 }
 
-/** A member's picture: RGB pixels, the face-skin mask and the photographed face skin. */
 export interface CastPicture {
   readonly side: number;
   readonly tone: readonly [number, number, number];
@@ -229,7 +205,6 @@ export interface CastPicture {
 const toLinear = (v: number) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
 const toSrgb = (v: number) => (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055);
 
-/** A member's own picture as the paint pack holds it. */
 export function ownCastPicture(paint: HumanPaint, name: CastFigureName): CastPicture {
   const entry: CastFigureEntry = castFigures[name];
   return {
@@ -246,8 +221,6 @@ interface Art {
   readonly tone: ReadonlyArray<number> | null;
 }
 
-// The skin a garment's art was photographed with, and its art: the body half of its own member's picture, or the copy
-// the wardrobe carries.
 function bodyArt(paint: HumanPaint, code: CastPieceCode, side: number): Art {
   const half = side / 2,
     piece = castPieces[code],
@@ -266,7 +239,6 @@ function bodyArt(paint: HumanPaint, code: CastPieceCode, side: number): Art {
   return { pixels, mask, tone: castBodySkin[piece.figure ?? code] ?? null };
 }
 
-// A borrowed garment's bare skin (hands, arms, legs, the neck in a collar) in the receiver's own skin colour.
 function reskin(art: Art, target: ReadonlyArray<number> | null): Art {
   const tone = art.tone;
   if (!tone || !target) return art;
@@ -288,12 +260,6 @@ function reskin(art: Art, target: ReadonlyArray<number> | null): Art {
   return { ...art, pixels };
 }
 
-/**
- * The picture a member wears an outfit in: the top's art in the left half,
- * the receiver's head above right, the bottom's art (half as tall) below
- * right. The skin mask is put together the same way, so the skin colour
- * control reaches the borrowed skin too.
- */
 export function castOutfitPicture(
   paint: HumanPaint,
   name: CastFigureName,
@@ -306,7 +272,6 @@ export function castOutfitPicture(
     half = side / 2;
   const pixels = receiver.pixels.slice(),
     mask = receiver.mask.slice();
-  // The receiver's own body skin where the picture has any; else the face's.
   const target = castBodySkin[name] ?? receiver.tone;
   const art = (code: CastPieceCode) =>
     code === own ? bodyArt(paint, code, side) : reskin(bodyArt(paint, code, side), target);

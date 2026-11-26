@@ -7,10 +7,6 @@ import { mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
 import { MeshoptSimplifier } from "three/addons/libs/meshopt_simplifier.module.js";
 
 export const gameTriangleTarget = 24000;
-// Fibres and feathers are drawn as built while the rest of the figure has what it needs to hold its shape:
-// `restShare` of its own faces, and no more than `restLimit` of the file. A figure short of that, such as one
-// with feathered wings, eyewear and plate armour, has its fibres and feathers thinned to make up the
-// difference. Together they never drop below `keptFloor` of the file through thinning.
 const restShare = 0.085,
   restLimit = 0.45,
   keptFloor = 0.3;
@@ -55,8 +51,6 @@ function simplifyInputs(g) {
         bone = bones.array[4 * i + j];
       attr[out + 5 + j] = influence;
       if (!influence) continue;
-      // Identify which joints carry the weights. A rigid toe and a rigid
-      // shin otherwise have the same attribute vector, [1, 0, 0, 0].
       attr[out + 9] += influence * Math.sin(2.13 * bone);
       attr[out + 10] += influence * Math.cos(1.81 * bone);
       attr[out + 11] += influence * Math.sin(3.61 * bone);
@@ -95,11 +89,6 @@ function reduce(idx, ratio, input, lock, hair = false) {
     )[0];
   }
   let result = run(0.011, ["Sparse"]);
-  // A fitted garment can have a normal seam at each source triangle.
-  // Permit seam collapses for materials that miss the target and retain
-  // UVs, surface normals and joint influence in the error metric.
-  // Hair cards are open sheets that such a collapse pulls apart, so they keep
-  // a modest surplus and only give way when they miss the target by half.
   if (result.length > target * (hair ? 1.5 : 1.12))
     result = run(0.035, ["Sparse", "Permissive"]);
   if (result.length > target * (hair ? 1.5 : 1.25))
@@ -115,9 +104,6 @@ function simplify(g, b, ratio, input) {
     b.material.userData.hairCards,
   );
 }
-// Materials without a share of their own are reduced as one surface. The
-// triangles then go where the shape needs them: a boot or a plate built from
-// few faces keeps them, and a densely built surface gives up the most.
 function together(g, pool, ratio, input) {
   const count = g.attributes.position.count,
     owner = new Int32Array(count).fill(-1),
@@ -129,7 +115,6 @@ function together(g, pool, ratio, input) {
     const part = g.index.array.subarray(b.start, b.start + b.count);
     idx.set(part, at);
     at += b.count;
-    // A point used by two materials stays where it is, so no triangle is left spanning both.
     for (const i of part)
       if (owner[i] < 0) owner[i] = k;
       else if (owner[i] !== k) shared[i] = lock[i] = 1;
@@ -143,9 +128,6 @@ function together(g, pool, ratio, input) {
   }
   return parts;
 }
-// A surface with fine, small forms, such as hands or hair, would give up nearly
-// everything to large plain ones. Each material therefore keeps at least
-// `pooledFloor` of an even share, and only the rest follows the shape.
 const pooledFloor = 0.7;
 function simplifyPool(g, pool, budget, input) {
   const size = (list) => list.reduce((n, b) => n + b.count / 3, 0),
@@ -175,7 +157,6 @@ function simplifyPool(g, pool, budget, input) {
     held.push(...short);
     open = open.filter((b) => !short.includes(b));
   }
-  // What the others had no use for goes back to the materials held at their floor.
   const spare = budget - kept(pool);
   if (held.length && spare > 0.01 * budget)
     for (const b of held)
@@ -227,7 +208,6 @@ function tileBounds(rect) {
   const pad = Math.min(4, Math.floor((Math.min(w, h) - 1) / 3));
   return [x + pad, y + pad, w - 2 * pad, h - 2 * pad];
 }
-// A material can occur on many merged meshes. A single differing coordinate requires its full texture.
 function noteSampledUV(entry, geometry, group, defaultUV) {
   if (entry.sampleUV === null) return;
   const uv = geometry.attributes.uv;
@@ -236,8 +216,6 @@ function noteSampledUV(entry, geometry, group, defaultUV) {
     const v = geometry.index ? geometry.index.getX(c) : c;
     const u = uv ? T.MathUtils.clamp(uv.getX(v), 0, 1) : defaultUV;
     const y = uv ? T.MathUtils.clamp(uv.getY(v), 0, 1) : defaultUV;
-    // Corners have an unambiguous source texel even when maps have different dimensions.
-    // An interior coordinate can interpolate several texels; retain its normal filtering.
     if ((u !== 0 && u !== 1) || (y !== 0 && y !== 1)) {
       entry.sampleUV = null;
       return;
@@ -285,8 +263,6 @@ function fillTile(ctx, rect, material, emission = false, sampleUV) {
   );
   for (let i = 0; i < pixels.data.length; i += 4) {
     for (let k = 0; k < 3; k++) pixels.data[i + k] = lut[k][pixels.data[i + k]];
-    // A single GLB atlas has one cutoff. Map each original material's
-    // threshold to its midpoint while keeping soft edge coverage for mipmaps.
     if (cutout) {
       const a = pixels.data[i + 3] / 255, threshold = material.alphaTest;
       pixels.data[i + 3] = Math.round(255 * (a <= threshold
@@ -299,7 +275,6 @@ function fillTile(ctx, rect, material, emission = false, sampleUV) {
 function writeTile(ctx, rect, tile) {
   const [x, y, w, h] = rect, { width, height } = tile;
   const pad = (w - width) / 2;
-  // Extrude edge texels into the gutter for bilinear filtering.
   ctx.drawImage(tile, 0, 0, 1, 1, x, y, pad, pad);
   ctx.drawImage(tile, width - 1, 0, 1, 1, x + w - pad, y, pad, pad);
   ctx.drawImage(tile, 0, height - 1, 1, 1, x, y + h - pad, pad, pad);
@@ -355,7 +330,6 @@ function fillSurface(surface, normals, entry) {
     surface.fillStyle = "rgb(255," + Math.round(255 * (m.roughness ?? 1)) + "," + Math.round(255 * (m.metalness ?? 0)) + ")";
     surface.fillRect(...entry.rect);
   }
-  // Materials with constant properties have already filled their atlas rectangle.
   if (!hasProperties && !m.bumpMap?.image && !m.normalMap?.image) return;
   const tile = canvas(w,h);
   const c = tile.getContext("2d", {willReadFrequently: true});
@@ -382,9 +356,6 @@ function fillSurface(surface, normals, entry) {
   }
 }
 function atlas(entries, size, contact) {
-  // Large untextured meshes only need a patch of constant colour. Reserve their
-  // footprint once per material so cuffs, skin and hardware do not crowd out
-  // the sampled textures on hair, irises, cloth and faces.
   for (const entry of entries) {
     const m = entry.material;
     const maps = [m.map, m.emissiveMap, m.aoMap, m.bumpMap, m.normalMap, m.roughnessMap, m.metalnessMap];
@@ -393,8 +364,6 @@ function atlas(entries, size, contact) {
       entry.sampleUV = null;
     }
     if (entry.sampleUV) entry.weight = Math.min(4, entry.weight);
-    // Body relief shares a single patch across the limbs. Summing a separate
-    // texture allowance for every finger would exhaust the portrait's space.
     if (m.userData?.bodySkin) entry.weight = Math.min(100, entry.weight);
     if (!maps.some(map => map?.image))
       entry.weight = Math.min(16, entry.weight);
@@ -404,8 +373,6 @@ function atlas(entries, size, contact) {
   const hair = entries.find(entry => entry.material.userData.castHairSheet);
   const usesHairQuarter = size >= 64 && entries.length === 2 && body && hair;
   if (usesHairQuarter) {
-    // Whole cast outfits leave this part of their artwork unused. Keep a gutter
-    // around the inset, including between it and the contact ramp below.
     body.rect = page;
     const [x, y, width, height] = tileBounds(page);
     const left = Math.ceil(width / 2) + 2, top = Math.ceil(height / 2) + 2;
@@ -429,7 +396,6 @@ function atlas(entries, size, contact) {
   for (const e of entries) {
     const m = e.material;
     if (usesHairQuarter && e === hair) {
-      // Remove the underlying opaque pixels and relief before drawing the cutout.
       base.clearRect(...e.rect);
       normals?.fillRect(...e.rect);
     }
@@ -482,8 +448,6 @@ function atlas(entries, size, contact) {
   };
 }
 export function canonicalizeGameAttributes(geometry) {
-  // Keep authored colour and skin data available to the simplifier. Only
-  // clamp the resulting colours and clear unused joint slots in the file.
   const color = geometry.getAttribute("color");
   if (color && !color.normalized) {
     const data = color.array;
@@ -603,8 +567,6 @@ export async function optimizeForGame(
       const e = tiles.get(b.material) ?? { material: b.material, weight: 0, uvScale: {u:0, v:0, area:0} };
       noteSampledUV(e, m.geometry, b, defaultUV);
       if (b.material.bumpMap?.image) measureTileScale(m,b,e.uvScale);
-      // Dense facial meshes retain more texture space, while tiny hardware
-      // shares the remainder. All weights have a lower bound for padding.
       e.weight +=
         Math.sqrt(b.count) *
         (b.material.userData?.creatureHide
@@ -618,13 +580,9 @@ export async function optimizeForGame(
   });
   if (!meshes.length)
     throw new Error("The selected wardrobe has no visible mesh.");
-  // Thin moving eye layers need closely matching surfaces after simplification.
-  // Reserve part of the existing triangle budget so their depths stay ordered.
   const available = Math.max(0, triangles - retainedTriangles);
-  // Fitted trim needs its carrier to retain the curvature it was sewn against.
   const carriers = Math.min(carrierTriangles, available * 0.065);
   const trim = Math.min(trimTriangles, available * 0.085);
-  // Hair cards read as the head's outline. Their share is a ceiling: styles with fewer cards keep them all.
   const hair = Math.min(hairTriangles, available * 0.11);
   const shared = available - carriers - trim - hair;
   const eyes = Math.min(eyeTriangles, shared * 0.22),
@@ -664,10 +622,7 @@ export async function optimizeForGame(
       : portraitFace(mesh)
         ? faces / fittedFaceTriangles
         : undefined;
-    // Both sides of a close-fitting folded panel need enough samples to stay ordered.
     for (const batch of groups)
-      // The budget is a ceiling. Source game art already below it can retain
-      // its geometry, including close-fitting lids, collars and garment hems.
       if (initial <= triangles) batch.ratio = 1;
       else if (retainsGeometry(batch.material)) batch.ratio = kept / retainedTriangles;
       else if (batch.material.userData.attachmentDetail === "carrier")
@@ -684,14 +639,11 @@ export async function optimizeForGame(
       joined = mergeVertices(original, 1e-5);
     if (!joined.attributes.normal) joined.computeVertexNormals();
     if (!joined.attributes.uv) {
-      // Solid-colour parts (including the bun) need coordinates inside their
-      // material's atlas tile. Preserve the renderer's (0, 0) default if mapped.
       const coordinate = groups.some(({ material }) => material.map || material.emissiveMap) ? 0 : 0.5;
       const uvs = new Float32Array(joined.attributes.position.count * 2).fill(coordinate);
       joined.setAttribute("uv", new T.BufferAttribute(uvs, 2));
     }
     const input = simplifyInputs(joined);
-    // Everything with a share of its own is reduced first, and the rest shares what is then left of the file.
     for (const batch of groups)
       if (batch.ratio === undefined) pooled += batch.count / 3;
       else {
@@ -737,6 +689,5 @@ export async function optimizeForGame(
     joined.dispose();
   }
   if (useContact) bakeContact(work, size);
-  // `shares` lists what every source material was given, for reviews and tests of the budget.
   return { ...page, initial, triangles: count, shares };
 }

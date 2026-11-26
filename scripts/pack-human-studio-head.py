@@ -31,9 +31,6 @@ from scipy.spatial import cKDTree
 Image.MAX_IMAGE_PIXELS = None
 root = Path(__file__).resolve().parents[1]
 
-# name: (kind, source pick, native pick), in centimetres. 'f' picks are (x, y) seen from the front and land on
-# the first skin a ray from the front meets; 's' picks are (z, y) seen from the side; 'p' is a plain point.
-# Picks off the middle are mirrored.
 LANDMARKS = {
     'eyeInner': ('f', (2.7, 146.9), (1.92, 160.95)), 'eyeOuter': ('f', (7.9, 147.1), (4.36, 161.05)),
     'eyeTop': ('f', (5.3, 148.95), (3.1, 161.5)), 'eyeBottom': ('f', (5.3, 145.45), (3.1, 160.42)),
@@ -50,7 +47,6 @@ LANDMARKS = {
     'top': ('p', (0, 162.39, 2.0), (0, 171.9, 3.5)), 'back': ('p', (0, 150.0, -8.99), (0, 163.5, -4.9)), 'crownBack': ('p', (0, 158.5, -6.2), (0, 169.5, -2.6)),
     'underChin': ('p', (0, 134.6, 9.0), (0, 149.3, 9.5)), 'nape': ('p', (0, 141.0, -5.4), (0, 157.3, -2.6)),
 }
-# The landmarks that hold the lower face over the native neck.
 SEATED = ('chin', 'underChin', 'jawAngle', 'mouthCorner', 'nape', 'earLobe')
 EXPRESSIONS = ('Blink', 'Smile', 'BrowLift')
 CREDIT = {
@@ -263,22 +259,18 @@ def main():
     tri = R['head/tri']
     count = len(source)
 
-    # Where each point of the source head lies on the native skin.
     A, B, names = landmarks(source, tri, native, native_tri, [R['eyeL'][0].astype(float), R['eyeR'][0].astype(float)],
                             [np.array(e['centre']) for e in sorted(N['eyes'], key=lambda e: -e['centre'][0])])
     warp = thin_plate(A, B)
     at, share, meets, off = closest(native, native_tri, warp(source))
     print(f'correspondence: warped source to native skin, mean {off.mean() * 1000:.1f} mm, 95% {np.percentile(off, 95) * 1000:.1f} mm')
 
-    # The source head on the native adult: its own shape, a little smaller, seated on the native jaw and nape.
     seated = np.array([name in SEATED for name in names])
     shift = B[seated].mean(0) - args.scale * A[seated].mean(0)
     shift[0] = 0
     put = lambda p: args.scale * np.asarray(p, float) + shift
     placed = put(source)
 
-    # The native head ends under the jaw, where the neck is a separate piece. Cut the source head inside that
-    # edge and settle it onto the native skin toward the cut.
     head_vertices = np.zeros(len(native), bool)
     head_vertices[np.unique(native_tri[on_head])] = True
     other = np.zeros(len(native), bool)
@@ -291,14 +283,12 @@ def main():
     sizes = np.bincount(group[np.unique(tri[kept])], minlength=count)
     kept &= group[tri[:, 0]] == sizes.argmax()
     settle = np.where(inside, 1 - smooth(reach, .006, .006 + args.band), 1)
-    # The ears keep the artist's shape: the native ear is smaller and would flatten the lobe.
     weights = R['head/groupWeights']
     group_names = [str(n) for n in R['head/groupNames']]
     ear = np.zeros(count)
     for v, g, w in weights[np.isin(weights[:, 1], [i for i, name in enumerate(group_names) if name.startswith('DEF-Ear_')])]:
         ear[int(v)] += w
     settle = np.where(inside, settle * (1 - smooth(ear, .05, .5)), settle)
-    # The artist's lips are already full, so they take only part of the adult's lip changes.
     lips = np.zeros(count)
     for v, g, w in weights[np.isin(weights[:, 1], [i for i, name in enumerate(group_names) if name.startswith('DEF-Lip_')])]:
         lips[int(v)] += w
@@ -306,7 +296,6 @@ def main():
     control = placed + (meets - placed) * settle[:, None]
     print(f'skin: {kept.sum()} of {len(tri)} triangles, {int((settle[np.unique(tri[kept])] > 0).sum())} points settle onto the native skin')
 
-    # Vertices of the drawn skin: one per source vertex and texture coordinate.
     uv = R['head/uv'].astype(float)
     uv[..., 0] -= np.floor(uv[..., 0].min())
     lookup, render_source, render_uv, index = {}, [], [], []
@@ -352,7 +341,6 @@ def main():
         'pieces': {},
     }
 
-    # The pieces that belong to the head, each vertex tied to the control points of the skin under it.
     def piece(key, points, moving=False, colour=False, facing=None):
         points = points.astype(float)
         t3 = R[key + '/tri']
@@ -384,11 +372,7 @@ def main():
     centres = {1: R['eyeL'][0].astype(float), -1: R['eyeR'][0].astype(float)}
     side = R['eyes/side']
     eye_points = R['eyes/points'].astype(float)
-    # The back of each ball never shows, even at the end of a turn.
     front = lambda mid: np.array([(m - centres[1 if m[0] > 0 else -1])[2] for m in mid]) > -.012
-    # Each pupil is a hole in the iris with a loose card behind it, which the source shader darkens. A game
-    # model cannot rely on the card, so the hole is closed with the middle of the painted pupil and the card
-    # is left out.
     eye_uv, eye_tri = R['eyes/uv'], R['eyes/tri']
     part = components(len(eye_points), eye_tri)
     cards = np.isin(part, [label for label in np.unique(part) if (part == label).sum() <= 8])
@@ -415,13 +399,10 @@ def main():
 
     textures = Path(args.textures)
     head_map, _ = colour_map(textures / 'TEX-rain_body_diffuse.1003.png', 768)
-    # The colour the skin map has where the head meets the native neck. Re-tinting from it makes the join exact
-    # and leaves the face as much lighter, redder or duller than the neck as the artist painted it.
     seam = np.array([[u, v] for u, v, c in zip(*np.array(render_uv).T, render_source) if settle[c] > .5])
     at_seam = head_map[np.clip(((1 - seam[:, 1]) * 768).astype(int), 0, 767), np.clip((seam[:, 0] * 768).astype(int), 0, 767)]
     skin_tone = np.median(linear(at_seam / 255), 0)
     hair_map, hair_tone = colour_map(textures / 'TEX-rain_hair_diffuse.png', 512)
-    # The iris fills a quarter of the eye map. Keep the half of the map around it.
     eye_box = (.2, .28, .7, .78)
     eye_map, _ = colour_map(textures / 'TEX-rain_eyes.png', 256, eye_box)
     spread = eye_map.max(2).astype(float) - eye_map.min(2)

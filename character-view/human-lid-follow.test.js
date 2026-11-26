@@ -37,7 +37,6 @@ test("the lids carry their share of a look up or down beside the expressions", (
       for (let i = 0; i < up.length; i += 3) {
         assert.equal(up[i], 0);
         assert.ok(up[i + 1] >= 0 && down[i + 1] <= 0);
-        // Both targets move a point by the same share, so the opening keeps its shape.
         assert.ok(Math.abs(up[i + 1] * lidFollow.down + down[i + 1] * lidFollow.up) < 1e-9);
         most = Math.max(most, up[i + 1]);
         if (up[i + 1]) moved++;
@@ -92,7 +91,6 @@ test("the wet line on the eye goes with the lower lid and the rest of the eye tu
     const wet = Math.abs(uv.getY(i) - 0.94) < 1e-4,
       moved = Math.hypot(up[i * 3], up[i * 3 + 1], up[i * 3 + 2]);
     if (wet) line = Math.max(line, up[i * 3 + 1]);
-    // The white does not turn, so nothing else on it moves.
     else if (moved && moved < 0.2 * unit) strip++;
   }
   assert.ok(line > 0.5 * lidFollow.up * unit && line <= lidFollow.up * unit + 1e-9, `wet line rises ${line / unit} mm`);

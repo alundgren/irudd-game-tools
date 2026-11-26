@@ -1,9 +1,3 @@
-// Spectacles fitted to the adult's face (character-view/human-eyewear.js at
-// 2761eb1): one unglazed frame with clear openings at every export detail,
-// in ordinary opaque geometry so a single-material game export shows both
-// pupils. The rims clear the skin in front of each eye and the arms follow
-// the side of the head to just behind it.
-
 import * as T from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { boneNames } from "../catalogue.js";
@@ -55,10 +49,6 @@ type Depth = (
   fallback: number,
 ) => number;
 
-/**
- * Orthographic depth through the current skin. Project from the front for
- * the nose and rims, and from the side for the temple arms and earpieces.
- */
 function faceDepth(surface: HumanSurface, eye: T.Vector3, unit: number): Depth {
   const triangles: Array<readonly [T.Vector3, T.Vector3, T.Vector3]> = [],
     v = (i: number) => new T.Vector3().fromArray(surface.positions, 3 * i);
@@ -106,7 +96,6 @@ function faceDepth(surface: HumanSurface, eye: T.Vector3, unit: number): Depth {
   };
 }
 
-/** The frame for a style, or no mesh for "None". It follows the head by the rig's region weights. */
 export function fittedEyewear(
   surface: HumanSurface,
   style: string | undefined,
@@ -157,8 +146,6 @@ export function fittedEyewear(
         -0.15 * width * lateral + 0.06 * height * vertical,
       );
     });
-    // Rims have one plane per eye. Lift the whole plane until both the eye
-    // dome and every point of the rim clear the fitted skin.
     const plane = Math.max(
       bounds.max.z + 0.003 * unit,
       ...rim.map((p) => front(p.x, p.y) - p.z + radius + 0.002 * unit),
@@ -202,7 +189,6 @@ export function fittedEyewear(
     frameMaterial.roughness = cut.metal ? 0.29 : 0.39;
     frameMaterial.metalness = cut.metal ? 0.57 : 0.04;
   }
-  // The hinges and narrow wires must stay connected after mesh reduction.
   frameMaterial.userData["fibreLOD"] = true;
   const mesh = new T.Mesh(geometry, frameMaterial);
   mesh.name = style ?? "";

@@ -1,10 +1,3 @@
-// Opt-in sculptural planar face definition for edited human heads.
-//   applyFacePlanes(geometry, cage, origin, mode, tinted)
-// Modes: "None" (default no-op), "Subtle", "Sculpted".
-// Strictly masks out eyes, eyelids, mouth and ears so newest eye fixes and expressions stay untouched.
-// Modulates head normals toward dominant local planes on bony landmarks (brow ridge, nasal bridge,
-// cheekbones, jawline/chin) and applies subtle ridge/hollow vertex-color plane contrast that
-// survives 100% intact into the single-material ~24k Game GLB.
 import { clamp, cross, dot, length, mix, smooth, sub, unit } from "./human-style-kit.js";
 import { surfaceFrame } from "./human-fringe.js";
 
@@ -17,11 +10,6 @@ const MODE_STRENGTH = {
 
 const DEG = Math.PI / 180;
 
-/**
- * Compute per-vertex anatomical weight [0..1] selecting structural facial planes
- * (brow/temple ridge, nasal bridge, cheekbone arch, jaw/chin) while strictly zeroing
- * eyes, eyelids, mouth opening and ears.
- */
 function landmarkWeights(positions, origin, f) {
   const count = positions.length / 3;
   const weights = new Float32Array(count);
@@ -38,11 +26,9 @@ function landmarkWeights(positions, origin, f) {
     const absPhi = Math.abs(at.phi) / DEG;
     const eps = at.eps / DEG;
 
-    // Limit to front-to-jaw facial hemisphere (exclude back of skull & ears)
     const frontMask = smooth(84, 58, absPhi) * smooth(-68, -42, eps) * smooth(42, 22, eps);
     if (frontMask <= 1e-4) continue;
 
-    // Strictly exclude both eye sockets and eyelids (preserves newest eye fixes & Blink morph)
     let eyeClear = 1.0;
     for (const e of eyes) {
       const dPhi = (at.phi - e.phi) / Math.max(5 * DEG, e.wide * 1.95);
@@ -52,26 +38,20 @@ function landmarkWeights(positions, origin, f) {
     }
     if (eyeClear <= 1e-4) continue;
 
-    // Strictly exclude mouth/lips zone so lip contours and Smile morph stay completely smooth
     const mouthY = eyeY - 0.064 * k;
     const dxMouth = Math.abs(wx) / (0.036 * k);
     const dyMouth = (wy - mouthY) / (0.020 * k);
     const mouthClear = smooth(0.85, 1.42, Math.hypot(dxMouth, dyMouth));
 
-    // Emphasize structural bony zones:
-    // 1. Brow ridge & temporal corner
     const brow = Math.exp(-(((wy - (eyeY + 0.020 * k)) / (0.017 * k)) ** 2)) * smooth(62, 12, absPhi);
-    // 2. Nasal bridge & side nose planes
     const nose =
       smooth(0.024 * k, 0.008 * k, Math.abs(wx)) *
       smooth(eyeY - 0.044 * k, eyeY - 0.022 * k, wy) *
       smooth(eyeY + 0.022 * k, eyeY + 0.004 * k, wy) *
       smooth(eyeZ - 0.01 * k, eyeZ + 0.01 * k, wz);
-    // 3. Zygomatic cheekbone arch
     const cheek =
       Math.exp(-(((Math.abs(wx) - 0.048 * k) / (0.024 * k)) ** 2)) *
       Math.exp(-(((wy - (eyeY - 0.024 * k)) / (0.022 * k)) ** 2));
-    // 4. Jawline & chin planes
     const jaw =
       smooth(eyeY - 0.042 * k, eyeY - 0.072 * k, wy) *
       smooth(eyeY - 0.132 * k, eyeY - 0.100 * k, wy) *
@@ -83,10 +63,6 @@ function landmarkWeights(positions, origin, f) {
   return weights;
 }
 
-/**
- * Apply opt-in planar face definition in-place to the head mesh geometry.
- * No-op when `mode` is omitted or `"None"`.
- */
 export function applyFacePlanes(geometry, cage, origin, mode = "None", tinted = true) {
   const cfg = MODE_STRENGTH[mode];
   if (!cfg || !geometry?.attributes?.position || !geometry?.attributes?.normal || !geometry?.index) return false;
@@ -100,8 +76,6 @@ export function applyFacePlanes(geometry, cage, origin, mode = "None", tinted = 
 
   const mask = landmarkWeights(pos, origin, f);
 
-  // Accumulate dominant-plane normals (anisotropic weight favors the main facet on each side of a ridge)
-  // and neighborhood position averages for subtle ridge-vs-hollow curvature shading.
   const planeN = new Float32Array(count * 3);
   const avgPos = new Float32Array(count * 3);
   const deg = new Float32Array(count);
@@ -122,7 +96,6 @@ export function applyFacePlanes(geometry, cage, origin, mode = "None", tinted = 
       if (mask[v] <= 1e-4) continue;
       const vn = [nrm[v * 3], nrm[v * 3 + 1], nrm[v * 3 + 2]];
       const align = Math.max(0, dot(ufn, vn));
-      // Sharpen toward the dominant local plane facet rather than uniform averaging
       const w = area2 * (align ** 5 + 0.02);
       planeN[v * 3] += ufn[0] * w;
       planeN[v * 3 + 1] += ufn[1] * w;
@@ -146,7 +119,6 @@ export function applyFacePlanes(geometry, cage, origin, mode = "None", tinted = 
     let outN = sn;
     if (pnLen > 1e-9) {
       const pn = [planeN[i * 3] / pnLen, planeN[i * 3 + 1] / pnLen, planeN[i * 3 + 2] / pnLen];
-      // Quantize normal tilt subtly across major cardinal plane breaks (front vs side vs under-plane)
       const qn = unit([
         Math.sign(pn[0]) * Math.abs(pn[0]) ** 0.82,
         Math.sign(pn[1]) * Math.abs(pn[1]) ** 0.85,
@@ -164,20 +136,15 @@ export function applyFacePlanes(geometry, cage, origin, mode = "None", tinted = 
     }
 
     if (col && deg[i] > 0) {
-      // Mean curvature sign: positive on convex bony ridges (brow, nose bridge, cheekbone, chin),
-      // negative in concave hollows (under brow, cheek hollow, under lower lip / jaw turn)
       const dx = pos[i * 3] - avgPos[i * 3] / deg[i];
       const dy = pos[i * 3 + 1] - avgPos[i * 3 + 1] / deg[i];
       const dz = pos[i * 3 + 2] - avgPos[i * 3 + 2] / deg[i];
       const curv = clamp(((dx * sn[0] + dy * sn[1] + dz * sn[2]) / (0.0022 * k)), -1, 1);
 
-      // Subtle Asaro plane-turn tonal separation: front/upward planes gently warmer/brighter,
-      // downward/side turn planes subtly deeper & cooler
       const sideTurn = smooth(0.32, 0.78, Math.abs(outN[0]));
       const underTurn = smooth(-0.08, -0.58, outN[1]);
       const delta = w * (cfg.shade * curv - cfg.planeContrast * (0.45 * sideTurn + 0.85 * underTurn));
 
-      // Slight warm lift on ridges, slight cool depth in recesses
       const rMul = 1 + delta * 1.06;
       const gMul = 1 + delta * 0.98;
       const bMul = 1 + delta * 0.88;

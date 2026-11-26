@@ -1,8 +1,3 @@
-// The adult human as a host starter: the generator over a loaded body pack,
-// named presets from frozen seeds and the seeded draw. A host registers
-// `generator` and offers `starter`; both hold the same generator object, which
-// is how a host tells a starter's generator is the one it registered.
-
 import type { GeneratorDefinition, Json } from "@irudd/document";
 import type { HumanBody } from "./body.js";
 import { humanAdultGenerator, seededHumanAdult } from "./generator.js";
@@ -14,7 +9,6 @@ export interface HumanStarterPreset {
   readonly params: Json;
 }
 
-/** The shape of a workshop host's generator starter. */
 export interface HumanStarter {
   readonly id: string;
   readonly label: string;

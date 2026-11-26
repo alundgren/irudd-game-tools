@@ -23,7 +23,6 @@ norm = lambda v: v / np.linalg.norm(v)
 
 def upright(h, name):
     first = np.load(p / (name + "-marks.npz"))["xyz"][:, :3]
-    # Native sockets have an interior wall. Use the known symmetry plane of the editable mesh.
     if name.startswith("native"):
         axes = np.eye(3)
         center = 0.5 * (first[33] + first[263])
@@ -81,7 +80,6 @@ def upright(h, name):
         raise ValueError(name)
     pt = np.array([[v.x * 1024 - 0.5, v.y * 1024 - 0.5] for v in r.face_landmarks[0]])
     if name.startswith("native"):
-        # Anchor each observed eye corner and margin on the native rim before baking any paint.
         for ring in [h.xyz[6756:6784], h.xyz[13352:13380]]:
             view = (ring - center) @ axes.T / 0.135
             pixels = np.stack(
@@ -109,7 +107,6 @@ def upright(h, name):
 
 
 def native_uv(h):
-    # Rasterize physical coordinates into the face tile before evaluating its camera projection.
     w, hg = 541, 591
     uv = h.uv.copy()
     uv[:, :, 0] = uv[:, :, 0] * 2048 - 1494 - 0.5
@@ -240,7 +237,6 @@ if __name__ == "__main__":
         pixel = np.stack(
             [(1 + coords[:, :, 0]) * 512 - 0.5, (1 - coords[:, :, 1]) * 512 - 0.5], -1
         )
-        # Landmarks adjacent on the mouth seam sometimes coincide in the neutral mesh.
         keep = np.array(
             [
                 i
@@ -257,7 +253,6 @@ if __name__ == "__main__":
         )
         side = 24
         hh, ww = pixel.shape[:2]
-        # Dense regular screen warp sampled from a local thin-plate fit; clamp well off the portrait.
         yy, xx = np.mgrid[:129, :129]
         plane = np.stack([xx, yy], -1) * 8
         shift = rbf(plane.reshape(-1, 2) / 1024).reshape(129, 129, 2)
@@ -272,15 +267,12 @@ if __name__ == "__main__":
             validRegion = np.ones_like(cut)
             cv2.fillPoly(validRegion, [np.round(dpix[poly]).astype("i")], 0)
             edge *= smooth((distance_transform_edt(validRegion) - 1.5) / 5)
-        # The hairline and scan hats lie outside the forehead. Determine its extent from this person's brows.
         width = np.linalg.norm(dpix[33] - dpix[263])
         brows = 0.5 * (dpix[70] + dpix[300])
         edge *= smooth((yy - (brows[1] - 0.52 * width)) / (0.16 * width))
         if name.startswith("HSR0027"):
-            # Her fringe lies over the forehead. Keep the photographed face below the visible hairline.
             edge *= smooth((yy - brows[1] - 0.012 * width) / (0.11 * width))
         strength = mapxy(np.float32(edge), dxy) * valid
-        # Sample both outer cheeks under diffuse studio lighting, then work in linear-light log ratios.
         swatches = []
         for ix in [123, 352]:
             cx, cy = np.int32(dpix[ix])
@@ -293,7 +285,6 @@ if __name__ == "__main__":
         fine = ratio @ np.array([0.25, 0.60, 0.15])
         bump = fine - cv2.GaussianBlur(fine, (0, 0), 2)
         albedo = 128 + 51 * ratio.clip(-2.45, 1.65) * strength[:, :, None]
-        # Recover submillimetre relief from the measured surface, expressed in metres.
         coords3 = mapxy(dw[:, :, :3], dxy)
         depth = np.float32(coords3 @ daxes[2])
         valid = (strength > 0.03).astype("f")
@@ -315,7 +306,6 @@ if __name__ == "__main__":
         )
         print(name, base, flush=True)
         Image.fromarray(dr).save(p / (name + "-aligned.jpg"), quality=97)
-        # Save scan depth and color correspondences for the independent shape pass.
         np.savez_compressed(
             p / (name + "-registration.npz"),
             native=npos,

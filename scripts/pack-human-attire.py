@@ -24,7 +24,6 @@ from scipy import ndimage
 
 Image.MAX_IMAGE_PIXELS = None
 
-# What is packed, and where it came from. Every entry is CC0 by its own .mhclo and the pack's index.
 GARMENTS = {
     "viking_tunic": dict(
         folder="rehmanpolanski_viking_tunic", clo="rehmanpolanski_viking_tunic.mhclo", diffuse="TUNIC_Viking.png",
@@ -42,11 +41,9 @@ GARMENTS = {
         folder="donitz_monk_robe", clo="donitz_monk_robe.mhclo", diffuse="robe_brown__diffuse.png",
         normal="robe__normal_gl.png", size=1024,
     ),
-    # Everyday silhouettes: a tailored shift dress and a full printed skirt under a rib knit.
     "shift_dress": dict(
         folder="toigo_shift_dress", clo="toigo_shift_dress.mhclo", diffuse="ShiftDress.png", size=1024, weave=3.0,
     ),
-    # The gathered top of the skirt lies close under the knit worn over it.
     "full_skirt": dict(
         folder="toigo_long_full_skirt", clo="toigo_long_full_skirt.mhclo", diffuse="skirtFullLong.png", size=1024,
         under=[0.085, 0.125, 0.2],
@@ -71,7 +68,6 @@ def webp(image, quality):
 def read_fit(path, count):
     """The hm08 anchors, weights and offsets (in metres) of each garment vertex, and the skin its author hid."""
     lines = path.read_text(encoding="utf8", errors="replace").splitlines()
-    # The header names the licence, as "# license CC0" or in the author's own words ("# Cortu Johnstone - CC0").
     header = [l for l in lines[:lines.index("verts 0")] if l.startswith("#")]
     licence = next((l for l in header if re.match(r"#\s*license:?\s", l)), None) or next((l for l in header if re.search(r"\bCC0\b", l)), "")
     if not re.search(r"\bCC0\b", licence) or any(re.search(r"GPL|CC.BY|NonCommercial", l) for l in header):
@@ -108,7 +104,6 @@ def read_mesh(path):
     for line in path.read_text().splitlines():
         f = line.split()
         if f[:1] == ["v"]:
-            # Decimetres on the resting hm08 body.
             rest.extend(float(x) * 0.1 for x in f[1:4])
         elif f[:1] == ["vt"]:
             tex.append([float(f[1]), float(f[2])])
@@ -156,10 +151,8 @@ def colour_terms(rgb):
     return light, sat
 
 
-# Which texels take which tone of an outfit. Each rule returns {tone: mask}; texels in no mask keep their paint.
 def tunic_dye(chart, light, sat):
     body = (chart > 0) & ~np.isin(chart, (5, 8, 11))
-    # Mail is bright rings over dark gaps, so it is found by how much of a neighbourhood is bright.
     k = light.shape[0] / 2048
     bright = ndimage.gaussian_filter((light > 0.2).astype(np.float32), 9 * k)
     mail = ndimage.binary_closing(bright > 0.3, iterations=round(6 * k)) & body
@@ -176,17 +169,14 @@ def boots_dye(chart, light, sat):
 
 
 def robe_dye(chart, light, sat):
-    # The cape over the shoulders takes the second cloth; the rope belt and its beads stay as painted.
     return {"main": np.isin(chart, (1, 3, 4)), "dark": np.isin(chart, (2, 5))}, {}
 
 
 def shift_dye(chart, light, sat):
-    # The bindings of the neck and armholes are cut from the second cloth.
     return {"main": np.isin(chart, (1, 2)), "dark": np.isin(chart, (3, 4, 5))}, {}
 
 
 def skirt_dye(chart, light, sat):
-    # A print in two tones: the dark ground takes the second cloth and the flowers the pale one.
     return {"dark": (chart > 0, dict(level=0.1, pale="light", **{"from": 0.2, "to": 0.5}))}, {}
 
 
@@ -198,7 +188,6 @@ DYES = {
     "viking_tunic": tunic_dye, "viking_pants": pants_dye, "viking_boots": boots_dye, "monk_robe": robe_dye,
     "shift_dress": shift_dye, "full_skirt": skirt_dye, "rib_sweater": knit_dye,
 }
-# How rough each dyed tone is where the source gives no roughness of its own.
 ROUGH = {"main": 0.9, "dark": 0.92, "leather": 0.62, "sole": 0.8}
 
 
@@ -254,10 +243,8 @@ def pack_one(name, spec, roots):
         return image.resize(size, mode) if image.size != size else image
 
     diffuse = small(Image.fromarray(np.rint(rgb * 255).astype("uint8"), "RGB"))
-    # Dye chart at the size of the packed map: 0 keeps the paint, k takes rule k.
     labels, rules = np.zeros(chart.shape, "uint8"), []
     for k, (tone, mask) in enumerate(list(tones.items()), 1):
-        # A rule may carry its own level and a second tone for the pale threads of a print.
         mask, own = mask if isinstance(mask, tuple) else (mask, {})
         tones[tone] = mask
         labels[mask] = k
@@ -270,17 +257,14 @@ def pack_one(name, spec, roots):
         rough = np.asarray(Image.open(folder / spec["rough"]).convert("L").resize(source.size), dtype=np.float32) / 255
     metal = np.zeros(chart.shape, np.float32)
     if "mail" in extra:
-        # Steel shows on the rings and the cast emblem; the gaps between rings stay dull and dark.
         rings = extra["mail"] * np.clip((light - 0.1) / 0.16, 0, 1)
         metal = 0.9 * rings
         rough = np.where(extra["mail"], 0.78 - 0.34 * rings, rough)
-    # Painted hollows hold a little shadow. Occlusion in red, roughness in green, metal in blue.
     hollow = np.clip(1 + 2.2 * (ndimage.gaussian_filter(light, 1.5) - ndimage.gaussian_filter(light, 14)) / np.maximum(ndimage.gaussian_filter(light, 14), 0.05), 0.55, 1)
     surface = small(Image.fromarray(np.rint(np.dstack([hollow, rough, metal]) * 255).astype("uint8"), "RGB"))
     if spec.get("normal"):
         normal = small(Image.open(find(roots, spec["normal"])).convert("RGB").resize(source.size))
     else:
-        # A height map of the cloth, where the source has one, gives the relief; otherwise the painted light does.
         high = np.asarray(Image.open(folder / spec["bump"]).convert("L").resize(source.size), dtype=np.float32) / 255 if spec.get("bump") else light
         normal = small(relief(high, chart > 0, spec.get("weave", 9.0 if "mail" in extra else 5.0)))
     record = dict(
@@ -291,7 +275,6 @@ def pack_one(name, spec, roots):
         corners=encode(corners, "<u2"),
         uvCorners=encode(texcorners, "<u2"),
         hide=encode(sorted(set(hide)), "<u2"),
-        # Where the author left each point, for the finishing step; it is not kept.
         rest=encode(rest, "<f4"),
         cover=bool(spec.get("cover")),
         panels=encode(panels, "u1"),
@@ -309,8 +292,6 @@ def pack_one(name, spec, roots):
 def pack(roots, out):
     library = {name: pack_one(name, spec, roots) for name, spec in GARMENTS.items()}
     out.write_text(json.dumps(library, separators=(",", ":")) + "\n")
-    # Points fitted to helper geometry this body does not carry are fitted to its skin, and garments
-    # whose authors hid no skin get the skin they cover worked out against the body itself.
     subprocess.run(["node", str(pathlib.Path(__file__).with_name("pack-human-attire-finish.mjs")), str(out)], check=True)
     print(out.stat().st_size, "bytes")
 

@@ -1,7 +1,3 @@
-// A creature plan's face marking, painted in the head's own skull
-// coordinates so both sides agree. Ported from
-// character-view/creature-face-coat.js at 2761eb1.
-
 import * as T from "three";
 import type { CreaturePlan } from "@irudd/document";
 import type { BuildPart } from "../view.js";
@@ -11,13 +7,10 @@ const edge = (distance: number, width: number, feather = 0.055): number =>
   1 - smoothstep(distance, width - feather, width + feather);
 
 export interface FaceCoat {
-  /** Paint at a point in the head's frame, `share` of the way to the marking. */
   local(color: T.Color, x: number, y: number, z: number, share?: number): T.Color;
-  /** Paint at a world point. */
   world(color: T.Color, x: number, y: number, z: number, share: number): T.Color;
 }
 
-/** The face marking of a head organ, or none. The hide between the marks stays visible. */
 export function faceCoat(
   part: BuildPart,
   object: T.Object3D | undefined,
@@ -40,7 +33,6 @@ export function faceCoat(
     const height = Math.atan2(y, Math.hypot(x, z));
     const a = angle - azimuth;
     const h = height - elevation;
-    // Break up the edge in short, paired strokes, like hairs rooted along one contour.
     const fringe =
       0.015 * Math.sin(39 * angle + 9 * height) + 0.01 * Math.sin(67 * angle - 6 * height);
     let dark = 0;
@@ -100,7 +92,6 @@ function standard(mesh: T.Mesh): T.MeshStandardMaterial {
   return material;
 }
 
-/** Paint the face marking into a head's vertex colours when the hide does not carry it. */
 export function paintFaceCoatVertices(mesh: T.Mesh, part: BuildPart, plan: CreaturePlan): void {
   if (part.paint || part.volume || part.finish !== plan.skin.surface) return;
   const coat = faceCoat(part, mesh, plan);

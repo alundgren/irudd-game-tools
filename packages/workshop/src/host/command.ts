@@ -1,10 +1,3 @@
-// irudd-host: own one project headlessly and serve it to the CLI and MCP.
-//
-//   irudd host <project-dir> [--create] [--label <text>] [--durability full|normal] [--json]
-//
-// The process runs until Ctrl+C (SIGINT), SIGTERM or Ctrl+Break. While it
-// runs no other process can open the project; clients connect to it instead.
-
 import path from "node:path";
 import { parseArgs } from "node:util";
 import { loadForms, startHost, type FormStarter, type HostOptions } from "./index.js";
@@ -41,7 +34,6 @@ interface HostCatalog {
   load(): Promise<Pick<HostOptions, "registry" | "starters" | "artTranslators" | "shippedArtwork">>;
 }
 
-/** Run the headless host with the catalog provided by its distribution. */
 export async function runHeadless(catalog?: HostCatalog): Promise<void> {
   let parsed;
   try {

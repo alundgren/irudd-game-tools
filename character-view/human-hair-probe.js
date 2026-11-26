@@ -1,19 +1,9 @@
-// Numbers for a groomed head that need no renderer: how much of each eye and of the face
-// the hair hides, how much scalp it leaves bare, and whether any hair is inside the head.
-//   probeHair(surface, meshes) -> { eyes, face, scalp, inside, triangles }
-// `surface` is the result of `evaluateHuman` and `meshes` the hair meshes in world coordinates.
-//   eyes, face  share hidden by hair seen from `front`, and from 35 degrees to the wearer's `left` and `right`;
-//               `eyes` lists the wearer's left eye first
-//   scalp       `bare` is the share of the scalp inside the hairline with no hair over it
-//   inside      hair vertices more than a millimetre inside the head, the `deepest` in metres, and
-//               `below`, those inside the neck and shoulders
 import { analyse } from "./human-style-kit.js";
 import { smoothHumanSurface } from "./human-surface.js";
 import { hairline, headFrame } from "./human-fringe.js";
 
 const DEG = Math.PI / 180;
 
-/** Triangles of meshes as one flat list of world positions, nine numbers per triangle. */
 function soup(meshes) {
   const out = [];
   for (const mesh of meshes) {
@@ -24,7 +14,6 @@ function soup(meshes) {
   return Float32Array.from(out);
 }
 
-/** Nearest depth of triangles seen along `dir` on a grid of `cell` metres around `centre`. */
 function depthMap(tris, dir, centre, half = .22, cell = .0008) {
   const right = [dir[2], 0, -dir[0]], rl = Math.hypot(right[0], right[2]) || 1;
   const rx = Math.abs(dir[1]) > .99 ? [1, 0, 0] : [right[0] / rl, 0, right[2] / rl];
@@ -48,7 +37,6 @@ function depthMap(tris, dir, centre, half = .22, cell = .0008) {
   return p => { const [x, y, z] = project(p[0], p[1], p[2]), i = Math.floor(x), j = Math.floor(y); return { z, front: i < 0 || j < 0 || i >= n || j >= n ? Infinity : depth[j * n + i] }; };
 }
 
-/** Triangles sorted into the six faces of a cube around `centre`, for rays that leave the centre. */
 function radialIndex(tris, centre, cells = 96) {
   const faces = Array.from({ length: 6 }, () => new Map());
   const face = (x, y, z) => { const ax = Math.abs(x), ay = Math.abs(y), az = Math.abs(z); return ax >= ay && ax >= az ? (x > 0 ? 0 : 1) : ay >= az ? (y > 0 ? 2 : 3) : (z > 0 ? 4 : 5); };
@@ -59,7 +47,6 @@ function radialIndex(tris, centre, cells = 96) {
     for (const n of new Set(v.map(p => face(...p)))) {
       const q = v.map(p => onFace(n, ...p));
       if (q.some(p => p[2] <= 1e-6)) {
-        // A triangle that wraps past the edge of this face is listed in every cell it could reach.
         if (q.every(p => p[2] <= 1e-6)) continue;
         for (let i = 0; i < cells; i++) for (let j = 0; j < cells; j++) { const key = i * cells + j; if (!faces[n].has(key)) faces[n].set(key, []); faces[n].get(key).push(t); }
         continue;
@@ -69,7 +56,6 @@ function radialIndex(tris, centre, cells = 96) {
       for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) { const key = i * cells + j; if (!faces[n].has(key)) faces[n].set(key, []); faces[n].get(key).push(t); }
     }
   }
-  /** Distances from the centre at which the ray towards `u` crosses a triangle. */
   return u => {
     const n = face(u[0], u[1], u[2]), q = onFace(n, u[0], u[1], u[2]), list = faces[n].get(clampCell(cellOf(q[0]), cells) * cells + clampCell(cellOf(q[1]), cells)), hits = [];
     if (!list) return hits;
@@ -95,14 +81,12 @@ const VIEWS = { front: 0, left: 35, right: -35 };
 export function probeHair(surface, meshes) {
   const body = analyse(surface), f = headFrame(body), skin = smoothHumanSurface(surface), P = skin.positions, hair = soup(meshes);
   const near = p => Math.hypot(p[0] - f.centre[0], p[1] - f.centre[1], p[2] - f.centre[2]) < .2 * f.k + f.size;
-  // The head as drawn: every triangle of the smooth surface around the cranium.
   const solid = [];
   for (let i = 0; i < skin.indices.length; i += 3) {
     const a = skin.indices[i] * 3, b = skin.indices[i + 1] * 3, c = skin.indices[i + 2] * 3;
     if (near([P[a], P[a + 1], P[a + 2]])) solid.push(P[a], P[a + 1], P[a + 2], P[b], P[b + 1], P[b + 2], P[c], P[c + 1], P[c + 2]);
   }
   const headTris = Float32Array.from(solid), headIndex = skin.names.indexOf("head");
-  // The whole figure is a closed surface, which is what telling inside from outside needs.
   const whole = new Float32Array(skin.indices.length * 3);
   for (let i = 0; i < skin.indices.length; i++) whole.set(P.subarray(skin.indices[i] * 3, skin.indices[i] * 3 + 3), i * 3);
   const headPoints = [];
@@ -112,7 +96,6 @@ export function probeHair(surface, meshes) {
     if (w > .5) headPoints.push([P[v * 3], P[v * 3 + 1], P[v * 3 + 2]]);
   }
   const brow = Math.max(...f.eyes.map(e => e.eps + e.tall)), temple = Math.max(...f.eyes.map(e => Math.abs(e.phi) + e.wide));
-  // Samples: the front of each eyeball, the face between brow and chin, and the scalp inside the hairline.
   const eyeSamples = f.eyes.map(e => {
     const points = [];
     for (let v = body.count; v < surface.ids.length; v++) if (surface.ids[v] >= 14598 && surface.ids[v] <= 14741) {
@@ -129,13 +112,12 @@ export function probeHair(surface, meshes) {
   }
   const eyes = {}, faceHidden = {};
   for (const [name, yaw] of Object.entries(VIEWS)) {
-    // The camera looks along `dir`; the wearer's left is +x.
     const dir = [-Math.sin(yaw * DEG), 0, -Math.cos(yaw * DEG)], hairDepth = depthMap(hair, dir, f.centre), headDepth = depthMap(headTris, dir, f.centre);
     const hidden = points => {
       let seen = 0, covered = 0;
       for (const p of points) {
         const own = headDepth(p);
-        if (own.front < own.z - .004) continue; // the head itself is in the way
+        if (own.front < own.z - .004) continue;
         seen++;
         if (hairDepth(p).front < own.z - .0005) covered++;
       }
@@ -144,15 +126,12 @@ export function probeHair(surface, meshes) {
     eyes[name] = eyeSamples.map(hidden);
     faceHidden[name] = hidden(face);
   }
-  // Scalp cover and hair inside the head, both along rays from the cranium centre.
   const hairRays = radialIndex(hair, f.centre), headRays = radialIndex(whole, f.centre);
   let bare = 0;
   for (const p of scalp) {
     const d = [p[0] - f.centre[0], p[1] - f.centre[1], p[2] - f.centre[2]], r = Math.hypot(...d), u = [d[0] / r, d[1] / r, d[2] / r];
     if (!hairRays(u).some(hit => hit > r - .002)) bare++;
   }
-  // Around the cranium a ray from its centre measures depth well. Lower down it does not, so hair
-  // inside the neck and shoulders is only counted.
   let inside = 0, deepest = 0, vertices = 0, below = 0;
   const seen = new Set();
   for (let i = 0; i < hair.length; i += 3) {

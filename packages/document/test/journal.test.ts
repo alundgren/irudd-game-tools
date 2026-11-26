@@ -1,5 +1,3 @@
-// Durable journal, recovery across builds, runtime immutability and the
-// branched undo rule, through the public entry.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -47,7 +45,6 @@ import {
 
 const env = environment();
 
-/** Storage round trip: canonical bytes out, parsed JSON back. */
 function stored(journal: ReadonlyArray<JournalEntry>): JsonObject[] {
   return journal.map((e) => {
     const parsed: unknown = JSON.parse(canonicalJson(journalJson(e)));
@@ -103,8 +100,6 @@ const rename = (part: string, label: string): CommandEnvelopeInput["command"] =>
   ops: [{ op: "part.rename", part, label }],
 });
 
-// ── Aliasing ────────────────────────────────────────────────────────────────
-
 test("sparse arrays cannot enter the journal through creation, editing or a draft", () => {
   const sparse: Json[] = [];
   sparse[2] = "end";
@@ -141,7 +136,6 @@ test("caller objects stay theirs and nothing reachable from a state can be chang
   const s = run(emptyState(docId), env, create, edit);
   const bytes = canonicalJson(journalJson(entryAt(s, 1)));
 
-  // The caller can still change its own objects, and the state does not see it.
   assert.ok(!Object.isFrozen(doc) && !Object.isFrozen(create) && !Object.isFrozen(edit));
   doc.label = "MUTATED";
   doc.parts.push(box("p-junk", "junk"));
@@ -152,7 +146,6 @@ test("caller objects stay theirs and nothing reachable from a state can be chang
   assert.equal(canonicalJson(journalJson(entryAt(s, 1))), bytes);
   assert.ok(openJournal(docId, s.journal, env).ok);
 
-  // Consumers cannot rewrite the head, history, journal, receipts or maps.
   const part = s.document?.parts[0];
   assert.throws(() => Object.assign(part ?? {}, { label: "X" }), TypeError);
   assert.throws(() => Reflect.apply(Array.prototype.push, s.history, [null]), TypeError);
@@ -219,9 +212,6 @@ test("generator output is copied, so a generator's own data is never frozen", ()
   assert.ok(!Object.isFrozen(shared) && !Object.isFrozen(shared[0]));
 });
 
-// ── Recovery ────────────────────────────────────────────────────────────────
-
-/** A generated creature with an edit, an undo, a pending and a discarded draft and a policy. */
 function richState(e: Environment = env): DocumentState {
   let s = generatedCreature(e);
   const trunk = partBySlot(s, "trunk");
@@ -262,7 +252,6 @@ function richState(e: Environment = env): DocumentState {
   return s;
 }
 
-/** Every field of a state as canonical JSON, so key order does not matter. */
 function summary(s: DocumentState): string {
   const plain: unknown = JSON.parse(
     JSON.stringify({
@@ -293,7 +282,6 @@ test("recovery rebuilds every part of the state from stored bytes", () => {
   assert.equal(r.state.proposals.get("prop-open")?.status, "draft");
   assert.equal(r.state.proposals.get("prop-gone")?.status, "discarded");
   assert.ok(isUndone(r.state, 3));
-  // The recovered state keeps working: a retry replays, a new edit commits.
   const retry = reduce(r.state, entryAt(s, 1).envelope, env);
   assert.equal(retry.outcome.kind, "replayed");
   const next = reduce(r.state, envelope(agent, 4, { type: "undo", target: 2 }), env);
@@ -326,7 +314,6 @@ test("recovery needs no generator: a retired or changed generator still opens", 
     b.access.mode === "read-only" && b.access.diagnostics[0]?.code,
     "unsupported-generator",
   );
-  // Read-only: retries still replay their original receipts, new writes are refused.
   const retry = reduce(b.state, entryAt(s, 2).envelope, retiredEnv);
   assert.deepEqual(
     retry.outcome.kind === "replayed" && retry.outcome.receipt,
@@ -349,7 +336,6 @@ test("recovery needs no generator: a retired or changed generator still opens", 
   );
   committed(policy.outcome);
 
-  // Forensic replay is the one path that re-runs generators; it reports the difference.
   const forensic = replayJournal(docId, stored(s.journal), changedEnv);
   assert.ok(!forensic.ok);
   assert.equal(forensic.index, 0);
@@ -416,13 +402,10 @@ test("a feature codec upgrade keeps old revisions and asks for an explicit upgra
     "not-undoable",
   );
   const after = run(u, env2, envelope(human, 3, rename("p-a", "C")));
-  // The upgraded journal reopens in the new build, and forensic replay needs
-  // the old codec only for the entries written with it.
   const reopened = openJournal(docId, stored(after.journal), env2);
   assert.ok(reopened.ok);
   assert.equal(reopened.access.mode, "writable");
   assert.equal(summary(reopened.state), summary(after));
-  // The old build cannot read the upgraded head, but still opens the journal.
   const old = openJournal(docId, stored(after.journal), env1);
   assert.ok(old.ok);
   assert.equal(old.access.mode, "read-only");
@@ -454,8 +437,6 @@ test("corruption, truncation and missing receipts fail the whole journal", () =>
     assert.ok(!r.ok, name);
     assert.equal(r.index, index, name);
   }
-  // An entry forged with a valid chain and digest still has to reproduce its
-  // recorded document digest: the materialised content is checked, not trusted.
   const next = reduce(s, envelope(human, s.head, rename(partBySlot(s, "head").id, "Real")), env);
   const real = stored([committed(next.outcome).entry])[0];
   assert.ok(real);
@@ -481,7 +462,6 @@ test("corruption, truncation and missing receipts fail the whole journal", () =>
   assert.ok(!r.ok);
   assert.equal(r.index, good.length);
   assert.deepEqual(r.diagnostics[0]?.path, [good.length, "effect", "revision", "digest"]);
-  // Truncation at the end is visible only against storage's own record of the last entry.
   const last = { sequence: s.journal.length, digest: entryAt(s, -1).digest };
   const truncated = openJournal(docId, good.slice(0, -1), env, { last });
   assert.ok(!truncated.ok);
@@ -491,8 +471,6 @@ test("corruption, truncation and missing receipts fail the whole journal", () =>
   assert.ok(!other.ok);
 });
 
-// ── Branched undo ───────────────────────────────────────────────────────────
-
 test("undo of an undo cannot re-instate a second undo of the same revision", () => {
   const s0 = run(
     emptyState(docId),
@@ -500,13 +478,11 @@ test("undo of an undo cannot re-instate a second undo of the same revision", () 
     envelope(human, 0, { type: "document.create", document: manual([box("p-x", "value 0")]) }),
   );
   const steps: Array<[CommandEnvelopeInput["command"], string, string]> = [
-    // command, expected outcome, label after
     [rename("p-x", "value 1"), "committed 2", "value 1"],
     [{ type: "undo", target: 2 }, "committed 3", "value 0"],
     [{ type: "undo", target: 3 }, "committed 4", "value 1"],
     [{ type: "undo", target: 2 }, "committed 5", "value 0"],
     [rename("p-x", "value 1"), "committed 6", "value 1"],
-    // Undoing 4 would bring 3 back while 5 also undoes 2.
     [{ type: "undo", target: 4 }, "rejected already-undone", "value 1"],
     [{ type: "undo", target: 5 }, "rejected conflict", "value 1"],
     [{ type: "undo", target: 6 }, "committed 7", "value 0"],
@@ -514,9 +490,7 @@ test("undo of an undo cannot re-instate a second undo of the same revision", () 
     [{ type: "undo", target: 4 }, "committed 9", "value 0"],
     [{ type: "undo", target: 8 }, "rejected already-undone", "value 0"],
     [{ type: "undo", target: 9 }, "committed 10", "value 1"],
-    // 2's undos 3 and 5 are both undone now, so 2 is in force and may be undone again.
     [{ type: "undo", target: 2 }, "committed 11", "value 0"],
-    // Undoing 10 would bring back 9, then 4, then 3: a second undo of 2.
     [{ type: "undo", target: 10 }, "rejected already-undone", "value 0"],
     [{ type: "undo", target: 11 }, "committed 12", "value 1"],
   ];
@@ -530,7 +504,6 @@ test("undo of an undo cannot re-instate a second undo of the same revision", () 
     assert.equal(got, expected, JSON.stringify(command));
     s = step.state;
     assert.equal(s.document?.parts[0]?.label, label, JSON.stringify(command));
-    // At most one undo in force per revision.
     const inForce = new Map<number, number>();
     for (const r of s.history)
       if (r.undoes !== undefined && !isUndone(s, r.revision))
@@ -544,8 +517,6 @@ test("undo of an undo cannot re-instate a second undo of the same revision", () 
   assert.ok(r.ok);
   assert.deepEqual([...r.state.undone], [...s.undone]);
 });
-
-// ── Draft permissions ───────────────────────────────────────────────────────
 
 test("an agent discards only its own drafts while direct editing is off", () => {
   let s = generatedCreature(env);

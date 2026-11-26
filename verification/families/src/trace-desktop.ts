@@ -1,16 +1,3 @@
-// The desktop's trace build on a real sheet, against G0: the panels, trace
-// map and built parts apps/desktop/scripts/qa-art.ts saves after the built
-// app's page measured the body's shipped sheet (Electron's Chromium canvas on
-// the hardware GPU), built again with G0's buildTraceMap from character-view
-// at 2761eb14 (src/g0-trace.ts) on the same panels and height. Every built
-// part's traced hull, or its paint binding and knots, must equal G0's, its
-// standing position must be G0's shifted by the anchor's move from its sheet
-// point, and both builds must leave out the same regions.
-//
-//   node --import ../../packages/document/test/support/register.ts src/trace-desktop.ts [DIR]
-//
-// DIR defaults to .reference-cache/g4a/trace-desktop. A missing build fails.
-
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";

@@ -1,33 +1,3 @@
-// A packaged Irudd Workshop's own CLI against G0, on a few representative
-// samples: the joined classic figure (figure-42) at clay and Game, a creature
-// built from a plan (plan-8950) at Game, and field-wardrobe at Game as worn
-// and with every saved outfit as its own scene (G0's `-game-outfits` export).
-// Run it under the shared GPU lock against a package built from a clean
-// checkout:
-//
-//   node --import ./packages/document/test/support/register.ts \
-//     apps/desktop/scripts/package.ts --out DIR
-//   pnpm --filter @irudd/verification-families gate:packaged-samples \
-//     --packaged "DIR\Irudd Workshop" [--commit SHA] [--keep]
-//
-// The package's build stamp must name a clean commit (and SHA when given), and
-// its CLI and review worker must report that build. The run starts the
-// packaged executable hidden on a fresh project, so its review worker on the
-// hardware GPU serves exports, and drives everything else through the
-// packaged CLI under the packaged runtime: create each starter, export it and
-// compare the file, re-hashed against its manifest, with G0's authenticated
-// export, using the gate's own rule: no structural difference, equal counts,
-// every accessor within 1e-5 and every image pixel-identical. On figure-42 one
-// ordinary edit (the left forearm moved 2 cm) changes the exported positions,
-// and undoing it restores the document digest and G0 parity. Moving the left
-// thigh 35.08 m keeps every joint of the rig, as the rest pose has. The
-// executable, CLI and window bytes are hashed before and after the run.
-// Results go to .reference-cache/g4a/packaged-samples/report.json.
-//
-// About 110 s on the RTX 5070 Ti once the GPU lock is free (the Game wardrobe
-// export is 25 s of it). It catches a package whose bytes, CLI, worker or
-// starters drift from the verified source. Run it on a candidate package.
-
 import assert from "node:assert/strict";
 import { execFile, execFileSync, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -57,7 +27,6 @@ const pinned = [exe, cliScript, join(resources, "dist", "main", "main.js")];
 for (const file of [...pinned, join(resources, "dist", "build.json")])
   if (!existsSync(file)) throw new Error(`Not a packaged Irudd Workshop: missing ${file}`);
 
-/** The gate's rule (src/gate.ts). */
 const tolerance = 1e-5;
 const samples = [
   { form: "figure-42", targets: ["clay", "game"] },
@@ -79,8 +48,6 @@ const text = (value: unknown, ...keys: Array<string | number>): string => {
 const hashes = (): Record<string, string> =>
   Object.fromEntries(pinned.map((file) => [file, sha256(readFileSync(file))]));
 
-// ── The pinned package ───────────────────────────────────────────────────────
-
 const stamp: unknown = JSON.parse(readFileSync(join(resources, "dist", "build.json"), "utf8"));
 const build = text(stamp, "build");
 assert.match(build, /^[0-9a-f]{40}$/, `the package's build stamp names a clean commit (${build})`);
@@ -95,7 +62,6 @@ mkdirSync(files);
 const report = join(outDir, "packaged-samples");
 mkdirSync(report, { recursive: true });
 
-/** The environment without an Electron-as-Node flag an editor or agent shell may export. */
 function environment(extra: Record<string, string>): Record<string, string> {
   const env: Record<string, string> = {};
   for (const [key, value] of Object.entries(process.env))
@@ -114,7 +80,6 @@ interface Ran {
   readonly ms: number;
 }
 
-/** The packaged CLI on the packaged runtime, as `irudd ARGS --project P --json`. */
 function cli(...args: string[]): Promise<Ran> {
   const started = performance.now();
   return new Promise((done) =>
@@ -245,7 +210,6 @@ function verdict(comparison: Comparison): Verdict {
   };
 }
 
-/** The fresh export against G0's authenticated export of the same form and target. */
 function againstG0(form: string, target: Target, fresh: Exported, at: Head) {
   const name = `${form}-${target}.glb`;
   const reference = new Uint8Array(readFileSync(join(g0Dir, "export-a", name)));
@@ -265,8 +229,6 @@ const jointCount = (bytes: Uint8Array): number[] =>
   records(parseGlb(bytes).json["skins"]).map((s) =>
     Array.isArray(s["joints"]) ? s["joints"].length : 0,
   );
-
-// ── Run ──────────────────────────────────────────────────────────────────────
 
 const rows: Array<Record<string, unknown>> = [];
 const steps: Array<Record<string, unknown>> = [];
@@ -368,7 +330,6 @@ try {
       });
   }
 
-  // ── One ordinary edit on figure-42 and its undo ──
   const figure = heads.get("figure-42");
   assert.ok(figure);
   const documentId = "doc-figure-42";

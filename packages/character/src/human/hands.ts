@@ -1,15 +1,6 @@
-// Relaxed finger curl of the fitting pose (character-view/human-hands.js).
-// Flex from the knuckles in the plane of each palm. The ring and little
-// fingers lead a relaxed curl and the thumb bends around its own oblique axis.
-//
-// The arithmetic follows three's Vector3 and Matrix4 step for step, so the
-// curl is bit-identical to G0 while the adult's parameters and evaluation stay
-// free of three for hosts without a DOM.
-
 import { boneNames } from "./catalogue.js";
 
 type Vec = [number, number, number];
-/** Column-major, as three stores a Matrix4. */
 type Mat = number[];
 
 const names: ReadonlyArray<string> = boneNames;

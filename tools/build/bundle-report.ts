@@ -1,10 +1,3 @@
-// A Vite plugin that records what went into a bundle: every loaded module and
-// every external, as `<name>.inputs.json` next to the output. The static
-// bundle checks read these files; nothing at runtime does.
-//
-// Module IDs are repository-relative POSIX paths. Package modules keep their
-// real pnpm store path under node_modules/.pnpm, so the version is visible.
-
 import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -19,17 +12,11 @@ export interface BundleReport {
   readonly format: typeof reportFormat;
   readonly version: typeof reportVersion;
   readonly bundle: string;
-  /** Every loaded module: first-party and package paths, and `virtual:` helper IDs. */
   readonly inputs: ReadonlyArray<string>;
-  /** Emitted files, relative to the repository. */
   readonly outputs: ReadonlyArray<string>;
-  /** First-party modules, repository-relative. */
   readonly firstParty: ReadonlyArray<string>;
-  /** Package modules, repository-relative under node_modules/.pnpm. */
   readonly packages: ReadonlyArray<string>;
-  /** Modules with no file (Vite helpers, `\0` virtual modules). */
   readonly virtual: ReadonlyArray<string>;
-  /** Imports left to the runtime (Electron, Node built-ins). */
   readonly externals: ReadonlyArray<string>;
 }
 
@@ -43,14 +30,9 @@ export function moduleId(id: string): string {
   return relative(repository, file).split(sep).join("/").replaceAll("\\", "/");
 }
 
-/**
- * Record the bundle's inputs. `name` names the report; it is written to
- * `reportDir/<name>.inputs.json` once the bundle is written.
- */
 export function bundleReport(
   name: string,
   reportDir: string,
-  /** Output files the build renames after Vite writes them. */
   renames: Readonly<Record<string, string>> = {},
 ): Plugin {
   let report: BundleReport | undefined;

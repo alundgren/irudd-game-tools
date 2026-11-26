@@ -1,21 +1,8 @@
-// A small, strict ZIP container for character packages.
-//
-// Writing produces a plain PKWARE ZIP that any archive tool opens: UTF-8
-// names, no ZIP64, no encryption, fixed timestamps (1980-01-01) so the same
-// entries always give the same bytes. Each entry is stored or raw-deflated.
-//
-// Reading accepts what this writer and ordinary archive tools produce, and
-// refuses everything else before inflating anything large: encrypted or
-// ZIP64 entries, unknown methods, overlapping or out-of-bounds data, names
-// that are absolute, contain `..` or a backslash, and duplicates. Every entry
-// inflates into at most its declared size and must match its CRC-32.
-
 import zlib from "node:zlib";
 
 export interface ZipEntryInput {
   readonly name: string;
   readonly bytes: Uint8Array;
-  /** Deflate this entry. Already-compressed artwork is stored. */
   readonly deflate: boolean;
 }
 
@@ -25,7 +12,6 @@ export interface ZipEntry {
   readonly compressedSize: number;
   readonly size: number;
   readonly crc32: number;
-  /** Offset of the entry's data within the archive. */
   readonly dataOffset: number;
 }
 
@@ -42,7 +28,7 @@ const centralSig = 0x02014b50;
 const endSig = 0x06054b50;
 const utf8Flag = 0x0800;
 const fixedTime = 0;
-const fixedDate = (0 << 9) | (1 << 5) | 1; // 1980-01-01
+const fixedDate = (0 << 9) | (1 << 5) | 1;
 const maxUint32 = 0xffffffff;
 
 export function isZip(bytes: Uint8Array): boolean {
@@ -121,11 +107,9 @@ function checkName(name: string): void {
     );
 }
 
-/** The archive's directory, checked for structure. No entry is inflated yet. */
 export function readZipDirectory(bytes: Uint8Array): ReadonlyArray<ZipEntry> {
   const view = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   if (view.length < 22) throw new ZipError("The file is too short to be a ZIP package.");
-  // The end record is the last 22 bytes plus a comment of at most 65535.
   let end = -1;
   for (let at = view.length - 22; at >= Math.max(0, view.length - 22 - 0xffff); at--)
     if (view.readUInt32LE(at) === endSig && at + 22 + view.readUInt16LE(at + 20) === view.length) {
@@ -169,7 +153,7 @@ export function readZipDirectory(bytes: Uint8Array): ReadonlyArray<ZipEntry> {
       throw new ZipError(`ZIP directory record ${i + 1} has a name that is not UTF-8.`);
     }
     at = recordEnd;
-    if (name.endsWith("/")) continue; // A folder entry carries no data.
+    if (name.endsWith("/")) continue;
     checkName(name);
     if (names.has(name)) throw new ZipError(`The package holds ${name} twice.`, name);
     names.add(name);
@@ -209,7 +193,6 @@ export function readZipDirectory(bytes: Uint8Array): ReadonlyArray<ZipEntry> {
   return entries;
 }
 
-/** Inflate one entry into at most its declared size, and check its CRC. */
 export function readZipEntry(bytes: Uint8Array, entry: ZipEntry): Uint8Array {
   const data = bytes.subarray(entry.dataOffset, entry.dataOffset + entry.compressedSize);
   let out: Uint8Array;

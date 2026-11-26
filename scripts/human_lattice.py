@@ -12,8 +12,6 @@ def lattice(points, faces, count, bone_ids, names, encode):
     cells = defaultdict(list)
     for i, v in enumerate(body):
         name = names[bone_ids[i, 0]]
-        # Finer sampling around features, but the same smooth coarse cage over
-        # the entire uncovered torso. Never transfer a donor's microdetail.
         step = (
             0.022
             if name == "head"
@@ -40,7 +38,6 @@ def lattice(points, faces, count, bone_ids, names, encode):
         ),
         shape=(count, count),
     ).tocsr()
-    # Blocks bound peak memory and also handle disconnected inner-mouth islands.
     nearest = np.zeros((count, 4), dtype=np.int32)
     dist = np.full((count, 4), np.inf)
     for start in range(0, len(anchors), 96):
@@ -60,7 +57,6 @@ def lattice(points, faces, count, bone_ids, names, encode):
         dist[missing], nearest[missing] = tree.query(body[missing], k=4)
     weights = 1 / np.maximum(dist, 0.0025) ** 2.0
     weights /= weights.sum(1, keepdims=True)
-    # Eye/lash helpers follow the eyelids with a coherent translation per eyeball.
     d, near = tree.query(points[count:], k=4)
     w = 1 / np.maximum(d, 0.0025) ** 2
     w /= w.sum(1, keepdims=True)

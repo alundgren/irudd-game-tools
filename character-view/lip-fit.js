@@ -1,7 +1,5 @@
 import { Vector3 } from "three";
 
-// Ordered pairs on the upper and lower inner lip rims of the editor's fixed MPFB cage.
-// The target can have arbitrary topology. Its lip crease is located from its surface.
 const rims = [
   [425,426],[416,438],[469,475],[470,481],[472,487],[474,523],
   [7228,7242],[7226,7236],[7225,7230],[7176,7198],[7185,7186],
@@ -12,9 +10,6 @@ export function lipCreaseSamples(surface,tree) {
   if (tree.observedDirection && tree.observedDirection.dot(front) < .7) return [];
   const scale = surface.height/1.72, step = .00065*scale;
   const top = new Vector3(), bottom = new Vector3(), point = new Vector3();
-  // Locate the forward tip of the reference nose when it has a clear
-  // profile. This prevents the fold under the lower lip from attracting the
-  // entire mouth when the starting face is longer than the reference.
   point.fromArray(surface.positions,3*297);
   const noseY = point.y, nose = [];
   for (let k=-33; k<=33; k++) {
@@ -22,10 +17,6 @@ export function lipCreaseSamples(surface,tree) {
     const hit = tree.fromView(point,front,.064*scale);
     if (hit) nose.push({y:point.y,z:hit.point.z});
   }
-  // A flush upper lip can be closer to the starting nose than the real tip.
-  // Require the nose to project above both the philtrum and upper bridge,
-  // with observed skin on each side. An open cut at the search limit is
-  // not a tip, and a small mouth groove alone cannot establish one.
   const peaks = nose.filter(({y,z}, i) => {
     const below = nose.filter(p=>p.y < y-.005*scale && p.y > y-.020*scale);
     const above = nose.filter(p=>p.y > y+.005*scale && p.y < y+.020*scale);
@@ -55,8 +46,6 @@ export function lipCreaseSamples(surface,tree) {
       const relief = Math.min(lowerLip,upperLip)-samples[i];
       if (relief > .009*scale || (!Number.isFinite(samples[i]) &&
           Number.isFinite(lowerLip) && Number.isFinite(upperLip))) open = true;
-      // A deep cavity, a hole, or an indistinct contour is insufficient
-      // evidence for a closed mouth.
       const y = mid+(i-23)*step;
       if (tip !== null && (tip-y < .017*scale || tip-y > .042*scale)) continue;
       if (relief < .008*scale && relief > strongest) {
@@ -68,7 +57,6 @@ export function lipCreaseSamples(surface,tree) {
     const y = mid+(row-23)*step;
     results.push({upper,lower,y});
   }
-  // Require a continuous identifiable crease before steering the lip rims.
   if (results.length < 7) return [];
   const hits = [];
   for (let i=0;i<results.length;i++) {
@@ -83,8 +71,6 @@ export function lipCreaseSamples(surface,tree) {
   return hits;
 }
 
-// Depth along the broad skin surface scarcely changes when a thin mouth opens.
-// Use the measured crease positions directly for a final bounded adjustment.
 export function fitLipContact(params, surface, tree, evaluate) {
   const samples = lipCreaseSamples(surface,tree).map(({index,error}) =>
     ({index, y:surface.positions[index*3+1]+error}));

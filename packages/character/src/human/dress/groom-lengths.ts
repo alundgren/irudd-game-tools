@@ -1,9 +1,3 @@
-// The lengths of a strand groom: hair that has left the scalp, as layers of
-// strand cards over a dark sheet of the same hair (lengthCards in
-// character-view/human-groom-lengths.js at 2761eb1). Tails, knots and plaits
-// come as grids of points from hair-lengths.ts; this only turns a grid into
-// cards.
-
 import {
   add,
   clamp,
@@ -25,7 +19,6 @@ const TAU = Math.PI * 2;
 
 type Tile = readonly [number, number, number, number];
 
-/** The arrays cards are appended to. */
 export interface CardArrays {
   readonly position: number[];
   readonly normal: number[];
@@ -36,7 +29,6 @@ export interface CardArrays {
   readonly weights: number[];
 }
 
-/** A grid of points to read at any place: `at(i, j)` with fractional rows `i` and lanes `j`. */
 function reader(
   points: ReadonlyArray<ReadonlyArray<Vec>>,
   { wrap = false, loop = false }: { readonly wrap?: boolean; readonly loop?: boolean } = {},
@@ -81,14 +73,6 @@ interface GrowOptions {
   readonly fine?: boolean;
 }
 
-/**
- * Append the cards of every length in `shapes` to `cards`.
- *   tiles    long strand tiles [left, top, wide, tall] of the 256 pixel strand picture
- *   solid    the tile of unbroken combed hair, for the sheet under the cards
- *   hair     {r, g, b} in linear light
- *   k        the scale of this adult; `centre` the middle of the cranium
- *   game     true to build the smaller set a game model carries
- */
 export function lengthCards(
   cards: CardArrays,
   shapes: HairLengths,
@@ -121,15 +105,6 @@ export function lengthCards(
     return cards.position.length / 3 - 1;
   };
 
-  /**
-   * One grid: rows run from the root to the ends, lanes across.
-   *   wrap     lanes close on themselves, as round a tail
-   *   loop     rows close on themselves, as hair wound round a knot
-   *   middle   i => the point the grid faces away from at row i
-   *   wide     the width of a card in metres
-   *   layers   how many of the three layers of cards to build over the sheet
-   *   under    how far the sheet lies under the grid; `ends` leaves that share of the length to the cards alone
-   */
   const grow = (
     points: ReadonlyArray<ReadonlyArray<Vec>>,
     skin: Skin | ((p: Vec) => Skin),
@@ -162,7 +137,6 @@ export function lengthCards(
       n = unit(n);
       return dot(n, away) < 0 ? [-n[0], -n[1], -n[2]] : n;
     };
-    // Where each lane ends: lanes shorter than the longest repeat their last point.
     const reach = Array.from({ length: g.lanes }, (_, j) => {
       if (loop) return g.rows;
       let i = g.rows - 1;
@@ -174,18 +148,15 @@ export function lengthCards(
         b = wrap ? (a + 1) % g.lanes : Math.min(g.lanes - 1, a + 1);
       return mix(reach[a] ?? 0, reach[b] ?? 0, j - Math.floor(j));
     };
-    // How wide a lane is half way down, to size cards in lanes.
     let span = 0;
     const half = Math.floor(g.rows * 0.45);
     for (let j = 0; j < g.lastLane; j++)
       span += length(sub(g.point(half, (j + 1) % g.lanes), g.point(half, j)));
     const lane = span / g.lastLane || 1e-4;
-    // Light and dark locks keep their tone down the whole length.
     const lock = (j: number) =>
       clamp((noise3((j * lane) / (0.011 * k) + id * 7.3, id * 3.1, 0.5) - 0.5) * 3.2, -1, 1);
 
     if (sheet) {
-      // The sheet: the same hair in shadow, unbroken, so nothing shows between the cards but more hair.
       const stepI = Math.max(
           1,
           Math.round(g.lastRow / (fine ? (game ? 78 : 108) : game ? 11 : 20)),
@@ -236,7 +207,6 @@ export function lengthCards(
         }
     }
 
-    // The cards. Each layer lies further out, ends at another length and is lit a little more.
     const widths = wide / lane,
       total = g.lastLane;
     const more = wave ? 2 : 0;
@@ -300,7 +270,6 @@ export function lengthCards(
           begin = loop ? g.rows * rnd(11) : 0,
           steps = layer.steps,
           first = cards.position.length / 3;
-        // The picture: unbroken strands repeated down the length, then the tips.
         const picture = Array.from({ length: steps + 1 }, (_, s) => {
           const left = steps - s;
           return left === 0 ? 1 : left === 1 ? 0.86 : left === 2 ? 0.68 : left % 2 ? 0.5 : 0.16;
@@ -318,7 +287,6 @@ export function lengthCards(
           const here: Vec[] = [];
           for (const sign of [-1, 1]) {
             let p = add(g.at(i, j + sign * narrow), n, out + sign * lean);
-            // Tips hang a little past the end of the grid, so the outline is strands and not the last row of points.
             const previous: Vec | undefined = before?.[here.length];
             if (s === steps && layer.past && previous)
               p = add(p, unit(sub(p, previous)), layer.past * k * (0.5 + rnd(12 + sign)));
@@ -349,7 +317,6 @@ export function lengthCards(
       skin = rigid ? shapes.rigid : tuft ? shapes.skin(rings[0]?.[0] ?? [0, 0, 0]) : shapes.skin;
     const hub = (i: number): Vec => hubs[Math.round(clamp(i, 0, hubs.length - 1))] ?? [0, 0, 0];
     if (wound) {
-      // A knot is hair wound round and round: its sheet is the knot, its cards run round it.
       grow(rings, skin, {
         wrap: true,
         middle: hub,

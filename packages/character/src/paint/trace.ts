@@ -1,17 +1,9 @@
-// Tracing a body region from a sheet's silhouettes. Ported from traceRegion
-// in character-view/turnaround.js at 2761eb1, arithmetic in the same order,
-// so a traced binding is the one G0 bakes from. Free of three.js, so a host
-// process traces with the panels it measured.
-
 import type { Digest, FigurePaint } from "@irudd/document";
 import type { Panel } from "./panel.js";
 
-/** A sheet's four prepared views, as `Panels` in turnaround.ts. */
 type Panels = readonly [Panel, Panel, Panel, Panel];
-/** A traced binding with its sheet, as `Binding` in turnaround.ts. */
 type Binding = FigurePaint & { readonly atlas: Digest };
 
-/** A track row: height, left, right, rear and fore limits, in standing-height units. */
 export type TrackRow = readonly [number, number, number, number, number];
 
 function projected(panel: Panel, horizontal: number, height: number): number {
@@ -36,7 +28,6 @@ function section(
   return a < b ? [a, b] : undefined;
 }
 
-/** three.js's MathUtils.lerp, which G0 traces with: the same rounding. */
 const lerp = (x: number, y: number, t: number) => (1 - t) * x + t * y;
 
 const row = <V>(list: ReadonlyArray<V>, i: number): V => {
@@ -45,11 +36,6 @@ const row = <V>(list: ReadonlyArray<V>, i: number): V => {
   return v;
 };
 
-/**
- * The rest binding of a region within the track's limits on the front and
- * right views, sampled at `samples` heights and smoothed twice, pivoted at
- * its lowest section.
- */
 export function traceRegion(
   panels: Panels,
   atlas: Digest,
@@ -83,8 +69,6 @@ export function traceRegion(
     ]);
   }
   if (knots.length < 2) throw new Error("A region must cover at least two visible cross sections.");
-  // A few source pixels can move a silhouette sideways at a hair tip or an
-  // overlapping plate. Regularise the cross sections before fitting the loft.
   for (let pass = 0; pass < 2; pass++) {
     const prev = knots.map((v) => v.slice());
     for (let i = 1; i < knots.length - 1; i++)

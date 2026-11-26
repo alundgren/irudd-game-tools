@@ -47,7 +47,6 @@ test("new adult draws preserve a range of mouth profiles and resting expressions
 test("a broad smile opens the jaw, draws the corners out and lifts the lower lids", () => {
   const reserved = expressionDisplacements("Smile", false, {smileOpenness: -1});
   const broad = expressionDisplacements("Smile", false, {smileOpenness: 1});
-  // All thresholds in metres on the neutral 1.72 m cage.
   const outwardCorner = 7185 * 3;
   const lowerLip = 557 * 3 + 1;
   const cheek = 11909 * 3 + 1;

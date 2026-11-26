@@ -1,8 +1,3 @@
-// Shape checks for host replies. The host is authenticated before any reply
-// arrives, so these are not a second validator of document contents: they
-// catch a host from another build that answers with a different shape, and
-// they give each reply its contract type without an unchecked assertion.
-
 import type { MethodName, MethodResults } from "../wire/protocol.js";
 
 type Guard<T> = (value: unknown) => value is T;

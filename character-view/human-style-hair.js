@@ -1,12 +1,8 @@
-// Sculpted hair for the human surface. The scalp is cut from the head along a
-// hairline, lifted into a volume and combed with grooves. Longer styles add a
-// sheet that hangs over the neck and shoulders, and tails, buns and braids.
 import { Envelope, Piece, add, bodyShell, clamp, connected, cross, cut, dot, hash1, length, lerp3 as lerp, mix, noise3, smooth, sub, subdivide, unit } from "./human-style-kit.js";
 import { combFringe, hairline, headFrame } from "./human-fringe.js";
 
 const TAU = Math.PI * 2, DEG = Math.PI / 180;
 
-/** Rounded lumps for curls: distance to scattered points. */
 function lumps(x, y, z) {
   const xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z);
   let best = 9;
@@ -18,21 +14,11 @@ function lumps(x, y, z) {
   return Math.max(0, 1 - best * 1.6);
 }
 
-/**
- * The scalp as a combed volume.
- *   thick(dir)  hair depth in metres at a direction {phi, eps, q}
- *   pole        where combing starts; grooves run away from it
- *   grooves     their count around the pole, `depth` in metres, `twist` to swirl them
- *   curl        lump size and height for curly textures
- *   part        a parting from the pole to a direction
- *   ragged      how far the hairline wanders, in degrees
- */
 function cap(body, m, f, { thick, lip = .002, edge = .26, round = 1, pole = [0, 1, 0], grooves = 0, depth = .0015, twist = 0, curl = null, part = null, levels = 2, raise = 0, ragged = 2.4, within = null } = {}) {
   const k = f.k, head = body.weight(/^head/);
   let s = bodyShell(body, { head });
   s.f.line = s.pos.map(() => 0).slice(0, s.count);
   for (let i = 0; i < s.count; i++) { const { phi, eps, q } = f.aim(s.anchor(i)); s.f.line[i] = s.f.head[i] > .5 ? eps - hairline(phi) - raise * DEG + ragged * DEG * (noise3(q[0] * 13 + 3, q[1] * 13, q[2] * 13) - .5) : -1;
-    // A groom that knows the scalp it covers ends its cap there, a little past the usual hairline at most.
     if (within && s.f.line[i] > -1) s.f.line[i] = Math.min(s.f.line[i] + 7 * DEG, within(i));
   }
   s = cut(s, i => s.f.line[i]);
@@ -42,10 +28,7 @@ function cap(body, m, f, { thick, lip = .002, edge = .26, round = 1, pole = [0, 
   const toward = part && unit(part), across = part && unit(cross(axis, toward));
   for (let i = 0; i < s.count; i++) {
     const a = s.anchor(i), out = sub(a, f.centre), r = length(out), u = [out[0] / r, out[1] / r, out[2] / r], dir = f.aim(a);
-    // Roughly the angle to the nearest point of the hairline, which runs steeply at the temples and behind the ears.
     const line = s.f.line[i] / Math.hypot(1, (hairline(dir.phi + DEG) - hairline(dir.phi - DEG)) / (2 * DEG * Math.max(.3, Math.cos(dir.eps))));
-    // Hair grows out of the skin: it starts thin at the hairline and thickens over `edge`.
-    // A `round` of 0 rounds the edge like a quarter circle.
     let t = thick(dir) * k * (round ? smooth(0, edge, line) ** round : Math.sqrt(1 - (1 - clamp(line / edge)) ** 2)) + lip * k * smooth(0, .1, line);
     const polar = Math.acos(clamp(dot(dir.q, axis), -1, 1)), around = Math.atan2(dot(dir.q, e2), dot(dir.q, e1));
     if (grooves) {
@@ -55,7 +38,6 @@ function cap(body, m, f, { thick, lip = .002, edge = .26, round = 1, pole = [0, 
     }
     if (curl) t += curl.height * k * (lumps(a[0] / (curl.size * k), a[1] / (curl.size * k), a[2] / (curl.size * k)) - .4) * smooth(0, .05, line);
     if (part) {
-      // A parting is a narrow valley from the pole towards `part`.
       const side = dot(dir.q, across), along = dot(dir.q, toward);
       if (along > -.1) t -= part.depth * k * Math.exp(-((side / .045) ** 2)) * smooth(-.1, .15, along) * smooth(0, .1, line);
     }
@@ -64,7 +46,6 @@ function cap(body, m, f, { thick, lip = .002, edge = .26, round = 1, pole = [0, 
   return s;
 }
 
-/** The rings of a tube along a path with a radius profile. */
 function tubeRings(path, radius, { sides = 10, ridges = 0, twist = 0, flat = 1 } = {}) {
   const rings = [];
   let normal = null;
@@ -79,13 +60,11 @@ function tubeRings(path, radius, { sides = 10, ridges = 0, twist = 0, flat = 1 }
   });
   return rings;
 }
-/** A tube along a path with a radius profile: tails, braid strands and ties. */
 function tube(piece, path, radius, skin, options = {}) {
   piece.loft(tubeRings(path, radius, options), skin, { capStart: true, capEnd: true, flip: true });
 }
 const bezier = (a, b, c, d, n) => Array.from({ length: n + 1 }, (_, i) => { const t = i / n, u = 1 - t; return [0, 1, 2].map(x => u * u * u * a[x] + 3 * u * u * t * b[x] + 3 * u * t * t * c[x] + t * t * t * d[x]); });
 
-/** Skin weights for hair that leaves the head: head, then neck, then upper back. */
 function hangSkin(body, m) {
   const head = body.bone("head"), neck = body.bone("neck_01"), chest = body.bone("spine_03"), k = m.k;
   return p => {
@@ -94,7 +73,6 @@ function hangSkin(body, m) {
   };
 }
 
-/** A coarse map over two coordinates of points that keeps the largest value of `pick`. */
 function reach(points, cell, key, pick) {
   const grid = new Map(), id = (a, b) => a * 4096 + b;
   for (const p of points) { const [a, b] = key(p), n = id(Math.round(a / cell), Math.round(b / cell)), value = pick(p); if (!(grid.get(n) >= value)) grid.set(n, value); }
@@ -104,7 +82,6 @@ function reach(points, cell, key, pick) {
     for (let da = -1; da <= 2; da++) for (let db = -1; db <= 2; db++) {
       const value = grid.get(id(ia + da, ib + db));
       if (value === undefined) continue;
-      // Each cell reaches a little past itself and fades, so the map has no steps.
       const far = Math.hypot(ia + da - fa, ib + db - fb), kept = value - cell * 1.2 * smooth(.6, 1.9, far);
       if (far < 1.9 && kept > best) best = kept;
     }
@@ -112,16 +89,6 @@ function reach(points, cell, key, pick) {
   };
 }
 
-/**
- * Lengths of hair as locks that fan out from a root point, run over the skull,
- * then fall straight and lie on the back.
- *   pole        direction of the root from the cranium centre
- *   spread      how far round the root the locks fan, in degrees each side of straight back (180 is all round)
- *   tip(side)   world height where the hair ends, by direction in degrees (0 front, 180 back)
- *   over        how far the hair stands off the skull
- *   volume      extra fullness along the length; `tuck` pulls the ends in; `wave` ripples the locks
- *   clump       how deep the gaps between locks cut near the ends; `ragged` varies their lengths
- */
 function sheetGrid(body, m, f, { tip, pole = [0, .78, .62], spread = 100, leave = 8, over = .012, volume = .012, tuck = 0, wave = 0, locks = 30, depth = .0025, clump = .006, ragged = .03, cols = 96, rows = 40, fall = .2 } = {}) {
   const k = f.k, head = body.weight(/^(head|neck)/), skull = [], torso = [];
   for (let v = 0; v < body.count; v++) {
@@ -134,7 +101,6 @@ function sheetGrid(body, m, f, { tip, pole = [0, .78, .62], spread = 100, leave 
   env.measure(skull).taut(1, 1.6).hang(9, .7).soften(3);
   const back = reach(torso, .012 * k, p => [p[0], p[1]], p => -p[2]), floor = reach(torso, .012 * k, p => [p[0], p[2]], p => p[1]), bone = f.bone;
   const P = unit(pole), away = [0, .3, -1], t0 = unit(sub(away, P.map(x => x * dot(away, P)))), e = cross(t0, P), dip = Math.sin(leave * DEG), stride = 2 * DEG;
-  // Each lock walks a great circle over the skull until it passes the widest part, then hangs.
   const lanes = Array.from({ length: cols + 1 }, (_, j) => {
     const w = mix(-spread, spread, j / cols) * DEG, heading = t0.map((x, n) => x * Math.cos(w) + e[n] * Math.sin(w)), walk = [];
     let run = 0;
@@ -146,7 +112,6 @@ function sheetGrid(body, m, f, { tip, pole = [0, .78, .62], spread = 100, leave 
     }
     const last = walk.at(-1), start = add(f.centre, last.q, bone(last.q)), side = Math.abs(Math.atan2(start[0], start[2] - cz)) / DEG;
     const stripe = t => { const x = (w / TAU + .5) * locks + wave * .45 * Math.sin(t * 7 + w * 3), lock = ((Math.floor(x) % locks) + locks) % locks; return { lock, across: Math.abs(Math.cos(Math.PI * (x - lock))) }; };
-    // Each lock ends at its own length with a rounded tip, and hair over the shoulders stops above them.
     const { lock, across } = stripe(1);
     let end = tip(side) + ragged * k * (hash1(lock * 5 + 1) - .5) + ragged * .5 * k * (1 - across);
     if (side < 118) end = Math.max(end, floor(start[0] * 1.15, cz + (start[2] - cz) * 1.15) + .012 * k);
@@ -154,7 +119,6 @@ function sheetGrid(body, m, f, { tip, pole = [0, .78, .62], spread = 100, leave 
   });
   const longest = Math.max(...lanes.map(lane => lane.total)), grid = [];
   const outer = Array.from({ length: rows + 1 }, () => []), inner = Array.from({ length: rows + 1 }, () => []);
-  // Rows sit at shared lengths from the root so that neighbouring locks of different lengths do not shear.
   for (const { walk, start, stripe, angle, total, lead } of lanes) {
     const column = [], onSkull = walk.at(-1).run;
     let rest = 0, y = 0;
@@ -181,7 +145,6 @@ function sheetGrid(body, m, f, { tip, pole = [0, .78, .62], spread = 100, leave 
     for (const c of column) c.push = c.room && Math.abs(Math.atan2(c.p[0], c.p[2] - cz)) > 108 * DEG ? Math.max(0, c.p[2] + back(c.p[0], c.y) + c.room) : 0;
     grid.push(column);
   }
-  // Behind the shoulders the hair is pushed back to lie on the body, easing in from above and from the sides.
   const ease = (a, b, slope) => { if (a.room) a.push = Math.max(a.push, b.push - slope * Math.hypot(a.p[0] - b.p[0], a.y - b.y, a.p[2] - b.p[2])); };
   for (const column of grid) {
     for (let i = 1; i <= rows; i++) ease(column[i], column[i - 1], .5);
@@ -235,7 +198,6 @@ const cuts = {
   },
   "Afro"(body, m) {
     const f = headFrame(body, m);
-    // The outside is a ball around the cranium that rounds in to a hairline low enough to cover the ear tops.
     const ball = f.size + .04 * f.k, middle = add(f.centre, [0, .006 * f.k, -.006 * f.k]), shift = sub(f.centre, middle);
     const thick = dir => { const span = [dir.q[0] * f.radii[0], dir.q[1] * f.radii[1], dir.q[2] * f.radii[2]], u = unit(span), b = dot(u, shift); return Math.max(.01, (-b + Math.sqrt(Math.max(0, b * b - dot(shift, shift) + ball * ball)) - length(span)) / f.k); };
     const s = cap(body, m, f, { thick, edge: .42, round: 0, lip: .004, raise: -9, curl: { size: .02, height: .007 } });
@@ -279,13 +241,11 @@ const cuts = {
   },
 };
 
-// The hanging lengths of each style: the options of `sheetGrid`.
 const LENGTHS = {
   Bob: (f, m, k = f.k, jaw = f.eye[1] - .095 * k) => ({ pole: [0, .97, -.24], spread: 180, tip: side => mix(f.eye[1] + .05 * k, jaw, smooth(40, 72, side) ** 1.3), over: .012, volume: .007, tuck: .014, locks: 40, clump: .0045, ragged: .016, rows: 30 }),
   Long: (f, m, k = f.k) => ({ pole: [0, .8, .6], spread: 98, tip: side => mix(m.shoulder + .035 * k, m.chest[1] + .07 * k, smooth(112, 150, side)), over: .012, volume: .006, locks: 34 }),
   Wavy: (f, m, k = f.k) => ({ pole: [.3, .8, .5], spread: 104, tip: side => mix(m.neck[1] + .0 * k, m.shoulder - .01 * k, smooth(100, 150, side)), over: .014, volume: .012, wave: 1, depth: .004, locks: 24, clump: .008 }),
 };
-// Tails, knots and plaits: tubes as rings of points, the tie that holds them and where on the head the hair is gathered.
 const TIED = {
   Ponytail(body, m, f) {
     const k = f.k, at = [0, .55 * f.radii[1], -.83 * f.radii[2]], root = add(f.centre, unit(at), f.size * 1.02), tie = new Piece();
@@ -317,14 +277,6 @@ const TIED = {
   },
 };
 
-/**
- * The shapes a strand groom hangs its lengths on, for the styles that have them, or null.
- *   sheets   [{ rows, wave, around }]   rows of points from the root to the ends, lane by lane across the head
- *   tubes    [{ rings, wound, rigid, plait, tuft }]   rings of points along a tail, knot or plait
- *   ties     parts as a hairstyle gives them
- *   gather   the direction of the head frame where tied hair is gathered; hair worn loose has none
- *   skin     skin weights for a point of hair that has left the head
- */
 export function hairLengths(body, m, name, style = {}) {
   const f = headFrame(body, m), skin = hangSkin(body, m);
   if (LENGTHS[name]) {
@@ -340,23 +292,11 @@ export function hairLengths(body, m, name, style = {}) {
   return null;
 }
 
-/**
- * A thin layer of short hair inside the hairline. Hair cards wear it underneath, so the gaps
- * between cards and their ragged edges show hair instead of scalp.
- */
-/**
- * The thin dark layer on the scalp under hair cards. `within(i)` is positive where the cards of a groom cover
- * skin point i; with it the layer is cut to the groom's own hairline and stays hidden under its cards.
- */
 export function hairRoots(body, within = null) {
   const m = { k: body.scale }, f = headFrame(body, m), s = cap(body, m, f, { thick: () => .0016, lip: .0008, edge: .12, levels: 1, within, ragged: within ? 0 : 2.4 });
   return new Piece().shell(s, { thickness: .0012 });
 }
 
-/**
- * Every style by name: `(body, m, style)` gives its parts. `style.fringe` is one of `fringeStyles`
- * and combs the parts that hang over the forehead; without it a style is as it was cut.
- */
 export const hairstyles = Object.fromEntries(Object.entries(cuts).map(([name, make]) => [name, (body, m, style = {}) => {
   const parts = make(body, m);
   if (parts.some(part => part.fringe) && style.fringe && style.fringe !== "As cut") {

@@ -22,7 +22,6 @@ import { exteriorSkin } from "./human-fit-exterior.js";
 import { eyeOpenings } from "./human-fit-eyes.js";
 
 const axisNames = ["x", "y", "z"];
-// Median-split AABB tree. Query exact points on triangles, including large faces.
 function targetTree(geometry, partial = false) {
   const positions = geometry?.attributes?.position,
     indices = geometry?.index?.array;
@@ -71,8 +70,6 @@ function targetTree(geometry, partial = false) {
     candidate = new Vector3(),
     near = new Vector3();
   function query(point, normal, max = Infinity, rejectRim = Boolean(normal), matchedNormal = null) {
-    // A noisy cap edge can face away from the anchor. Looking only for a
-    // compatible normal then jumps across the cut to the next interior face.
     if (normal && onBoundary && !query(point, null, max, true)) return null;
     let best = max * max,
       nearestFace = null;
@@ -107,22 +104,16 @@ function targetTree(geometry, partial = false) {
       }
     }
     visit(tree);
-    // A normal-guided fit needs an observed patch. Keep the raw nearest
-    // distance available to diagnostics, including at the edge of a cut.
     if (!nearestFace || (rejectRim && onBoundary?.(nearestFace, near))) return null;
     matchedNormal?.copy(nearestFace.normal);
     return near;
   }
-  // On a closed surface the integral of its outward normal is zero. Only infer
-  // a viewing direction for a strongly one-sided input with almost no opposing area.
   let observedDirection = null;
   if (areaNormal.length() > 0.35 * totalArea) {
     const direction = areaNormal.normalize();
     const opposingArea = triangles.reduce((sum, t) => sum + (t.normal.dot(direction) < -0.08 ? t.area : 0), 0);
     if (opposingArea < 0.025 * totalArea) observedDirection = direction;
   }
-  // Frontmost matching triangle along a short view segment. Its geometric
-  // normal supplies a point-to-plane residual without sliding to another rim.
   const ray = new Ray(), hit = new Vector3(), bestPoint = new Vector3();
   function fromView(p, view, reach) {
     ray.origin.copy(p).addScaledVector(view,reach);
@@ -200,13 +191,6 @@ function summary(surface, tree, vertices) {
     samples: d.length,
   };
 }
-/* `hold(point)` says that skin at a point must not be fitted, for example because it
-   lies under a part of the reference the artist hid. Without it nothing changes.
-   `keepEyeOpenings` holds the head's own eye openings the same way: the lids, the
-   socket lining and the eyeballs they carry stay as the artist shaped them. Use it
-   for a reference whose eyes cannot be trusted as lid skin, such as open eyes with
-   an eyeball, a painted or sculpted eye, or lashes. Without it the lids are fitted
-   wherever the reference shows them. */
 export function optimizeHumanMeasurements(
   form,
   targetGeometry,
@@ -233,8 +217,6 @@ export function fitHumanReference(
   const tree = targetTree(targetGeometry, isolatedHead),
     source = evaluateHuman(form.human),
     controls = humanControls();
-  // A fine head layer lies on top of the anchors. The reference is matched from the skin
-  // as it is drawn, layer included, so the anchors are not asked for what the layer already holds.
   const detail = form.humanDetail,
     layered = (surface) => (detail ? applyHumanDetail(surface, detail) : surface);
   const vectors = controlVectors(form.humanFit),
@@ -261,11 +243,6 @@ export function fitHumanReference(
     adj = new Vector3();
   const scale = source.height / 1.72;
   const headSupport = headFitSupport(source, controls, anchors);
-  // Hold anchors with no observed skin at the starting edit, including during
-  // smoothing. Otherwise neighbouring displacements can pull a missing crown.
-  // Held anchors are treated the same way: they keep the starting edit and are
-  // skipped by the smoothing, so a neighbour's match cannot drag them along.
-  // The anchors of a kept eye opening are held by name, wherever the lids are.
   const observed = isolatedHead || hold || eyes ? new Set(anchors.filter(i => {
     const k = controls.ids[i] * 3;
     p.fromArray(initial.positions, k);
@@ -287,7 +264,6 @@ export function fitHumanReference(
       const match = tree.query(p, n, 0.1 * scale);
       if (!match) continue;
       delta.copy(match).sub(p);
-      // Normal-dominant updates keep vertices from sliding along forearms or lips.
       const along = delta.dot(n);
       delta
         .multiplyScalar(0.14)
@@ -313,16 +289,12 @@ export function fitHumanReference(
     );
   if (denseHead && headSupport.length) {
     const allowed = headSupport.map(({i}) => i).filter(i => !observed || observed.has(i));
-    // Leave the interleaved diagnostic probes out of the correspondence solve.
     const visible = v => v % 9 !== 5 && matches(v) && !eyes?.skin[v] && !hold?.(p.fromArray(initial.positions,3*v));
     for (let pass = 0; pass < 2; pass++) {
       refineFaceSurface(current,vertexNormals(current),controls,vectors,allowed,headSupport,visible,tree.query,scale);
       current = layered(applyHumanControls(source,vectors));
     }
   }
-  // Test the displacement at its saved precision. At thin, touching rims,
-  // reduce only the new motion influencing a reversed triangle; nearby lips
-  // and nostrils can still carry detail without weakening the entire fit.
   if (headSupport.length) {
     const priorFolds = new Set();
     if (form.humanFit) {
@@ -340,12 +312,9 @@ export function fitHumanReference(
       headFitDistortion(source, candidate, (a, b, c, face) => {
         if (!priorFolds.has(face)) relaxTriangle(a, b, c);
       });
-      // With a fine layer the drawn skin is tested as well: the layer turns with the anchors under it.
       if (form.humanFit || detail) headFitDistortion(initial, layered(candidate), relaxTriangle);
       if (!affected.size) break;
       if (pass === 11) {
-        // A neighbouring patch can fold as the offsets relax. If it still
-        // hasn't settled, keep the incoming head edit instead of saving a fold.
         for (const { i } of headSupport)
           vectors.set(originalVectors.subarray(i * 3, i * 3 + 3), i * 3);
         break;
@@ -364,8 +333,6 @@ export function fitHumanReference(
   }
   const fit = { version: 1, strength: 1, controls: rows },
     final = evaluateHuman(form.human, fit, detail);
-  // Interleaved non-control cage vertices only. Distances are one-way diagnostics;
-  // the independent benchmark measures both directions and areas with poor coverage.
   const controlIds = new Set(controls.ids),
     probes = [];
   for (let i = 5; i < source.bodyVertices; i += 9)

@@ -1,17 +1,3 @@
-// A real MCP SDK client for the desktop review gate (apps/desktop/scripts/qa-review.ts).
-//
-//   node --import <register> apps/mcp/test/review.client.ts --credential <file> --out <dir>
-//     --document <id> --preset <preset> [--width 768] [--pixel-ratio 2] [--inline 12]
-//     [--wardrobe <id>]
-//
-// Starts the MCP server on stdio as the paired agent, lists its tools, asks
-// for the review capabilities, exports and inspects the document, fetches an
-// image with review_image and tries an artifact the host never issued. Every
-// image it receives as MCP image content is hashed and written to --out, and
-// report.json records what came back, so the gate can compare the payloads
-// with files the CLI captured. With --wardrobe it also exports that document
-// with every saved outfit, one scene each, at the same preset.
-// IRUDD_STATE_DIR selects the host state.
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
@@ -72,7 +58,6 @@ function blocks(result: unknown): Block[] {
     : [];
 }
 
-/** The JSON after the summary line(s) of a tool's first text block. */
 function manifestOf(result: unknown): unknown {
   const text = blocks(result)[0]?.text ?? "";
   const split = text.indexOf("\n\n");
@@ -136,7 +121,6 @@ try {
   const manifest = manifestOf(inspected);
   const listed = field(manifest, "images");
   const images = Array.isArray(listed) ? listed : [];
-  // Each image arrives as a caption then its image block, in manifest order.
   const content = blocks(inspected);
   const received: Array<{
     name: string;
@@ -165,7 +149,6 @@ try {
       file,
     });
   }
-  // One image again by its SHA-256, and one the host never issued.
   const last: unknown = images.at(-1);
   const lastSha = String(field(last, "sha256"));
   const again = await time("review_image", () =>

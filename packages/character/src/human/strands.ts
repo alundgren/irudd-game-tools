@@ -1,9 +1,3 @@
-// Brows and lashes (strands, browsAndLashes and strandMesh in
-// character-view/human-face.js at 2761eb1). Both are tapered strands lying on
-// strand cards fitted to the head: each card point is a blend of three skin
-// vertices plus an offset, and each strand vertex a blend of three card points,
-// so the strands follow the head's shape and its expressions.
-
 import * as T from "three";
 import type { BrowName, HumanBody, StrandCard } from "./body.js";
 import { browPigment } from "./complexion.js";
@@ -32,15 +26,12 @@ interface Sink {
   readonly shifts: number[][];
 }
 
-/** The head as the strands read it: the cage with its body vertices smoothed. */
 export interface StrandHead {
   readonly body: HumanBody;
   readonly cage: HumanSurface;
   readonly positions: Float32Array;
-  /** Index into `positions` of each cage vertex id. */
   readonly idMap: ReadonlyMap<number, number>;
   readonly origin: readonly [number, number, number];
-  /** The height the adult was drawn at. */
   readonly height: number;
 }
 
@@ -95,7 +86,6 @@ function strands(
     return out;
   };
   const settings = (i: number) => look(lower?.[i] === 1);
-  // The cards stand a little off the skin. A strand can start on the skin and rise to part of that height at its tip.
   const stand = spread(fit.raise);
   const placed = (shift?: Float32Array) => {
     const out = spread(fit.base, shift);
@@ -108,9 +98,6 @@ function strands(
     }
     return out;
   };
-  // Each strand stores its ribbon as left and right pairs from root to tip. Resize the centre
-  // line about the root and the width on its own; a lash also leaves the lid pointing forward
-  // and curls away from the eye.
   const pairs = 2 * (card.points - 1);
   const shaped = (values: Float32Array) => {
     const out = new Float32Array(values.length),
@@ -146,8 +133,6 @@ function strands(
     for (let i = 0; i < posed.length; i++) posed[i] = (posed[i] ?? 0) - (rest[i] ?? 0);
     return posed;
   });
-  // A scar parts the brow: `parted` marks strands by their order in the stored brow strokes,
-  // which lists every complete strand once.
   let strand: Int32Array | null = null;
   if (parted) {
     strand = new Int32Array(count).fill(-1);
@@ -172,8 +157,6 @@ function strands(
         1,
         ((colour[d] ?? 0) + ((tip[d] ?? 0) - (colour[d] ?? 0)) * t) * shade,
       );
-    // Strands are lit as part of the surface they grow from: a fixed direction for
-    // lashes, and away from the middle of the head for brows.
     const n = facing ?? [
       (rest[i * 3] ?? 0) - inside.x,
       (rest[i * 3 + 1] ?? 0) - inside.y,
@@ -195,7 +178,6 @@ function strands(
     if (!keep(a)) continue;
     let b = index[i + 1] ?? 0,
       c = index[i + 2] ?? 0;
-    // Wind each triangle to face the way it is lit. A game export draws one side only.
     const e0 = at(b, 0) - at(a, 0),
       e1 = at(b, 1) - at(a, 1),
       e2 = at(b, 2) - at(a, 2),
@@ -208,22 +190,17 @@ function strands(
       (e0 * o1 - e1 * o0) * (normals[a * 3 + 2] ?? 0);
     if (facing < 0) [b, c] = [c, b];
     sink.index.push(start + a, start + b, start + c);
-    // Lashes are seen from above and below, and turn over in a blink.
     if (settings(a).bothSides) sink.index.push(start + a, start + c, start + b);
   }
 }
 
 export interface BrowLook {
   readonly brow: BrowName;
-  /** Frame and age of the adult, which thin brows and lashes. */
   readonly frame: number;
   readonly age: number;
   readonly plain: boolean;
-  /** Whether the brow strands grow; a captured skin's photograph can carry its own brows. */
   readonly brows: boolean;
-  /** Brow strokes a scar parts, from `browParting`. */
   readonly parted: Uint8Array | null;
-  /** Brow and lash colours of a painted preset. Clay strands carry none. */
   readonly colours: {
     readonly brow: Rgb;
     readonly browTip: Rgb;
@@ -245,7 +222,6 @@ const artwork: Readonly<Record<string, BrowName>> = {
   Untrimmed: "eyebrow012",
 };
 
-/** Brow and lash colours of a painted preset, for hair of `hair` on skin of `skin`. */
 export function strandColours(
   hair: T.Color,
   skin: T.Color,
@@ -254,14 +230,11 @@ export function strandColours(
   const rgb = (c: T.Color): Rgb => [c.r, c.g, c.b];
   const light = (c: T.Color) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b,
     most = Math.min(0.05, 0.3 * light(skin));
-  // Brows that have not greyed are darker than the skin they grow on, whatever the scalp hair is dyed.
   const brow = browPigment(hair, skin, age);
   const browTip = brow.clone().lerp(hair, 0.14 + 0.14 * age);
   const tipLimit = Math.min(0.82 * light(skin), 1.75 * light(brow) + 0.013);
   if (light(browTip) > tipLimit) browTip.multiplyScalar(tipLimit / light(browTip));
-  // Lashes are darker than scalp hair, and fair hair still has brown lashes.
   const lash = hair.clone().lerp(new T.Color("#120d0b"), 0.72);
-  // Lashes stay well darker than the lid they grow from, whatever the hair.
   if (light(lash) > most) lash.multiplyScalar(most / light(lash));
   const lashTip = lash.clone().lerp(skin, 0.22);
   return {
@@ -273,19 +246,16 @@ export function strandColours(
   };
 }
 
-/** The brow card a style names; "As drawn" follows the brow height measurement. */
 export function fittedBrow(browStyle: string | undefined, browHeight: number): BrowName {
   return (browStyle && artwork[browStyle]) || (browHeight > 0.18 ? "eyebrow003" : "eyebrow001");
 }
 
-/** Both brows and both lash rows as one mesh named "brows-and-lashes". */
 export function browsAndLashes(
   head: StrandHead,
   look: BrowLook,
   material: (color: string) => T.Material,
 ): T.Mesh {
   const { cage, positions, origin } = head;
-  // A point inside the head behind the eyes, for the way brow strands are lit.
   const inside = new T.Vector3(),
     box = new T.Box3(),
     v = new T.Vector3();
@@ -314,7 +284,6 @@ export function browsAndLashes(
   };
   if (look.brows)
     strands(head.body.strands(look.brow), head, () => brow, sink, inside, look.parted);
-  // The source cards are a few millimetres deep. Real upper lashes are about 8 mm long.
   const upper: StrandLook = {
     density: 0.96 - 0.22 * age,
     length: 2.55 - 0.35 * frame - 0.35 * age,
@@ -335,7 +304,6 @@ export function browsAndLashes(
     tip: c?.lashTip ?? none,
     facing: [0, -0.3, 0.95],
   };
-  // Brow vertices come first, then lash vertices.
   const browVertices = sink.position.length / 3;
   strands(head.body.strands("eyelashes01"), head, (low) => (low ? under : upper), sink, inside);
   const geometry = new T.BufferGeometry();
@@ -359,7 +327,6 @@ export function browsAndLashes(
     m.vertexColors = true;
     m.roughness = 0.62;
   }
-  // Keep every strand in a game export. A thinned strand would break into slivers.
   m.userData = { ...m.userData, fibreLOD: true };
   const mesh = new T.Mesh(geometry, m);
   mesh.name = "brows-and-lashes";

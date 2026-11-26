@@ -16,6 +16,8 @@ This repository houses tools for game creation. The first design study is in [th
 
 Keep character recipes, generated assets and export formats distinct. Keep character assets and examples suitable for a public MIT project and record the origin and license of any contributed art. Use local validation. Before pushing documentation changes run `git diff --check HEAD`, check local links, and open the HTML at desktop and phone widths.
 
+Keep explanations in documentation. Code must pass the repository-wide no-comments rule (`pnpm check:comments`). Preserve interpreter directives and required legal notices.
+
 ## Tests, documentation and distribution
 
 - Budget a test against the regression it catches and the wall time it adds to developers' usual edit loop. Reuse existing coverage. For a costly check, record its cold and warm times, the failure it detects and when to run it. Keep focused checks fast. Run GPU comparisons, full-corpus checks, real-host exercises and installer rehearsals locally at their relevant gates.

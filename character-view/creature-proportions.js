@@ -1,7 +1,5 @@
 import { MathUtils } from "three";
 
-// Resolve conflicts between independently drawn proportions once, when a
-// new plan is sampled. The resulting numbers remain ordinary editable values.
 export function placeDrawnAnatomy(plan) {
   const { spine, head, limbs } = plan;
   const leg = limbs.find((l) => l.kind === "leg");
@@ -15,7 +13,6 @@ export function placeDrawnAnatomy(plan) {
     ((leg.to - leg.from) * spine.length) / (leg.pairs - 1) <
       2.35 * spine.girth * leg.girth;
   if (crowdedFootprint) {
-    // A shoulder, three knees and a hip need longitudinal clearance.
     const stationSpan = Math.max(0.55, leg.to - leg.from);
     spine.length = Math.min(
       3,
@@ -31,14 +28,11 @@ export function placeDrawnAnatomy(plan) {
     head.neck = Math.max(head.neck, spine.girth * 1.23);
     head.neckPitch = Math.min(head.neckPitch, 30);
     if (head.eyes === 1 && head.eyePlace === "front") {
-      // A single frontal eye sits high on a ground-feeder's skull.
       head.eyePlace = "top";
       head.eyeSize = Math.max(head.eyeSize, 1.16);
     }
   }
   if (upright && leg.pairs === 1 && leg.style === "pillar") {
-    // A planted hind column can support a forward-reaching shoulder.
-    // Keep the pelvis and knees upright; pitch the breast and neck ahead.
     spine.rear = MathUtils.lerp(44, 64, (spine.rear - 65) / 25);
     spine.front = MathUtils.lerp(22, 42, (spine.front - 65) / 27);
     spine.arch = Math.max(4, spine.arch);
@@ -55,8 +49,6 @@ export function placeDrawnAnatomy(plan) {
     );
   }
   if (upright && leg.pairs >= 3 && leg.style === "insect" && wing) {
-    // Give a radial flier a low abdomen and lift the flight thorax.
-    // Feet still fan around both ends, but their thoracic roots span the body.
     spine.rear = 8 + 0.13 * (spine.rear - 65);
     spine.front = 36 + 0.7 * (spine.front - 65);
     spine.length = Math.max(
@@ -83,8 +75,6 @@ export function placeDrawnAnatomy(plan) {
     );
   }
   if (leg.end === "paddle" && leg.side === "both") {
-    // A broad foot on a short, thick column can cross its opposite partner.
-    // Give its tarsus room to fan out across the animal's support polygon.
     const ankleFraction = {
       pillar: 0.496,
       mammal: 0.2116,
@@ -106,7 +96,6 @@ export function placeDrawnAnatomy(plan) {
         l.drop < 50 &&
         l.forward > 25,
     )) {
-      // Keep the feeding and grasping arcs apart in the rest pose.
       arm.drop = Math.max(64, arm.drop);
       arm.forward = Math.min(24, arm.forward);
     }

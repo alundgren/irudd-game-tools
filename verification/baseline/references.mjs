@@ -1,17 +1,3 @@
-// G0 baseline: freeze what the optional private reference material switches on.
-//
-// usage: node PATH/TO/verification/baseline/references.mjs OUT_DIR
-//
-// Run it in a reference checkout (2761eb14 or runtime-identical) where the private sets from
-// docs/local-references.md are installed at their ignored paths. It records, as text only:
-//   - each optional set from scripts/local-references.mjs: present, partial or absent, and the
-//     SHA-256 and size of every installed file (never the bytes)
-//   - the values examples/local-references.js exposes: rig ids and fit ids
-//   - `npm run build` with the references and again with WORKSHOP_REFERENCES=none: the
-//     build's own "included" line, the dist files and their hashes
-//   - the focused tests that need the material (radial-fit and local-references modules)
-// and writes OUT_DIR/references-config.json. browser.py references drives the built pages.
-// The checkout's dist/ is rebuilt, so use a scratch checkout, not one someone is serving.
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
@@ -31,7 +17,6 @@ const sets = referenceSets.map((s) => {
   return { name: s.name, source: s.source, state: present.length === s.files.length ? "installed" : present.length ? "partial" : "absent",
     missing: s.files.filter((f) => !existsSync(f)), enables: s.enables };
 });
-// Every ignored file under the private paths the workshop reads, hashed.
 const privatePaths = ["examples/mhr-reference.glb", "examples/mhr-fit.json", "examples/reference-fits.json", "examples/workshop-body-fits.json",
   "examples/human-targets", "examples/human-targets-fits", "examples/head-targets-fits"];
 const installed = privatePaths.filter((p) => existsSync(p)).flatMap(files).map((f) => ({ file: f, bytes: statSync(f).size, sha256: sha(f),
@@ -52,11 +37,10 @@ function build(env) {
   if (r.status !== 0) throw new Error("build failed: " + r.stderr);
   return { workshopReferences: env.WORKSHOP_REFERENCES ?? "(unset)", included: r.stdout.split("\n").find((l) => /reference/.test(l))?.trim(),
     dist: Object.fromEntries(readdirSync("dist").filter((f) => f.endsWith(".html")).sort().map((f) => [f, sha(`dist/${f}`)])),
-    // The tracked shell keeps the rig comparison link; entry.js removes it at run time when absent.
     compareMhrLinksInEditorHtml: links(readFileSync("dist/character-view.html", "utf8")) };
 }
 const builds = { withReferences: build({}), referencesNone: build({ WORKSHOP_REFERENCES: "none" }) };
-builds.restored = build({}); // leave the checkout built with its references again
+builds.restored = build({});
 
 const tests = ["character-view/radial-fit.test.js", "examples/local-references.test.js"];
 const tap = spawnSync(process.execPath, ["--test", "--test-reporter=tap", ...tests], { encoding: "utf8" });

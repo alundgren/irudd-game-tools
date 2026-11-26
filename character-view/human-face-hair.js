@@ -8,10 +8,6 @@ import {beardGroom} from "./human-beard-groom.js";
 import {tintedStrands} from "./human-library.js";
 import {expressionDisplacements} from "./human-surface.js";
 
-// Each style gives the depth of hair in millimetres over the moustache, chin and side zones,
-// which zones the skin paint covers, how solid that paint is, how many tufts of strands cover
-// it and how many single loose strands break up the outline. Under standing hair the paint is nearly solid: the
-// skin there is the colour of the roots, so the locks sit on hair and not on bare skin.
 const styles={
   "Clipped beard":{thick:[1.3,2.1,1.5],cover:[1,1,1],paint:0,tufts:0,strands:48},
   Stubble:{thick:[0,0,0],cover:[1,1,1],paint:.5,tufts:0,strands:0},
@@ -22,12 +18,9 @@ const styles={
 export const facialHairNames=["None",...Object.keys(styles)];
 export const facialHairStyle=name=>styles[name]??null;
 
-// The zones are stored as small grids over the face rectangle of the skin layout.
 const layout=2048,[left,top,right,bottom]=data.rect,[columns,rows]=data.growth.size;
 let grids;
-/** Where a texture coordinate of the skin layout falls in the face rectangle, 0 to 1 each way. */
 export const facePoint=(u,v)=>[(u*layout-left)/(right-left),((1-v)*layout-top)/(bottom-top)];
-/** Moustache, chin and side growth at a point of the face rectangle, each 0 to 1. */
 export function growthAt(x,y,out=[0,0,0]){
   grids??=["moustache","chin","side"].map(key=>unzlibSync(Uint8Array.from(atob(data.growth[key]),c=>c.charCodeAt(0))));
   if(!(x>=0&&x<=1&&y>=0&&y<=1)){out[0]=out[1]=out[2]=0;return out;}
@@ -42,26 +35,14 @@ export function growthAt(x,y,out=[0,0,0]){
 
 const smooth=(v,a,b)=>{const t=Math.min(1,Math.max(0,(v-a)/(b-a)));return t*t*(3-2*t);};
 const hash=(i,j,seed)=>((Math.imul(i+seed,374761393)^Math.imul(j+7,668265263)^Math.imul(i*j+13,2246822519))>>>0)/4294967296;
-// Smooth noise over a lattice, used for the clumps that run down a beard.
 function noise(x,y,seed){
   const i=Math.floor(x),j=Math.floor(y),a=x-i,b=y-j,u=a*a*(3-2*a),v=b*b*(3-2*b);
   return (hash(i,j,seed)*(1-u)+hash(i+1,j,seed)*u)*(1-v)+(hash(i,j+1,seed)*(1-u)+hash(i+1,j+1,seed)*u)*v;
 }
 
-/**
- * Facial hair grown from the head skin: a mass that stands off the skin by the style's depth,
- * closed where it ends, tufts of strands over it as a child mesh, and loose strands pushed into
- * `sink`. In colour the mass is only the deep middle of the hair, in shadow; the tufts cover it
- * and reach past it onto the skin, so the outline is the tips of strands and the hair thins out
- * to its border. Every vertex carries the expression offsets of the skin under it, so the hair
- * follows the jaw, lips and cheeks.
- * Call this while the head still has the texture coordinates of the skin layout.
- */
 export function facialHair(skin,form,material,plain,sink,colours,fit=null,game=false){
   const style=styles[form.humanStyle?.facialHair];
   if(!style||!style.thick.some(Boolean))return null;
-  // Short and full beards use the original anatomical lock-and-hair groom in colour.
-  // Moustache keeps its credited CC0 strand groom; clay keeps the sculpted mass below.
   if(fit&&!plain){
     const grown=beardGroom(skin,form,material,colours,fit,game);
     if(grown)return grown;
@@ -80,26 +61,17 @@ export function facialHair(skin,form,material,plain,sink,colours,fit=null,game=f
   for(let i=0;i<count;i++){
     const [x,y]=facePoint(uv.getX(i),uv.getY(i));
     growthAt(x,y,w);
-    // Hair thins as it climbs the cheek to the sideburn, and toward the edge of the face
-    // paint, where the beard has to end.
     const climb=.3+.7*smooth(x,.5,.78),rim=smooth(Math.min(x,1-x)*(right-left),2,24)*smooth(Math.min(y,1-y)*(bottom-top),2,24);
     let deep=0;
     for(let k=0;k<3;k++)deep=Math.max(deep,style.thick[k]*smooth(w[k],.1,.75)*(k===2?climb:1));
     deep*=rim;
     if(!deep)continue;
-    // Clumps run down the face: narrow across it, long along it.
     const clump=noise(x*17,y*85,seed%977),fine=noise(x*60,y*230,seed%613);
     depth[i]=deep*(.74+.4*clump+.12*fine);
-    // A moustache lies along the lip. Hair on the chin and jaw hangs.
     droop[i]=.22+.5*Math.max(w[1],w[2])*smooth(deep,3,12);
     shade[i]=.7+.42*clump+.16*fine;
     upper[i]=w[0]>Math.max(w[1],w[2])?1:0;
   }
-  // The mass covers the skin wherever hair stands at least a third of a millimetre deep, and
-  // is cut along that depth, so its outline is a smooth line and not the edges of the skin's
-  // triangles. Thinner growth is left to the paint, which fades out past the outline.
-  // Each vertex of the mass sits on a skin vertex, or part of the way along a skin edge.
-  // In clay there are no tufts, and the mass is the whole of the hair.
   const least=plain?.3:2.2,slot=new Int32Array(count).fill(-1),crossings=new Map(),from=[],triangles=[];
   const corner=v=>{if(slot[v]<0){slot[v]=from.length;from.push([v,v,0]);}return slot[v];};
   const crossing=(inside,outside)=>{
@@ -114,7 +86,6 @@ export function facialHair(skin,form,material,plain,sink,colours,fit=null,game=f
     const v=[index[t],index[t+1],index[t+2]],covered=v.map(i=>depth[i]>=least),some=covered[0]+covered[1]+covered[2];
     if(!some)continue;
     if(some===3){triangles.push(corner(v[0]),corner(v[1]),corner(v[2]));continue;}
-    // Turn the triangle so the odd corner comes first; the winding stays as it was.
     const first=covered.indexOf(some===1),[a,b,c]=[v[first],v[(first+1)%3],v[(first+2)%3]];
     if(some===1)triangles.push(corner(a),crossing(a,b),crossing(a,c));
     else{
@@ -137,11 +108,9 @@ export function facialHair(skin,form,material,plain,sink,colours,fit=null,game=f
     d.set(0,-1,.12).multiplyScalar(along(droop,source,0,1)).add(n).normalize();
     const deep=deepAt(source);
     put(source,deep*mm);
-    // Under its tufts the mass is hair in shadow.
     const tone=.84*Math.min(1.25,shade[source[0]]||.9);
     colour.push(Math.min(1,hair.r*tone),Math.min(1,hair.g*tone),Math.min(1,hair.b*tone));
   }
-  // Close the open border with a wall down to the skin, so a deep beard has an underside.
   const edges=new Map();
   for(let t=0;t<triangles.length;t+=3)for(let k=0;k<3;k++){
     const a=triangles[t+k],b=triangles[t+(k+1)%3],key=a<b?a*raised+b:b*raised+a;
@@ -185,7 +154,6 @@ export function facialHair(skin,form,material,plain,sink,colours,fit=null,game=f
     if(tufts)mesh.add(tufts);
   }
 
-  // Loose strands, rooted in the mass and swept the way the hair grows.
   const next=randomStream(seed^0x51ed270b),shell=geometry.attributes.position,normal=geometry.attributes.normal;
   const areas=[],a=new T.Vector3(),b=new T.Vector3(),c=new T.Vector3(),ab=new T.Vector3(),ac=new T.Vector3();
   let total=0;
@@ -213,7 +181,6 @@ export function facialHair(skin,form,material,plain,sink,colours,fit=null,game=f
     });
     n.normalize();
     const lip=upper[from[ids[0]][0]]+upper[from[ids[1]][0]]+upper[from[ids[2]][0]]>1;
-    // Hair above the lip sweeps out to the corners. Elsewhere it grows down and forward.
     flow.set(lip?Math.sign(root.x||1)*.8:(next()-.5)*.35,lip?-.5:-1,.12);
     flow.addScaledVector(n,-flow.dot(n)).normalize().addScaledVector(n,.18+.3*next()).normalize();
     const length=((.45+.75*next())*deep+1.3)*mm,width=(.3+.32*next())*mm;
@@ -240,11 +207,6 @@ export function facialHair(skin,form,material,plain,sink,colours,fit=null,game=f
   return mesh;
 }
 
-/**
- * Tufts of strands over facial hair: cards rooted on the skin, or on the mass where the hair is deep,
- * that lie the way the hair grows. They are drawn with the strand picture of the scalp grooms and kept
- * whole in a game model.
- */
 function facialTufts(skin,style,{depth,droop,shade,upper,least,mm,seed,hair,skinTone},material){
   const g=skin.geometry,pos=g.attributes.position.array,nor=g.attributes.normal.array,index=g.index.array,moves=g.morphAttributes.position??[];
   const thin=.35,patches=[],a=new T.Vector3(),b=new T.Vector3(),c=new T.Vector3();
@@ -253,7 +215,6 @@ function facialTufts(skin,style,{depth,droop,shade,upper,least,mm,seed,hair,skin
     const deep=(depth[index[t]]+depth[index[t+1]]+depth[index[t+2]])/3;
     if(deep<thin)continue;
     a.fromArray(pos,index[t]*3);b.fromArray(pos,index[t+1]*3).sub(a);c.fromArray(pos,index[t+2]*3).sub(a);
-    // Deep hair is covered most thickly. Towards its border the tufts thin out.
     total+=b.cross(c).length()*Math.sqrt(deep)*(.2+.8*smooth(deep,thin,1.8));
     patches.push([total,t]);
   }
@@ -274,12 +235,10 @@ function facialTufts(skin,style,{depth,droop,shade,upper,least,mm,seed,hair,skin
       deep+=weight*depth[ids[k]];drop+=weight*droop[ids[k]];tone+=weight*(shade[ids[k]]||.9);lip+=weight*upper[ids[k]];
     });
     n.normalize();
-    // Hair above the lip sweeps out to the corners. Elsewhere it grows down and a little forward.
     const upperLip=lip>.5;
     flow.set(upperLip?Math.sign(root.x||1)*(.75+.3*next()):(next()-.5)*.5,upperLip?-.55:-1,.1);
     flow.addScaledVector(n,-flow.dot(n)).normalize();
     side.crossVectors(n,flow).normalize();
-    // Where the hair is deep a tuft starts in the mass and ends over it; near the border it starts on the skin.
     hang.set(0,-1,.12).multiplyScalar(drop).add(n).normalize();
     const edge=1-smooth(deep,thin,1.8),length=Math.min(16,Math.max(6,4.5+.9*deep))*(.75+.45*next())*(1-.35*edge)*mm,width=Math.min(7.5,Math.max(3.6,.6*length/mm))*(.85+.3*next())*(1-.35*edge)*mm;
     root.addScaledVector(hang,(deep>=least?.72*deep:.25)*mm);
@@ -294,7 +253,6 @@ function facialTufts(skin,style,{depth,droop,shade,upper,least,mm,seed,hair,skin
         point.y-=length*.14*along*along;
         position.push(point.x,point.y,point.z);
         normal.push(n.x,n.y,n.z);
-        // The last hairs before bare skin are fine and take some of its colour.
         const light=value*(.82+.24*along),fine=.55*edge;
         colour.push(...["r","g","b"].map(k=>Math.min(1,hair[k]*light)*(1-fine)+skinTone[k]*fine));
         uv.push((tile[0]+2+(tile[2]-4)*((sign<0)!==flip?0:1))/256,1-(tile[1]+1.5+(tile[3]-3)*(1-along))/256);
@@ -321,7 +279,6 @@ function facialTufts(skin,style,{depth,droop,shade,upper,least,mm,seed,hair,skin
   }
   const m=material("#ffffff").clone();
   m.vertexColors=true;m.roughness=.74;m.map=tuftMap();m.alphaTest=.4;m.side=T.DoubleSide;
-  // The tufts are already as few as a game model can carry, so its export keeps every one.
   m.userData={...m.userData,fibreLOD:true};
   const mesh=new T.Mesh(geometry,m);
   mesh.name="facial-hair-tufts";mesh.castShadow=false;mesh.updateMorphTargets();

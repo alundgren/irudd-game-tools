@@ -1,18 +1,3 @@
-// The painted face and body skin of the textured presets (paint, faceMaterial,
-// skinMaterial and their helpers in character-view/human-complexion.js at
-// 2761eb1, with expressionLines from human-dermal.js and skinPigment from
-// human-photo-detail.js).
-//
-// The face is painted at the stored size of the face rectangle of the 2048 px
-// skin layout, in linear light against the body's own skin colour, and drawn
-// at twice that density with the brows and lash lines over it. The order of
-// every canvas step and every sum follows G0, so the same browser paints the
-// same pixels. Only the looks an adult the generator describes can take are
-// painted: the portrait finish donors always paint, and a Portrait or
-// Captured complexion lays its own skin over them. Everyday makeup stains the
-// lips, lids and cheeks (mixMakeup in human-makeup.js); facial hair is not
-// part of the adult's parameters yet.
-
 import * as T from "three";
 import { context2d, type Raster, type RasterImage } from "../raster.js";
 import type { BrowName, HumanBody } from "./body.js";
@@ -32,7 +17,6 @@ import {
 
 const layout = 2048,
   density = 2;
-/** The hair colour G0 gave a seeded adult's appearance; brows and lashes are inked in it unless the style names one. */
 export const seededHairColor = "#45352e";
 
 const mix = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -56,13 +40,8 @@ const srgbUnitToLinear = (v: number) => {
 const headGain = 1.46;
 const at = (array: ArrayLike<number>, i: number) => array[i] ?? 0;
 
-/** How strongly the painted anatomy of a face reads at portrait distance. */
 const portraitRead = { browMass: 0.34, browInk: 1.35 } as const;
 
-/**
- * Reversible per-channel head base and exact neutral border byte: bare skin
- * stored at `neutral[k]` multiplies by `base[k]` back to the skin colour.
- */
 export function headroomForSkin(
   skin: T.Color,
   gain = headGain,
@@ -81,7 +60,6 @@ export function headroomForSkin(
   }
   return { neutral, base };
 }
-/** The paint value that turns this skin into `target`, never brighter than bare skin. */
 function tintOn(skin: T.Color, target: T.Color): [number, number, number] {
   const encode = (v: number) =>
     Math.round(255 * (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055));
@@ -134,7 +112,6 @@ const detailOrder: ReadonlyArray<DetailName> = [
   "Soft lines",
 ];
 
-/** How a face's paint is chosen: G0's `lookFromForm`. */
 export interface ComplexionLook {
   readonly choice: string;
   readonly ageDetail: DetailName;
@@ -145,7 +122,6 @@ export interface ComplexionLook {
   readonly seed: number;
   readonly brow: BrowName;
   readonly photoBrows: boolean;
-  /** Everyday makeup, or "None". */
   readonly makeup: string;
 }
 export function complexionLook(params: HumanAdultParams, brow: BrowName): ComplexionLook {
@@ -180,7 +156,6 @@ export interface ComplexionProfile {
   readonly mottleAmp: number;
   readonly beard: number;
 }
-/** Skin-tone-relative reflectance and colour variation. */
 export function complexionProfile(look: ComplexionLook): ComplexionProfile {
   const c = look.skin;
   const light = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
@@ -217,7 +192,6 @@ export function complexionProfile(look: ComplexionLook): ComplexionProfile {
   };
 }
 
-/** What one texel of a detail map does to bare skin: a multiplier per channel. */
 function detailTint(
   r: number,
   g: number,
@@ -240,7 +214,6 @@ function detailTint(
   ];
 }
 
-// Band-limited tileable micro-pore height field, used only for relief and roughness.
 function poreReliefTile(seed: number, size = 96): Float32Array {
   const next = randomStream(seed ^ 0x2f6b1d);
   const grid = new Float32Array(size * size);
@@ -287,11 +260,6 @@ const finishRead = {
   lipChromaBroad: 0.56,
 } as const;
 
-/**
- * Which donor skins paint a face, as [donor, share] pairs adding to one: they
- * match age, depth of skin and breadth of frame, and the seed chooses among
- * equals. Near a boundary the donors of both sides cross-fade.
- */
 export function finishDonors(look: ComplexionLook, paint: HumanPaint): Array<[number, number]> {
   const c = look.skin;
   const deep = 1 - smooth(0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b, 0.085, 0.125),
@@ -336,7 +304,6 @@ export function finishDonors(look: ComplexionLook, paint: HumanPaint): Array<[nu
   return [...shares];
 }
 
-// Crease relief of expression lines on the face rectangle (human-dermal.js).
 const lineFields = new WeakMap<HumanBody, Map<number, Int8Array>>();
 function expressionLines(body: HumanBody, seed: number): Int8Array {
   const variant = (seed >>> 5) % 6;
@@ -394,7 +361,6 @@ function expressionLines(body: HumanBody, seed: number): Int8Array {
   return height;
 }
 
-// Signed variation in bare-skin colour from a cheek study; rotation and phase vary with the seed.
 function skinPigment(
   paint: HumanPaint,
   seed: number,
@@ -432,7 +398,6 @@ function skinPigment(
   };
 }
 
-/** The brow ink: the hair's roots in shadow, never lighter than a share of the skin. */
 export function browPigment(hair: T.Color, skin: T.Color, age: number): T.Color {
   const light = (c: T.Color) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
   const root = new T.Color("#30251f").lerp(hair, 0.23);
@@ -443,7 +408,6 @@ export function browPigment(hair: T.Color, skin: T.Color, age: number): T.Color 
   return root;
 }
 
-/** The paint sources, decoded once in a page: the pixels G0's `loadComplexions` held. */
 export interface HumanPaintSources {
   readonly raster: Raster;
   readonly paint: HumanPaint;
@@ -451,9 +415,7 @@ export interface HumanPaintSources {
   readonly height: number;
   readonly left: number;
   readonly top: number;
-  /** Detail maps of Fine, Weathered, Lined and Soft lines. */
   readonly maps: ReadonlyArray<Uint8ClampedArray>;
-  /** Tone, zones, eyes and ambient visibility fields. */
   readonly fields: readonly [
     Uint8ClampedArray,
     Uint8ClampedArray,
@@ -462,7 +424,6 @@ export interface HumanPaintSources {
   ];
   readonly dermal: ReadonlyArray<Uint8ClampedArray>;
   readonly brows: ReadonlyMap<PaintBrowName, RasterImage>;
-  /** The body relief, shared by every body skin material as G0 shared its loaded textures. */
   readonly body: { readonly normalMap: T.Texture; readonly roughnessMap: T.Texture };
   readonly finish: {
     readonly donors: ReadonlyArray<RasterImage>;
@@ -473,19 +434,15 @@ export interface HumanPaintSources {
   };
   readonly cast: ReadonlyMap<string, readonly [Uint8ClampedArray, Uint8ClampedArray]>;
   readonly captured: ReadonlyMap<string, readonly [Uint8ClampedArray, Uint8ClampedArray]>;
-  /** Each authored groom's strand picture and normal map, loaded as G0 loaded its library maps. */
   readonly grooms: ReadonlyMap<GroomName, GroomMaps>;
 }
 
 export interface GroomMaps {
-  /** The decoded strand picture, which a hair colour tints. */
   readonly picture: RasterImage;
-  /** The strand picture, in sRGB. */
   readonly texture: T.Texture;
   readonly normal: T.Texture;
 }
 
-/** Decode every paint source through `raster`, as G0 decoded its data images. */
 export async function prepareHumanPaint(
   raster: Raster,
   paint: HumanPaint,
@@ -579,7 +536,6 @@ export interface PaintedFace {
   readonly skinColor: readonly [number, number, number];
 }
 
-/** Paint one face. */
 export function paintFace(
   body: HumanBody,
   sources: HumanPaintSources,
@@ -595,7 +551,6 @@ export function paintFace(
   const fin = sources.finish,
     finish = finishRead,
     encoding = paint.finish;
-  // With the finish, tone zones come from the donor paint; the detail map's blotches stay out of it.
   const profile = { ...complexionProfile(look), mottleAmp: 0 };
   const makeup = makeupPalette(look.makeup);
   const donorPixels = (index: number) => {
@@ -686,7 +641,6 @@ export function paintFace(
           lids,
         )
       : [1, 1, 1];
-    // The donor paint carries lips, lids, sockets and cheeks itself: the zone tints stay at one.
     const tints = [
       plane * detR * mix(1, at(stubble, 0), growth) * mix(1, at(dense, 0), cover),
       plane * detG * warmG * mix(1, at(stubble, 1), growth) * mix(1, at(dense, 1), cover),
@@ -694,7 +648,6 @@ export function paintFace(
     ];
     let pigLinear: number[];
     {
-      // Artist-authored paint of the matched donors, in linear light.
       const chroma = donorChroma * (1 - (1 - lipChroma) * lips),
         weight = 1 - cover;
       if (onlyDonor)
@@ -706,7 +659,6 @@ export function paintFace(
           weight,
         );
       else {
-        // Donors cross-fade in the logarithm their bytes hold.
         let r = 0,
           g = 0,
           b = 0;
@@ -774,7 +726,6 @@ export function paintFace(
     }
     colour.data[i + 3] = 255;
 
-    // Skin-tone-relative reflectance, matching bodyRoughness at mask 0, stored in green against roughness 0.8.
     let roughVal = mix(profile.bodyRoughness, profile.faceRoughness, mask);
     roughVal -= profile.shineDrop * shine * mask * (1 - cover);
     roughVal -=
@@ -798,13 +749,11 @@ export function paintFace(
         (photo / 255) * 0.08) *
       skinArea;
     roughVal = clamp(roughVal - 0.11 * sebum - 0.035 * crease, 0.24, 0.8);
-    // Red holds local ambient visibility, multiplied into indirect light only.
     gloss.data[i] = at(visibility, i);
     gloss.data[i + 1] = Math.round(255 * (roughVal / 0.8));
     gloss.data[i + 2] = 0;
     gloss.data[i + 3] = 255;
 
-    // Centred height field, 128 flat.
     const lipGrain = lips * mask * procPore * 4.5;
     let high =
       128 +
@@ -817,8 +766,6 @@ export function paintFace(
       104 * ridge +
       105 * crease;
     {
-      // The finish reads heights at a larger scale; a young face takes the donor's pores and the forms of lips
-      // and lids, and his lines come back only as the person ages.
       const forms = Math.max(
           lips,
           mix(0.4, 0.7, ageLines) * Math.max(lids, 0.6 * socket),
@@ -868,7 +815,6 @@ export function paintFace(
   const map = enlarge(small),
     roughness = enlarge(rough),
     height2 = enlarge(relief);
-  // Brow and lash strokes, drawn on white at full density and multiplied into the colour only.
   const fine = raster.canvas(w, h),
     f = context2d(fine);
   f.fillStyle = "#fff";
@@ -888,9 +834,6 @@ export function paintFace(
     inkLayer.globalCompositeOperation = "source-in";
     inkLayer.fillStyle = ink(browPigment(hair, skin, age));
     inkLayer.fillRect(0, 0, tint.width, tint.height);
-    // The mass of the brow: the same hairs out of focus, so the brow is a dark shape before it is single
-    // hairs. The face lies on its side in the layout, so a brow is thickened along x. A brow drawn as one
-    // fine line gains a body this way; a full brow gains a soft edge.
     f.save();
     f.filter = "blur(" + 1.8 * density + "px)";
     f.globalAlpha = portraitRead.browMass;
@@ -903,7 +846,6 @@ export function paintFace(
     f.globalAlpha = 1;
   }
   f.lineCap = "round";
-  // The lash line along each lid margin.
   const lash = hair.clone().lerp(new T.Color("#120d0b"), 0.7);
   for (const lidLine of body.chart.lids) {
     const p = lidLine.points;
@@ -934,7 +876,6 @@ export function paintFace(
     }
   }
   f.globalAlpha = 1;
-  // Keep brow and lash marks inside the face mask, with its soft edge.
   const coverCanvas = raster.canvas(width, height),
     cover2d = context2d(coverCanvas),
     alpha = new ImageData(width, height);
@@ -945,7 +886,6 @@ export function paintFace(
   const mc = context2d(map);
   mc.globalCompositeOperation = "multiply";
   mc.drawImage(fine, 0, 0);
-  // The lining of the mouth: dark and red, damp rather than wet, holding little ambient light.
   const [patchX, patchY, patchHalf] = body.chart.mouthPatch;
   const inner = (patchHalf + 4) * density,
     cx = patchX * density,
@@ -979,7 +919,6 @@ export function paintFace(
   };
 }
 
-/** The face's material: the painted face over the base skin material. */
 export function faceMaterial(
   base: T.MeshStandardMaterial,
   body: HumanBody,
@@ -1000,7 +939,6 @@ export function faceMaterial(
     bumpScale: sources.captured.has(look.choice) ? 0.0016 : finishRead.bumpScale,
     roughness: 0.8,
   });
-  // A game export gives a face more of its shared texture page.
   material.userData = {
     ...material.userData,
     portrait: true,
@@ -1012,10 +950,6 @@ export function faceMaterial(
   return material;
 }
 
-/**
- * Body skin: the face border's skin-relative roughness, so the neck, jaw and
- * ear seam stays invisible, with the body relief maps.
- */
 export function skinMaterial(
   base: T.MeshStandardMaterial,
   sources: HumanPaintSources,
@@ -1029,7 +963,6 @@ export function skinMaterial(
   return material;
 }
 
-/** Read a head's texture coordinates as positions in the face rectangle (G0's fitFaceLayout). */
 export function fitFaceLayout(
   geometry: T.BufferGeometry,
   sources: HumanPaintSources,

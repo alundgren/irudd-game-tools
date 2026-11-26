@@ -1,4 +1,3 @@
-// Backups, restores and portable document archives, with their artwork.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
@@ -20,7 +19,6 @@ import {
   tempDir,
 } from "./support/fixtures.js";
 
-/** A project with two documents, an edit, a policy entry and referenced artwork. */
 async function populated(dir: string) {
   return run(
     Effect.gen(function* () {
@@ -30,7 +28,7 @@ async function populated(dir: string) {
       yield* session.apply(generate(undefined, "doc-other01"));
       const part = (yield* project.current(docId)).document?.parts[0]?.id ?? "";
       const art = yield* session.putBlob({ bytes: pngBytes(8192), mediaType: "image/png" });
-      yield* session.putBlob({ bytes: pngBytes(512), mediaType: "image/png" }); // staged, never referenced
+      yield* session.putBlob({ bytes: pngBytes(512), mediaType: "image/png" });
       yield* session.apply(
         request(1, {
           type: "edit",
@@ -67,7 +65,6 @@ test("backup writes one verified file; restore rebuilds the project with history
       const started = performance.now();
       const result = yield* project.backup(target);
       const ms = performance.now() - started;
-      // Writes continue after a backup.
       const session = yield* project.session({ actor: human });
       const after = yield* session.apply(
         request(3, { type: "policy.set", agentDirectEdit: false }),
@@ -91,7 +88,6 @@ test("backup writes one verified file; restore rebuilds the project with history
     Effect.gen(function* () {
       const project = yield* openProject({ path: restored, registry });
       const journal = yield* project.journal(docId);
-      // The backup was taken before the last policy entry.
       assert.deepEqual(
         journal.map((e) => canonicalJson(journalJson(e))),
         bytes,
@@ -124,7 +120,6 @@ test("a damaged backup is refused and the restore leaves nothing behind", async 
   assert.ok(!fs.existsSync(path.join(restored, projectFileName)));
 });
 
-/** The JSON `irudd.document-archive` v1 an earlier build wrote; it must keep opening. */
 async function legacyArchive(dir: string, art: string): Promise<Uint8Array> {
   return run(
     Effect.gen(function* () {
@@ -174,7 +169,6 @@ test("a JSON document archive from an earlier build still carries its journal an
         bytes,
       );
       assert.equal((yield* project.blob(art)).byteLength, 8192);
-      // The imported document keeps working: the next edit appends at sequence 5.
       const next = yield* session.apply(request(3, { type: "policy.set", agentDirectEdit: false }));
       assert.ok(next.kind === "committed" && next.entry.sequence === 5);
       assert.equal((yield* Effect.flip(session.importArchive(archive)))._tag, "DocumentExists");
@@ -187,7 +181,6 @@ test("a JSON document archive from an earlier build still carries its journal an
     }),
   );
 
-  // Tampering anywhere is refused before anything is written.
   const text = new TextDecoder().decode(archive);
   const cases: Array<[string, string]> = [
     ["journal", text.replace("Backed-up trunk", "Backed-up trunc")],

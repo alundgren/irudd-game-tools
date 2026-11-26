@@ -1,8 +1,3 @@
-// Builds dist/rocketbox-study.html, the local comparison page, and optionally writes the two
-// editable forms. The targets, their licence and the recipes live in .reference-cache/rocketbox,
-// which is never committed. Fetch and convert them first (see docs/rocketbox-study.md), then run
-// from the repository root:
-//   node scripts/rocketbox-study/build.mjs [--forms] [--out path/to/page.html]
 import { build } from "esbuild";
 import { existsSync } from "node:fs";
 import { readFile, mkdir, writeFile } from "node:fs/promises";
@@ -10,7 +5,6 @@ import { dirname } from "node:path";
 import { loadStudies, local, need } from "./local.mjs";
 
 need("", "studies.js", "LICENSE-rocketbox.txt", "targets/female-adult-04.glb", "targets/gardener-male-01.glb");
-// compare.mjs measures where each adult stands front to back. Without it the adults stay where they are made.
 if (!existsSync(local + "placement.json")) await writeFile(local + "placement.json", "{}\n");
 const args = process.argv.slice(2);
 const out = args.includes("--out") ? args[args.indexOf("--out") + 1] : "dist/rocketbox-study.html";
@@ -36,7 +30,7 @@ await mkdir(dirname(out), { recursive: true });
 await writeFile(
   out,
   html.replace(
-    "<!-- APP -->",
+    "<template data-workshop-app></template>",
     () =>
       "<!-- Three.js license\n" + three + "\n" + project +
       "\nAdult body and selected apparel derived from CC0 MakeHuman / MPFB community system assets. See docs/licenses/makehuman-cc0.md.\n" +

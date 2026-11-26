@@ -1,18 +1,3 @@
-// The installer's link step, shipped in each build as dist/update/activate.mjs
-// and run with the build's own executable as Node, by install.ps1 and by the
-// app when the person restarts into an update:
-//
-//   "Irudd Workshop.exe" activate.mjs prepare|activate <root> <build>
-//   "Irudd Workshop.exe" activate.mjs rollback|repair <root>
-//
-// `repair` only completes what a killed operation left; every other mode
-// does that first as well.
-//
-// Kill control for the installer rehearsal and tests: with
-// IRUDD_ACTIVATION_PAUSE=<step>[,<step>...] the activator writes
-// <root>\.paused-<step> when it reaches that step and waits until
-// <root>\.paused-<step>.continue appears, or until it is killed there.
-
 import { existsSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";

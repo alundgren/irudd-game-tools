@@ -1,12 +1,9 @@
-// Which GPU path a renderer runs on, so results can say when they come from a software fallback.
-
 import type * as T from "three";
 
 export interface GpuInfo {
   readonly vendor: string;
   readonly renderer: string;
   readonly webgl: string;
-  /** True when the context runs on a software rasteriser (SwiftShader, llvmpipe, WARP). */
   readonly software: boolean;
 }
 

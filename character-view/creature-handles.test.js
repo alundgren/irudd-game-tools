@@ -28,7 +28,6 @@ import { plainModel } from "./creature-plan.test.js";
 import { validateForm } from "./recipe.js";
 import { skinCharacter } from "./skin.js";
 
-// The workshop camera: an orthographic view of a 900 by 700 picture.
 const width = 900,
   height = 700;
 function viewer(from = [2.1, 1.36, 4.25], target = [0, 0.6, 0]) {
@@ -69,7 +68,6 @@ test("every preset offers a thickness handle at five stations and one handle for
       assert.equal(limbs.length, plan.limbs.length, name);
       assert.equal(new Set(handles.map((h) => h.key)).size, handles.length);
       for (const h of girths) {
-        // The handle lies on the outline of the trunk, never inside it.
         const at = frame.at(h.station),
           away = h.point.clone().sub(at.centre);
         const across = away.x / at.radius[0],
@@ -82,7 +80,6 @@ test("every preset offers a thickness handle at five stations and one handle for
         assert.equal(h.station, limbCentre(limb));
         if (limb.side !== "both")
           assert.equal(h.side, limb.side === "left" ? 1 : -1, name);
-        // A handle sits on the side of the body nearer the viewer.
         else if (Math.abs(view.forward.x) > 0.1)
           assert.equal(h.side, view.forward.x < 0 ? 1 : -1, name);
       }
@@ -100,13 +97,11 @@ test("a thickness drag puts the outline of the trunk under the pointer", () => {
           spot = px(h.point),
           centre = px(h.centre);
         const reach = Math.hypot(spot[0] - centre[0], spot[1] - centre[1]);
-        // A trunk seen end-on leaves nothing to drag across.
         if (reach < 8) continue;
         for (const pull of [-0.35, 0.3, 0.8]) {
           const goal = [spot[0] + axis[0] * reach * pull, spot[1] + axis[1] * reach * pull];
           const next = pullGirth(plan, h, axis, goal, px);
           const value = next.spine.bulge[h.index];
-          // Only the dragged station changes.
           assert.deepEqual(
             next.spine.bulge.filter((_, i) => i !== h.index),
             plan.spine.bulge.filter((_, i) => i !== h.index),
@@ -144,14 +139,12 @@ test("a limb drag moves the whole group, both sides and every pair together", ()
       const limb = plan.limbs[h.index];
       const rail = limbRail(frame, limb.kind, h.side, px);
       assert.ok(lineLength(rail) > 24, name);
-      // The handle starts on its own rail.
       const spot = px(h.point);
       assert.ok(Math.abs(nearestAlong(rail, spot) - h.station) < 0.01, name);
       for (const wanted of [0, 0.31, 0.5, 0.77, 1]) {
         const goal = px(limbRoot(frame, limb.kind, wanted, h.side));
         const next = moveLimbs(plan, h.index, nearestAlong(rail, goal));
         const moved = next.limbs[h.index];
-        // The spacing of the pairs is kept and the group stays on the trunk.
         assert.ok(Math.abs(moved.to - moved.from - (limb.to - limb.from)) < 0.002, name);
         assert.ok(Math.min(moved.from, moved.to) >= 0 && Math.max(moved.from, moved.to) <= 1);
         const room = [
@@ -186,7 +179,6 @@ test("moved limbs stay mirrored and keep their regions, joints and clips", () =>
         before.parts.map((p) => p.id).sort(),
         name + ": a limb move changed the set of regions",
       );
-      // Each left limb root has a right twin at the same height and station.
       for (const left of after.parts.filter(
         (p) => p.id.startsWith("left ") && p.parent === "body" && p.shape === "sweep",
       )) {
@@ -198,7 +190,6 @@ test("moved limbs stay mirrored and keep their regions, joints and clips", () =>
       }
     });
   }
-  // A walking animal with hand edits and a saved pose.
   const plan = readCreaturePlan(creaturePresets["Four-legged grazer"]);
   const edited = structuredClone(buildCreature(plan));
   part(edited, "tail").knots[1][3] *= 1.7;

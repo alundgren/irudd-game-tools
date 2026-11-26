@@ -1,8 +1,3 @@
-// Built-in pieces build the legacy library's meshes from the appearance: a
-// head carries its neck, ears, face and hair, its face exports with
-// expressions, and its sculpt and cranial profile reshape it. The parity of
-// tucked-aviator is the slow gate's.
-
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -30,7 +25,6 @@ const isObject = (v: unknown): v is Mutable => typeof v === "object" && v !== nu
 const isMesh = (o: T.Object3D | undefined): o is T.Mesh => o instanceof T.Mesh;
 const isSkinned = (o: T.Object3D | undefined): o is T.SkinnedMesh => o instanceof T.SkinnedMesh;
 
-/** tucked-aviator, with `edit` applied to its head part's features. */
 function aviator(
   edit?: (features: Mutable) => void,
   added: ReadonlyArray<string> = ["figure.sculpt"],

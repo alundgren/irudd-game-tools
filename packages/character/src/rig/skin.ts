@@ -1,13 +1,3 @@
-// Skin a built character onto one skeleton and give it motion clips.
-//
-// Ported from skinCharacter in character-view/skin.js at 2761eb1. Each visible
-// part becomes a region with joints along its centreline. Vertices take the
-// two nearest joints of their region, or of the two strongest owners of a
-// blended skin patch; hand digits get three joints each, and a fitted skirt a
-// grid of cloth joints whose motion each clip carries. Long cloth on an adult
-// hangs from drape joints of its own (human/drape.ts). Hair tails are not part
-// of this builder yet.
-
 import * as T from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import type { BuiltCharacter } from "../build.js";
@@ -25,7 +15,6 @@ import { addDrapeJoints, animateDrapes } from "../human/drape.js";
 import { bindMantleArms } from "./mantle.js";
 import { addSkirtCage, animateSkirts, weightSkirt, type SkirtCage } from "./skirt.js";
 
-/** How a region moves: its movement role, or the clothing role of a part without one. */
 export type { Region, RigRole } from "./region.js";
 
 export interface Rig {
@@ -73,10 +62,6 @@ function centroidAt(
   return n ? result.multiplyScalar(1 / n) : fallback;
 }
 
-/**
- * The effective movement role. An axial spine without a centreline is rigid. A
- * part without a movement role moves as the body region it dresses.
- */
 export function regionRole(part: BuildPart): RigRole {
   if (part.motion === "axial spine" && !part.sweep?.knots.length) return "rigid";
   return part.motion ?? part.wear.role ?? "rigid";
@@ -136,9 +121,6 @@ function centres(s: Region, regions: ReadonlyMap<string, Region>): T.Vector3[] {
   if (bounds.isEmpty()) return [origin];
   const rows = knotRows(s);
   const children = [...regions.values()];
-  // Segmented arms already have authored shoulder, elbow and wrist pivots.
-  // Following those pivots also works when a forearm points up or across the body.
-  // A classic figure's joined legs follow their knee and ankle pivots too.
   const figure = part.seam === "figure";
   const distalRole =
     role === "upper arm"
@@ -161,8 +143,6 @@ function centres(s: Region, regions: ReadonlyMap<string, Region>): T.Vector3[] {
   }
   const first = rows?.[0];
   const last = rows?.at(-1);
-  // A thigh drawn upward from its socket, as on a spider, still starts at that
-  // socket when the next segment hangs from its far end.
   if ((role === "thigh" || role === "shin") && rows && first && last && rows.length > 1) {
     if (first.y < last.y) {
       const next = role === "thigh" ? "shin" : "foot";
@@ -220,19 +200,15 @@ function centres(s: Region, regions: ReadonlyMap<string, Region>): T.Vector3[] {
     const mid = at(0.49);
     return [high, mid, end];
   }
-  // A built-in arm or leg starts at its anatomical pivot.
   const limb = part.piece?.piece.endsWith(" leg") || part.piece?.piece.endsWith(" arm");
   return [limb ? origin : at(0.08), at(0.52), at(role === "thigh" ? 0.9 : 0.92)];
 }
 
-/** The two joints of `points` a point binds to and their weights: [a, b, wa, wb]. */
 export function weights(
   point: T.Vector3,
   points: ReadonlyArray<T.Vector3>,
 ): readonly [number, number, number, number] {
   if (points.length === 1) return [0, 0, 1, 0];
-  // Find the closest point on the joint polyline, then blend on either side of
-  // each bend. This also works for a spine lying along the ground plane.
   let where = 0;
   let best = Infinity;
   for (let j = 0; j < points.length - 1; j++) {
@@ -270,7 +246,6 @@ export function weights(
   return [1, 2, 1 - t, t];
 }
 
-/** Writes a vertex's three seat weights at `at`, or returns false outside the seat. */
 type HipBinding = (
   point: T.Vector3,
   ids: Uint16Array,
@@ -278,12 +253,6 @@ type HipBinding = (
   at: number,
 ) => boolean;
 
-/**
- * The seat folds across three bones. Both trouser legs and the body must use
- * the same continuous weights here, including vertices along the inseam.
- * Ported from hipBindings in character-view/skin.js: a classic figure's
- * joined torso with exactly two joined thighs, and its bottom garments.
- */
 function hipBindings(
   regions: ReadonlyMap<string, Region>,
   index: ReadonlyMap<T.Bone, number>,
@@ -315,7 +284,6 @@ function hipBindings(
       if (height <= -1.5 || height >= 0.9) return false;
       const across = local.dot(axis) / span;
       const leg = 1 - T.MathUtils.smoothstep(height, -1.5, 0.9);
-      // Away from the crotch, the inner thigh follows its own leg fully.
       const centreWidth = 0.52 * T.MathUtils.smoothstep(height, -1.5, -0.65) + 0.008;
       const side = T.MathUtils.smoothstep(across, -centreWidth, centreWidth);
       const w = [1 - leg, leg * (1 - side), leg * side];
@@ -410,7 +378,6 @@ export function skinCharacter(character: BuiltCharacter): Rig {
     const cage = addSkirtCage(s, bones, index);
     if (cage) skirtCages.set(s, cage);
   }
-  // Long cloth on an adult hangs from a few joints of its own.
   const drapes =
     human &&
     addDrapeJoints(regions, bones, index, human, (mesh) => human.weights(mesh)?.clothJoints);
@@ -429,10 +396,8 @@ export function skinCharacter(character: BuiltCharacter): Rig {
       const blend = new Float32Array(pos.count * 4);
       const owners = character.blendOwners.get(source);
       const bindHip = owners && hips.get(s.part.id);
-      // The surface of a wing bends with the joints of the arm that carries it.
       const arm = s.part.wing && s.part.parent !== null ? regions.get(s.part.parent) : undefined;
       const carried = arm?.role === "wing" && arm.points.length > 1 ? arm : s;
-      // An adult's pieces carry the source body's own skin weights.
       const authored = human?.weights(source);
       const authoredBones =
         human && authored && humanBinding(s, regions, index, authored.names, human);
@@ -483,8 +448,6 @@ export function skinCharacter(character: BuiltCharacter): Rig {
       if (!geometry.index) geometry.setIndex(Array.from({ length: pos.count }, (_, i) => i));
       const material: T.Material | T.Material[] = source.material;
       if (Array.isArray(material)) throw new Error("A part mesh carries one material.");
-      // A face with expressions keeps its own skinned mesh, so its morph targets stay its own.
-      // So does an eye piece, which turns on its own.
       const eyePiece: unknown = source.userData["eyePiece"];
       if (geometry.morphAttributes["position"]?.length || typeof eyePiece === "string") {
         worldMorphs(geometry, source);
@@ -517,7 +480,6 @@ export function skinCharacter(character: BuiltCharacter): Rig {
   if (geometries.length) {
     if (geometries.some((g) => g.getAttribute("color")))
       for (const g of geometries) whiteVertexColors(g);
-    // Game detail pins some sections of jointed sweeps; the others carry no pins.
     if (geometries.some((g) => g.getAttribute("lodAnchor")))
       for (const g of geometries)
         if (!g.getAttribute("lodAnchor"))
@@ -525,7 +487,6 @@ export function skinCharacter(character: BuiltCharacter): Rig {
             "lodAnchor",
             new T.Uint8BufferAttribute(new Uint8Array(g.getAttribute("position").count), 1),
           );
-    // Untextured procedural garments can share a skin with UV-mapped body parts.
     if (geometries.some((g) => g.getAttribute("uv")))
       for (const g of geometries)
         if (!g.getAttribute("uv"))
@@ -569,8 +530,6 @@ export function skinCharacter(character: BuiltCharacter): Rig {
   const poses = authoredClips(bindings, character.view.poses);
   const offer = character.view.offer && offerClip(bindings, character.view.offer.pose);
   if (offer) clips.push(offer);
-  // An adult with a posture rests in it: the joints turn after everything is bound, so it all
-  // follows. Without one it keeps the fitting pose and the generated clips.
   const posture = human?.params.posture;
   if (human && posture && skinned)
     applyHumanPosture({

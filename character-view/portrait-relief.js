@@ -2,9 +2,6 @@ import { MathUtils } from "three";
 const gaussian = (x, center, radius) =>
   Math.exp(-(((x - center) / radius) ** 2));
 
-// A side silhouette contains the nose, lips and chin along its entire outside
-// contour. Reconstruct a smooth underlying cheek plane, then retain the profile
-// detail locally at its anatomical landmarks.
 export function profileCorrection(binding, geometry) {
   const height = binding.height,
     rows = binding.rest;
@@ -54,7 +51,6 @@ export function landmarkRelief(x, y, face) {
       dy = y - eyeY,
       upper = 0.031 * Math.sqrt(edge),
       lower = -0.022 * Math.sqrt(edge);
-    // Convex cornea, lid margins and the orbital crease are visible in clay.
     relief +=
       falloff *
       (0.028 * gaussian(dy, 0, 0.029) * Math.sqrt(edge) +
@@ -63,7 +59,6 @@ export function landmarkRelief(x, y, face) {
         0.012 * gaussian(dy, upper + 0.016, 0.011) -
         0.006 * gaussian(dy, lower - 0.023, 0.015));
   }
-  // Separate the nasal wings and nostril rims from the cheeks.
   relief +=
     0.019 * gaussian(ax, 0.19, 0.095) * gaussian(y, face.nose - 0.012, 0.029);
   relief -=

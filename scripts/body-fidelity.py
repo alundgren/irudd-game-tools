@@ -23,7 +23,6 @@ from scipy.optimize import lsq_linear
 ROOT = Path(__file__).resolve().parents[1]
 ROWS = 96
 VIEWS = ("front", "side", "back")
-# Degrees, ratios and torso depth multipliers are kept in their native units.
 LIMITS = {
     "shoulders": (0.7, 1.4),
     "chest": (0.7, 1.95),
@@ -51,7 +50,6 @@ def reference_rows(path, side):
     if gray is None:
         raise ValueError(f"Unreadable preview: {path}")
     _, labels, stats, _ = cv2.connectedComponentsWithStats((gray < 222).astype("uint8"))
-    # The profile plates show left and right. Choose the right-facing body.
     bodies = [i for i, (_, _, _, h, _) in enumerate(stats) if i and h > 0.7 * len(gray)]
     if len(bodies) != (2 if side else 1):
         raise ValueError(
@@ -59,7 +57,6 @@ def reference_rows(path, side):
         )
     index = max(bodies, key=lambda i: stats[i, 0])
     x, y, w, h, _ = stats[index]
-    # Fill isolated highlight holes, preserving genuine gaps between limbs.
     body = (labels[y : y + h, x : x + w] == index).astype("uint8")
     body = cv2.morphologyEx(body, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))
     rows = []
@@ -71,8 +68,6 @@ def reference_rows(path, side):
 
 
 def center(rows):
-    # One horizontal translation for the entire view. No per-row recentering,
-    # width rescale, nonrigid registration, or pose warp.
     area = sum(b - a for row in rows for a, b in row)
     if area <= 0:
         raise ValueError("Empty silhouette")
@@ -81,9 +76,6 @@ def center(rows):
 
 
 def descriptor(rows):
-    # At equal height compare the outer edges, occupied width, and three
-    # quantiles of the occupied intervals. Open arm and leg gaps influence
-    # the result even where two figures share an identical bounding box.
     out = []
     for row in rows:
         if not row:
@@ -114,8 +106,6 @@ def overlap(actual, target, lo=0, hi=ROWS):
 
 
 def arm_overlap(actual, reference):
-    # Measure lateral intervals on rows where the reference visibly separates
-    # an arm from the torso. Including the gap penalizes a fused arm as well.
     kept_actual, kept_reference = [], []
     for i, (a, b) in enumerate(zip(actual, reference)):
         if not 0.46 < (i + 0.5) / ROWS < 0.73:
@@ -211,8 +201,6 @@ def fit(workshop, key, reference):
     x = start.copy()
     value = measured(x)
     for iteration in range(5):
-        # A finite difference over a visible size increment remains useful at
-        # arm/body contacts, where an infinitesimal derivative is unstable.
         J = []
         for k, width in enumerate(SPAN):
             delta = width * (0.035 if iteration < 2 else 0.018)
@@ -221,7 +209,6 @@ def fit(workshop, key, reference):
             test = x.copy()
             test[k] += delta
             J.append((measured(test) - value) / delta * width)
-        # Regularisation biases unobservable depth/width tradeoffs toward the starting figure.
         penalty = 0.09
         matrix = np.vstack((np.array(J).T, penalty * np.eye(len(x))))
         residual = np.r_[target - value, penalty * (start - x) / SPAN]
@@ -247,8 +234,6 @@ def fit(workshop, key, reference):
     return recipe(key, np.round(x, 4))
 
 
-# Same normalized heights as sectionHeights in the workshop. A correction is
-# estimated from a local band to suppress isolated holes and fingers.
 STATIONS = (
     0.035,
     0.11,
@@ -283,8 +268,6 @@ def refine_sections(workshop, figure, reference):
                 a, b = raw[j][0][0], raw[j][-1][1]
                 c, d = ref[j][0][0] + shift, ref[j][-1][1] + shift
                 if view_index == 0 and 0.46 < station < 0.80:
-                    # A detached arm should not set rib-cage width. When both
-                    # plates show the gap, use the wide midline component.
                     def trunk(row, mid):
                         return next(
                             ((l, r) for l, r in row if l <= mid <= r and r - l > 0.075),
@@ -303,8 +286,6 @@ def refine_sections(workshop, figure, reference):
                         c, d = source_trunk[0] + shift, source_trunk[1] + shift
                 if b - a < 0.01:
                     continue
-                # Bound the residual deformation so a noisy camera or hairline
-                # cannot stretch an entire ring of the mesh.
                 scale = np.clip(1 + 0.86 * ((d - c) / (b - a) - 1), 0.74, 1.30)
                 offset = np.clip(
                     0.86 * ((c + d) / 2 - (a + b) / 2 * scale), -0.036, 0.036
@@ -340,8 +321,6 @@ def fit_arm_stance(workshop, figure, reference):
     best, local = score(figure)
     if local is None or local >= 0.65:
         return figure
-    # A little more abduction or a shorter arm can uncover the wrist beside
-    # a broad hip. Keep the torso fit fixed while comparing those changes.
     for key, offsets in (
         ("spread", (-9, -4, 4, 9, 16)),
         ("length", (-0.09, -0.045, 0.045, 0.09)),
@@ -380,8 +359,6 @@ def mask_from_rows(rows, height=480, width=300):
 
 
 def boundary_distances(actual, target):
-    # Symmetric 95th percentile boundary distance as a fraction of stature.
-    # Boundaries include interior holes, such as the space beside a wrist.
     masks = [mask_from_rows(rows) for rows in (actual, target)]
     edges = [m ^ binary_erosion(m) for m in masks]
     if not all(np.any(e) for e in edges):
@@ -394,8 +371,6 @@ def boundary_distances(actual, target):
 
 
 def draw_comparison(key, target, output, destination):
-    # Save derived comparison images locally alongside the downloaded previews.
-    # Grey is agreement. Pink extends beyond the fit. Blue extends beyond the scan.
     h, w = 480, 255
     image = np.full((h + 48, w * 4, 3), 245, np.uint8)
     for v, (source, fit) in enumerate(zip(target, output)):
@@ -502,8 +477,6 @@ def run():
                 parameters[key] = fit(workshop, key, ref)
             if args.fit or args.refine:
                 parameters[key].update(source["surface"])
-                # Compare a proportion solve and a manually blocked-in figure.
-                # Only front and side masks select the candidate.
                 block = dict(
                     archetype=archetype(key),
                     height=1.72,
@@ -554,8 +527,6 @@ def run():
                 },
             }
 
-            # Use a fixed nominal yaw. Published previews lack calibrated cameras.
-            # Report both neighbouring angles to expose camera uncertainty.
             yaw = source["obliqueDegrees"]
             alt = workshop.project(parameters[key], [yaw, yaw * 2 / 3, yaw * 4 / 3])
             report[key]["oblique"] = {
@@ -599,8 +570,6 @@ def run():
             draw_comparison(
                 key, ref, [*views, alt[0]], args.cache / f"{key}-overlay.png"
             )
-            # Negative control: compress the torso in depth without narrowing
-            # it in front view. A whole-body average can conceal this defect.
             flat = dict(
                 parameters[key], ribDepth=0.65, abdomenDepth=0.65, pelvisDepth=0.65
             )
@@ -612,7 +581,6 @@ def run():
                 f"{key}: front {report[key]['fit']['front']:.3f}, profile {report[key]['fit']['side']:.3f}, oblique {report[key]['oblique']['nominal']:.3f}",
                 flush=True,
             )
-    # Wrong-subject control, evaluated on the untrained view as well.
     for key in fits:
         report[key]["obliqueAgainstAll"] = {
             other: round(

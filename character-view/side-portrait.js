@@ -8,8 +8,6 @@ import {
   Vector3,
 } from "three";
 
-// The colour plate is registered in physical head space, then sampled into the
-// existing UV layout. It survives an ordinary glTF export without a shader.
 const images = new WeakMap();
 function pixelsOf(image) {
   if (images.has(image)) return images.get(image);
@@ -23,7 +21,6 @@ function pixelsOf(image) {
   const rgba = ctx.getImageData(0, 0, w, h).data;
   const left = new Int32Array(h).fill(w),
     right = new Int32Array(h).fill(-1);
-  // Compare each border to its own scanline. A plain background may have a slight gradient.
   for (let y = 0; y < h; y++) {
     const first = 4 * y * w,
       last = first + 4 * (w - 1);

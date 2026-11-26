@@ -103,21 +103,21 @@ class Geometry(unittest.TestCase):
         vertices = np.array([[0, 0, 0], [0.01, 0, 0], [0, 0.01, 0], [0.01, 0.01, 0]])
         faces = np.array([[0, 1, 2], [1, 3, 2]])
         moved = vertices.copy()
-        moved[3] = [-0.005, -0.005, 0]  # pulled through the opposite edge
+        moved[3] = [-0.005, -0.005, 0]
         self.assertEqual(folds(faces, vertices, vertices), {"triangles": 2, "past_perpendicular": 0})
         self.assertEqual(folds(faces, vertices, moved), {"triangles": 2, "past_perpendicular": 1})
 
     def test_a_hollow_cast_keeps_only_its_outer_face(self):
         vertices, faces, outer, inner = cup()
         open_faces, share = hs_targets.drop_flat_cut(vertices, faces)
-        self.assertEqual(len(faces) - len(open_faces), len(faces) - outer - inner)  # exactly the rim
+        self.assertEqual(len(faces) - len(open_faces), len(faces) - outer - inner)
         seen = hs_targets.outside_faces(vertices, open_faces)
         self.assertGreater(seen[:outer].mean(), 0.99)
         self.assertLess(seen[outer:].mean(), 0.01)
 
     def test_a_closed_mouth_cavity_is_not_outside(self):
-        vo, fo = hemisphere(0.10)           # open bust: the lid over its cut must hide what is inside
-        vi, fi = hemisphere(0.03)           # a pocket floating inside it
+        vo, fo = hemisphere(0.10)
+        vi, fi = hemisphere(0.03)
         vertices, faces = np.vstack([vo, vi + [0, 0.02, 0]]), np.vstack([fo, fi + len(vo)])
         seen = hs_targets.outside_faces(vertices, faces)
         self.assertGreater(seen[: len(fo)].mean(), 0.99)

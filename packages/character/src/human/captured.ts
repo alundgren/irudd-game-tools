@@ -1,6 +1,3 @@
-// Faces registered from HSRD-100 scans (Digital Reality Lab, CC BY 4.0), as
-// in character-view/human-captured-portraits.js.
-
 import { capturedAxes, type CapturedAxis } from "./catalogue.js";
 import type { HumanBody } from "./body.js";
 
@@ -8,7 +5,6 @@ export const capturedSkinNames: ReadonlyArray<string> = capturedAxes.map(
   (axis) => "Captured skin " + Number(axis.slice(4)),
 );
 
-// Match a draw's age and frame loosely.
 const subjects: ReadonlyArray<readonly [CapturedAxis, number, number]> = [
   ["scan0023", 0.72, 0.78],
   ["scan0028", -0.76, 0.12],

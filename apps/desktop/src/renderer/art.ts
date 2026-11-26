@@ -1,32 +1,3 @@
-// Artwork from the paired agent: the person writes a brief for one kind of
-// artwork, attaches editor views or pictures, and sends it to the paired
-// agent's conversation. The agent makes the artwork with its own tools; this
-// window never generates an image and never starts a model session.
-//
-// Each request shows its brief, its attachments and every reply as it
-// arrives: the files the reply named with their digests and sizes, whether
-// it became a proposal, was only recorded (no translator for that kind in
-// this host) or was rejected, and whether the person moved the head after the
-// brief. A proposal is reviewed under Proposals like any other: preview,
-// accept, reject and undo. A stale one previews rebased on the head without
-// replacing it. A follow-up starts a fresh draft on the current revision.
-//
-// A trace or depth brief fits one painted part: the person picks it (a
-// traced head for a trace fit, a painted portrait for depth) and attaches
-// that part's sheet as G0 sent it, its front and left-facing profile panels,
-// so the agent's marks and depth pass register to the picture the host
-// measures. A trace brief can instead build: the person picks any painted
-// part, and the map's regions become new parts on that part's sheet.
-//
-// When the agent cannot make a kind of artwork, the person saves the brief
-// and its pictures, makes the file elsewhere and imports it here; the host
-// checks an import exactly like an agent's reply.
-//
-// A brief the host stored but stopped before sending shows as saved but not
-// sent. The person sends it from its card, or by sending the same brief again,
-// and either way it goes as that same request. Nothing is sent on its own when
-// the app starts, and a brief the agent already answered is not sent again.
-
 import type { AssetAttribution, CharacterDocument, Part } from "@irudd/document";
 import { ArtFitError, depthRefusal, traceTarget } from "@irudd/character/art-fit";
 import { buildAnchorRefusal } from "@irudd/character/trace-build";
@@ -62,21 +33,17 @@ export type CaptureView = "current" | "front" | "side" | "back";
 export interface ArtOptions {
   readonly host: Workshop;
   readonly api: DesktopApi;
-  /** The document on screen and its head revision. */
   readonly current: () =>
     | { readonly documentId: string; readonly revision: number; readonly doc: CharacterDocument }
     | undefined;
   readonly selection: () => string | null;
-  /** The editor view as a PNG, from the camera or square to one side. */
   readonly capture: (view: CaptureView, frameHead: boolean) => Promise<Uint8Array>;
-  /** A project picture's bytes, such as a part's sheet. */
   readonly picture: (
     digest: string,
   ) => Promise<{ readonly bytes: Uint8Array; readonly mediaType: string }>;
   readonly failure: (error: unknown) => string;
 }
 
-/** Why a part cannot take a trace or depth fit, or anchor a trace build; undefined when it can. */
 function fitRefusal(
   kind: "trace" | "depth",
   doc: CharacterDocument,
@@ -96,10 +63,8 @@ function fitRefusal(
 
 export interface ArtPanel {
   refresh(): Promise<void>;
-  /** The document, its head or the selection changed: draw again without asking the host. */
   redraw(): void;
   reset(): void;
-  /** A steering message changed state; it may carry an art brief. */
   notice(notice: SteerNotice): void;
 }
 
@@ -118,7 +83,6 @@ const viewFor: Partial<Record<AttachmentRole, CaptureView>> = {
 };
 
 const pollMs = 3000;
-/** An answered request is watched for further replies this long after its last activity. */
 const activeMs = 10 * 60 * 1000;
 
 const stateText = {
@@ -135,13 +99,12 @@ function parseJson(bytes: Uint8Array): unknown {
 export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
   const { host, failure } = options;
   let capabilities: ArtCapabilities | undefined;
-  let paired: MethodResults["pair.list"] = [];
+  let paired: MethodResults["recipient.list"] = [];
   let requests: ReadonlyArray<ArtRequestView> = [];
   let refreshId = 0;
   let lastSnapshot = "";
   let pending: Pending[] = [];
   let kind: ArtKind = "variation";
-  /** A trace brief fits its part (the default) or builds the map's regions on its sheet. */
   let intent: TraceIntent = "fit";
   let attachmentRole: AttachmentRole = "whole";
   let agent = "";
@@ -153,9 +116,7 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
   let importDialog: HTMLDialogElement | undefined;
   let parts = new Set<string>();
   let note = "";
-  /** While a request is active, replies that change neither a revision nor a message state still show. */
   let poll: ReturnType<typeof setTimeout> | undefined;
-  /** Object URLs of request files, by digest, released on reset. */
   const urls = new Map<string, string>();
   const known = new Set<string>();
 
@@ -188,8 +149,6 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
       });
     return el("figure", { className: "art-figure" }, img, el("figcaption", { text: name }), save);
   }
-
-  // ── Composing a brief ────────────────────────────────────────────────────
 
   function clearPending(keepReferences = false): void {
     pending = pending.filter((a) => {
@@ -254,8 +213,14 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
     agentSelect.value = agent;
     agentSelect.onchange = () => {
       agent = agentSelect.value;
+      render();
     };
 
+    const connected = paired.some(
+      (p) =>
+        p.agent === agent &&
+        (p.availability.state === "ready" || p.availability.state === "inbox-only"),
+    );
     const kindSelect = el("select");
     kindSelect.setAttribute("aria-label", "Kind of artwork");
     for (const k of artKindsShown) kindSelect.append(new Option(k.label, k.kind));
@@ -277,7 +242,7 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
     text.value = direction;
     text.oninput = () => {
       direction = text.value;
-      send.disabled = !agent || !direction.trim() || needs.length > 0;
+      send.disabled = !connected || !direction.trim() || needs.length > 0;
     };
 
     const offered = capabilities?.kinds.find((k) => k.kind === kind);
@@ -299,7 +264,6 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
       text,
     );
 
-    // Regions: painted parts for a turnaround (one sheet), any part for a variation.
     if (kind === "turnaround" || kind === "variation") {
       const choices =
         kind === "turnaround"
@@ -327,7 +291,6 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
       box.append(el("p", { text: kind === "turnaround" ? "Repaint" : "Change (optional)" }), list);
     }
 
-    // Trace and depth: the one painted part the fit is for, and its sheet's views.
     if (kind === "trace" || kind === "depth") {
       const fit = kind;
       const build = fit === "trace" && intent === "build";
@@ -401,7 +364,6 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
       );
     }
 
-    // Attachments.
     const role = el("select");
     role.setAttribute("aria-label", "Attachment role");
     for (const r of rolesShown) role.append(new Option(r, r));
@@ -475,15 +437,17 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
     const send = button("Send brief", () => {
       void sendBrief(now.documentId, now.revision, sheet);
     });
-    send.disabled = !agent || !direction.trim() || needs.length > 0;
+    send.disabled = !connected || !direction.trim() || needs.length > 0;
     box.append(
       el("p", {
         className: "muted",
         text: !paired.length
           ? "Pair an agent under Agents first."
-          : needs.length
-            ? `Still needed: ${needs.join(", ")}.`
-            : `For revision ${now.revision}${sheet ? `, with the current sheet ${sheet.slice(0, 19)}…` : ""}.`,
+          : !connected
+            ? "Connect the agent and bind its inbox or channel under Agents."
+            : needs.length
+              ? `Still needed: ${needs.join(", ")}.`
+              : `For revision ${now.revision}${sheet ? `, with the current sheet ${sheet.slice(0, 19)}…` : ""}.`,
       }),
       el("div", { className: "row-actions" }, send),
     );
@@ -505,7 +469,6 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
       digest: a.digest,
       ...(a.label ? { label: a.label } : {}),
     }));
-    // A turnaround names the sheet it repaints; it is already a project blob.
     if (sheet && !attachments.some((a) => a.role === "source-sheet" && a.digest === sheet))
       attachments.push({ role: "source-sheet", digest: sheet, label: "current sheet" });
     const brief: MethodParams["art.request"]["brief"] = {
@@ -518,13 +481,11 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
       ...sourceOptions,
       attachments,
       ...(parts.size ? { parts: [...parts] } : {}),
-      // A fit brief stays exactly as fit briefs always were: no intent.
       ...(kind === "trace" && intent === "build" ? { intent } : {}),
     };
     try {
       const sent = await host.call("art.request", {
         agent,
-        // The same brief still waiting unsent is that request, not a second ask.
         requestId: undeliveredRequestId(requests, agent, brief) ?? `art-${crypto.randomUUID()}`,
         brief,
       });
@@ -544,8 +505,6 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
       render();
     }
   }
-
-  // ── Requests and replies ────────────────────────────────────────────────
 
   function again(r: ArtRequestView): void {
     const now = options.current();
@@ -567,7 +526,6 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
     root.querySelector("textarea")?.focus();
   }
 
-  /** Send a stored brief that never reached the conversation, as the same request. */
   async function resend(r: ArtRequestView): Promise<void> {
     if (sending) return;
     sending = true;
@@ -644,7 +602,6 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
     dialog.showModal();
   }
 
-  /** A person's own file for a brief: staged, then checked by the host like an agent's reply. */
   async function importFile(
     r: ArtRequestView,
     picked: File,
@@ -803,7 +760,13 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
         () => void resend(r),
         "Send this saved brief to the agent's conversation as the same request",
       );
-      send.disabled = sending;
+      send.disabled =
+        sending ||
+        !paired.some(
+          (p) =>
+            p.agent === r.agent &&
+            (p.availability.state === "ready" || p.availability.state === "inbox-only"),
+        );
       actions.append(send);
     }
     if (r.state !== "cancelled") {
@@ -843,14 +806,17 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
         : { all: true };
       const snapshot = await Promise.all([
         capabilities ? Promise.resolve(capabilities) : host.call("art.capabilities", {}),
-        host.call("pair.list", {}),
+        host.call("recipient.list", {}),
         host.call("art.list", list).then((l) => l.requests),
       ]);
       if (id !== refreshId || now?.documentId !== options.current()?.documentId) return;
       [capabilities, paired, requests] = snapshot;
       for (const r of requests) known.add(r.messageId);
-      // A poll with no changes must preserve focused inputs and pointer targets.
-      const encoded = JSON.stringify(snapshot);
+      const encoded = JSON.stringify([
+        capabilities,
+        paired.map((p) => [p.agent, p.name, p.pairingId, p.availability.state]),
+        requests,
+      ]);
       if (encoded !== lastSnapshot) render();
       lastSnapshot = encoded;
     } catch (error) {
@@ -860,14 +826,16 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
     }
     clearTimeout(poll);
     const recent = Date.now() - activeMs;
-    poll = requests.some(
-      (r) =>
-        r.state === "open" ||
-        (r.state === "answered" &&
-          Math.max(r.createdAt, ...r.submissions.map((x) => x.at)) > recent),
-    )
-      ? setTimeout(() => void refresh(), pollMs)
-      : undefined;
+    poll =
+      paired.length ||
+      requests.some(
+        (r) =>
+          r.state === "open" ||
+          (r.state === "answered" &&
+            Math.max(r.createdAt, ...r.submissions.map((x) => x.at)) > recent),
+      )
+        ? setTimeout(() => void refresh(), pollMs)
+        : undefined;
   }
 
   return {

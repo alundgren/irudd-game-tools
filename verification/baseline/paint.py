@@ -95,7 +95,6 @@ def main():
         ctx, page = open_page(browser)
         run = session_record(browser, page, renderer_of(page, "#viewport"), args)
         load_form(page, form_path)
-        # The same target dropdown is used by the sculpt and direction panels.
         page.locator("#target").select_option("body", force=True)
         page.locator('[data-tab="ai"]').click()
         page.locator("#paint-action").select_option("repaint")

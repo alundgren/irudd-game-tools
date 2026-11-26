@@ -1,9 +1,3 @@
-// The player's scene: lights, floor, one loaded glTF and its animation state.
-//
-// A stage knows glTF and metres only. It owns no renderer, so the interactive
-// view and the fixed-size inspection renderer draw the same stage
-// independently. The lighting follows the legacy play-model page at 2761eb1.
-
 import * as T from "three";
 import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
@@ -14,9 +8,7 @@ import { isMesh, isSkinnedMesh, isTexture } from "./guards.js";
 export const surfaces = ["source", "clay", "ink"] as const;
 export type Surface = (typeof surfaces)[number];
 
-/** Whole-model views. */
 export const bodyViews = ["threequarter", "front", "side", "back", "overhead"] as const;
-/** Views framed on the face surface alone; only files with one offer them. */
 export const portraitViews = [
   "portrait",
   "portrait-side",
@@ -27,7 +19,6 @@ export const views = [...bodyViews, ...portraitViews] as const;
 export type View = (typeof views)[number];
 export type PortraitView = (typeof portraitViews)[number];
 
-/** Directions from the legacy play-model page at 2761eb1. */
 const directions: Record<View, readonly [number, number, number]> = {
   threequarter: [1.85, 0.56, 3],
   front: [0, 0, 1],
@@ -52,11 +43,8 @@ export const viewLabels: Record<View, string> = {
   "portrait-angle": "Face at measured angles",
 };
 
-/** Camera turn and elevation for the measured-angle portrait, in degrees. */
 export interface Angle {
-  /** Turn around the face, -180 to 180. 0 looks from the front. */
   readonly yaw: number;
-  /** Elevation, -80 to 80. */
   readonly pitch: number;
 }
 
@@ -68,7 +56,6 @@ export function clampAngle(angle: Angle): Angle {
   return { yaw: clamp(angle.yaw, -180, 180), pitch: clamp(angle.pitch, -80, 80) };
 }
 
-/** Eye morphs a look control drives. Expressions never include them. */
 export const gazeNames = ["LookLeft", "LookRight", "LookUp", "LookDown"] as const;
 
 const isGazeName = (name: string): boolean => gazeNames.some((g) => g === name);
@@ -101,20 +88,15 @@ export interface ModelInfo {
   readonly drawnMaterials: number;
   readonly skeletons: number;
   readonly morphTargets: ReadonlyArray<string>;
-  /** Morph targets offered as expressions: every target except the gaze ones. */
   readonly expressions: ReadonlyArray<string>;
-  /** Whether the file has eye morphs a look control can drive. */
   readonly gaze: boolean;
-  /** Rest-pose bounds of meshes marked as the face surface, or null without one. */
   readonly face: { readonly min: readonly number[]; readonly max: readonly number[] } | null;
   readonly clips: ReadonlyArray<ClipInfo>;
 }
 
 export interface ClipMeasure {
   readonly clip: string;
-  /** Largest distance any vertex moves from the rest pose, in metres, over eight samples. */
   readonly movement: number;
-  /** Lowest vertex height over the samples, in metres. */
   readonly lowest: number;
 }
 
@@ -149,7 +131,6 @@ function release(root: T.Object3D): void {
   root.removeFromParent();
 }
 
-/** The node a track targets, by name, so clips can be filtered to one scene. */
 function trackNode(track: T.KeyframeTrack): string {
   return T.PropertyBinding.parseTrackName(track.name).nodeName;
 }
@@ -176,14 +157,8 @@ export class Stage {
   private rest: Float32Array[] = [];
   private surface: Surface = "source";
   private generation = 0;
-  /** The expression shown at full weight, or null for the clip's own weights. */
   private expression: string | null = null;
   private look = { x: 0, y: 0 };
-  /**
-   * An exported clip animates every morph weight of a mesh together, so its
-   * blink also writes the gaze weights. While the look is off centre it is put
-   * back after every sample; at centre the clip's own eye movement plays.
-   */
   private held = false;
   readonly bounds = new T.Box3();
   readonly faceBounds = new T.Box3();
@@ -205,7 +180,6 @@ export class Stage {
     this.scene.add(this.floor, this.grid);
   }
 
-  /** Use the reflection environment prepared for this renderer (each WebGL context has its own). */
   prepare(renderer: T.WebGLRenderer): void {
     let texture = this.environments.get(renderer);
     if (!texture) {
@@ -236,7 +210,6 @@ export class Stage {
     return this.action?.getClip().name ?? null;
   }
 
-  /** Playback position as a fraction of the clip, 0 at rest. */
   get time(): number {
     const action = this.action;
     if (!action) return 0;
@@ -244,7 +217,6 @@ export class Stage {
     return duration > 0 ? action.time / duration : 0;
   }
 
-  /** Parse and show a GLB. Throws with a readable message for files it cannot show. */
   async load(bytes: Uint8Array, name: string): Promise<ModelInfo> {
     const ticket = ++this.generation;
     const summary = summarizeGlb(bytes);
@@ -273,10 +245,6 @@ export class Stage {
     return this.show(index, name, summary);
   }
 
-  /**
-   * Switch to another scene of the loaded file (wardrobe exports carry
-   * several), keeping the clip, its phase, the expression and the look.
-   */
   showScene(index: number): ModelInfo | undefined {
     const gltf = this.gltf;
     const info = this.info;
@@ -367,7 +335,6 @@ export class Stage {
   private detach(): void {
     this.mixer?.stopAllAction();
     if (this.model) this.mixer?.uncacheRoot(this.model);
-    // A scene shown again later starts from clean weights.
     this.writeExpression(null);
     this.writeGaze(0, 0);
     for (const [mesh, material] of this.sourceMaterials) mesh.material = material;
@@ -409,7 +376,6 @@ export class Stage {
     this.floor.position.set(centre.x, this.bounds.min.y - 0.001 * radius, centre.z);
   }
 
-  /** Every baked vertex in world space, including the current skin deformation. */
   private pose(): { box: T.Box3; vertices: Float32Array[] } {
     this.model?.updateMatrixWorld(true);
     const box = new T.Box3();
@@ -443,13 +409,11 @@ export class Stage {
     }
   }
 
-  /** Select a clip by name, or null for the rest pose. Starts at the clip's beginning. */
   setClip(name: string | null): void {
     const mixer = this.mixer;
     if (!mixer) return;
     mixer.stopAllAction();
     this.action = undefined;
-    // The clip starts from weights without the held gaze, so a later release finds them clean.
     if (this.held) this.writeGaze(0, 0);
     const clip = name === null ? undefined : this.clipList.find((c) => c.name === name);
     if (clip) this.action = mixer.clipAction(clip).reset().play();
@@ -457,7 +421,6 @@ export class Stage {
     this.settle();
   }
 
-  /** Jump to a fraction of the current clip. */
   setTime(fraction: number): void {
     const action = this.action;
     if (!action || !this.mixer) return;
@@ -472,29 +435,19 @@ export class Stage {
     this.settle();
   }
 
-  /** The expression shown at full weight, or null. */
   get morph(): string | null {
     return this.expression;
   }
 
-  /**
-   * Show one expression at full weight, or none. Gaze morphs are left to the
-   * look; the expression is put back after every clip sample.
-   */
   setMorph(name: string | null): void {
     this.expression = name !== null && this.info?.expressions.includes(name) ? name : null;
     this.writeExpression(this.expression);
   }
 
-  /** The look, each axis from -1 to 1. */
   get gaze(): { readonly x: number; readonly y: number } {
     return { ...this.look };
   }
 
-  /**
-   * Turn the eyes: x positive looks left, y positive looks up. Off centre the
-   * look is held over the clip; back at centre the clip's weights return.
-   */
   setGaze(x: number, y: number): void {
     const clamp = (v: number): number => Math.min(Math.max(Number.isFinite(v) ? v : 0, -1), 1);
     this.look = { x: clamp(x), y: clamp(y) };
@@ -506,7 +459,6 @@ export class Stage {
 
   private releaseGaze(): void {
     this.held = false;
-    // Stopping hands the weights back; playing from the same time makes the clip write them again.
     const action = this.action;
     const time = action?.time ?? 0;
     action?.stop();
@@ -518,7 +470,6 @@ export class Stage {
     }
   }
 
-  /** Reapply the expression and the held look after the mixer wrote the clip's weights. */
   private settle(): void {
     if (this.expression !== null) this.writeExpression(this.expression);
     if (this.held) this.writeGaze(this.look.x, this.look.y);
@@ -548,11 +499,6 @@ export class Stage {
     });
   }
 
-  /**
-   * Aim a camera at the model from one of the standard directions. Portrait
-   * views frame the face surface; without one they fall back to the
-   * three-quarter body view. Returns the view actually used.
-   */
   frame(
     camera: T.PerspectiveCamera,
     view: View,
@@ -576,9 +522,6 @@ export class Stage {
     aim.normalize();
     const fit = Math.max(size.x, size.y, size.z) * 2.55;
     camera.position.copy(centre).addScaledVector(aim, Math.max(fit, 0.05));
-    // The legacy player's planes (0.01 to 250 m) for every model it could
-    // frame, so depth precision and therefore pixels match it. Only models far
-    // outside that range get planes scaled to their size.
     const legacy = fit >= 0.05 && fit <= 50;
     camera.near = legacy ? 0.01 : Math.max(fit / 500, 1e-4);
     camera.far = legacy ? 250 : Math.max(fit * 50, 10);
@@ -588,10 +531,6 @@ export class Stage {
     return view;
   }
 
-  /**
-   * Sample every clip at eight times and report movement and floor contact,
-   * using the clip's own weights. Restores the clip, expression and look.
-   */
   measureClips(): ClipMeasure[] {
     const previous = this.clip;
     const time = this.time;

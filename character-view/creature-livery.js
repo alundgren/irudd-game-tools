@@ -1,7 +1,5 @@
 import { CanvasTexture, Color, SRGBColorSpace } from "three";
 
-// The cloth is cut along these rows before smoothing. The painting follows
-// the same control points through the subdivision and through hand sculpting.
 const skirtRows = [0,.15,.36,.58,.79,.94,1,1,.78,.52,.24,0];
 const tunics = new Set(["robe","capelet","surcoat","poncho","tassets","kilt"]);
 
@@ -25,9 +23,6 @@ export function liveryChart(part, dress) {
   }) };
 }
 
-// Coordinates follow each sprung or hammered plate through subdivision. The
-// two sides of the sheet meet at the rolled edge. Hinged lames occupy the
-// narrow strip in the same metalworking texture that is used for adult armour.
 export function creaturePlateChart(part) {
   if (part.shape !== "cage" || part.surface !== "metal" || !part.id.startsWith("dress ")) return null;
   const count = part.cage.vertices.length;
@@ -40,7 +35,6 @@ export function creaturePlateChart(part) {
   } else if (part.id === "dress lamellar barding" && count === 180) {
     rows = 3; cols = 5; tiers = 6;
   } else if (part.id === "dress cuirass" && count === 96) {
-    // Mirrored side panels keep the engraved fan centred over the breastbone.
     const levels = [1, 1, .7, .3, 0, 0];
     return Array.from({length:count}, (_,i) => {
       const angle = 2 * Math.PI * (i % 16) / 16;
@@ -67,7 +61,6 @@ function insignia(ctx, design, gold, light, shadow) {
   const disc = (paint,x,y,r) => fill(paint, () => ctx.arc(x,y,r,0,2*Math.PI));
   ctx.lineJoin = "round";
   if (design === "swallow") {
-    // Primaries separate at the tip; the lower feathers trail into a fork.
     for (const side of [-1,1]) {
       ctx.save(); ctx.scale(side,1);
       fill(gold, () => {
@@ -127,14 +120,12 @@ function picture(cloth, trim, device, band) {
   if (typeof ctx?.bezierCurveTo !== "function") return null;
   const width = canvas.width, height = canvas.height;
   const dye = new Color(cloth), thread = new Color(trim);
-  // Keep enough separation on a pale animal wearing a pale uniform.
   if (Math.abs(dye.getHSL({}).l-thread.getHSL({}).l)<.15)
     thread.lerp(new Color(dye.getHSL({}).l>.45 ? "#4e3832" : "#f7eaca"),.48);
   const hex = value => "#"+value.getHexString();
   const gold=hex(thread), light=hex(thread.clone().lerp(new Color("#ffebc8"),.36)),
     shadow=hex(dye.clone().multiplyScalar(.48)), field=hex(dye.clone().lerp(thread,.09));
   ctx.fillStyle=cloth;ctx.fillRect(0,0,width,height);
-  // A narrow woven selvage frames broad areas of undisturbed dyed cloth.
   const hem = (y,h) => {
     ctx.fillStyle=shadow; ctx.fillRect(0,y,width,h);
     ctx.fillStyle=gold; ctx.fillRect(0,y+1,width,2); ctx.fillRect(0,y+h-3,width,2);

@@ -1,9 +1,3 @@
-// Skirts. Ported from skirtRadius and skirtGeometry in
-// character-view/skirt-pattern.js at 2761eb1, arithmetic in the same order so
-// the vertices match. Two surfaces, the outer one first, run from the waist
-// ring down to the hem and are sewn there and at the waist; the fold relief is
-// kept per vertex so a fit can ease the plain pattern and lay the folds back.
-
 import type { SkirtCut } from "@irudd/document";
 import * as T from "three";
 
@@ -15,7 +9,6 @@ const at = (curve: Outline, i: number): readonly [number, number] => {
   return p;
 };
 
-/** The outline's radius at height `t`, on monotone cubic tangents. */
 export function skirtRadius(curve: Outline, t: number): number {
   let b = 1;
   while (b < curve.length - 1 && at(curve, b)[0] < t) b++;
@@ -24,7 +17,6 @@ export function skirtRadius(curve: Outline, t: number): number {
   const q = at(curve, b);
   const len = q[0] - p[0];
   const s = T.MathUtils.clamp((t - p[0]) / len, 0, 1);
-  // Monotone cubic tangents retain narrow knees without overshoot at a hem.
   const slope = (i: number): number => {
     if (i === 0) return (at(curve, 1)[1] - at(curve, 0)[1]) / (at(curve, 1)[0] - at(curve, 0)[0]);
     if (i === curve.length - 1)
@@ -41,7 +33,6 @@ export function skirtRadius(curve: Outline, t: number): number {
   );
 }
 
-/** A skirt and its fold relief, per vertex [x, z]. */
 export interface SkirtSurface {
   readonly geometry: T.BufferGeometry;
   readonly relief: Float32Array;
@@ -133,7 +124,6 @@ export function skirtGeometry(c: SkirtCut): SkirtSurface {
   g.setAttribute("color", new T.Float32BufferAttribute(colors, 3));
   g.setIndex(index);
   g.computeVertexNormals();
-  // Weld lighting across the UV seam while retaining separate texture coordinates.
   const n = g.getAttribute("normal");
   for (let s = 0; s < 2; s++)
     for (let j = 0; j <= rows; j++) {

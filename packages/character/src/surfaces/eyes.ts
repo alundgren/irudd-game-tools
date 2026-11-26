@@ -1,11 +1,3 @@
-// Fitted eyes over a face. Ported from attachEyes in character-view/ocular.js
-// at 2761eb1, arithmetic and vertex order the same so the pieces match.
-//
-// Each eye is a curved ocular surface just ahead of the face, joined to the
-// face by upper and lower lid patches that blink, with a radial iris that
-// gazes in four directions by ordinary morph targets. With `source` the
-// painted iris itself moves inside the measured opening instead.
-
 import type { FigureEyes } from "@irudd/document";
 import * as T from "three";
 import { faceProjector } from "../rig/expressions.js";
@@ -109,11 +101,6 @@ function frame(mesh: T.Mesh, paint: HeadSpace | undefined) {
   };
 }
 
-/**
- * Fit eyes to `mesh`, a face whose paint binding is `paint` in head-height
- * units. `uniform` replaces the eye materials, as clay does. False when the
- * face does not cover both eyes.
- */
 export function attachEyes(
   mesh: T.Mesh,
   settings: FigureEyes,
@@ -135,7 +122,6 @@ export function attachEyes(
     const shift = settings.offsets?.[side] ?? [0, 0];
     const ex = cx + 0.425 * half * settings.spacing * sign + shift[0] * h;
     const ey = cy + (shift[1] + settings.lift) * h;
-    // The curved ocular surface stays just ahead of the source eye paint.
     const eyeDepth = (x: number, y: number): number | null => {
       const hit = probe(x, y);
       if (!hit) return null;
@@ -171,9 +157,6 @@ export function attachEyes(
         const xy = (u: number, t: number) =>
           at(ex + width * u, T.MathUtils.lerp(lower(u), upper(u), t));
         if (preservePaint) {
-          // Move the original painted iris by deforming a patch bounded by the
-          // measured lid opening. The canthi stay fixed and no second pupil can
-          // emerge from under an eyelid when horizontal and vertical gaze combine.
           const scale = settings.iris - 1;
           const fittedU = u + scale * u * (1 - Math.abs(u));
           const fittedT = t + scale * (t - 0.5) * (1 - Math.abs(2 * t - 1));
@@ -196,8 +179,6 @@ export function attachEyes(
           quad(eye, a, a + 1, a + cols + 2, a + cols + 1);
         }
       }
-    // Join the cut eye opening to the original textured face with upper and
-    // lower skin patches. The peripheral samples retain the source complexion.
     for (const direction of [1, -1]) {
       const begin = lids.p.length / 3;
       const rings = 8;
@@ -237,8 +218,6 @@ export function attachEyes(
         }
     }
     if (preservePaint) continue;
-    // A separate radial iris moves over the ocular surface and behind the
-    // opaque lids. All four gaze directions are ordinary glTF morph targets.
     const radial = [0, 0.27, 0.34, 0.38, 0.51, 0.68, 0.84, 0.93, 1];
     const segments = 64;
     const startI = irises.p.length / 3;

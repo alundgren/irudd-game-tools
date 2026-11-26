@@ -1,8 +1,3 @@
-// The adult generator in the revision protocol. A seeded adult is created
-// with the values G0's `#adult=SEED` draw decides and the regions G0's form
-// holds; a person's region edit survives a steer of the measurements; values
-// outside the editor's limits are refused at their field.
-
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { test } from "node:test";
@@ -78,8 +73,6 @@ const doc = (state: DocumentState): CharacterDocument => {
   return state.document;
 };
 
-// SHA-256 from G0's frozen adult-{seed}.form.json: sorted region labels,
-// each followed by NUL and its three position components as big-endian float64.
 const g0Positions = [
   [491, "1aeb0a30c1fc31140a0d4e33df6015b5a9df71e9cdf063ef097676b69869fb7d"],
   [42, "f92281f9e43e81fcb983b374beed7d471324a1e0c89f5adf7ba5fcd11e4992a7"],
@@ -122,7 +115,6 @@ test("a person's head edit survives a height steer", () => {
   const head = doc(s).parts.find((p) => p.slot === humanSlot("head"));
   const pelvis = doc(s).parts.find((p) => p.slot === "pelvis");
   assert.ok(head && pelvis);
-  // Tip the head forward 10 degrees and raise it 5 mm.
   const half = (10 * Math.PI) / 360;
   s = commit(s, 1, {
     type: "edit",
@@ -146,7 +138,6 @@ test("a person's head edit survives a height steer", () => {
   const steeredPelvis = after.parts.find((p) => p.id === pelvis.id);
   const baseHead = after.generation?.base.slots.find((b) => b.slot === "head");
   assert.ok(steeredHead && steeredPelvis && baseHead);
-  // The rotation is kept and the offset rides on the new generated joint.
   assert.deepEqual(steeredHead.rotation, edited.rotation);
   for (let d = 0; d < 3; d++)
     assert.ok(
@@ -154,7 +145,6 @@ test("a person's head edit survives a height steer", () => {
         (steeredHead.position[d] ?? 0) - (baseHead.position[d] ?? 0) - (d === 1 ? 0.005 : 0),
       ) < 1e-9,
     );
-  // The unedited pelvis takes the taller body's joint.
   assert.ok(steeredPelvis.position[1] > (pelvis.position[1] ?? 0) + 0.05);
   assert.equal(
     isRecord(after.generation?.params) && after.generation.params["human"] !== undefined,

@@ -48,7 +48,6 @@ test("the head fit reading catches a folded triangle at the same pose", () => {
 });
 
 test("a fit moves adjacent facial rims together and preserves a previous sculpt", () => {
-  // Two nearby sides of a lip opening and one distant cheek anchor.
   const surface = {
     height: 1.72,
     names: ["head"],

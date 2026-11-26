@@ -1,10 +1,3 @@
-// The recipe a legacy figure was generated from: proportions, stance, face,
-// hair and everyday clothes. Ported from readFigure in character-view/figure.js
-// at 2761eb1, with the same bounds. Each field is optional, as an artist or an
-// agent may send a partial figure; the generator fills the rest. The built
-// parts carry the result, so builders never read the recipe; it is kept so
-// the figure can be regenerated from what made it.
-
 import { Schema } from "effect";
 import { bounded, Hex } from "./family.js";
 import { groomPatterns } from "./groom.js";
@@ -19,7 +12,6 @@ export const figurePockets = ["none", "cargo"] as const;
 export const figureShoes = ["sneakers", "boots", "none"] as const;
 export const figureHair = ["Crop", "Sweep", "Coils", "Bald"] as const;
 
-/** A recipe groom takes the figure's hair colour. */
 export const FigureRecipeGroom = Schema.Struct({
   pattern: opt(Schema.Literals(groomPatterns)),
   length: opt(bounded(0, 2)),
@@ -33,9 +25,7 @@ export const FigureRecipeGroom = Schema.Struct({
 
 export const FigureRecipe = Schema.Struct({
   archetype: opt(Schema.Literals(figureArchetypes)),
-  /** Standing height in metres. */
   height: opt(bounded(1.2, 2.2)),
-  /** Height in head lengths. */
   heads: opt(bounded(6, 8.4)),
   shoulderRise: opt(bounded(-0.04, 0.065)),
   shoulders: opt(bounded(0.7, 1.4)),
@@ -56,15 +46,12 @@ export const FigureRecipe = Schema.Struct({
   neck: opt(bounded(0.75, 1.35)),
   hands: opt(bounded(0.85, 1.2)),
   skin: opt(Hex),
-  /** Built-in face paint, as `character.appearance` face. */
   face: opt(Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 3 }))),
   hair: opt(Schema.Literals(figureHair)),
   hairColor: opt(Hex),
-  /** Rooted strands instead of the plain hair shell; null for none. */
   groom: opt(Schema.NullOr(FigureRecipeGroom)),
   stance: opt(
     Schema.Struct({
-      /** Arm angle from the body, in degrees. */
       arms: opt(bounded(4, 75)),
       forearmSpread: opt(bounded(0, 85)),
       elbows: opt(bounded(0, 80)),

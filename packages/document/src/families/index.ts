@@ -1,6 +1,3 @@
-// Character family features. Builders read payloads through each family's typed
-// `read`. `familyFeatures` lists every family definition for a registry.
-
 import type { FeatureDefinition } from "../registry.js";
 import { characterAppearance, characterOrigin } from "./appearance.js";
 import { figureCage } from "./cage.js";

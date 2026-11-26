@@ -4,9 +4,8 @@ packages:
   - verification/protocol
   - verification/families
 
-# Exact desktop-port pins from docs/desktop-dependencies.md (selected 2026-11-25).
-# Packages reference these with "catalog:". Change a pin only as a deliberate dependency update.
 catalog:
+  "@ast-grep/cli": 0.51.3
   "@effect/sql-sqlite-node": 4.1.5
   "@electron/packager": 20.3.0
   "@modelcontextprotocol/sdk": 1.32.2
@@ -29,11 +28,10 @@ catalogMode: strict
 savePrefix: ""
 engineStrict: false
 
-# @types/node 26.6.10 is newer than pnpm's default minimum release age; it is the selected exact pin.
 minimumReleaseAgeExclude:
   - "@types/node@26.6.10"
 
-# esbuild verifies its platform binary. @swc/core installs its binary through optional dependencies.
 allowBuilds:
+  "@ast-grep/cli": true
   esbuild: true
   "@swc/core": false

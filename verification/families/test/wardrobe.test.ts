@@ -1,9 +1,3 @@
-// Saved outfits restyle fitted garments without touching geometry or edits;
-// dyes reach only textured builds; outfit payloads outside the legacy
-// editor's bounds are refused; a base layer or pressure suit refits dressed
-// regions. The parity of field-wardrobe and pressure-poncho, including their
-// game-outfits wardrobe exports, is the slow gate's.
-
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

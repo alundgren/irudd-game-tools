@@ -12,7 +12,6 @@ import { castLidTexels } from "./human-cast-lids.js";
 const read = (owner, name) => ArrayBuffer.isView(owner[name]) ? owner[name] : unzlibSync(Uint8Array.from(atob(owner[name]), c => c.charCodeAt(0)));
 const linear = v => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4;
 const labels = Object.keys(figures);
-// Mean linear colour and count of the texels of a rectangle (shares of the picture) that pass a test on the mask.
 function mean(paint, pixels, mask, [x0, x1, y0, y1], pass) {
   const side = paint.side, sum = [0, 0, 0];
   let count = 0, all = 0;
@@ -37,19 +36,16 @@ test("every cast picture has a skin mask: the face is skin, and hair, eyes, mout
     assert.ok(mean(paint, pixels, mask, [.5, 1, 0, .03], m => m > 20).share < .03, label + ": the hair along the top of the chart is not skin");
     assert.equal(mean(paint, pixels, mask, [.5, .57, .33, .5], m => m > 0).count, 0, label + ": the eye, teeth and mouth charts are not skin");
     assert.equal(mean(paint, pixels, mask, [.5, 1, .5, 1], m => m > 0).count, 0, label + ": nothing below the head chart");
-    // What is masked has the colour of skin: red over green over blue, and near the calibrated tone.
     for (const area of [head, body]) {
       const found = mean(paint, pixels, mask, area, skin);
       if (!found.count) continue;
       assert.ok(found.tone[0] > found.tone[1] && found.tone[1] > found.tone[2], label + ": masked texels are skin coloured");
-      // Arms and hands were photographed apart from the face and can be a good deal paler (the denim jacket's wearer).
       for (let k = 0; k < 3; k++) assert.ok(Math.abs(found.tone[k] / paint.tone[k] - 1) < (area === head ? .45 : .7), label + ": masked skin is near the tone");
     }
   }
 });
 
 test("clothes are not skin: blue, grey, white, pink and khaki cloth stays out of the mask", () => {
-  // Texels of plain cloth in the body charts: [label, x, y] as shares of the whole picture.
   const cloth = [["Blue shirt", .1, .25], ["Blue shirt", .04, .1], ["Pink shirt", .11, .2], ["Pink shirt", .04, .75], ["Striped polo", .03, .1],
     ["Striped polo", .11, .5], ["Long tunic", .1, .3], ["Long tunic", .04, .2], ["Grey tee", .245, .3], ["Grey tee", .245, .5], ["Pink shirt", .245, .25], ["Blue shirt", .245, .3], ["Striped polo", .245, .3], ["Gardener", .1, .2], ["Gardener", .05, .88],
     ["Cropped jacket", .1, .4], ["Cropped jacket", .04, .75], ["Denim jacket", .245, .3], ["Denim jacket", .04, .8]];
@@ -58,7 +54,6 @@ test("clothes are not skin: blue, grey, white, pink and khaki cloth stays out of
     const found = mean(paint, pixels, mask, [x - .01, x + .01, y - .01, y + .01], m => m > 0);
     assert.equal(found.count, 0, label + " cloth at " + x + ", " + y);
   }
-  // And where a body shows skin, it is found: forearms, hands, feet.
   for (const [label, least] of [["Striped polo", .25], ["Grey tee", .15], ["Pink shirt", .1], ["Blue shirt", .08], ["Long tunic", .05]]) {
     const paint = figures[label].paint, found = mean(paint, read(paint, "pixels"), read(paint, "mask"), body, skin);
     assert.ok(found.share >= least, label + ": bare skin of the body (" + found.share.toFixed(3) + ")");
@@ -70,7 +65,6 @@ test("the tone is each source's own photographed face colour, and a form of that
   const tones = labels.map(label => figures[label].paint.tone);
   assert.ok(new Set(tones.map(String)).size >= 7, "calibrated per source, not one value for all");
   for (const label of labels) {
-    // The tone is the mean of the head's skin: the lit cheek is brighter, the neck darker.
     const paint = figures[label].paint, found = mean(paint, read(paint, "pixels"), read(paint, "mask"), cheeks, skin).tone;
     for (let k = 0; k < 3; k++) assert.ok(found[k] / paint.tone[k] > .9 && found[k] / paint.tone[k] < 1.6, label + " tone against its cheek: " + found[k].toFixed(3) + ", " + paint.tone[k]);
     const colour = castSkin(label);
@@ -92,10 +86,8 @@ function drawn(label, colour, style = {}) {
   for (let i = 0; i < image.width * image.height; i++) for (let k = 0; k < 3; k++) rgb[i * 3 + k] = image.data[i * 4 + k];
   return rgb;
 }
-// The iris disc of the eye chart belongs to the eye colour control.
 const iris = i => i % 1024 > 630 && i % 1024 < 670 && i > 455 * 1024 && i < 495 * 1024;
 
-// The strips of the upper lids are repainted as skin (human-cast-lids.js) and so follow the skin colour.
 function lidTexels(label) {
   const figure = figures[label], art = figure.surface, typed = (owner, name, Type) => { const bytes = read(owner, name); return new Type(bytes.buffer, bytes.byteOffset, bytes.byteLength / Type.BYTES_PER_ELEMENT); };
   const eyes = castLidTexels({ uv: typed(art, "uv", Float32Array), index: typed(art, "index", Uint16Array), faceTriangles: figure.faceTriangles,
@@ -114,10 +106,7 @@ test("the skin colour control recolours skin through extremes and leaves hair, e
         const found = mean(paint, picture, mask, area, skin);
         if (found.count < 2000) continue;
         const before = mean(paint, source, mask, area, skin).tone;
-        // The skin lands on the chosen colour as far as the source's own difference between face and body allows.
-        // A very pale choice runs the brightest skin into white, so the mean falls a little short there.
         for (let k = 0; k < 3; k++) {
-          // The renderer holds the gain of a channel to six: a dark source cannot be made as pale as the palest choice.
           const aim = wanted[k] * before[k] / paint.tone[k], least = Math.min(aim, 6 * before[k], 1) * (aim > .6 ? .7 : .88);
           assert.ok(found.tone[k] < Math.min(1, aim) * 1.12 && found.tone[k] > least, label + " " + colour + " channel " + k + ": " + found.tone[k].toFixed(3) + " for " + aim.toFixed(3));
         }
@@ -150,14 +139,12 @@ test("borrowed clothes show the receiver's skin, and the skin colour control rea
     }
     assert.deepEqual(paint.tone, figures[label].paint.tone);
   }
-  // The gardener's own picture has no bare body skin; in the polo his arms and legs are his face's colour, not the polo wearer's.
   const worn = castOutfit(figures.Gardener, "Gardener", { castTop: "Striped polo", castBottom: "Shorts and shoes" }).paint;
   const arms = mean(worn, worn.pixels, worn.mask, body, skin), donor = figures["Striped polo"].paint;
   const theirs = mean(donor, read(donor, "pixels"), read(donor, "mask"), body, skin);
   assert.ok(arms.count > 50000 && Math.abs(arms.count / theirs.count - 1) < .05, arms.count + " texels of arm and leg, " + theirs.count + " on the polo wearer");
   const off = found => Math.max(...found.tone.map((v, k) => Math.abs(v / figures.Gardener.paint.tone[k] - 1)));
   assert.ok(off(arms) < .1 && off(theirs) > .1, "arms " + off(arms).toFixed(3) + " from his face colour; the polo wearer's own " + off(theirs).toFixed(3));
-  // Denim comes with art of its own: its hands are found too.
   const denim = castOutfit(figures.Gardener, "Gardener", { castTop: "Denim jacket", castBottom: "Jeans and shoes" }).paint;
   assert.ok(mean(denim, denim.pixels, denim.mask, body, skin).count > 8000);
   const dark = drawn("Gardener", "#4a2e1f", { castTop: "Striped polo", castBottom: "Shorts and shoes" });

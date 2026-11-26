@@ -1,12 +1,3 @@
-// MCP art tools for the paired agent: read the person's art briefs with their
-// pictures as image content, and answer them.
-//
-// The host makes no artwork and launches nothing. The agent makes the picture
-// or trace with its own tools in this conversation, then submits it here; the
-// host checks it and drafts it as a proposal the person reviews. A picture is
-// given as a local file the agent wrote or as base64, and is staged with its
-// SHA-256 before the reply names it.
-
 import fs from "node:fs";
 import path from "node:path";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -57,7 +48,6 @@ function summary(r: ArtRequestView): string {
   return `${r.artId}: ${r.brief.kind}${r.brief.intent === "build" ? " (build: each region becomes a new part)" : ""} for ${r.brief.documentId} at revision ${r.brief.revision}, ${r.state}${r.stale ? ` (head ${r.head})` : ""}. ${r.brief.direction}`;
 }
 
-/** A picture the agent made: a file it wrote, or base64. */
 function picture(args: {
   imageFile?: string | undefined;
   imageBase64?: string | undefined;

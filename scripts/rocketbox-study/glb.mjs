@@ -1,4 +1,3 @@
-// Reads the uncompressed target GLBs written by convert-fbx.py: positions, indices and material names.
 import { readFileSync } from "node:fs";
 
 export function readGlb(file) {

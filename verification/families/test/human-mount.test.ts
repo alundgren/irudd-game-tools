@@ -1,10 +1,3 @@
-// The two native adults of G0's corpus as editable documents: winged-scout's
-// wings seated on its shoulder blades with a banked pose, and
-// native-portrait-projection's baked portrait layer on its own head. Edits go
-// through the real reducer and are undoable; a steer of the measurements
-// reseats the wings on their blades as G0's changeHuman does. The four-preset
-// parity of both forms is the slow gate's.
-
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { exportCharacter } from "@irudd/character";
@@ -30,7 +23,6 @@ import { readFixture } from "../src/run.js";
 installNodeExporter();
 await preparePacks();
 const body = await loadHumanBody();
-// The project store holds the portrait layer's bytes, as a project the form was imported into does.
 const env = memoryEnvironment(
   familyRegistry,
   readFixture("native-portrait-projection").assets.map((a) => [
@@ -82,7 +74,6 @@ test("a winged adult's wing edit and banked pose are undoable edits of its expor
   assert.ok(wing?.features["figure.scapula-mount"]);
   const base = opened(doc);
   const before = await clay(doc, 1);
-  // Raise the left wing's root: one gesture, one revision.
   const raised = commit(base, doc, {
     type: "edit",
     ops: [
@@ -95,12 +86,10 @@ test("a winged adult's wing edit and banked pose are undoable edits of its expor
   });
   const raisedBytes = await clay(current(raised), 2);
   const lifted = compareGlb(before, raisedBytes);
-  // The wing's joint rises with its root, and the skin and inverse binds follow it.
   const joint = lifted.structure.find((d) => /^nodes\[\d+\]\.translation\[1\]$/.test(d.path));
   assert.ok(joint, JSON.stringify(lifted.structure));
   assert.ok(Math.abs(Number(joint.fresh) - Number(joint.reference) - 0.02) < 1e-12);
   assert.ok(lifted.accessors.some((a) => a.use === "POSITION" && a.differing > 0));
-  // Bank twice as hard: the pose stays typed data, and only the clips change.
   const poses = doc.features["motion.poses"];
   const bank = poses && typeof poses === "object" && "poses" in poses ? poses["poses"] : null;
   assert.ok(Array.isArray(bank));
@@ -121,7 +110,6 @@ test("a winged adult's wing edit and banked pose are undoable edits of its expor
     ops: [{ op: "feature.set", feature: "motion.poses", value: steeper }],
   });
   const banked = compareGlb(raisedBytes, await clay(current(edited), 2));
-  // Only the Bank clip's key for the left wing turns further; no surface moves.
   assert.ok(banked.structure.length > 0);
   for (const d of banked.structure) {
     assert.match(d.path, /^accessors\[\d+\]\.(min|max)\[[23]\]$/);
@@ -158,7 +146,6 @@ test("steering a winged adult's measurements reseats its wings on the blades", a
       assert.equal(v, (was.position[i] ?? 0) + ((b[i] ?? 0) - (a[i] ?? 0)), `${label} ${i}`),
     );
     assert.ok(Math.abs(now.position[1] - was.position[1]) > 1e-3, `${label} moved with the blade`);
-    // The feathers keep their place on the wing.
     const feathers = next.parts.find((p) => p.label === label + " feathers");
     assert.deepEqual(
       feathers?.position,
@@ -180,7 +167,6 @@ test("a native portrait layer is a typed plate on the adult's head and comes off
   const plate = doc.assets.find((a) => a.digest === layer);
   assert.equal(plate?.role, "portrait-plate");
   const base = opened(doc);
-  // A plate no part binds is refused, so the layer and its bytes go together.
   const removed = commit(base, doc, {
     type: "edit",
     ops: [

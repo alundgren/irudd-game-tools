@@ -1,10 +1,3 @@
-// The clipped buzz cut of the textured presets (buzzCut in
-// character-view/human-buzz.js at 2761eb1). The donor was painted on the
-// native topology, so the cut keeps its texture coordinate splits and sits on
-// the adult's own smoothed skull, a little over the skin where the hair is
-// dense, skinned as the skin under each point is. Its picture is the hair
-// colour over the skin colour by the painted density and grain.
-
 import * as T from "three";
 import { context2d, type Raster } from "../../raster.js";
 import type { HumanBody } from "../body.js";
@@ -13,7 +6,6 @@ import { smoothHumanSurface } from "../smooth.js";
 import type { HumanSurface } from "../surface.js";
 import type { DressMesh } from "./kit.js";
 
-// A painting can be drawn again for the next wearer; each wearer owns a separate texture of it.
 const paintings = new WeakMap<Raster, Map<string, HTMLCanvasElement>>();
 function buzzMap(raster: Raster, scalp: BuzzScalp, skin: string, hair: string): T.CanvasTexture {
   let drawn = paintings.get(raster);
@@ -53,7 +45,6 @@ function buzzMap(raster: Raster, scalp: BuzzScalp, skin: string, hair: string): 
   return texture;
 }
 
-/** The buzz cut on this adult's scalp, in `hairColor` over `skin`. */
 export function buzzCut(
   human: HumanBody,
   cage: HumanSurface,

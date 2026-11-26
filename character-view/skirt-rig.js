@@ -80,7 +80,6 @@ export function addSkirtCage(s, bones, index) {
       pins.push({ point: p, dir });
     }
   }
-  // The inset of nearby folds sets the usable clearance under this station.
   for (let i = 0; i < pts.length; i++) {
     const { c, r } = grid(uv.getX(i), 1 - uv.getY(i));
     for (const rr of [r, r + 1])
@@ -168,9 +167,6 @@ function envelope(cage, cloud, offsets) {
   }
   return result;
 }
-// Bake portable joint motion from the legs that actually move in the clip.
-// The skin has four ordinary glTF joint weights per vertex. No cloth runtime
-// or extra vertex animation is required by the consuming game.
 export function animateSkirts(actor, mesh, regions, cages, clips) {
   if (!cages.length) return;
   const mixer = new AnimationMixer(actor),

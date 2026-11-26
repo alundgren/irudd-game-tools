@@ -1,21 +1,3 @@
-// Fitting a paired agent's trace and depth replies onto an existing painted
-// part, as typed operations. Ported from character-view at 2761eb1:
-//
-// - depth: newDepthCandidate in art-variation.js. The target is the selected
-//   painted portrait (acceptsDepth in portrait-depth.js); the agent's front
-//   depth pass is drawn into a 384 px square canvas and registered by
-//   depthFromPixels, and the part's paint takes the field at mix 0.88,
-//   keeping its depth pins.
-// - trace: the trace editor's fits on the selected head (trace-editor.js).
-//   A trace region's five faceLandmarks calibrate the face (registerFace in
-//   portrait-frame.js); its depthPairs become depth pins on the traced front
-//   (pairDepth and withDepthPairs in turnaround.js), appended to the part's
-//   own up to 24. Coordinates are fractions of the sheet's front and
-//   left-facing profile panels, as the coordinate views G0 sent show them.
-//
-// A fit only fits: other regions and outlines are reported, never built. A
-// trace brief whose intent is build adds them as parts (trace-build.ts).
-
 import { Schema } from "effect";
 import {
   FeatureId,
@@ -40,7 +22,6 @@ import {
 
 export { panelFromPixels, type Panel } from "./panel.js";
 
-/** The measurements of a sheet panel that register its coordinates: see `Panel`. */
 export interface PanelFrame {
   readonly size: number;
   readonly mid: number;
@@ -48,9 +29,7 @@ export interface PanelFrame {
   readonly span: number;
 }
 
-/** The canvas G0 draws a depth pass into before registering it. */
 export const depthCanvas = 384;
-/** The square panel a sheet's views are prepared at. */
 export const panelCanvas = 640;
 
 export class ArtFitError extends Error {}
@@ -66,14 +45,6 @@ function toBase64(bytes: Uint8Array): string {
   return btoa(text);
 }
 
-// ── Depth ───────────────────────────────────────────────────────────────────
-
-/**
- * The fitted field of a front depth pass on black, from its RGBA pixels. The
- * image tool can recrop a portrait: its top and bottom register to the
- * source profile and its silhouette on each scan line to the loft's own
- * width. Ported from depthFromPixels in character-view/portrait-depth.js.
- */
 export function depthFromPixels(rgba: ArrayLike<number>, w: number, h: number): DepthField {
   const [width, height] = depthFieldSize;
   const px = (i: number) => rgba[i] ?? 0;
@@ -123,18 +94,12 @@ const partNamed = (doc: CharacterDocument, id: string): Part => {
   return part;
 };
 
-/** The one part a fit brief names. */
 function onlyTarget(doc: CharacterDocument, parts: ReadonlyArray<string> | undefined): Part {
   if (!parts?.length) throw new ArtFitError("Select the painted part to fit.");
   if (parts.length > 1) throw new ArtFitError("Select one painted part to fit.");
   return partNamed(doc, parts[0] ?? "");
 }
 
-/**
- * Why a part cannot take a depth field, or undefined when it can: a traced
- * face with calibrated landmarks whose binding spans most of its height.
- * Ported from acceptsDepth in character-view/portrait-depth.js.
- */
 export function depthRefusal(part: Part): string | undefined {
   const paint = figurePaint.read(part.features);
   if (
@@ -151,7 +116,6 @@ export function depthRefusal(part: Part): string | undefined {
   return undefined;
 }
 
-/** The depth target a brief names, or why it cannot take a depth pass. */
 export function depthTarget(
   doc: CharacterDocument,
   parts: ReadonlyArray<string> | undefined,
@@ -162,7 +126,6 @@ export function depthTarget(
   return part;
 }
 
-/** The operation giving the target's traced front the depth field; its depth pins stay. */
 export function depthOperations(
   doc: CharacterDocument,
   partId: string,
@@ -180,9 +143,6 @@ export function depthOperations(
   ];
 }
 
-// ── Trace fits ──────────────────────────────────────────────────────────────
-
-/** The binding of a painted horizontal loft, or why the part has none. */
 function loftBinding(part: Part): FigurePaint {
   const paint = figurePaint.read(part.features);
   if (!part.paint || !paint || !figureSweep.read(part.features) || paint.frame === "path")
@@ -190,7 +150,6 @@ function loftBinding(part: Part): FigurePaint {
   return paint;
 }
 
-/** The trace target a brief names: a painted horizontal loft. */
 export function traceTarget(
   doc: CharacterDocument,
   parts: ReadonlyArray<string> | undefined,
@@ -200,12 +159,6 @@ export function traceTarget(
   return part;
 }
 
-/**
- * Depth pins of front and profile marks of the same features. Ported from
- * pairDepth in character-view/turnaround.js: each pair is [front x, front y,
- * profile x, profile y, radius], panel fractions and a radius in binding
- * heights, at matching standing heights in both views.
- */
 export function pairDepth(
   binding: FigurePaint,
   front: PanelFrame,
@@ -233,10 +186,6 @@ export function pairDepth(
   ];
 }
 
-/**
- * The face landmarks of five front marks: both pupils, nose tip, lip centre
- * and chin bottom. Ported from registerFace in character-view/portrait-frame.js.
- */
 export function registerFace(
   binding: FigurePaint,
   marks: ReadonlyArray<readonly [number, number]>,
@@ -285,7 +234,6 @@ export function registerFace(
   };
 }
 
-/** The fields of an `irudd.trace-map.v1` region a fit reads. */
 export interface TraceRegionInput {
   readonly id: string;
   readonly parent?: string;
@@ -299,11 +247,9 @@ export interface TraceRegionInput {
 
 export interface TraceFit {
   readonly operations: Operation[];
-  /** The region fitted onto the part. */
   readonly region: string;
   readonly landmarks: boolean;
   readonly pins: number;
-  /** What the reply carried that this fit did not apply, for the person and the agent. */
   readonly notes: ReadonlyArray<string>;
 }
 
@@ -313,11 +259,6 @@ const norm = (s: string) =>
     .toLowerCase()
     .replace(/[\s_.-]+/g, " ");
 
-/**
- * The region of a trace map that describes the target: the one named like
- * the part (its ID, label or traced region), or else the only region carrying
- * a fit, as an isolated portrait's root does.
- */
 export function targetRegion(
   part: Part,
   regions: ReadonlyArray<TraceRegionInput>,
@@ -337,11 +278,6 @@ export function targetRegion(
   );
 }
 
-/**
- * The operations that fit a trace map's region onto the target: its face
- * landmarks calibrate the face and its depth pairs add depth pins. `front`
- * and `side` are the target sheet's first two panels.
- */
 export function traceFitOperations(
   doc: CharacterDocument,
   partId: string,
@@ -400,7 +336,6 @@ export function traceFitOperations(
   const existing = prior?.pins ?? [];
   const pins: DepthPin[] = [];
   const missed: number[] = [];
-  // Match independent sight lines: an uncertain point does not discard the others.
   for (const [i, pair] of pairs.entries()) {
     try {
       pins.push(pairDepth(binding, front, side, pair));
@@ -438,7 +373,6 @@ export function traceFitOperations(
   };
 }
 
-/** Plain JSON operations, as an art translator returns them. */
 export function jsonOperations(ops: ReadonlyArray<Operation>): Json[] {
   const copy: unknown = JSON.parse(JSON.stringify(ops));
   if (!isJson(copy) || !isJsonArray(copy)) throw new ArtFitError("The fit produced no operations.");

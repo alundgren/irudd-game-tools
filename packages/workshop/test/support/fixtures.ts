@@ -1,5 +1,3 @@
-// Shared helpers for the workshop tests. Projects live in fresh temporary
-// directories; everything goes through the package entry.
 import { createRegistry, frameCreature, defaultFrameCreatureParams } from "@irudd/document";
 import type { Registry } from "@irudd/document";
 import { Effect, Exit } from "effect";
@@ -12,7 +10,6 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import type { CommandRequest } from "@irudd/workshop";
 
 export const registry: Registry = createRegistry({ generators: [frameCreature] });
-/** A build that has retired the frame-creature generator. */
 export const retiredRegistry: Registry = createRegistry();
 
 export const human = { kind: "human", id: "user", name: "Person" } as const;
@@ -21,7 +18,6 @@ export const agent = { kind: "agent", id: "assistant" } as const;
 export const docId = "doc-marsh01";
 
 export const supportDir = path.dirname(fileURLToPath(import.meta.url));
-/** The shared test resolver, as the file URL `node --import` needs on Windows. */
 export const registerHook = pathToFileURL(
   path.resolve(supportDir, "../../../document/test/support/register.ts"),
 ).href;
@@ -82,7 +78,6 @@ export function rename(
   );
 }
 
-/** Minimal bytes carrying a real PNG signature, unique per call. */
 export function pngBytes(size = 256): Uint8Array {
   const bytes = new Uint8Array(size);
   bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -90,7 +85,6 @@ export function pngBytes(size = 256): Uint8Array {
   return bytes;
 }
 
-/** Run a scoped program to completion and return its exit. */
 export function runExit<A, E>(program: Effect.Effect<A, E, Scope.Scope>): Promise<Exit.Exit<A, E>> {
   return Effect.runPromiseExit(Effect.scoped(program));
 }
@@ -101,7 +95,6 @@ export async function run<A, E>(program: Effect.Effect<A, E, Scope.Scope>): Prom
   throw new Error("Program failed: " + String(exit.cause));
 }
 
-/** The failure of a program that must fail with a typed error. */
 export async function failure<A, E>(program: Effect.Effect<A, E, Scope.Scope>): Promise<E> {
   const exit = await runExit(program);
   if (Exit.isSuccess(exit)) throw new Error("Expected a failure, got success");

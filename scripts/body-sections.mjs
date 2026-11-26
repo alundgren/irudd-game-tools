@@ -1,5 +1,3 @@
-// JSON-lines helper for body-fidelity.py. Bundle the same clay geometry as
-// the workshop. Bitmap assets are unnecessary for silhouette measurement.
 import { build } from "esbuild";
 import { createInterface } from "node:readline";
 const bundle = await build({

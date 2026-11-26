@@ -1,11 +1,3 @@
-// Portrait depth and hair caps: figure.portrait-depth refines a traced front
-// by depth pins and a fitted field, and figure.hair-cap separates the hair
-// painted on a face into a removable shell, or keeps only that hair on a hair
-// layer seated on its head. A previous reader diagnoses both as capabilities,
-// malformed fields and parts that cannot take them are refused, and the depth
-// moves the face it refines. The four-preset parity of composed-portrait,
-// portrait-gaze and fitted-portrait is the slow gate's.
-
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -27,7 +19,6 @@ const isMesh = (o: T.Object3D | undefined): o is T.Mesh => o instanceof T.Mesh;
 const face = "p-head-and-neck";
 const hair = "p-head-and-neck-hair";
 
-/** A fixture's raw JSON, with `edit` applied to the features of part `id`. */
 function raw(
   name: string,
   id?: string,
@@ -111,22 +102,18 @@ test("malformed fields are refused when the document reads", () => {
 test("parts that cannot take a cap or a depth field are refused", () => {
   const refused = (value: unknown, pattern: RegExp) =>
     assert.throws(() => clay(read(value)), pattern);
-  // A source hair cap needs a hair layer.
   refused(
     raw("fitted-portrait", hair, (f) => delete f["figure.head-layer"]),
     /keeps only a source hair cap but is not a swept hair layer/,
   );
-  // A face's own cap cannot keep only the hair.
   refused(
     raw("composed-portrait", face, (f) => (field(f, "figure.hair-cap")["sourceOnly"] = true)),
     /keeps only a source hair cap/,
   );
-  // A cap needs a traced face.
   refused(
     raw("composed-portrait", face, (f) => delete field(f, "figure.paint")["portrait"]),
     /has a hair cap but is not a traced face/,
   );
-  // A fitted field needs a face traced over most of its binding.
   refused(
     raw("fitted-portrait", face, (f) => {
       const paint = field(f, "figure.paint");
@@ -134,7 +121,6 @@ test("parts that cannot take a cap or a depth field are refused", () => {
     }),
     /has a fitted depth but is not a full traced face/,
   );
-  // A capped face grows no guide fibres.
   refused(
     raw(
       "composed-portrait",
@@ -173,8 +159,6 @@ test("a source hair layer keeps only its hair, seated on its head", () => {
   } finally {
     built.dispose();
   }
-  // The face beneath is the same traced sweep left whole; the cut hair is a
-  // lined shell of its own, not that sweep.
   assert.notEqual(positions(doc, hair).length, positions(doc, face).length);
 });
 
@@ -195,7 +179,6 @@ test("depth pins and a fitted field move the face they refine", () => {
     const after = positions(doc, face);
     assert.equal(before.length, after.length);
     assert.notDeepEqual(before, after, `${name} ${key} moves the face`);
-    // Depth only moves the front along Z.
     for (let i = 0; i < before.length; i += 3) {
       assert.equal(before[i], after[i]);
       assert.equal(before[i + 1], after[i + 1]);

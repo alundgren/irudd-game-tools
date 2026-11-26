@@ -96,9 +96,6 @@ function subset(v, indices) {
     for (let k = 0; k < 3; k++) out[i * 3 + k] = v[indices[i] * 3 + k];
   return out;
 }
-// Nearest triangles give weak evidence along a limb's length. A separated hand
-// also gives a support plane at its outline. Restrict these observations to
-// spread arms so a sleeve, hip or torso cannot masquerade as a fingertip.
 function armExtremes(positions, count, height) {
   const directions = [];
   for (const side of [-1, 1])
@@ -137,9 +134,6 @@ function armExtremes(positions, count, height) {
     }
   return directions;
 }
-// A standing foot offers a toe-to-heel length independent of its translation.
-// Use only plausible, separable footprints in the floor band. A partial scan,
-// trailing garment, or foot viewed edge-on can otherwise dominate this term.
 function footExtents(positions, count, height) {
   const feet = [null, null];
   for (let i = 0; i < count; i++) {
@@ -171,8 +165,6 @@ function footExtents(positions, count, height) {
       : null;
   });
 }
-// A partial scan may keep the complete vertex buffer and index only the observed
-// triangles. An orphaned toe or scalp vertex is not a measurement of the scan.
 function referencedPositions(geometry) {
   const positions = geometry.getAttribute("position");
   const index = geometry.getIndex();
@@ -191,7 +183,6 @@ function fitFootLength(target, params, surface, evaluate) {
   const error = (feet) => {
     if (!feet.every(Boolean) || !targetFeet.every(Boolean)) return null;
     const gaps = feet.map((foot, i) => targetFeet[i].length - foot.length);
-    // A single size parameter controls both feet. Reject inconsistent pairs.
     if (
       Math.abs(gaps[0] - gaps[1]) > 0.015 * surface.height ||
       gaps.some((g) => Math.abs(g) > 0.06 * surface.height)
@@ -217,8 +208,6 @@ function fitFootLength(target, params, surface, evaluate) {
   }
   return surface;
 }
-// Robust normal correspondences and bounded least squares over ordinary editor dimensions.
-// The target stays fixed in one physical coordinate system for every trial step.
 export function fitMeasurements(
   form,
   targetGeometry,
@@ -264,12 +253,6 @@ export function fitMeasurements(
   const ctl = new Set(controls.ids);
   const p = new Vector3(),
     n = new Vector3();
-  // Skin the artist excluded gives no correspondence, no depth or lip constraint
-  // and no sample in the summaries. The sliders are shared, so a measurement fitted
-  // on the remaining skin still moves the excluded skin with it.
-  // Kept eye openings are excluded by name, and the sliders that mostly reshape them
-  // are left where the artist set them: with the openings out of the measurement
-  // they would only be bent to explain the brow and cheek beside them.
   const eyes = keepEyeOpenings ? eyeOpenings(original) : null;
   if (eyes) {
     const start = evaluateHuman(params, form.humanFit, form.humanDetail).positions;
@@ -370,16 +353,10 @@ export function fitMeasurements(
         for (let k = 0; k <= j; k++) a[j][k] += w * cols[k][i];
       }
       for (let k = 0; k < j; k++) a[k][j] = a[j][k];
-      // A lip or an eyelid moves few control points. Shrinking that step by
-      // the number of samples on the entire body made those features nearly
-      // immovable even when there was good local evidence.
       if (axes.head.includes(keys[j]) && !["neck","neckLength"].includes(keys[j])) {
         let peak = 0;
         for (const response of cols[j]) peak = Math.max(peak, Math.abs(response));
         const support = peak > 1e-8 ? a[j][j] / (peak * peak) : 0;
-        // Constrain the accumulated edit as well as the next numerical step.
-        // Without this prior a wide nose, narrow tip, long ear and small ear
-        // can all saturate together to explain the same few millimetres.
         const prior = Math.max(1, support) * 0.000020;
         const initial = form.human[keys[j]] ?? humanRange(keys[j])[2];
         a[j][j] += prior + Math.max(1, support) * 0.000003;
@@ -418,7 +395,6 @@ export function fitMeasurements(
     }
     if (!accepted) break;
   }
-  // The lip contact is read from the mouth alone, so a hidden mouth leaves it as it is.
   if (heads.length && !lipCreaseSamples(surface, tree).some((e) => held(surface, e.index)))
     surface = fitLipContact(params, surface, tree, evaluate);
   if (useFeet) surface = fitFootLength(target, params, surface, evaluate);

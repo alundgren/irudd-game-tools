@@ -1,13 +1,3 @@
-// Grown plates and held arms: figure.plate-field on a carrier sweep,
-// figure.plate-site on each plate cage, figure.horn-swatch for its tile of
-// the horn sheet, and motion.hold on an arm that keeps its rest pose. A
-// previous reader diagnoses them as capabilities, sites must be distinct
-// within their carrier's field, a finished plate samples its swatch's tile,
-// an animated plated axis keeps its rings and sockets through game
-// simplification, and a held arm gets no generated shoulder motion. The
-// four-preset parity of four-hand-courier and the moraine forms is the slow
-// gate's.
-
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -30,7 +20,6 @@ const carrier = "p-courier-chest-shell";
 const plate = "p-courier-chest-shell-plate-1-2";
 const arm = "p-left-upper-arm-copy";
 
-/** four-hand-courier, with `edit` applied to the features of part `id`. */
 function courier(id?: string, edit?: (features: Mutable) => void): unknown {
   const value: unknown = JSON.parse(
     readFileSync(join(fixturesDir, "four-hand-courier.json"), "utf8"),
@@ -40,7 +29,6 @@ function courier(id?: string, edit?: (features: Mutable) => void): unknown {
     if (isObject(part) && part["id"] === id && isObject(part["features"])) edit?.(part["features"]);
   return value;
 }
-/** The document without its portrait plates, which a finished build in Node cannot paint. */
 function unplated(value: unknown): unknown {
   assert.ok(isObject(value) && Array.isArray(value["parts"]) && Array.isArray(value["assets"]));
   for (const part of value["parts"]) {
@@ -69,7 +57,6 @@ function field(features: Mutable, key: string): Mutable {
   assert.ok(isObject(inner));
   return inner;
 }
-/** One material per colour and finish, as the textured presets supply them. */
 function finishedMaterials(): MaterialSource {
   const made = new Map<string, T.Material>();
   return (color, finish) => {

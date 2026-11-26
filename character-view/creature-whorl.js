@@ -1,7 +1,5 @@
 import { Color, Float32BufferAttribute, Vector3 } from "three";
 
-// Read the growth direction from the eight-sided sections of the artist's
-// cage. A subdivided vertex can belong to more than one control face.
 export function finishWhorl(mesh,part,plain) {
   const g=mesh.geometry, positions=g.attributes.position, normal=g.attributes.normal;
   const controls=part.cage.vertices.map(p=>new Vector3(...p)), idx=g.index.array;
@@ -52,8 +50,6 @@ export function finishWhorl(mesh,part,plain) {
   }
 }
 
-// Colour follows the cup and rim as the ear cage is sculpted. Use the
-// subdivision provenance to keep the satin cartilage on the inner face.
 export function finishCartilage(mesh, part) {
   const g=mesh.geometry;
   if (!g.cageFaces) return;

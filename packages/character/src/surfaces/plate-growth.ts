@@ -1,14 +1,7 @@
-// Grown horn plates. Ported from growthUv and finishPlateSurface in
-// character-view/plate-growth.js and hasPlatedAxis in
-// character-view/surface-join.js at 2761eb1.
-
 import * as T from "three";
 import type { Finish } from "@irudd/document";
 import type { BuildPart } from "../view.js";
 
-// A grown plate's cage: closed sections from its embedded heel to its free
-// tip, as [length fraction, half-width envelope, ridge envelope, tip lift],
-// each a ring of eight control points.
 const stations = [
   [0, 0.55, 0.12, 0],
   [0.1, 0.82, 0.39, 0.004],
@@ -35,10 +28,8 @@ const ring = [
   [-0.58, -0.22],
 ] as const;
 
-/** A plated carrier whose axis animates shares its axial joints with the plates. */
 export function hasPlatedAxis(part: BuildPart | undefined): boolean {
   if (!part?.sweep || !part.plateField) return false;
-  // A swept part's movement role, as regionRole in rig/skin.ts resolves it.
   const role = part.motion ?? part.wear.role;
   return role === "tail" || role === "axial spine";
 }
@@ -49,12 +40,6 @@ interface Control {
   readonly v: number;
 }
 
-/**
- * Reproject smoothed vertices to their source control faces, so geometry and
- * pigment follow the same swept ridges through sculpting and reflection. The
- * vertices on the plate's underside, or undefined when the cage is not a
- * grown plate's.
- */
 function growthUv(
   geometry: T.BufferGeometry,
   part: BuildPart,
@@ -132,11 +117,6 @@ function growthUv(
   return underside;
 }
 
-/**
- * Finish a grown plate: its UVs in its swatch's tile of the shared horn
- * sheet, and its tone by vertex, darker underneath and lighter toward the
- * tip. Every plate shares the white horn material, made vertex coloured.
- */
 export function finishPlateSurface(
   mesh: T.Mesh,
   part: BuildPart,
@@ -149,7 +129,6 @@ export function finishPlateSurface(
   const base = new T.Color(part.color);
   const uv = g.getAttribute("uv");
   const rgb = new Float32Array(3 * uv.count);
-  // Independent copies retain their source swatch after a refit or tip edit.
   const tileX = part.hornSwatch % 2;
   const tileY = Math.floor(part.hornSwatch / 2);
   for (let i = 0; i < uv.count; i++) {
@@ -161,7 +140,6 @@ export function finishPlateSurface(
     rgb[i * 3 + 2] = base.b * shade;
   }
   g.setAttribute("color", new T.Float32BufferAttribute(rgb, 3));
-  // All sites share one atlas tile; the individual tones ride on the vertices.
   const shared = materials("#ffffff", "horn");
   shared.vertexColors = true;
   if (shared instanceof T.MeshStandardMaterial) shared.roughness = 0.72;

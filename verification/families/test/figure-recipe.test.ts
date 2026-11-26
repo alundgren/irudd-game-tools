@@ -1,7 +1,3 @@
-// A figure keeps the recipe it was generated from and marks its bare skin;
-// values outside the legacy generator's bounds are refused. Decoding only:
-// the four-preset parity of figure-runner and hooded-docker is the slow gate's.
-
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

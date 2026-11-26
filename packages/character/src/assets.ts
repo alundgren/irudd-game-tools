@@ -1,18 +1,3 @@
-// Bundled artwork and the typed resolution of the bytes a character uses.
-//
-// A document names every atlas it paints with by content digest, in
-// `part.paint.atlas` and `figure.occluders`, and declares it in `doc.assets`
-// (role `paint-atlas`). The digest is the only identity: a bundled atlas
-// shipped with this build and an atlas a person imported into a project
-// resolve the same way, and a GLB is never treated as editable source.
-//
-// Bundled files live in `packages/character/assets/`. Their bytes are the
-// tracked files of the reference workshop at 2761eb14, so their history and
-// licence are the repository's. Hosts stage a document's bundled bytes into
-// the project's content-addressed store before committing it
-// (`bundledDependencies`), so the project reopens even if a later build
-// retires the file.
-
 import {
   digestBrand,
   sha256Digest,
@@ -22,18 +7,14 @@ import {
   type Digest,
 } from "@irudd/document";
 
-/** Where a bundled file came from and under which licence it ships. */
 export type AssetOrigin =
   | {
-      /** Original art made for this project; the repository's MIT licence applies. */
       readonly kind: "project";
       readonly license: "MIT";
-      /** Tracked source path at the reference commit, and the commit that added it. */
       readonly source: string;
       readonly added: string;
     }
   | {
-      /** Third-party material that must be credited in exports. */
       readonly kind: "credited";
       readonly license: string;
       readonly source: string;
@@ -41,14 +22,11 @@ export type AssetOrigin =
     };
 
 export interface BundledAsset {
-  /** The reference workshop's name for the file, used only when preparing its forms. */
   readonly name: string;
-  /** File name in packages/character/assets. */
   readonly file: string;
   readonly digest: Digest;
   readonly mediaType: "image/webp";
   readonly byteLength: number;
-  /** `turnaround`: a two-by-two paint sheet. `surface`: a material swatch the builder loads itself. */
   readonly use: "turnaround" | "surface";
   readonly origin: AssetOrigin;
 }
@@ -79,7 +57,6 @@ function project(
   };
 }
 
-/** Every file this build ships. All of it is project-owned original art. */
 export const bundledAssets: ReadonlyArray<BundledAsset> = [
   project(
     "surfaces",
@@ -217,7 +194,6 @@ const byName = new Map(bundledAssets.map((a) => [a.name, a]));
 export const bundledAsset = (digest: Digest): BundledAsset | undefined => byDigest.get(digest);
 export const bundledAssetNamed = (name: string): BundledAsset | undefined => byName.get(name);
 
-/** The declaration a document makes for a bundled file it paints with. */
 export function bundledEntry(asset: BundledAsset): AssetEntry {
   return {
     digest: asset.digest,
@@ -227,7 +203,6 @@ export function bundledEntry(asset: BundledAsset): AssetEntry {
   };
 }
 
-/** Where a resolved asset's bytes came from. */
 export type AssetSource = "bundled" | "project";
 
 export interface ResolvedAsset {
@@ -235,23 +210,15 @@ export interface ResolvedAsset {
   readonly mediaType: string;
   readonly bytes: Uint8Array;
   readonly source: AssetSource;
-  /** Present for bundled files. */
   readonly bundled?: BundledAsset;
 }
 
-/**
- * Resolves a digest to verified bytes, offline. Bundled files come first,
- * then the project's content-addressed store. Bytes that do not hash to the
- * digest are refused, so a resolver never returns unverified content.
- */
 export interface AssetResolver {
   readonly resolve: (digest: Digest) => ResolvedAsset | undefined;
 }
 
 export interface ResolverInput {
-  /** Bytes of a bundled file, for example read from packages/character/assets. */
   readonly bundled: (asset: BundledAsset) => Uint8Array | undefined;
-  /** The project's blob store, for imported artwork. */
   readonly project?: (
     digest: Digest,
   ) => { readonly bytes: Uint8Array; readonly mediaType: string } | undefined;
@@ -280,11 +247,6 @@ export function assetResolver(input: ResolverInput): AssetResolver {
   };
 }
 
-/**
- * The declared assets of a document that this build ships, with their bytes'
- * origin, so a host can stage them in the project's store before commit.
- * Each returned entry verifies against bytes the resolver gives for it.
- */
 export function bundledDependencies(
   doc: CharacterDocument,
 ): ReadonlyArray<{ readonly entry: AssetEntry; readonly asset: BundledAsset }> {
@@ -297,5 +259,4 @@ export function bundledDependencies(
   return out;
 }
 
-/** Diagnostics for ingesting `bytes` as the declared `entry`; empty when they match. */
 export const checkAssetBytes = verifyAssetBytes;

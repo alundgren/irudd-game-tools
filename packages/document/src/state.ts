@@ -1,15 +1,3 @@
-// Document state, revision records, receipts and the journal entry type, with
-// the helpers that keep them immutable at runtime.
-//
-// Internal module: the entry re-exports the types and the read-only helpers,
-// never `makeState`, so only the reducer and recovery build a DocumentState.
-//
-// Ownership: every value reachable from a DocumentState is deeply frozen and
-// was created by this package. Caller and storage input is copied before it
-// is decoded, so a caller's objects are never frozen or retained, and nothing
-// a consumer receives can be mutated to rewrite history. Frozen subtrees are
-// shared between revisions.
-
 import type { Change } from "./changes.js";
 import type { Actor, Command } from "./commands.js";
 import { digestBrand } from "./document.js";
@@ -22,9 +10,7 @@ export type RevisionKind = "create" | "edit" | "undo" | "restore" | "proposal" |
 export interface RevisionRecord {
   readonly revision: number;
   readonly kind: RevisionKind;
-  /** Who issued the command that produced this revision. */
   readonly actor: Actor;
-  /** Who wrote the change: the accepted draft version's editor for a proposal, else the actor. */
   readonly author: Actor;
   readonly requestId: string;
   readonly changes: ReadonlyArray<Change>;
@@ -40,14 +26,11 @@ export type ProposalStatus = "draft" | "discarded" | "accepted";
 
 export type Receipt = {
   readonly requestId: string;
-  /** Digest of the canonical envelope; a retry must match it exactly. */
   readonly payload: Digest;
   readonly documentId: DocumentId;
   readonly command: Command["type"];
-  /** Head revision after the command. */
   readonly revision: number;
   readonly documentDigest: Digest;
-  /** True when the command appended a revision. */
   readonly appended: boolean;
   readonly proposal?: {
     readonly id: string;
@@ -59,25 +42,20 @@ export type Receipt = {
 export type Proposal = {
   readonly id: string;
   readonly author: Actor;
-  /** Author of the current draft content, including after acceptance or discard. */
   readonly lastEditor: Actor;
   readonly baseRevision: number;
   readonly version: number;
   readonly summary: string;
-  /** Explicit diff against the base revision's document. */
   readonly changes: ReadonlyArray<Change>;
   readonly status: ProposalStatus;
   readonly acceptedRevision?: number;
 };
 
-/** What a committed command did, recorded so recovery never re-runs it. */
 export type JournalEffect = {
   readonly revision?: {
     readonly kind: RevisionKind;
     readonly author: Actor;
-    /** Field changes from the previous head. Empty for creation, which stores `document`. */
     readonly changes: ReadonlyArray<Change>;
-    /** The materialised document, stored for the creating revision only. */
     readonly document?: CharacterDocument;
     readonly digest: Digest;
     readonly undoes?: number;
@@ -85,7 +63,6 @@ export type JournalEffect = {
     readonly proposal?: { readonly id: string; readonly version: number };
     readonly summary?: string;
   };
-  /** The proposal as the command left it. */
   readonly proposal?: Proposal;
   readonly policy?: { readonly agentDirectEdit: boolean };
 };
@@ -93,33 +70,23 @@ export type JournalEffect = {
 export const journalFormat = "irudd.journal";
 export const journalVersion = 1;
 
-/**
- * One durable record: the request, its receipt and its materialised effect,
- * chained to the previous entry by digest.
- */
 export type JournalEntry = {
   readonly format: typeof journalFormat;
   readonly version: typeof journalVersion;
-  /** 1 for the first entry, then consecutive. */
   readonly sequence: number;
-  /** Digest of the previous entry, or null for the first. */
   readonly previous: Digest | null;
-  /** The decoded envelope exactly as accepted; `receipt.payload` is its digest. */
   readonly envelope: Json;
   readonly receipt: Receipt;
   readonly effect: JournalEffect;
-  /** Digest of the canonical entry without this field. */
   readonly digest: Digest;
 };
 
 export type UnsealedEntry = Omit<JournalEntry, "digest">;
 
-/** The digest an entry carries: over its canonical JSON without the digest field. */
 export function entryDigest(body: UnsealedEntry): Digest {
   return digestBrand(digestJson(body));
 }
 
-/** Chain a new owned entry after `previous`. */
 export function sealEntry(
   previous: JournalEntry | undefined,
   envelope: Json,
@@ -138,51 +105,31 @@ export function sealEntry(
   return own({ ...body, digest: entryDigest(body) });
 }
 
-// Not exported from the entry: code outside the package cannot write a DocumentState literal.
 const stateBrand: unique symbol = Symbol("irudd.document-state");
 
-/**
- * The complete state of one document. Only the reducer and journal recovery
- * create values of this type. Everything reachable from it is frozen.
- */
 export interface DocumentState {
   readonly [stateBrand]: true;
   readonly documentId: DocumentId;
   readonly head: number;
-  /** Absent before the document is created. */
   readonly document: CharacterDocument | undefined;
   readonly history: ReadonlyArray<RevisionRecord>;
   readonly receipts: ReadonlyMap<string, Receipt>;
   readonly proposals: ReadonlyMap<string, Proposal>;
   readonly policy: { readonly agentDirectEdit: boolean };
-  /** Part IDs that named a part in some revision and are absent from the head. */
   readonly retired: ReadonlySet<string>;
-  /** Revisions whose effect is currently reversed by an undo in force. */
   readonly undone: ReadonlySet<number>;
-  /** target revision → every undo revision that targets it, oldest first */
   readonly undos: ReadonlyMap<number, ReadonlyArray<number>>;
-  /** Durable record, in order. Storage persists these entries. */
   readonly journal: ReadonlyArray<JournalEntry>;
 }
 
 export type StateFields = Omit<DocumentState, typeof stateBrand>;
 
-/** The single construction site for DocumentState. */
 export function makeState(fields: StateFields): DocumentState {
   return Object.freeze({ ...fields, [stateBrand]: true as const });
 }
 
-// ── Ownership ──────────────────────────────────────────────────────────────
-
 const owned = new WeakSet<object>();
 
-/**
- * Deeply freeze a value this package created, in place, and return it.
- * Subtrees frozen earlier are shared as they are. Only call it on fresh
- * values: input from callers and storage is first copied with `detach`, and
- * documents are validated from a detached copy, so a caller's or a plugin's
- * objects are never frozen or retained.
- */
 export function own<T>(value: T): T {
   if (typeof value === "object" && value !== null && !owned.has(value)) {
     Object.freeze(value);
@@ -192,15 +139,12 @@ export function own<T>(value: T): T {
   return value;
 }
 
-/** A fresh, unshared copy of a JSON value. Values, including -0, and key order are kept. */
 export function detach(value: Json): Json {
   if (typeof value !== "object" || value === null) return value;
   if (isJsonArray(value)) return value.map(detach);
-  // fromEntries defines own properties, so a "__proto__" key stays a plain key.
   return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, detach(item)]));
 }
 
-/** A Map that cannot be changed after construction, even through Map.prototype. */
 export class FrozenMap<K, V> implements ReadonlyMap<K, V> {
   readonly #map: Map<K, V>;
   constructor(entries: Iterable<readonly [K, V]> = []) {
@@ -231,7 +175,6 @@ export class FrozenMap<K, V> implements ReadonlyMap<K, V> {
   [Symbol.iterator](): MapIterator<[K, V]> {
     return this.#map.entries();
   }
-  /** A new map with one key set. */
   with(key: K, value: V): FrozenMap<K, V> {
     const next = new Map(this.#map);
     next.set(key, value);
@@ -239,7 +182,6 @@ export class FrozenMap<K, V> implements ReadonlyMap<K, V> {
   }
 }
 
-/** A Set that cannot be changed after construction. */
 export class FrozenSet<T> implements ReadonlySet<T> {
   readonly #set: Set<T>;
   constructor(items: Iterable<T> = []) {
@@ -269,14 +211,6 @@ export class FrozenSet<T> implements ReadonlySet<T> {
   }
 }
 
-// ── Undo status ────────────────────────────────────────────────────────────
-
-/**
- * Which revisions are undone, given every undo relation. A revision is undone
- * when some undo targeting it is itself not undone. Undo revisions always
- * come after their target, so one pass from the newest revision down settles
- * every status. `inForce` lists, per target, the undos currently in force.
- */
 export function undoStatus(
   head: number,
   undos: ReadonlyMap<number, ReadonlyArray<number>>,
@@ -295,12 +229,10 @@ export function undoStatus(
   return { undone, inForce };
 }
 
-/** Whether `target`'s effect is currently reversed by an undo that is itself in force. */
 export function isUndone(state: DocumentState, target: number): boolean {
   return state.undone.has(target);
 }
 
-/** The undo currently reversing `target`, if any. */
 export function undoneBy(state: DocumentState, target: number): number | undefined {
   return state.undos.get(target)?.find((u) => !state.undone.has(u));
 }

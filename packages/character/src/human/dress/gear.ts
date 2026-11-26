@@ -1,6 +1,3 @@
-// Bulky gear worn over the clothes: packs, capes, aprons and helmets
-// (character-view/human-style-gear.js at 2761eb1).
-
 import type { Ray } from "../../game/raycast.js";
 import { belt, caster, strap } from "./cloth.js";
 import {
@@ -25,7 +22,6 @@ import {
 const ARMS = /^(upperarm|lowerarm|hand|thumb|index|middle|ring|pinky)/,
   TAU = Math.PI * 2;
 
-/** Cloth a piece of gear measures itself over: a fitted shell, or a finished piece's surface. */
 export interface WornSurface {
   readonly pos: ArrayLike<number>;
   readonly tri: ArrayLike<number>;
@@ -33,7 +29,6 @@ export interface WornSurface {
 }
 const fieldAt = (s: WornSurface, name: string, i: number): number => s.f?.[name]?.[i] ?? 0;
 
-/** A rounded box or cushion: packs, pouches and bedrolls. `half` holds three half-extent vectors; rings run along the second. */
 export function pod(
   piece: Piece,
   centre: Vec,
@@ -64,7 +59,6 @@ export function pod(
   piece.loft(list, skin, { flip: dot(cross(half[0], half[1]), half[2]) < 0 });
 }
 
-/** Press a path of points onto the clothes, returning [point, outward] pairs for `strap`. */
 export function lay(
   cast: Ray,
   points: ReadonlyArray<Vec>,
@@ -81,7 +75,6 @@ export function lay(
   return out;
 }
 
-/** A cape hanging from the shoulders down the back. */
 export function cape(
   body: DressBody,
   m: Landmarks,
@@ -161,7 +154,6 @@ export function cape(
   return { piece, env };
 }
 
-/** A pack on the back with shoulder straps and an optional bedroll, or an air supply with two tanks. */
 export function backpack(
   body: DressBody,
   m: Landmarks,
@@ -305,7 +297,6 @@ export function backpack(
   return { pack, gear };
 }
 
-/** A bib apron over the front of the clothes, with a waist tie and shoulder straps. */
 export function apron(
   body: DressBody,
   m: Landmarks,

@@ -1,10 +1,3 @@
-// Start the built desktop app.
-//
-//   pnpm --filter @irudd/desktop start            build, then launch
-//   pnpm --filter @irudd/desktop launch -- --project <dir> [--create]
-//
-// Arguments after the script name go to the app (see src/main/main.ts).
-
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";

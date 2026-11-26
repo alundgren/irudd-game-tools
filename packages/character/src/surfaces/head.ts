@@ -1,13 +1,8 @@
-// The built-in head: a sculpted face, ears and neck. Ported from createFace,
-// earGeometry, shapeNeck and shadeNape in character-view/face.js at 2761eb1,
-// arithmetic in the same order so the vertices match.
-
 import type { Appearance, FaceSculpt } from "@irudd/document";
 import * as T from "three";
 import { landmarkRelief } from "./face.js";
 import { deformFace } from "./sculpt.js";
 
-/** The four built-in faces: their reference skin and structure. */
 export const builtinFaces = [
   { skin: "#ac785a", jaw: 1.03, nose: 1.08, brow: 1.1, cheek: 1 },
   { skin: "#ae7f5d", jaw: 1.14, nose: 1.09, brow: 0.91, cheek: 1.12 },
@@ -15,13 +10,11 @@ export const builtinFaces = [
   { skin: "#c9997c", jaw: 0.91, nose: 0.86, brow: 0.94, cheek: 1.03 },
 ] as const;
 
-/** The built-in face cell an appearance wears. */
 export const faceCell = (appearance: Pick<Appearance, "face">): 0 | 1 | 2 | 3 => {
   const cell = appearance.face ?? 0;
   return cell === 1 || cell === 2 || cell === 3 ? cell : 0;
 };
 
-/** Chin to crown: height, half width, depth in front of and behind the ear. */
 export const headContour: ReadonlyArray<readonly [number, number, number, number]> = [
   [0, 0.006, 0.066, -0.057],
   [0.025, 0.038, 0.084, -0.019],
@@ -45,10 +38,7 @@ const item = <V>(list: ArrayLike<V>, i: number): V => {
   return v;
 };
 
-// Interpolate in latitude so the dome rounds into its pole. Shared tangents
-// at the measured sections prevent a stripe in the normals at every row.
 const latitude = (height: number) => Math.acos(1 - 2 * height);
-// Posterior silhouette of the adult construction at the same latitudes.
 const adultRear = [
   0.058, 0.019, -0.038, -0.075, -0.088, -0.098, -0.11, -0.119, -0.118, -0.112, -0.1, -0.081, -0.06,
   -0.021,
@@ -77,10 +67,8 @@ function section(i: number, angle: number, axis: number): number {
 const bump = (x: number, y: number, cx: number, cy: number, rx: number, ry: number) =>
   Math.exp(-(((x - cx) / rx) ** 2) - ((y - cy) / ry) ** 2);
 
-/** The face's look: which built-in face, and its sculpt. */
 export type FaceLook = Pick<Appearance, "face"> & { readonly sculpt?: FaceSculpt | undefined };
 
-/** The built-in face surface, sculpted by the look. */
 export function faceGeometry(look: FaceLook, adultProfile = false): T.BufferGeometry {
   const base = item(builtinFaces, faceCell(look));
   const traits: Record<"jaw" | "nose" | "brow" | "cheek", number> = {
@@ -109,8 +97,6 @@ export function faceGeometry(look: FaceLook, adultProfile = false): T.BufferGeom
       const sin = Math.sin(angle);
       const cos = Math.cos(angle);
       const x = width * sin;
-      // A flatter facial plane ends at the cheekbones. The braincase
-      // continues behind the ears, while the back of the jaw rises to them.
       const mask = Math.exp(-(((t - 0.46) / 0.32) ** 4));
       let z =
         cos > 0
@@ -160,8 +146,6 @@ export function faceGeometry(look: FaceLook, adultProfile = false): T.BufferGeom
           cos;
       }
       if (adultProfile) {
-        // Bring the chin and brow ahead of the ear, then carry the crown
-        // back over the nape. Changes stay continuous around the skull.
         const front = T.MathUtils.smoothstep(cos, -0.48, 0.84);
         const dome = T.MathUtils.smoothstep(t, 0.66, 0.99);
         const chin = 1 - T.MathUtils.smoothstep(t, 0.04, 0.27);
@@ -196,10 +180,6 @@ export function faceGeometry(look: FaceLook, adultProfile = false): T.BufferGeom
   return geo;
 }
 
-/**
- * The neck's paired tendons descend from below the ear toward the sternum,
- * shaped on the shared neck so profile and rotation show the same landmarks.
- */
 export function shapeNeck(geometry: T.BufferGeometry): T.BufferGeometry {
   const pos = geometry.getAttribute("position");
   for (let i = 0; i < pos.count; i++) {
@@ -226,7 +206,6 @@ export function shapeNeck(geometry: T.BufferGeometry): T.BufferGeometry {
   return geometry;
 }
 
-/** An ear: the helix turns inward above the canal and fades into the soft lobe. */
 export function earGeometry(side: number): T.BufferGeometry {
   const g = new T.SphereGeometry(1, 48, 36);
   const pos = g.getAttribute("position");
@@ -254,10 +233,6 @@ export function earGeometry(side: number): T.BufferGeometry {
   return g;
 }
 
-/**
- * The editable head and neck overlap below the ears. Give both surfaces the
- * same local tangent through the nape so light crosses the joint smoothly.
- */
 export function shadeNape(face: T.Mesh, neck: T.Mesh): void {
   face.updateWorldMatrix(true, false);
   neck.updateWorldMatrix(true, false);

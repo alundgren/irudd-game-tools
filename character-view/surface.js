@@ -1,9 +1,5 @@
 import * as T from "three";
 
-// Editable cross sections follow a centreline. Parallel-transported frames
-// keep fins slender and limbs round even as the spine bends around a corner.
-// Monotone cubic interpolation keeps section radii positive and gives adjacent
-// bands the same tangent. Linear radii create false rings on cheeks and sleeves.
 function radiusAt(knots, left, t, k) {
   const a = knots[left][k],
     b = knots[left + 1][k],
@@ -21,8 +17,6 @@ function radiusAt(knots, left, t, k) {
     (t3 - t2) * db
   );
 }
-// Jointed limbs need a few firm cross-sections. Plated axial sweeps also
-// need six points along every ring so socket retention cannot erase the tip.
 export function retainSweepSections(
   geometry,
   bands,
@@ -43,15 +37,11 @@ export function retainSweepSections(
   geometry.setAttribute("lodAnchor", new T.BufferAttribute(pins, 1));
 }
 
-// A flatter ground-contact cross section leaves a distinct heel and toe box.
 function sectionRadius(value, exponent) {
   return exponent === 1
     ? value
     : Math.sign(value) * Math.abs(value) ** exponent;
 }
-// The rings of a sweep from its first knot to its last: the centre of each,
-// the two axes of its cross-section with their radii, and the direction of
-// the path there.
 export function sweepRings(knots, horizontal = false) {
   const centers = knots.map(([x, y, z]) => new T.Vector3(x, y, z));
   const path = new T.CatmullRomCurve3(centers, false, "centripetal");
@@ -137,7 +127,6 @@ export function sweepGeometry(
   geometry.setAttribute("uv", new T.Float32BufferAttribute(uv, 2));
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
-  // Average duplicate normals at the longitude seam.
   const normals = geometry.getAttribute("normal");
   for (let row = 0; row <= bands; row++) {
     const a = row * (sides + 1),

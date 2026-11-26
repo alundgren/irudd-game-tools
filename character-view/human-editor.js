@@ -162,7 +162,6 @@ const groups = {
     cheekSkew: "Cheek unevenness",
   },
 };
-// The name each shape control carries in this editor.
 export const humanControlNames = Object.assign({}, ...Object.values(groups));
 export function humanEditor(read, commit) {
   const el = (id) => document.getElementById(id),
@@ -252,7 +251,6 @@ export function humanEditor(read, commit) {
       .querySelector(show ? '[data-mode="Color"]' : '[data-mode="Clay"]')
       .click();
   };
-  // A new look may be asked to lean one way. Each roll is one step of history, so Undo brings the last look back.
   const direction = document.createElement("select");
   direction.id = "human-look-direction";
   direction.replaceChildren(...lookDirections.map((name) => new Option(name === "Any" ? "Any kind of look" : name, name)));
@@ -326,7 +324,6 @@ export function humanEditor(read, commit) {
       commit({ ...current, humanStyle, outfit }, title + " applied.");
     };
   }
-  // A face family draws some choices itself. Say which, and hold those fields while it is worn.
   const familyNote = document.createElement("p");
   familyNote.className = "micro";
   styleFields.faceFamilyHair.parentElement.after(familyNote);
@@ -420,7 +417,6 @@ export function humanEditor(read, commit) {
             clothDesign: "Plain cloth",
             clothAccent: "#dfd0ae",
             secondDesign: "Plain cloth",
-            // A tone the style does not name shows the one its cloth colour gives.
             ...Object.fromEntries(Object.entries(toneFields).map(([field, tone]) => [field, palette(form.humanStyle)[tone]])),
           }[key];
       familyNote.hidden = !wearsStudioHead(form);

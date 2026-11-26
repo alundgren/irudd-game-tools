@@ -1,7 +1,3 @@
-// SHA-256 (FIPS 180-4) over bytes, implemented without platform crypto so the
-// document package stays free of Node and DOM globals. Digests are spelled
-// "sha256:<64 lowercase hex>".
-
 import { canonicalJson, utf8Encode, type Json } from "./json.js";
 
 const K = new Uint32Array([
@@ -26,7 +22,6 @@ export function sha256Hex(bytes: Uint8Array): string {
   const padded = new Uint8Array(blocks * 64);
   padded.set(bytes);
   padded[length] = 0x80;
-  // Message length in bits as a 64-bit big-endian integer.
   const bitsHigh = Math.floor(length / 0x20000000);
   const bitsLow = (length * 8) >>> 0;
   const end = padded.length;
@@ -102,7 +97,6 @@ export function sha256Digest(bytes: Uint8Array): `sha256:${string}` {
   return `sha256:${sha256Hex(bytes)}`;
 }
 
-/** Digest of the canonical JSON encoding of `value`. */
 export function digestJson(value: Json): `sha256:${string}` {
   return sha256Digest(utf8Encode(canonicalJson(value)));
 }

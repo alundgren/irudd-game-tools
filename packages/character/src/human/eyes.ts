@@ -1,9 +1,3 @@
-// The adult's eyes (eyeBalls, lidOpening, socketTint and humanEyes in
-// character-view/human-eyes.js at 2761eb1). Each eye has a strip of white
-// fixed in the socket, which carries the lids' shadow, a moist lower
-// waterline, and the front of the eye as a cap that alone turns with the gaze.
-// The iris and roughness textures of the finished presets are not ported yet.
-
 import * as T from "three";
 
 const smooth = (v: number, a: number, b: number) => {
@@ -23,7 +17,6 @@ export interface Opening {
   at(a: number): readonly [number, number];
 }
 
-/** The opening the lids leave over the ball, as a viewer in front of the face sees it. */
 export function lidOpening(
   skin: T.Mesh,
   centre: T.Vector3,
@@ -154,7 +147,6 @@ export function lidOpening(
   };
 }
 
-/** The ball each eye turns on, fitted to the head's own eye vertices. */
 export function eyeBalls(
   positions: ArrayLike<number>,
   eyeGroups: ReadonlyArray<ArrayLike<number>>,
@@ -248,7 +240,6 @@ interface Look {
   readonly rim: Rgb;
 }
 
-/** The colour the socket lays over the ball at one point of the opening, on the white. */
 export function socketTint(
   above: number,
   below: number,
@@ -334,7 +325,6 @@ export interface EyeFit {
   readonly count: number;
 }
 
-/** How each eye of a built eye mesh was fitted, for the lids that follow the gaze and for tests. */
 export const eyeFitsOf = new WeakMap<T.Object3D, ReadonlyArray<EyeFit>>();
 
 interface Fit {
@@ -353,13 +343,10 @@ export interface EyeOptions {
   readonly skin: string;
   readonly age: number;
   readonly plain: boolean;
-  /** Height over 1.72 m. */
   readonly scale: number;
-  /** The eye's painted front and socket white, and its roughness, at the textured presets. */
   readonly textures?: { readonly map: T.Texture; readonly roughnessMap: T.Texture } | undefined;
 }
 
-/** Both eyes as one mesh, named "high-poly" and marked as the Iris eye piece. */
 export function humanEyes(
   skin: T.Mesh | undefined,
   centres: ReadonlyArray<EyeBall>,
@@ -467,7 +454,6 @@ export function humanEyes(
         else index.push(p, q + 1, q, p, p + 1, q + 1);
       }
     });
-    // The lower tear meniscus along the lower lid, fixed in the socket.
     const outer = ball + anatomy.sink * scale;
     const mStart = position.length / 3,
       mCols = 9,
@@ -510,7 +496,6 @@ export function humanEyes(
       if (side > 0) index.push(p, q, q + 1, p, q + 1, p + 1);
       else index.push(p, q + 1, q, p, p + 1, q + 1);
     }
-    // The front of the eye, built about its own axis and then turned to where it rests.
     const first = position.length / 3,
       r = fit.iris / 2,
       corneal = anatomy.cornea * fit.iris;
@@ -521,7 +506,6 @@ export function humanEyes(
       const rho = q * r,
         sphere = Math.sqrt(outer * outer - rho * rho);
       let z = q < 1.03 ? Math.max(sphere, seat + Math.sqrt(corneal * corneal - rho * rho)) : sphere;
-      // Clay has no paint, so the iris is cut in as a shallow dish with a deeper pupil.
       if (plain)
         z -=
           ball *
@@ -594,7 +578,6 @@ export function humanEyes(
   for (let i = 0; i < moving.length; i++)
     if (!moving[i])
       made.setXYZ(i, normal[i * 3] ?? 0, normal[i * 3 + 1] ?? 0, normal[i * 3 + 2] ?? 0);
-  // The cornea's normals are a steeper dome's, so a light above shows clear of the lid.
   if (!plain)
     for (const fit of fits) {
       const axis = n.fromBufferAttribute(made, fit.first).clone(),

@@ -1,11 +1,5 @@
 import { finishMantle } from "./human-mantle-surface.js";
 import { finishFootwear } from "./human-shoe-surface.js";
-// An outfit assembled piece by piece on the adult human.
-//   tailorHuman(surface, tailor, material) -> THREE.Mesh[] with `ground`, like styleHuman, and `hidden`
-// `tailor` is plain data saved in a form at humanStyle.tailor: {layers: [{piece, ...fields}]}.
-// Layers are listed in dressing order. A later top hangs over what is already worn, boots
-// listed after trousers are pulled on over them, and trousers listed after boots fall over
-// the shafts. Every piece is cut from the wearer's own surface, so one recipe fits any build.
 import { Piece, analyse, add, dot, lerp3, loops, mix, smooth, sub, unit } from "./human-style-kit.js";
 import { band, belt, bootFastenings, box, button, caster, collar, garment, landmarks, patch, shaft, shoe, sleeveGuard } from "./human-style-cloth.js";
 import { finishMail } from "./human-mail.js";
@@ -16,7 +10,6 @@ const colour = (value, label = "Colour") => ({ type: "colour", value, label });
 const range = (label, min, max, value, step = (max - min) / 100) => ({ type: "range", label, min, max, value, step });
 const choice = (label, options, value = options[0]) => ({ type: "choice", label, options, value });
 
-/** Every piece, its editable fields, their limits and starting values. Lengths in millimetres are before body scaling. */
 export const tailorPieces = {
   top: {
     label: "Top or jacket",
@@ -103,11 +96,9 @@ export const tailorPieces = {
     },
   },
 };
-// Armour is worn as further pieces over the clothes; human-armour.js builds them.
 Object.assign(tailorPieces, armourPieces);
 export const tailorLimit = 12;
 
-/** A new layer with every field at its starting value. */
 export function tailorLayer(piece, values = {}) {
   const spec = tailorPieces[piece];
   if (!spec) throw new Error("Unknown outfit piece.");
@@ -149,7 +140,6 @@ export function tailorProblems(tailor) {
 export function validTailor(tailor) {
   return tailorProblems(tailor).length === 0;
 }
-/** A starting outfit to edit: shirt, trousers, belt and shoes. */
 export function defaultTailor(clothColor = "#6f7f86") {
   return {
     layers: [
@@ -171,18 +161,15 @@ function pocket(piece, cast, body, m, { x, y, z = m.chest[2], width = 0.1, heigh
   if (flap) patch(piece, cast, body, { centre: [x, y + height * k * 0.36, z], facing, across, width: (width + 0.008) * k, height: height * k * 0.34, rise: (rise + 0.0028) * k, ny: 2, skin: body.trunkAt });
 }
 
-/** Draws cloth back over the skin it was cut from, at most `limit` away, wherever `weight(i)` is above zero. */
 function snug(s, weight, limit, least = 0.0012) {
   for (let i = 0; i < s.count; i++) {
     const w = weight(i);
     if (w <= 0) continue;
-    // Hanging can carry an edge sideways as well as outward, so the whole offset is taken back, not only its height.
     const a = s.anchor(i), n = s.normal(i), d = dot(sub(s.at(i), a), n), most = typeof limit === "function" ? limit(i) : limit, floor = typeof least === "function" ? least(i) : least;
     s.set(i, lerp3(s.at(i), add(a, n, Math.min(Math.max(d, Math.min(floor, most)), most)), Math.min(1, w)));
   }
 }
 
-/** Lifts cloth clear of the layers already worn, so an outer layer never dips inside an inner one. */
 function clear(s, shells, margin) {
   if (!shells.length) return;
   const cell = 0.024, grid = new Map(), key = (x, y, z) => Math.floor(x / cell) + "," + Math.floor(y / cell) + "," + Math.floor(z / cell);
@@ -194,7 +181,6 @@ function clear(s, shells, margin) {
   for (let i = 0; i < s.count; i++) {
     const a = s.anchor(i), n = s.normal(i);
     let most = -Infinity;
-    // The highest inner layer over the skin near this point, among the few skin points beside it.
     for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++)
       for (const [x, y, z, d] of grid.get(key(a[0] + dx * cell, a[1] + dy * cell, a[2] + dz * cell)) ?? [])
         if ((x - a[0]) ** 2 + (y - a[1]) ** 2 + (z - a[2]) ** 2 < 0.022 ** 2) most = Math.max(most, d);
@@ -203,10 +189,6 @@ function clear(s, shells, margin) {
   }
 }
 
-/**
- * How far a shell stands off each skin point it covers, or -1 where it does not cover the point
- * or the point lies within `margin` of one of the shell's open edges, where a viewer can see in.
- */
 function cover(body, s, margin) {
   const over = new Float32Array(body.count).fill(-1), P = body.P, grid = new Map(), key = (x, y, z) => Math.floor(x / margin) + "," + Math.floor(y / margin) + "," + Math.floor(z / margin);
   for (const loop of loops(s)) for (const i of loop) {
@@ -215,7 +197,6 @@ function cover(body, s, margin) {
     grid.get(k).push(a);
   }
   for (let i = 0; i < s.count; i++) {
-    // A shell is cut from the skin, so away from its cut edges every vertex still names one skin point.
     const a = s.anchor(i), v = body.nearest(a, 1);
     if (v < 0 || (P[v * 3] - a[0]) ** 2 + (P[v * 3 + 1] - a[1]) ** 2 + (P[v * 3 + 2] - a[2]) ** 2 > 1e-8) continue;
     const d = dot(sub(s.at(i), a), s.normal(i));
@@ -231,11 +212,6 @@ function cover(body, s, margin) {
   return over;
 }
 
-/**
- * Leaves out what nobody can see: cloth lying well inside another piece, and the skin under any piece.
- * A reduced export moves every surface a little, and a hidden one left in place would come through
- * the cloth over it. Returns the skin points that are covered, as source vertex ids.
- */
 function conceal(body, made) {
   const margin = 0.03 * body.scale, covers = made.map((layer) => (layer.covers ?? []).map((s) => cover(body, s, margin))), hidden = new Set(), P = body.P, N = body.N;
   for (const layer of covers) for (const over of layer) for (let v = 0; v < body.count; v++) if (over[v] > 0.0005) hidden.add(body.surface.ids[v]);
@@ -258,14 +234,12 @@ function conceal(body, made) {
   return hidden;
 }
 
-/** A hood worn down: a narrow edge along the neckline that deepens into a pouch hanging between the shoulder blades. */
 function hood(piece, s, loop, m, cast) {
   if (!loop) return;
   const k = m.k, z0 = m.neck[2], sides = 10, rings = Array.from({ length: sides }, () => []);
   for (const i of loop) {
     const p = s.at(i), o = unit([p[0], 0, p[2] - z0]), back = smooth(1.45, 2.6, Math.abs(Math.atan2(p[0], p[2] - z0)));
     const deep = (0.004 + 0.017 * back) * k, tall = (0.006 + 0.082 * back * back) * k, centre = [p[0] + o[0] * deep * 0.9, p[1] + 0.004 * k - tall * back, p[2] + o[2] * deep * 0.9];
-    // The pouch rests on the back of the garment, which stands further out than the neck opening does.
     const from = [p[0] + o[0] * 0.4, centre[1], p[2] + o[2] * 0.4], reach = back > 0 ? cast(from, [-o[0], 0, -o[2]]) : Infinity;
     if (Number.isFinite(reach)) for (const d of [0, 2]) centre[d] = mix(centre[d], from[d] - o[d] * (reach - deep * 0.9), back);
     for (let j = 0; j < sides; j++) {
@@ -279,9 +253,7 @@ function hood(piece, s, loop, m, cast) {
 
 function top(body, m, layer, worn, later) {
   const k = m.k, parts = [], stiff = layer.stiff;
-  // The hem runs from the natural waist to just above the fork of the legs.
   const hem = mix(m.waist, m.crotch + 0.02 * k, layer.length), waists = worn.filter((w) => w.kind === "trousers");
-  // A collar is sewn on at the base of the neck, so a collared opening is cut lower than a plain one.
   const seat = layer.collar === "none" ? 0 : -0.02;
   const openPlate = layer.collar === "stand" && later.some(outer => outer.piece === "cuirass" && outer.collar === "open");
   const depth = mm(layer.depth), neck = layer.neck === "v" ? { v: depth, height: seat } : layer.neck === "scoop" ? { scoop: depth, scoopWidth: 0.075, height: seat } : layer.neck === "high" ? { height: openPlate ? -.013 : .012 } : { height: seat };
@@ -290,18 +262,13 @@ function top(body, m, layer, worn, later) {
     sleeve: layer.sleeve, hem, ease: mm(layer.ease), neck,
     fall: mix(0.45, 0.06, stiff), tension: 1, span: mix(2, 2.8, stiff), sleeveFall: mix(0.5, 0.08, stiff), sleeveEase: stiff > 0.5 ? 0.004 : 0.002,
     passes: Math.round(mix(6, 9, stiff)),
-    // Extra room where the cloth lies over a waistband.
     extra: band0 === null ? null : (y) => 0.006 * smooth(band0 + 0.04 * k, band0 + 0.012 * k, y),
     under: worn.filter((w) => w.shell).map((w) => w.shell),
   });
-  // A top hangs from the shoulders, so its neck opening sits on them however far the cloth stands off below.
   const layered = worn.filter((w) => w.kind === "top").reduce((sum, w) => sum + w.ease + 0.004, 0), near = (mm(layer.ease) + layered) * k, least = near - mm(layer.ease) * 0.5 * k, y = (i) => g.s.anc[i * 3 + 1];
-  // Below a waistband the top also lies over the trousers.
   const over = (i) => (band0 === null ? 0 : (Math.max(...waists.map((w) => w.ease)) + 0.005) * k * smooth(band0 + 0.02 * k, band0 - 0.01 * k, y(i)));
   snug(g.s, (i) => smooth(m.neck[1] - 0.075 * k, m.neck[1] - 0.005 * k, y(i)) * (1 - smooth(0.2, 0.6, g.s.f.wArm[i])), near, least);
-  // A top with next to no sleeve ends in armholes that lie on the shoulder.
   if (layer.sleeve < 0.3) snug(g.s, (i) => smooth(0.03, 0.25, g.s.f.wArm[i]) * smooth(0.3, 0.15, layer.sleeve), near, least);
-  // A gathered hem is drawn in to the body, as an elastic or ribbed band does.
   if (layer.gather) snug(g.s, (i) => layer.gather * smooth(hem + (mm(layer.hemBand) + 0.13) * k, hem + mm(layer.hemBand) * 0.6 * k, y(i)) * (1 - smooth(0.2, 0.6, g.s.f.wArm[i])), (i) => near + over(i), (i) => least + over(i));
   const thickness = layer.material === "leather" ? 0.006 : 0.004;
   clear(g.s, worn.filter((w) => w.shell).map((w) => w.shell), thickness + 0.0015 * k);
@@ -309,8 +276,6 @@ function top(body, m, layer, worn, later) {
   if (layer.cuff) for (const loop of g.sleeves) band(piece, g.s, loop, { width: mm(layer.cuff) * k, rise });
   if (layer.hemBand) band(piece, g.s, g.lower, { width: mm(layer.hemBand) * k, rise });
   if (layer.collar === "none" && layer.neck !== "high") band(piece, g.s, g.upper, { width: 0.013 * k, rise });
-  // A shirt collar folds under a closed high-necked outer layer. Its exposed
-  // points would otherwise cross the jacket and show up as scraps of shirt.
   const tuckedCollar = later.some(outer => outer.piece === "top" && outer.neck === "high" && outer.collar === "stand");
   if (layer.collar === "shirt" && !tuckedCollar) collar(piece, g.s, g.upper, m, stiff > 0.5 ? { stand: 0.02, fall: 0.042 } : {});
   if (layer.collar === "stand") collar(piece, g.s, g.upper, m, { kind: "stand", stand: openPlate ? .022 : .04 });
@@ -320,7 +285,6 @@ function top(body, m, layer, worn, later) {
   if (layer.front !== "plain" && topY > hem + 0.08 * k) {
     const zip = layer.front === "zip";
     patch(piece, cast, body, { centre: [0, (topY + hem) / 2, m.chest[2]], facing: [0, 0, 1], across: [1, 0, 0], width: (zip ? 0.024 : 0.032) * k, height: topY - hem, rise: 0.004 * k, nx: 2, ny: 26 });
-    // A zip is a narrow raised line with a pull; buttons are discs down the placket.
     if (zip) {
       patch(trim, cast, body, { centre: [0, (topY + hem) / 2, m.chest[2]], facing: [0, 0, 1], across: [1, 0, 0], width: 0.008 * k, height: topY - hem - 0.01 * k, rise: 0.0065 * k, nx: 1, ny: 26 });
       patch(trim, cast, body, { centre: [0, topY - 0.012 * k, m.chest[2]], facing: [0, 0, 1], across: [1, 0, 0], width: 0.011 * k, height: 0.026 * k, rise: 0.007 * k, nx: 1, ny: 2 });
@@ -341,11 +305,9 @@ function trousers(body, m, layer, worn, later) {
   const tucked = later.find((l) => l.piece === "boots" && l.height < layer.length);
   const g = garment(body, m, {
     waist, leg: layer.length, ease: mm(layer.ease), taper: 0.03 * 300 ** layer.fit, flare: layer.fit > 0.6 ? 4 : mix(0.8, 4, layer.fit / 0.6),
-    // Legs that follow boots already worn need room to pass over the shafts.
     legEase: boots && layer.length > boots.height ? Math.max(0, boots.ease + 0.004 - mm(layer.ease)) : 0,
     passes: layer.fit > 0.8 ? 3 : 6, under: worn.filter((w) => w.shell).map((w) => w.shell),
   });
-  // Legs worn inside boots are gathered to fit within the shaft and blouse over its top.
   if (tucked) {
     snug(g.s, (i) => smooth(tucked.height - 0.1, tucked.height + 0.03, g.s.f.leg[i]) * smooth(0.3, 0.7, g.s.f.wLeg[i]), 0.0012 * k, 0.0012 * k);
   }
@@ -373,7 +335,6 @@ function footwear(body, m, layer, worn, tall) {
     ground = Math.min(ground, made.ground);
     if (!tall) continue;
     const leg = shaft(body, m, side, { from: layer.height, ease, taper: 0.03 * 300 ** (1 - layer.straight), foot: 0.05 }), fit = Math.max(0.005, ease - 0.001) * k;
-    // However wide the shaft is, it narrows to the ankle and runs into the upper of the boot.
     snug(leg.s, (i) => smooth(body.floor + 0.2 * k, body.floor + 0.1 * k, leg.s.anc[i * 3 + 1]), fit + 0.0015 * k, fit);
     const piece = new Piece().shell(leg.s);
     covers.push(leg.s);
@@ -417,13 +378,7 @@ function waistBelt(body, m, layer, worn) {
 }
 
 const makers = { top, trousers, boots: (b, m, l, w) => footwear(b, m, l, w, true), shoes: (b, m, l, w) => footwear(b, m, l, w, false), gloves, belt: waistBelt, ...armourMakers };
-// Boots listed after trousers are pulled on over them: the legs are gathered inside the shaft.
-// Trousers listed after boots are given room to fall over the shaft instead.
 
-/**
- * The parts of a tailored outfit before they become meshes: [{piece, tone, region, name, type}], with `ground`
- * and `hidden`, the source vertex ids of skin that lies under the outfit.
- */
 export function tailorParts(body, m, tailor, options = {}) {
   if (!validTailor(tailor)) throw new Error("Unknown or out-of-range outfit piece.");
   const parts = [], worn = [], all = [];
@@ -438,7 +393,6 @@ export function tailorParts(body, m, tailor, options = {}) {
   }
   return Object.assign(parts, { ground, hidden: conceal(body, all) });
 }
-/** `options.game` asks pieces that have one for their lighter build for the game file. `finish(meshes, landmarks)` may give the cloth its weave once every piece is made; each mesh names its material in `userData.styleType`. */
 export function tailorHuman(surface, tailor, material, finish = null, options = {}) {
   const body = analyse(surface), m = landmarks(body), parts = tailorParts(body, m, tailor, options), meshes = [];
   for (const made of parts) if (made.piece.tri.length) {

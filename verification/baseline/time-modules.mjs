@@ -1,11 +1,3 @@
-// G0 baseline: time each tracked JS test module on its own, one after another.
-//
-// usage: node verification/baseline/time-modules.mjs [LABEL]
-//
-// Writes .reference-cache/g0/suite/LABEL.json (default "modules") with each module's wall
-// seconds and pass/fail/skip counts, slowest first. Per-module times include one Node
-// start each, so their sum exceeds the parallel `npm test` wall time. Use them to choose
-// the focused fast suite and to price slow modules; run on an otherwise idle machine.
 import { execFileSync, spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 

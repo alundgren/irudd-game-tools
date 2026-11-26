@@ -1,25 +1,3 @@
-// Art translators the desktop host offers.
-//
-// - turnaround: the reply repaints the brief's painted regions from the new
-//   sheet with the character package's repaint operations, the same ones
-//   checked against G0's paint panel.
-// - depth: the agent's front depth pass of the brief's painted portrait
-//   becomes that part's fitted depth field, as G0's depth action makes it.
-// - trace (fit, every trace brief without an intent): the face landmarks and
-//   depth pairs of the trace map's region for the brief's painted head
-//   calibrate its face and add depth pins, as G0's trace editor fits them
-//   onto a selected head. The proposal's summary lists what the reply
-//   carried beyond the fit.
-// - trace (build, when the person asks for it): the map's regions become new
-//   editable parts painted from the brief's part's sheet, as G0's
-//   buildTraceMap traces them, attached to their parent regions and
-//   registered with that part. Regions named like existing parts stay as
-//   they are; the summary names what was kept and what could not be built.
-//
-// Depth and trace draw pictures the way G0 does, with a browser canvas: the
-// depth pass into a 384 px square, the sheet's quadrants into 640 px panels. They take that raster from the desktop (its review
-// worker); a host without one leaves them out and records such replies.
-
 import { Schema } from "effect";
 import { AssetEntry, isJson, isJsonArray, type Json } from "@irudd/document";
 import { bundledAssets } from "@irudd/character/assets";
@@ -43,12 +21,6 @@ import type { ArtTranslator } from "@irudd/workshop/host";
 export const shippedArtwork = bundledAssets.map((asset) => asset.digest);
 const decodeEntry = Schema.decodeUnknownSync(AssetEntry);
 
-/**
- * Draws a picture with a browser canvas, as G0 does: the whole image, or one
- * quadrant of a two-by-two sheet (0 front, 1 the profile facing left), scaled
- * into a `size` square, read back as RGBA. Throws an `ArtError` when the
- * raster cannot run now, so the reply is translated again on retry.
- */
 export interface ArtRaster {
   pixels(
     bytes: Uint8Array,
@@ -89,7 +61,6 @@ const refusal = (check: () => unknown): string | undefined => {
   }
 };
 
-/** The depth pass of the brief's portrait as its fitted depth field. */
 export function depthTranslator(raster: ArtRaster): ArtTranslator {
   return {
     kind: "depth",
@@ -110,7 +81,6 @@ export function depthTranslator(raster: ArtRaster): ArtTranslator {
   };
 }
 
-/** The trace map's face landmarks and depth pairs of the brief's painted head, fitted onto it. */
 export function traceTranslator(raster: ArtRaster): ArtTranslator {
   return {
     kind: "trace",
@@ -143,7 +113,6 @@ export function traceTranslator(raster: ArtRaster): ArtTranslator {
   };
 }
 
-/** A part's sheet, prepared as the paint bake prepares it: four 640 px panels. */
 async function sheetPanels(
   raster: ArtRaster,
   bytes: Uint8Array,
@@ -154,7 +123,6 @@ async function sheetPanels(
   return [await panel(0), await panel(1), await panel(2), await panel(3)];
 }
 
-/** A trace map's regions built as new parts painted from the brief's part's sheet. */
 export function traceBuildTranslator(raster: ArtRaster): ArtTranslator {
   return {
     kind: "trace",
@@ -187,7 +155,6 @@ export function traceBuildTranslator(raster: ArtRaster): ArtTranslator {
   };
 }
 
-/** The desktop's translators: depth and trace fits and builds only with a raster to draw their pictures. */
 export function desktopArtTranslators(raster?: ArtRaster): ReadonlyArray<ArtTranslator> {
   return raster
     ? [

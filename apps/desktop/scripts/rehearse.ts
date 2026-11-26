@@ -1,32 +1,3 @@
-// Rehearse the Windows source installation and its updates end to end, in a
-// disposable TEMP folder against a disposable local Git origin:
-//
-//   pnpm --filter @irudd/desktop rehearse [-- --keep] [--overlay <path>...]
-//
-// GPU steps take the shared Local\ShapeFirstWorkshopBrowser mutex, as the
-// verification/*/gpu-lock.ps1 wrappers do; builds run without it.
-//
-// The origin starts at this checkout's HEAD (A). With --overlay, uncommitted
-// files under the given paths are committed on top as A, so a change can be
-// rehearsed before it lands. Then, with the real install.ps1, launchers,
-// update panel actions and clients:
-//
-//   install A fresh · inventory · Start menu entries in a private folder
-//   open the app through the root launcher on a new project · CLI and MCP
-//   report the window's build · offline start (origin and network gone) and
-//   a GPU GLB export · stage B in the background while the window works ·
-//   restart into B on the same project · a broken commit fails and leaves B ·
-//   a canceled build leaves B · retry stages D · roll back to A on the same
-//   project · restart into D · the packaged activator killed between the two
-//   renames of the current junction: the launcher still starts the committed
-//   version and the app completes the switch · a live activator holds the
-//   lock: the window waits and reports it, and after that owner is killed the
-//   normal Check and Restart update again · the person's Start menu, PATH,
-//   settings and running app untouched.
-//
-// Everything lands under one TEMP folder: install root, user data, host
-// state, Start menu folder and projects. Nothing ships from here.
-
 import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync, type ChildProcess } from "node:child_process";
 import {
@@ -76,7 +47,6 @@ const vp = (() => {
   return found.trim();
 })();
 
-/** The person's own entries, compared before and after. */
 function personal(): { path: string; menu: string[] } {
   const reg = spawnSync("reg.exe", ["query", "HKCU\\Environment", "/v", "Path"], {
     encoding: "utf8",
@@ -102,7 +72,6 @@ const installEnv: Record<string, string> = {
   IRUDD_NO_PATH: "1",
   IRUDD_NO_LAUNCH: "1",
 };
-/** Children see only this rehearsal's state; the launcher reports errors on stderr. */
 function env(extra: Record<string, string> = {}): Record<string, string> {
   const next: Record<string, string> = {};
   for (const [name, value] of Object.entries(process.env))
@@ -186,7 +155,6 @@ function leftovers(): string[] {
   const builds = join(root, "builds");
   return existsSync(builds) ? readdirSync(builds).filter((n) => n.startsWith(".")) : [];
 }
-/** installation.json: the roles the launchers read. */
 function roles(): Record<string, string | null> {
   const value: unknown = JSON.parse(readFileSync(join(root, "installation.json"), "utf8"));
   assert.ok(typeof value === "object" && value !== null);
@@ -197,13 +165,10 @@ function roles(): Record<string, string | null> {
   }
   return result;
 }
-/** What a killed switch leaves at the root until the next step completes it. */
 const strays = (): string[] =>
   readdirSync(root).filter((n) =>
     /^.(current|previous|prepared)-|^.installation-|^.paused-/.test(n),
   );
-
-// ── Kill controls: a build's own activator paused at a named step ────────────
 
 function activatorAt(commit: string, args: string[], pause: string): ChildProcess {
   const build = join(root, "builds", commit, app);
@@ -243,8 +208,6 @@ async function until(check: () => boolean, timeoutMs: number, what: string): Pro
   }
 }
 
-// ── GPU lock: the same mutex as verification/*/gpu-lock.ps1 ──────────────────
-
 async function withGpu<T>(run: () => Promise<T>): Promise<T> {
   const holder = spawn(
     "powershell.exe",
@@ -268,8 +231,6 @@ async function withGpu<T>(run: () => Promise<T>): Promise<T> {
     holder.stdin.end("\n");
   }
 }
-
-// ── The window, started through the root launcher ───────────────────────────
 
 async function freePort(): Promise<number> {
   return new Promise((done, fail) => {
@@ -309,9 +270,7 @@ async function attach(previous?: string): Promise<Window> {
         endpoint = url;
         break;
       }
-    } catch {
-      // Not listening yet.
-    }
+    } catch {}
     await new Promise((done) => setTimeout(done, 250));
   }
   if (!endpoint) throw new Error("The app did not open its DevTools endpoint.");
@@ -330,7 +289,6 @@ async function attach(previous?: string): Promise<Window> {
 }
 
 function open(args: string[]): void {
-  // The launcher hands the app no handles, so it returns as soon as the app has started.
   const at = performance.now();
   const started = spawnSync(launcher, [...switches, ...args], { env: env(), timeout: 30_000 });
   if (performance.now() - at > 10_000) throw new Error("The launcher waited for the app.");
@@ -369,7 +327,6 @@ interface Status {
 function isStatus(value: unknown): value is Status {
   return typeof value === "object" && value !== null && "phase" in value && "message" in value;
 }
-/** Call window.workshop.<method> in the editor page, as the page itself would. */
 async function bridge(method: string, arg?: unknown): Promise<unknown> {
   if (!window) throw new Error("No window.");
   return window.page.evaluate(
@@ -419,7 +376,6 @@ async function projectInfo(): Promise<string> {
   return String(directory);
 }
 
-/** Restart (or roll back) through the window and wait for the reopened app. */
 async function reopen(action: "restart" | "rollback"): Promise<void> {
   if (!window) throw new Error("No window.");
   const previous = await endpointUrl();
@@ -427,8 +383,6 @@ async function reopen(action: "restart" | "rollback"): Promise<void> {
   await window.browser.close().catch(() => undefined);
   window = await attach(previous);
 }
-
-// ── MCP over the installed launcher, as an agent host starts it ──────────────
 
 class Mcp {
   private readonly child: ChildProcess;
@@ -510,8 +464,6 @@ async function agreeOn(expected: string, credential: string, label: string): Pro
   return expected.slice(0, 12);
 }
 
-// ── The rehearsal ────────────────────────────────────────────────────────────
-
 let failed = false;
 try {
   const A = await step(
@@ -533,7 +485,6 @@ try {
       execFileSync("git", ["clone", "--quiet", origin, work]);
       const overlay = values.overlay ?? [];
       if (overlay.length === 0) return gitIn(work, "rev-parse", "HEAD");
-      // Porcelain lines start with their status columns, so this output is not trimmed.
       const changed = execFileSync(
         "git",
         ["status", "--porcelain", "--untracked-files=all", "--", ...overlay],
@@ -628,7 +579,6 @@ try {
       open(["--project", project, "--create"]);
       window = await attach();
       assert.equal(resolve(await projectInfo()).toLowerCase(), project.toLowerCase());
-      // A prepared, painted form; the frame-creature reference starter cannot be drawn yet.
       runCli(["new", "doc-rehearsal01", "--starter", "harbour-trader", "--project", project]);
       const paired: unknown = JSON.parse(
         runCli(["pair", "rehearsal-agent", "--project", project, "--json"]),
@@ -642,10 +592,6 @@ try {
     () => agreeOn(A, credential, "A"),
     (s) => s,
   );
-  /**
-   * The document's head as the host reports it: revision and content digest.
-   * (Builds may print the document's keys in another order.)
-   */
   const revisionOf = (): string => {
     const shown: unknown = JSON.parse(
       runCli(["show", "doc-rehearsal01", "--project", project, "--json"]),
@@ -770,8 +716,6 @@ try {
     async () => {
       await update("check");
       await waitPhase(["building"], 120_000);
-      // Cancel once the installer is past the fetch, inside the dependency install.
-      // A warm build takes seconds, so a fixed delay could let it finish first.
       const started = Date.now();
       for (;;) {
         const status = await update("status");
@@ -866,7 +810,6 @@ try {
   await step(
     "a live update step keeps the lock; once its owner is killed, Check and Restart update normally",
     async () => {
-      // The reopened A's own startup check stages D again first.
       const offered = await waitPhase(["ready", "error"], 10 * 60_000);
       assert.equal(offered.phase, "ready", offered.output ?? "");
       assert.equal(offered.next, D);

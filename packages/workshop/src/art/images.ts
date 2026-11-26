@@ -1,7 +1,3 @@
-// Picture sizes read from PNG, JPEG and WebP headers, without decoding pixels.
-// The blob store has already checked the signature; this reads the frame
-// size so a brief or reply can be checked against the shape it promises.
-
 export interface ImageSize {
   readonly width: number;
   readonly height: number;
@@ -14,7 +10,6 @@ const u24le = (b: Uint8Array, i: number) => u16le(b, i) | ((b[i + 2] ?? 0) << 16
 const ascii = (b: Uint8Array, i: number, n: number) => String.fromCharCode(...b.subarray(i, i + n));
 
 function png(b: Uint8Array): ImageSize | undefined {
-  // Signature (8), IHDR length (4), "IHDR", width, height.
   if (b.length < 24 || ascii(b, 12, 4) !== "IHDR") return undefined;
   return { width: u32be(b, 16), height: u32be(b, 20) };
 }
@@ -33,7 +28,6 @@ function jpeg(b: Uint8Array): ImageSize | undefined {
       continue;
     }
     const length = u16be(b, i + 2);
-    // Start of frame: baseline, extended, progressive and lossless variants.
     if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc)
       return { height: u16be(b, i + 5), width: u16be(b, i + 7) };
     if (length < 2) return undefined;
@@ -54,7 +48,6 @@ function webp(b: Uint8Array): ImageSize | undefined {
   return undefined;
 }
 
-/** The frame size of a PNG, JPEG or WebP, or undefined when its header cannot be read. */
 export function imageSize(bytes: Uint8Array, mediaType: string): ImageSize | undefined {
   const size =
     mediaType === "image/png"

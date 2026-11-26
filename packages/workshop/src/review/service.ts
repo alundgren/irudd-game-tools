@@ -1,13 +1,3 @@
-// The host's review service: one registered renderer, one job at a time.
-//
-// A job is pinned when it is queued: the document is read from the journal at
-// the named revision, its declared artwork is read from the verified blob
-// store, and both go to the renderer. Later commits cannot change the job; the
-// result reports whether the head moved meanwhile. What the renderer returns
-// is checked before anything is issued: the GLB's provenance must name the
-// same document, digest, revision and preset, and every image must be the PNG
-// it claims to be. Exports and images are stored as issued artifacts.
-
 import { Effect, Exit } from "effect";
 import { outfitLooks } from "@irudd/document";
 import { randomBytes } from "node:crypto";
@@ -34,7 +24,6 @@ import {
 } from "../wire/review.js";
 import { ArtifactStore } from "./store.js";
 
-/** A failure with a wire tag and plain fields. */
 export class ReviewError extends Error {
   readonly _tag: string;
   readonly [field: string]: unknown;
@@ -45,16 +34,11 @@ export class ReviewError extends Error {
   }
 }
 
-/** What a renderer hands back: its description and the bytes of each named output. */
 export interface RenderOutput {
   readonly result: RenderResult;
   readonly files: ReadonlyMap<string, Uint8Array>;
 }
 
-/**
- * A renderer: desktop main's isolated review worker, or a remote one an
- * attached desktop serves. It renders with its own context, stage and camera.
- */
 export interface ReviewRenderer {
   readonly info: RendererInfo;
   render(job: RenderJob, blobs: ReadonlyMap<string, Uint8Array>): Promise<RenderOutput>;
@@ -64,7 +48,6 @@ export interface ExportParams {
   readonly documentId: string;
   readonly revision?: number;
   readonly preset: ReviewPreset;
-  /** Every saved outfit as its own scene. */
   readonly wardrobe?: boolean;
 }
 
@@ -90,7 +73,6 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const list = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
 const count = (value: unknown): number => (typeof value === "number" ? value : 0);
 
-/** The `asset.extras.irudd` stamp of a GLB, read from its JSON chunk. */
 export function glbProvenance(bytes: Uint8Array): Record<string, unknown> | undefined {
   if (bytes.byteLength < 20) return undefined;
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -109,7 +91,6 @@ export function glbProvenance(bytes: Uint8Array): Record<string, unknown> | unde
   return isRecord(irudd) ? irudd : undefined;
 }
 
-/** Width and height from a PNG's IHDR, or undefined for anything else. */
 export function pngSize(bytes: Uint8Array): { width: number; height: number } | undefined {
   const signature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
   if (bytes.byteLength < 24 || signature.some((b, i) => bytes[i] !== b)) return undefined;
@@ -117,7 +98,6 @@ export function pngSize(bytes: Uint8Array): { width: number; height: number } | 
   return { width: view.getUint32(16), height: view.getUint32(20) };
 }
 
-/** Geometry, texture, rig and material figures from an `inspectGlb` summary. */
 export function metricsOf(inventory: unknown): ReviewMetrics {
   const inv = isRecord(inventory) ? inventory : {};
   const images = list(inv["images"]).filter(isRecord);
@@ -164,10 +144,8 @@ interface Registered {
 
 export interface ReviewOptions {
   readonly project: Project;
-  /** Where issued artifacts live: the host's per-user state directory. */
   readonly dir: string;
   readonly log?: (line: string) => void;
-  /** Per job. Default 5 minutes. */
   readonly timeoutMs?: number;
 }
 
@@ -189,7 +167,6 @@ export class Review {
     this.timeoutMs = options.timeoutMs ?? 300_000;
   }
 
-  /** Register the project's renderer; the newest registration serves new jobs. */
   register(
     renderer: ReviewRenderer,
     via: RendererView["via"],
@@ -444,7 +421,6 @@ export class Review {
       preset: job.preset,
     };
     const differs = Object.entries(expected).filter(([k, v]) => provenance?.[k] !== v);
-    // A wardrobe export names its outfits; an export as worn names none.
     const stamped = provenance?.["wardrobe"];
     const wardrobe = isRecord(stamped) ? stamped : undefined;
     const looks = list(wardrobe?.["looks"]).filter((l): l is string => typeof l === "string");

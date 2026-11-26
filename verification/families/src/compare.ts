@@ -1,12 +1,3 @@
-// Structural comparison of a fresh export against its G0 reference export.
-//
-// Compares the decoded glTF: scene graph, node transforms, skins and joint
-// names, meshes and their attribute sets, material parameters, textures,
-// animations and channels, and every accessor's decoded values. Buffer layout,
-// image encoding, the exporter's generator string and the new provenance
-// block are excluded, as in the G0 content digest. Images are compared by
-// decoded pixels.
-
 import { decodePng } from "./png.js";
 import { accessorValues, imageBytes, isRecord, num, parseGlb, records, type Glb } from "./glb.js";
 
@@ -29,7 +20,6 @@ export interface ImageComparison {
   readonly width: number;
   readonly height: number;
   readonly sameBytes: boolean;
-  /** Largest absolute channel difference over all pixels, 0 to 255. */
   readonly maxChannel: number;
   readonly differingPixels: number;
   readonly firstDifference?: {
@@ -40,17 +30,11 @@ export interface ImageComparison {
   };
 }
 
-/**
- * Differences the port makes on purpose, applied to the reference before comparing.
- * `regions` maps a legacy part ID, which joints name in `extras.region`, to the
- * document's stable part ID that replaces it.
- */
 export interface Expected {
   readonly regions?: ReadonlyMap<string, string>;
 }
 
 export interface Comparison {
-  /** Differences in the decoded glTF structure, numbers within `tolerance`. */
   readonly structure: ReadonlyArray<Difference>;
   readonly structureNumbersMaxAbs: number;
   readonly accessors: ReadonlyArray<AccessorUse>;
@@ -111,7 +95,6 @@ function walk(
   if (isRecord(a) && isRecord(b)) {
     for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) {
       if (path === "" && key === "accessors") {
-        // Accessor values are compared separately; keep their layout fields.
         const ra = records(a[key]);
         const rb = records(b[key]);
         if (ra.length !== rb.length)
@@ -134,7 +117,6 @@ function walk(
   if (a !== b) out.push({ path, reference: a, fresh: b });
 }
 
-/** Label each accessor by its use: an attribute, indices, a morph target, joint matrices or an animation sampler. */
 function accessorUses(glb: Glb): Map<number, string> {
   const uses = new Map<number, string>();
   for (const mesh of records(glb.json["meshes"]))

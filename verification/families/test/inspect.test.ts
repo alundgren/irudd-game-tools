@@ -1,5 +1,3 @@
-// The structured summary describes what an export actually contains.
-
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { exportCharacter, inspectGlb } from "@irudd/character";

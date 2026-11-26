@@ -1,10 +1,3 @@
-// The painted scalp under drawn-back hair (sweptScalpTexture in
-// character-view/human-swept-scalp.js at 2761eb1). The painting of combed
-// strands is fitted to the wearer's crown, ears and nape: the roots' texture
-// coordinates follow the wearer's own hairline, and that warp is undone before
-// the painting is sampled, so a high ear shortens the strands without bending
-// them over the temple.
-
 import * as T from "three";
 import { context2d, type Raster } from "../../raster.js";
 import { sweptScalpSize } from "../paint-data.js";
@@ -16,13 +9,8 @@ const linear = Array.from(
   (_, byte) => new T.Color(byte / 255, 0, 0).convertSRGBToLinear().r,
 );
 
-// A painting fits one hairline in one pair of colours; the same wearer draws it once.
 const charts = new WeakMap<Raster, Map<string, T.CanvasTexture>>();
 
-/**
- * The painted scalp for hairlines `lines` (degrees of elevation by direction, one per side), in `hair`
- * over `skin`. `reversed` combs it the other way; `tone` is the painting's combed tone, one byte a pixel.
- */
 export function sweptScalpTexture(
   raster: Raster,
   tone: Uint8Array,
@@ -64,7 +52,6 @@ export function sweptScalpTexture(
       const elevation = 90 - (Math.hypot(dx, dy) / 0.495) * (96 - edge);
       const paintedEdge = 30 * cosine - 18 * Math.max(0, -cosine);
       const radius = (0.455 * (90 - elevation)) / (90 - paintedEdge);
-      // Continue the outermost painted strands a short way into a low nape.
       const r = radius < 0.468 ? radius : Math.max(0.36, 0.468 - (radius - 0.468) * 0.35);
       const u = Math.floor((0.5 + (reversed ? -1 : 1) * Math.sin(angle) * r) * size);
       const v = Math.floor((0.5 - cosine * r) * size);
