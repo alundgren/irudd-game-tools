@@ -18,6 +18,12 @@ Under **Cut and layer garments**, select a body region in the outliner or viewpo
 
 **Saved outfits** remembers the base outfit, fitted layer visibility, dyes, dressing order and palette tones. Wear a named outfit to recall those settings, or update it with the current ones. Garment cuts and tailored pieces belong to the character and are shared across its saved outfits.
 
+Open **Parts and surface details** under Properties. With a part selected, apply a size change in percent, a move in centimetres, or a turn in degrees. **Build parts** attaches a new shape to the selection, or starts a separate part when the selection is empty. Duplicate, mirror and remove act on the entire selected branch.
+
+**Material and roles** sets the colour, finish, clothing region and movement role of a geometric part. In Studio colour, try fur, scales, satin or metal. **Surface markings** paints bands, spots, rosettes, countershading, reticulation or marbling. Adjust their colour, spacing, coverage and angle. Clear the selection to paint eligible body regions together. **Shared skin** blends neighbouring organic parts with a common tint, texture and softness. Select a sweep, cage or plate to seat it on its parent or release it.
+
+**Face marks** adds freckles, beauty marks, scars, makeup and paint to an adult. On a built-in head or traced face, fit movable eyes from the face paint or adjust their colour, proportions and placement. Fit attached accessory pieces to a shared pivot and set their clearance. Style a groom on a head, grow strands along selected sweep guides, or adjust the count, curl and spread of a fitted hand. Eye fitting creates the rig. Phase 7 covers gaze and motion playback controls.
+
 | Phase | Scope |
 | --- | --- |
 | 1 | Viewport display, focus and panel structure |
@@ -31,7 +37,7 @@ Under **Cut and layer garments**, select a body region in the outliner or viewpo
 
 | # | Feature | Desktop status | Phase |
 | --- | --- | --- | --- |
-| 1 | Resize, move or turn a part and apply the change | partly | 5 |
+| 1 | Resize, move or turn a part and apply the change | done | 5 |
 | 2 | Switch between Face, Build, Cloth and Spine modes and edit spine points | missing | 8 |
 | 3 | Make a small reroll or reset the shape | done | 3 |
 | 4 | Adjust an adult body measurement by region | done | 2 |
@@ -48,36 +54,36 @@ Under **Cut and layer garments**, select a body region in the outliner or viewpo
 | 15 | Choose a face family or studio head | missing | 8 |
 | 16 | Adjust an adult's posture | missing | 7 |
 | 17 | Tailor layers of clothing | partly (six piece types done, armour surfaces pending) | 4, 5 |
-| 18 | Add freckles, scars or moles | missing | 5 |
+| 18 | Add freckles, scars or moles | done | 5 |
 | 19 | Apply a portrait to an adult's own head | missing | 8 |
 | 20 | Mount a pair of wings on an adult | missing | 6 |
 | 21 | Edit a creature's body plan with drag handles | missing | 6 |
 | 22 | Shuffle a chosen part of a creature's plan | missing | 6 |
-| 23 | Choose a creature's coat and markings | missing | 6 |
+| 23 | Choose a creature's coat and markings | partly (surface finishes and markings done, coat generation pending) | 5, 6 |
 | 24 | Match a face to portrait landmarks | partly | 8 |
-| 25 | Attach rigid accessories | missing | 5 |
+| 25 | Attach rigid accessories | done | 5 |
 | 26 | Shape a face from a side portrait | missing | 8 |
 | 27 | Adjust a portrait's depth | partly | 8 |
-| 28 | Fit movable eyes | missing | 5 |
-| 29 | Style hair with the groom tools | missing | 5 |
-| 30 | Grow strands along guide curves | missing | 5 |
-| 31 | Join organic surfaces | missing | 5 |
-| 32 | Paint markings on a surface | missing | 5 |
-| 33 | Add, duplicate, mirror or remove parts | missing | 5 |
+| 28 | Fit movable eyes | done | 5 |
+| 29 | Style hair with the groom tools | done | 5 |
+| 30 | Grow strands along guide curves | done | 5 |
+| 31 | Join organic surfaces | done | 5 |
+| 32 | Paint markings on a surface | done | 5 |
+| 33 | Add, duplicate, mirror or remove parts | done | 5 |
 | 34 | Reshape a part with a control cage | missing | 8 |
 | 35 | Bend an elbow, recut sleeves or set a carry pose | missing | 7 |
-| 36 | Adjust a hand's finger count, curl and spread | missing | 5 |
-| 37 | Seat a surface on its parent or release it | missing | 5 |
+| 36 | Adjust a hand's finger count, curl and spread | done | 5 |
+| 37 | Seat a surface on its parent or release it | done | 5 |
 | 38 | Grow a field of plates | missing | 8 |
 | 39 | Repeat plates along a spine | missing | 8 |
-| 40 | Set a part's clothing region, movement role, finish and colour | partly | 5 |
+| 40 | Set a part's clothing region, movement role, finish and colour | done | 5 |
 | 41 | Choose an outfit in the wardrobe | done | 4 |
 | 42 | Cut a cape, poncho, tabard or skirt | done | 4 |
 | 43 | Show, hide, overdye or reorder garment layers | done | 4 |
 | 44 | Adjust the cut of a garment | done | 4 |
 | 45 | Save, wear or update an outfit | done | 4 |
 | 46 | Choose a pose or clip, scrub time, play motion and inspect joints | partly | 7 |
-| 47 | Adjust gaze and facial expression | partly | 7 |
+| 47 | Adjust gaze and facial expression | partly (eye fitting done, gaze playback pending) | 7 |
 | 48 | Pose individual joints | missing | 7 |
 | 49 | Switch between Studio colour, Clay and Silhouette and choose a camera angle | done | 1 |
 | 50 | Set world scale and compare character sizes | missing | 8 |
@@ -97,3 +103,7 @@ Under **Cut and layer garments**, select a body region in the outliner or viewpo
 | 64 | Graft a part from a saved form | missing | 8 |
 | 65 | Save and revisit variations and alternates | partly | 8 |
 | 66 | Open reference studies | partly | 8 |
+
+### Checking surface edits
+
+Run `qa:character` in `apps/desktop` against the packaged app when changing surface controls, rendering or character save files. It drives each of the twelve edits, captures the viewport before and after, and reopens the saved characters in a fresh project. On an RTX 5070 Ti the surface-edit sequence took about 2 minutes 34 seconds on first launch and on repeat. Reopening and checking the two studies added about 12 seconds. The screenshots and contact sheet are in `.reference-cache/phase5/`.

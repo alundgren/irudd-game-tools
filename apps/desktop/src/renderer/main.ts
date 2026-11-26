@@ -35,6 +35,7 @@ import { mountProposals } from "./panels/proposals.js";
 import { mountHistory } from "./panels/history.js";
 import { mountAgents } from "./panels/agents.js";
 import { mountVariation } from "./panels/variation.js";
+import { mountSurface } from "./panels/surface.js";
 import { mountWardrobe } from "./panels/wardrobe.js";
 import { mountHuman } from "./panels/human.js";
 import { mountStart } from "./panels/start.js";
@@ -108,6 +109,7 @@ function selectPart(part: string | null): void {
   viewport.select(part);
   outliner.select(part);
   wardrobe.render();
+  surface.render();
   properties.render();
   variation.render();
 }
@@ -249,6 +251,12 @@ const proposals = mountProposals(panels, {
   hideBanner,
 });
 const history = mountHistory(panels);
+const surface = mountSurface(
+  panels,
+  (face, pivot) => viewport.accessoryAnchor(face, pivot),
+  (id) => viewport.fitEyes(id),
+  (p) => viewport.fitHand(p),
+);
 const wardrobe = mountWardrobe(panels, (host, kind, color) => viewport.cut(host, kind, color));
 const human = mountHuman(panels, () => variation.current()?.direction);
 const library = mountLibrary(panels, () => viewport.request());
@@ -332,6 +340,7 @@ function renderAll(): void {
   start.render();
   human.render();
   wardrobe.render();
+  surface.render();
   library.render();
   syncCharacterFiles();
   outliner.render();

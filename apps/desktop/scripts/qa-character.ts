@@ -1,3 +1,4 @@
+import { isJson, jsonEqual } from "@irudd/document";
 import assert from "node:assert/strict";
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -12,6 +13,7 @@ import {
   readZipEntry,
   writeZip,
 } from "../../../packages/workshop/src/service/zip.js";
+import { verifySurface } from "./surface-check.js";
 import { verifyDisplay } from "./display-check.js";
 import { appDir, appEnvironment } from "./electron.js";
 
@@ -365,6 +367,25 @@ try {
     "inspect the random human in three display modes, four angles and selection focus",
     () => verifyDisplay(page, resolve(appDir, "../../.reference-cache/parity/display")),
   );
+  const studies: { id: string; file: string; revision: number; document: unknown }[] = [];
+  async function saveStudy(name: string, revision: number) {
+    const id = await page.inputValue("#document"),
+      file = join(files, name + ".irudd-character");
+    const document: unknown = Reflect.get(
+      Object(await call(page, "current", { documentId: id })),
+      "document",
+    );
+    await app?.answerDialogs({ save: file });
+    await page.click("#character-save");
+    await waitStatus(page, new RegExp("as " + name));
+    studies.push({ id, file, revision, document });
+  }
+  const details = await step("paint, fit and shape surfaces in the workshop", () =>
+    verifySurface(page, resolve(appDir, "../../.reference-cache/phase5"), (revision) =>
+      saveStudy("Face marks", revision),
+    ),
+  );
+  await saveStudy("Surface study", details.revision);
   const parts = await step(
     "start a character from New character from… (frame creature)",
     async () => {
@@ -593,6 +614,31 @@ try {
     assert.equal(run.code, 0, run.err);
     assert.ok(existsSync(cliSaved));
     return run.out.split("\n")[0] ?? "";
+  });
+  await step("open the saved surface study and verify every edited part", async () => {
+    for (const study of studies) {
+      await app?.answerDialogs({ open: study.file });
+      await page.click("#character-open");
+      await page.waitForFunction(
+        (id) => document.querySelector<HTMLSelectElement>("#document")?.value === id,
+        study.id,
+      );
+      await waitRevision(page, study.revision);
+      const restored: unknown = Reflect.get(
+        Object(await call(page, "current", { documentId: study.id })),
+        "document",
+      );
+      assert.ok(isJson(restored) && isJson(study.document));
+      assert.ok(jsonEqual(restored, study.document), "All saved surface edits survived reopening.");
+    }
+    await page.locator('#outliner [data-part="' + details.hand + '"]').click();
+    const surface = page.locator("#surface-editor");
+    await surface.locator(":scope > summary").click();
+    await surface
+      .locator("summary")
+      .filter({ hasText: /^Hand$/ })
+      .click();
+    assert.equal(await surface.getByLabel("Fingers", { exact: true }).inputValue(), "3");
   });
   await step("quit project B", async () => {
     await app?.close();

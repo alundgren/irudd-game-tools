@@ -219,7 +219,7 @@ function replacePart(doc: CharacterDocument, index: number, part: PartType): Cha
   return { ...doc, parts };
 }
 
-function descendants(doc: CharacterDocument, id: string): Set<string> {
+export function descendants(doc: CharacterDocument, id: string): Set<string> {
   const out = new Set<string>([id]);
   let grew = true;
   while (grew) {

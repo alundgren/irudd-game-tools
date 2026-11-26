@@ -8,7 +8,10 @@ import {
 import { traceSkirt } from "@irudd/character";
 import { button, el } from "../dom.js";
 
-export const field = (name: string, control: HTMLElement) => el("label", {}, name, control);
+export function field(name: string, control: HTMLElement) {
+  control.setAttribute("aria-label", name);
+  return el("label", {}, name, control);
+}
 
 export function choices<T extends string>(
   values: readonly T[],

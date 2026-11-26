@@ -507,6 +507,7 @@ h2 {
   padding-left: 1.2em;
 }
 
+#surface-editor .surface-fields,
 #wardrobe details > div,
 #wardrobe form,
 #human-editor details > div,
@@ -520,6 +521,7 @@ h2 {
   cursor: pointer;
   padding: 4px 0;
 }
+#surface-editor label,
 #wardrobe label,
 #human-editor label,
 #human-start label {
@@ -530,6 +532,8 @@ h2 {
 }
 #wardrobe canvas,
 #wardrobe input,
+#surface-editor input,
+#surface-editor select,
 #wardrobe select,
 #human-editor input,
 #human-editor select {

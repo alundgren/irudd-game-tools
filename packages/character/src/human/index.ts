@@ -185,7 +185,14 @@ export {
   type TailorLayer,
   type TailorPiece,
 } from "./dress/tailor-data.js";
-export { faceMarkKinds, faceMarkLimit, faceMarkSides, type FaceMark } from "./marks.js";
+export {
+  faceMark,
+  faceMarkKindTable,
+  faceMarkKinds,
+  faceMarkLimit,
+  faceMarkSides,
+  type FaceMark,
+} from "./marks.js";
 export { randomStream } from "./identity.js";
 export * from "./generator.js";
 export * from "./starter.js";

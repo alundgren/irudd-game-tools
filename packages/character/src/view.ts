@@ -176,7 +176,7 @@ export interface BuildView {
   readonly layers: ReadonlyMap<string, LayerStyle>;
 }
 
-function viewPart(part: Part): BuildPart {
+export function viewPart(part: Part): BuildPart {
   const assembly = figureAssembly.read(part.features);
   const binding = figurePaint.read(part.features);
   const hull = figureHull.read(part.features);
