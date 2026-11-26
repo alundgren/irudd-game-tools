@@ -27,6 +27,7 @@ import { readImageChunks } from "./art-files.js";
 import { ViewportPaint } from "./viewport-paint.js";
 import { mountSteering } from "./steering.js";
 import { mountUpdates } from "./update.js";
+import { mountMotion } from "./panels/motion.js";
 import { EditorViewport, type Tool, type Transform } from "./viewport.js";
 
 import { mountDisplay } from "./panels/display.js";
@@ -239,6 +240,7 @@ const panels: PanelContext = {
 };
 
 mountDisplay(viewport);
+const motion = mountMotion(panels, viewport);
 const outliner = mountOutliner(panels);
 const properties = mountProperties(panels);
 const variation = mountVariation(panels, () => proposals.render());
@@ -410,6 +412,7 @@ async function displayDocument(character: CharacterDocument | undefined): Promis
         : undefined;
     if (seq !== displaySequence) return false;
     viewport.show(character, registry, finish, paint);
+    motion.render();
     return true;
   } catch (error) {
     if (seq !== displaySequence) return false;
@@ -424,6 +427,7 @@ async function showHead(): Promise<void> {
     await displayDocument(doc);
   } catch (error) {
     viewport.show(undefined, registry);
+    motion.render();
     showBanner("error", `Cannot render this character: ${failure(error)}`);
   }
 }

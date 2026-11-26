@@ -527,7 +527,7 @@ h2 {
   padding-left: 1.2em;
 }
 
-#surface-editor .surface-fields,
+:is(#motion-editor, #surface-editor) .surface-fields,
 #wardrobe details > div,
 #wardrobe form,
 #human-editor details > div,
@@ -536,12 +536,13 @@ h2 {
   gap: 6px;
   padding: 8px 0;
 }
+#motion-editor summary,
 #wardrobe summary,
 #human-editor summary {
   cursor: pointer;
   padding: 4px 0;
 }
-#surface-editor label,
+:is(#motion-editor, #surface-editor) label,
 #wardrobe label,
 #human-editor label,
 :is(#human-start, #creature-start) label {
@@ -552,8 +553,8 @@ h2 {
 }
 #wardrobe canvas,
 #wardrobe input,
-#surface-editor input,
-#surface-editor select,
+:is(#motion-editor, #surface-editor) input,
+:is(#motion-editor, #surface-editor) select,
 #wardrobe select,
 #human-editor input,
 #human-editor select {

@@ -20,6 +20,7 @@ export type { Region, RigRole } from "./region.js";
 export interface Rig {
   readonly actor: T.Group;
   readonly skeleton: T.Skeleton;
+  readonly bindings: ReturnType<typeof bindPoseJoints>;
   readonly clips: T.AnimationClip[];
   readonly regions: ReadonlyMap<string, Region>;
   dispose(): void;
@@ -570,6 +571,7 @@ export function skinCharacter(character: BuiltCharacter): Rig {
   return {
     actor,
     skeleton,
+    bindings,
     clips,
     regions,
     dispose() {

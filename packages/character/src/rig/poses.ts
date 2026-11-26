@@ -1,7 +1,8 @@
 import * as T from "three";
-import type { JointPose, PoseJoint } from "@irudd/document";
+import { decodeWith, PartId, type JointPose, type PoseJoint } from "@irudd/document";
 
-interface Binding {
+export interface JointBinding {
+  readonly address: Pick<PoseJoint, "part" | "station" | "digit">;
   readonly bone: T.Bone;
   readonly position: T.Vector3;
   readonly rotation: T.Quaternion;
@@ -13,25 +14,33 @@ const jointKey = (j: PoseJoint): string => key(j.part ?? "", j.station, j.digit)
 
 export const poseClipName = (name: string): string => "Pose · " + name;
 
-export function bindPoseJoints(skeleton: T.Skeleton): Map<string, Binding> {
-  const bindings = new Map<string, Binding>();
+export function bindPoseJoints(skeleton: T.Skeleton): Map<string, JointBinding> {
+  const bindings = new Map<string, JointBinding>();
   for (const bone of skeleton.bones) {
+    if (bone.userData["garmentSupport"]) continue;
     const region: unknown = bone.userData["region"];
     const station: unknown = bone.userData["station"];
     const digit: unknown = bone.userData["digit"];
     const segment: unknown = bone.userData["segment"];
     const part = typeof region === "string" ? region : "";
     const at = typeof digit === "string" ? segment : station;
+    const id = decodeWith(PartId, part);
+    if (part && !id.ok) continue;
+    const address = {
+      part: id.ok ? id.value : null,
+      station: typeof at === "number" ? at : 0,
+      ...(typeof digit === "string" ? { digit } : {}),
+    };
     bindings.set(
       key(part, typeof at === "number" ? at : 0, typeof digit === "string" ? digit : undefined),
-      { bone, position: bone.position.clone(), rotation: bone.quaternion.clone() },
+      { address, bone, position: bone.position.clone(), rotation: bone.quaternion.clone() },
     );
   }
   return bindings;
 }
 
 export function authoredClips(
-  bindings: ReadonlyMap<string, Binding>,
+  bindings: ReadonlyMap<string, JointBinding>,
   poses: ReadonlyArray<JointPose>,
 ): T.AnimationClip[] {
   return poses.map((p) => {
@@ -66,7 +75,7 @@ export function authoredClips(
 }
 
 export function offerClip(
-  bindings: ReadonlyMap<string, Binding>,
+  bindings: ReadonlyMap<string, JointBinding>,
   pose: JointPose,
 ): T.AnimationClip | undefined {
   const tracks: T.KeyframeTrack[] = [];

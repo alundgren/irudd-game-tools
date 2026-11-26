@@ -46,6 +46,20 @@ function retained(
 
 const occludersFeature = Schema.decodeUnknownSync(FeatureId)(figureOccluders.id);
 
+export function retainRemovedPaint(doc: CharacterDocument, removed: readonly string[]): Operation {
+  const painted = doc.parts.flatMap((p) => {
+    if (removed.includes(p.id) || !p.paint) return [];
+    const region = figurePaint.read(p.features)?.region;
+    return region ? [{ atlas: p.paint.atlas, region }] : [];
+  });
+  const hidden = retained(painted, [], sources(doc));
+  return {
+    op: "feature.set",
+    feature: occludersFeature,
+    value: hidden.length ? figureOccluders.json({ sources: hidden }) : null,
+  };
+}
+
 export class RepaintError extends Error {}
 
 export function repaintOperations(

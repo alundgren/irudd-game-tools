@@ -172,7 +172,15 @@ export {
   type HumanDraw,
   type Region,
 } from "./draw.js";
-export { postureAxes, postureRanges, postureStyleNames, type Posture } from "./posture.js";
+export {
+  drawPosture,
+  mirrorPosture,
+  postureStyles,
+  postureAxes,
+  postureRanges,
+  postureStyleNames,
+  type Posture,
+} from "./posture.js";
 export {
   defaultTailor,
   readTailor,
