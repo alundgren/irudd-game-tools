@@ -2,7 +2,8 @@ import { createHash } from "node:crypto";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import * as T from "three";
-import { canonicalJson, isJson } from "@irudd/document";
+import { buildCharacter, clayMaterials, cutGarment } from "@irudd/character";
+import { canonicalJson, isJson, figureMantle } from "@irudd/document";
 import { dressBody, dressLandmarks, fittedHair, tailorParts } from "@irudd/character/human/dress";
 import {
   evaluateHuman,
@@ -206,4 +207,20 @@ test("an outfit edit steers the export while a held region edit stays", async ()
       }),
     /boots\.heel must be between 0 and 70/,
   );
+});
+
+test("a skirt sits at the same waist and reaches the same hem over boots and trousers as on the bare adult", () => {
+  const pattern = (params: HumanAdultParams) => {
+    const doc = documentOf(generate(params)),
+      pelvis = doc.parts.find((p) => p.slot === humanSlot("pelvis"));
+    assert.ok(pelvis);
+    const built = buildCharacter(doc, { human: body, materials: clayMaterials() });
+    try {
+      const part = cutGarment(built, pelvis.id, "Skirt", "#544566");
+      return { position: part.position, cut: figureMantle.read(part.features)?.cut };
+    } finally {
+      built.dispose();
+    }
+  };
+  assert.deepEqual(pattern(dressed), pattern({ ...dressed, outfit: "Anatomy" }));
 });

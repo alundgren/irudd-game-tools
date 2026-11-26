@@ -38,9 +38,9 @@ import {
   type Vec,
 } from "./kit.js";
 import { finishFootwear } from "./shoe-finish.js";
-import { apron, backpack, cape, pod } from "./gear.js";
+import { apron, backpack, cape, helmet, pod } from "./gear.js";
 import { skirt } from "./skirt.js";
-import type { PresetOutfit } from "./outfit-names.js";
+import type { OutfitPattern } from "./outfit-names.js";
 
 export interface OutfitPart {
   readonly piece: Piece;
@@ -922,6 +922,90 @@ export const presetOutfits = {
     boots(body, m, parts, { from: 1.32, cuff: 0.05, ease: 0.016 });
     return parts;
   },
+  "Pressure suit"(body, m) {
+    const parts: OutfitPart[] = [],
+      k = m.k;
+    const suit = garment(body, m, {
+      sleeve: 1.97,
+      leg: 1.97,
+      ease: 0.034,
+      gap: 0.011,
+      fall: 0.03,
+      tension: 1,
+      span: 3.2,
+      taper: 0.02,
+      sleeveFall: 0.03,
+      sleeveEase: 0.004,
+      passes: 12,
+      soft: 10,
+      neck: { height: 0.012 },
+    });
+    const piece = new Piece().shell(suit.s, { thickness: 0.01 }),
+      rings = new Piece(),
+      cast = caster([suit.s]);
+    for (const loop of [...suit.sleeves, ...suit.legs])
+      band(rings, suit.s, loop, { width: 0.034 * k, rise: 0.011 * k });
+    for (const sign of [1, -1])
+      pocket(piece, cast, body, m, {
+        x: sign * 0.1 * k,
+        y: m.waist + 0.02 * k,
+        width: 0.11,
+        height: 0.1,
+        rise: 0.008,
+      });
+    patch(piece, cast, body, {
+      centre: [0, m.chest[1] + 0.1 * k, m.chest[2]],
+      facing: [0, 0, 1],
+      across: [1, 0, 0],
+      width: 0.17 * k,
+      height: 0.11 * k,
+      rise: 0.016 * k,
+      nx: 6,
+    });
+    for (const x of [-0.045, 0, 0.045])
+      button(rings, cast, body, {
+        centre: [x * k, m.chest[1] + 0.1 * k, m.chest[2]],
+        facing: [0, 0, 1],
+        radius: 0.011 * k,
+        rise: 0.022 * k,
+      });
+    parts.push(part(piece, "main", "spine_03", "Pressure suit"));
+    const hood = helmet(body, m),
+      pack = backpack(body, m, [suit.s], { tanks: true });
+    parts.push(
+      part(hood.shell, "light", "head", "Helmet", "metal"),
+      part(hood.trim, "metal", "spine_03", "Helmet ring", "metal"),
+    );
+    if (pack)
+      parts.push(
+        part(pack.pack, "dark", "spine_03", "Air pack"),
+        part(pack.gear, "light", "spine_03", "Air tanks", "metal"),
+      );
+    const webbing = new Piece();
+    belt(webbing, body, m, [suit.s], m.waist - 0.03 * k, {
+      height: 0.05,
+      thick: 0.008,
+      buckle: true,
+    });
+    parts.push(
+      part(webbing, "dark", "spine_01", "Harness belt", "leather"),
+      part(rings, "metal", "spine_03", "Lock rings", "metal"),
+    );
+    for (const side of ["l", "r"]) {
+      const glove = sleeveGuard(body, m, side, { from: 1.9, ease: 0.008, passes: 4 });
+      parts.push(part(new Piece().shell(glove.s), "dark", "hand_" + side, "Suit glove", "leather"));
+    }
+    shoes(
+      body,
+      m,
+      parts,
+      { collar: 0.13, sole: 0.024, heel: 0.004, toe: 0.01, ease: 0.012 },
+      "dark",
+      "sole",
+      "Suit boot",
+    );
+    return parts;
+  },
   Explorer(body, m) {
     const parts: OutfitPart[] = [],
       k = m.k,
@@ -1170,7 +1254,7 @@ export const presetOutfits = {
     boots(body, m, parts, { from: 1.28, cuff: 0.05, ease: 0.016 });
     return parts;
   },
-} satisfies Readonly<Record<PresetOutfit, Outfit>>;
+} satisfies Readonly<Record<OutfitPattern, Outfit>>;
 
 export const toneFields = {
   clothSecond: "dark",
@@ -1291,7 +1375,7 @@ export interface OutfitFinish {
 
 export function dressPreset(
   surface: HumanSurface,
-  name: PresetOutfit,
+  name: OutfitPattern,
   style: Parameters<typeof outfitPalette>[0],
   material: (tone: string, type: string) => T.Material,
   finish?: OutfitFinish,

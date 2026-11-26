@@ -5,6 +5,9 @@ import { decodeWith } from "@irudd/document";
 import {
   changeMeasurement,
   chooseAdultStyle,
+  chooseAdultWardrobe,
+  defaultTailor,
+  tailorAdult,
   drawAdult,
   HumanAdultParams,
   loadHumanPacks,
@@ -98,4 +101,18 @@ test("skin restoration survives repeated tints and switching cast members clears
   const individual = chooseAdultStyle(next, {}, "cast");
   assert.ok(individual.style.outfit);
   assert.equal(individual.style.castSkin, undefined);
+});
+
+test("tailoring restores the working clothes and keeps the pieces through uniform changes", () => {
+  const layers = defaultTailor("#884455").layers;
+  const tailored = tailorAdult(chooseAdultWardrobe(person, "Anatomy"), layers);
+  assert.deepEqual(tailored.style.tailor?.layers, layers);
+  for (const outfit of ["Anatomy", "Base layer", "Pressure suit"] as const) {
+    const uniform = chooseAdultWardrobe(tailored, outfit);
+    assert.ok(decodeWith(HumanAdultParams, uniform).ok);
+    assert.deepEqual(chooseAdultWardrobe(uniform, "Work clothes"), tailored);
+  }
+  const removed = tailorAdult(tailored, []);
+  assert.ok(!removed.style.tailor && removed.style.outfit);
+  assert.throws(() => tailorAdult(person, [{ piece: "unknown" }]));
 });

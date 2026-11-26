@@ -15,6 +15,7 @@ import {
 import { complexionLook, type HumanPaintSources } from "./complexion.js";
 import { browParting } from "./scars.js";
 import { fittedBrow } from "./strands.js";
+import { surfaceRegions } from "./draw.js";
 import { humanRegions, humanWeightsOf } from "./mesh.js";
 import { readTailor } from "./dress/tailor-data.js";
 import type { HumanBuild } from "./binding.js";
@@ -129,11 +130,22 @@ export function buildHuman(
       `A native portrait layer belongs on the adult's head, not ${unregioned.label}.`,
     );
   const member = portrait ? null : humanWornCast(params, regionParts.length);
+  const uniform =
+    params.outfit === "Base layer"
+      ? "Running kit"
+      : params.outfit === "Pressure suit"
+        ? "Pressure suit"
+        : undefined;
   const presetName = params.style.outfit;
   const preset =
-    work && !member && params.style.tailor === undefined && presetName && isPresetOutfit(presetName)
+    uniform ??
+    (work &&
+    !member &&
+    params.style.tailor === undefined &&
+    presetName &&
+    isPresetOutfit(presetName)
       ? presetName
-      : undefined;
+      : undefined);
   if (work && !member && params.style.tailor === undefined && !preset)
     throw new Error(
       "Work clothes need a tailored or preset outfit or a worn cast member; the default field jacket and denim is not built yet.",
@@ -171,13 +183,13 @@ export function buildHuman(
                 : readTailor(params.style.tailor),
             outfit: preset ? { name: preset, tones: params.style } : undefined,
             hair: {
-              hair: params.style.hair,
+              hair: preset === "Pressure suit" ? "Crop" : params.style.hair,
               fringe: params.style.fringe,
               hairColor: params.style.hairColor,
             },
             skin: params.skin,
             eyewear: params.style.eyewear,
-            necklace: params.style.necklace,
+            necklace: preset === "Pressure suit" ? "None" : params.style.necklace,
             clothAccent: params.style.clothAccent,
             clothDesign: params.style.clothDesign,
             secondDesign: params.style.secondDesign,
@@ -221,7 +233,12 @@ export function buildHuman(
     blendOwners: new Map<T.Mesh, never>(),
     hands: new Map<T.Mesh, never>(),
     faces: new Map<T.Mesh, never>(),
-    human: { bones, weights: (mesh) => humanWeightsOf.get(mesh), params },
+    human: {
+      bones,
+      regionBounds: new Map(surfaceRegions(regions.cage).map((r) => [r.bone, r.bounds])),
+      weights: (mesh) => humanWeightsOf.get(mesh),
+      params,
+    },
     dispose() {
       const materials = new Set<T.Material>();
       group.traverse((node) => {

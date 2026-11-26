@@ -19,6 +19,7 @@ import { readProvenance } from "@irudd/character";
 import { humanSlot } from "@irudd/character/human";
 import { BaseSlot, decodeWith, transportOffset } from "@irudd/document";
 import { connect, type WorkshopClient } from "@irudd/workshop/client";
+import { verifyWardrobe } from "./wardrobe-check.js";
 import { verifyHumanEditing } from "./human-edit-check.js";
 import { appDir, appEnvironment, electronExecutable } from "./electron.js";
 
@@ -369,6 +370,10 @@ try {
       "the steered body is a new shape",
     );
   });
+
+  await step("tailor, cut, restyle and recall outfits in the wardrobe", () =>
+    verifyWardrobe(page, join(repository, ".reference-cache", "phase4")),
+  );
 
   await step("tune a new random human through the desktop panels and undo", async () => {
     assert.ok(agent);

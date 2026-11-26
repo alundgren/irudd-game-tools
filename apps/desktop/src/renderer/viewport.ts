@@ -4,6 +4,8 @@ import { TransformControls } from "three/addons/controls/TransformControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import {
   buildCharacter,
+  partBounds,
+  cutGarment,
   type BuildOptions,
   type BuiltCharacter,
   surfaceMaterials,
@@ -36,27 +38,6 @@ const directions = {
   threequarter: new T.Vector3(0.62, 0.35, 1).normalize(),
 };
 export type CameraAngle = keyof typeof directions;
-
-function partBounds(object: T.Object3D): T.Box3 {
-  object.updateWorldMatrix(true, true);
-  const box = new T.Box3();
-  const visit = (node: T.Object3D): void => {
-    if (node !== object && (!node.visible || node.userData["partId"])) return;
-    if (isMesh(node)) {
-      if (!node.geometry.boundingBox) node.geometry.computeBoundingBox();
-      if (node.geometry.boundingBox)
-        box.union(node.geometry.boundingBox.clone().applyMatrix4(node.matrixWorld));
-    }
-    node.children.forEach(visit);
-  };
-  visit(object);
-  if (box.isEmpty())
-    box.setFromCenterAndSize(
-      object.getWorldPosition(new T.Vector3()),
-      object.getWorldScale(new T.Vector3()),
-    );
-  return box;
-}
 
 function isMesh(object: T.Object3D): object is T.Mesh {
   return object instanceof T.Mesh;
@@ -176,6 +157,11 @@ export class EditorViewport {
     this.observer = new ResizeObserver(() => this.resize());
     this.observer.observe(host);
     this.resize();
+  }
+
+  cut(host: string, kind: Parameters<typeof cutGarment>[2], color: string) {
+    if (!this.built) throw new Error("Wait for the character to load.");
+    return cutGarment(this.built, host, kind, color);
   }
 
   get dragging(): boolean {

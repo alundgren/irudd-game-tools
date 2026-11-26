@@ -225,7 +225,7 @@ export function mountHuman(ctx: PanelContext, variation: () => Direction | undef
       const skin = choice("skin");
       return skin && /^#[0-9a-f]{6}$/i.test(skin) ? tintSkin(look, skin) : look;
     }
-    const dressed = params.outfit === "Work clothes";
+    const dressed = params.outfit !== undefined && params.outfit !== "Anatomy";
     const style = params.style;
     const fields: HTMLElement[] = [
       button(dressed ? "Show base shape" : "Show current outfit", () =>

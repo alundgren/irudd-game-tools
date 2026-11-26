@@ -1,3 +1,4 @@
+import { wornOutfit } from "./wardrobe.js";
 import {
   characterAppearance,
   motionOffer,
@@ -48,7 +49,6 @@ import {
   figureSweep,
   motionPoses,
   motionRole,
-  outfitWardrobe,
   outfitWear,
   type Appearance,
   type CharacterDocument,
@@ -391,7 +391,7 @@ export function buildView(doc: CharacterDocument): BuildView {
       throw new Error(`Join at most ${seamGroupLimit} figure regions in the ${group} seam group.`);
   if (parts.filter((p) => p.organ.rank === "spine").length > 1)
     throw new Error("A creature has one spine organ.");
-  const outfit = outfitWardrobe.read(doc.features)?.outfit ?? "Work clothes";
+  const outfit = wornOutfit(doc);
   const poses = motionPoses.read(doc.features)?.poses ?? [];
   const offer = offerOf(
     motionOffer.read(doc.features),
