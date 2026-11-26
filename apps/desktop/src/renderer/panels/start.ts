@@ -1,8 +1,12 @@
 import {
-  adultColourRanges,
-  randomDressedAdult,
-  type HumanAdultParams,
-} from "@irudd/character/human";
+  colourRanges,
+  randomCreature,
+  otherForms,
+  formArchetypes,
+  formParams,
+} from "@irudd/character/creature";
+import { creatureFamilies, type Json, type CreaturePlan } from "@irudd/document";
+import { adultColourRanges, randomDressedAdult } from "@irudd/character/human";
 import { describe, failure } from "./context.js";
 import { byId } from "../dom.js";
 import type { PanelContext } from "./context.js";
@@ -11,6 +15,59 @@ export function mountStart(ctx: PanelContext, onStarted: (id: string) => Promise
   const { host, showBanner, say } = ctx;
   const startSelect = byId("start", HTMLSelectElement);
   const randomHuman = byId("random-human", HTMLButtonElement);
+  const randomBeast = byId("random-creature", HTMLButtonElement);
+  const creatureDialog = byId("creature-start", HTMLDialogElement);
+  const family = byId("creature-family", HTMLSelectElement);
+  const palette = byId("creature-colours", HTMLSelectElement);
+  const seedField = byId("creature-seed", HTMLInputElement);
+  family.replaceChildren(...["Any", ...creatureFamilies].map((name) => new Option(name, name)));
+  palette.replaceChildren(...colourRanges.map((name) => new Option(name, name)));
+  const kind = byId("creature-form", HTMLSelectElement),
+    frameField = byId("form-frame", HTMLSelectElement);
+  kind.replaceChildren(...["Creature", ...otherForms].map((n) => new Option(n, n)));
+  frameField.replaceChildren(...formArchetypes.map((n) => new Option(n, n)));
+  function showKind() {
+    family.disabled = kind.value === "Figure" || kind.value === "Humanoid";
+    frameField.disabled = kind.value === "Creature";
+    byId("create-form", HTMLButtonElement).textContent = "Create " + kind.value.toLowerCase();
+    byId("creature-start-title", HTMLElement).textContent =
+      "New random " + kind.value.toLowerCase();
+  }
+  kind.onchange = showKind;
+  function openForm(type: string) {
+    kind.value = type;
+    showKind();
+    creatureDialog.showModal();
+  }
+  randomBeast.onclick = () => openForm("Creature");
+  byId("creature-cancel", HTMLButtonElement).onclick = () => creatureDialog.close();
+  creatureDialog.onsubmit = (event) => {
+    event.preventDefault();
+    const seed =
+      seedField.value === ""
+        ? (crypto.getRandomValues(new Uint32Array(1))[0] ?? 0)
+        : seedField.valueAsNumber;
+    const type = otherForms.find((f) => f === kind.value);
+    if (type) {
+      const params = formParams(
+        type,
+        seed,
+        formArchetypes.find((f) => f === frameField.value) ?? "any",
+        colourRanges.find((c) => c === palette.value) ?? "Mixed",
+        creatureFamilies.find((f) => f === family.value),
+      );
+      creatureDialog.close();
+      void startCharacter("workshop-form", params, type + " " + seed);
+      return;
+    }
+    const plan = randomCreature(
+      seed,
+      creatureFamilies.find((f) => f === family.value),
+      colourRanges.find((c) => c === palette.value),
+    );
+    creatureDialog.close();
+    void startCharacter("creature-plan", plan, `${plan.family ?? "Creature"} ${seed}`);
+  };
   const dialog = byId("human-start", HTMLDialogElement);
   const archetype = byId("human-archetype", HTMLSelectElement);
   const colours = byId("human-colours", HTMLSelectElement);
@@ -30,7 +87,7 @@ export function mountStart(ctx: PanelContext, onStarted: (id: string) => Promise
       return;
     const params = randomDressedAdult(body, seed, frame, range);
     dialog.close();
-    void startCharacter("human-adult", params);
+    void startCharacter("human-adult", params, `Adult human ${params.seed}`);
   };
   async function loadStarters(): Promise<void> {
     startSelect.disabled = true;
@@ -48,7 +105,11 @@ export function mountStart(ctx: PanelContext, onStarted: (id: string) => Promise
             s.id === "human-adult" ? "New random human" : `New random ${s.label.toLowerCase()}`;
           startSelect.add(new Option(action, `${s.id}/seed`), 1);
         }
-      } else startSelect.append(new Option(label, s.id));
+      } else if (s.id === "creature-plan")
+        startSelect.add(new Option("New random creature", "creature-plan/seed"), 1);
+      else if (s.id === "workshop-form")
+        startSelect.add(new Option("New figure, humanoid or hybrid", "workshop-form/seed"), 2);
+      else startSelect.append(new Option(label, s.id));
     }
     startSelect.disabled = startSelect.options.length < 2;
   }
@@ -69,11 +130,18 @@ export function mountStart(ctx: PanelContext, onStarted: (id: string) => Promise
     if (startSelect.value === "human-adult/seed") {
       startSelect.value = "";
       dialog.showModal();
+    } else if (
+      startSelect.value === "creature-plan/seed" ||
+      startSelect.value === "workshop-form/seed"
+    ) {
+      const type = startSelect.value === "creature-plan/seed" ? "Creature" : "Figure";
+      startSelect.value = "";
+      openForm(type);
     } else void startCharacter(startSelect.value);
   };
   randomHuman.onclick = () => dialog.showModal();
 
-  async function startCharacter(value: string, params?: HumanAdultParams): Promise<void> {
+  async function startCharacter(value: string, params?: Json, label?: string): Promise<void> {
     if (startSelect.disabled) return;
     const choice = startChoice(value);
     const starter = choice.starter;
@@ -87,7 +155,8 @@ export function mountStart(ctx: PanelContext, onStarted: (id: string) => Promise
         documentId: id,
         requestId: "desk-" + crypto.randomUUID(),
         ...choice,
-        ...(params ? { params, label: `Adult human ${params.seed}` } : {}),
+        ...(params ? { params } : {}),
+        ...(label ? { label } : {}),
       });
       if (started.result.kind === "rejected") {
         showBanner("error", `Could not start: ${describe(started.result.diagnostics)}`);
@@ -104,8 +173,14 @@ export function mountStart(ctx: PanelContext, onStarted: (id: string) => Promise
   }
 
   function render(): void {
+    randomBeast.hidden =
+      !!ctx.documentId || !startSelect.querySelector('option[value="creature-plan/seed"]');
     randomHuman.hidden =
       !!ctx.documentId || !startSelect.querySelector('option[value="human-adult/seed"]');
   }
-  return { render, loadStarters };
+  return {
+    render,
+    loadStarters,
+    fromPlan: (plan: CreaturePlan, label: string) => startCharacter("creature-plan", plan, label),
+  };
 }

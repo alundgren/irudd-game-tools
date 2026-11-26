@@ -1,4 +1,5 @@
 import * as T from "three";
+import { generatedCreature } from "./creature/generator.js";
 import {
   armAccess,
   canonicalJson,
@@ -469,13 +470,14 @@ export function buildCharacter(doc: CharacterDocument, options: BuildOptions): B
     if (!options.human) throw new Error("Building an adult human needs the loaded body pack.");
     return withHandMadeParts(doc, buildHuman(doc, options.human, options), options);
   }
-  return buildFigure(buildView(doc), options);
+  return buildFigure(buildView(doc), options, undefined, generatedCreature(doc));
 }
 
 function buildFigure(
   view: BuildView,
   options: BuildOptions,
   host?: BuiltCharacter,
+  generatedDress = false,
 ): BuiltCharacter {
   const portrait = view.parts.find((p) => p.nativePortrait);
   if (portrait)
@@ -483,7 +485,7 @@ function buildFigure(
       `A native portrait layer belongs on an adult's own head, not ${portrait.label}.`,
     );
   const plan = view.plan;
-  if (plan?.dress)
+  if (plan?.dress && !generatedDress)
     throw new Error("This build does not support creature livery (creature.plan.dress).");
   const creatureRaster = plan && options.finish ? options.finish.paint?.raster : undefined;
   if (plan && options.finish && !creatureRaster)

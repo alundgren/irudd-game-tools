@@ -1,3 +1,4 @@
+import { formGenerator, creatureGenerator } from "@irudd/character/creature";
 import "@irudd/player/player.css";
 import "./style.css";
 import {
@@ -37,6 +38,7 @@ import { mountAgents } from "./panels/agents.js";
 import { mountVariation } from "./panels/variation.js";
 import { mountSurface } from "./panels/surface.js";
 import { mountWardrobe } from "./panels/wardrobe.js";
+import { mountCreature } from "./panels/creature.js";
 import { mountHuman } from "./panels/human.js";
 import { mountStart } from "./panels/start.js";
 import { mountLibrary } from "./panels/library.js";
@@ -258,6 +260,13 @@ const surface = mountSurface(
   (p) => viewport.fitHand(p),
 );
 const wardrobe = mountWardrobe(panels, (host, kind, color) => viewport.cut(host, kind, color));
+const creature = mountCreature(
+  panels,
+  () => variation.current()?.direction,
+  (p) => viewport.project(p),
+  (p, label) => start.fromPlan(p, label),
+);
+viewport.onFrame = creature.place;
 const human = mountHuman(panels, () => variation.current()?.direction);
 const library = mountLibrary(panels, () => viewport.request());
 const start = mountStart(panels, async (id) => {
@@ -339,6 +348,7 @@ function syncCharacterFiles(): void {
 function renderAll(): void {
   start.render();
   human.render();
+  creature.render();
   wardrobe.render();
   surface.render();
   library.render();
@@ -618,7 +628,7 @@ try {
   const body = await loadHumanPacks((file) => api.humanPack(file));
   registry = createRegistry({
     features: familyFeatures,
-    generators: [frameCreature, humanAdultGenerator(body)],
+    generators: [frameCreature, formGenerator, creatureGenerator, humanAdultGenerator(body)],
   });
   viewport.human = body;
 } catch (error) {

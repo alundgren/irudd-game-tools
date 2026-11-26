@@ -1,3 +1,9 @@
+import {
+  formGenerator,
+  formStarter,
+  creatureGenerator,
+  creatureStarter,
+} from "@irudd/character/creature";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { createRegistry, familyFeatures, frameCreature, type Registry } from "@irudd/document";
@@ -27,7 +33,10 @@ export async function humanHosting(assetsDir: string): Promise<HumanHosting> {
   const { generator, starter } = humanAdultStarter(body);
   return {
     body,
-    registry: createRegistry({ features: familyFeatures, generators: [frameCreature, generator] }),
-    starters: [...workshopStarters, starter],
+    registry: createRegistry({
+      features: familyFeatures,
+      generators: [frameCreature, formGenerator, creatureGenerator, generator],
+    }),
+    starters: [...workshopStarters, starter, creatureStarter, formStarter],
   };
 }

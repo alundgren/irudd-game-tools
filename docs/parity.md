@@ -24,6 +24,12 @@ Open **Parts and surface details** under Properties. With a part selected, apply
 
 **Face marks** adds freckles, beauty marks, scars, makeup and paint to an adult. On a built-in head or traced face, fit movable eyes from the face paint or adjust their colour, proportions and placement. Fit attached accessory pieces to a shared pivot and set their clearance. Style a groom on a head, grow strands along selected sweep guides, or adjust the count, curl and spread of a fitted hand. Eye fitting creates the rig. Phase 7 covers gaze and motion playback controls.
 
+Choose **New random creature** for a complete body from one of fourteen families. Leave the seed empty for a new draw, or enter a seed to revisit the same body and colours. Pick a family such as glider or swimmer and a Natural, Fantasy or Mixed colour range. The starting-form menu also offers Figure, Humanoid and Hybrid. Hybrids combine a creature body with a humanoid head.
+
+In **Body plan**, change the spine proportions or choose **Show drag handles** to pull the body thicker or thinner and slide a limb group along the spine. Add a leg, arm, wing, fin or tentacle group and adjust its reach, shape and placement. Tune the jaw, eyes and ears, choose a dorsal growth and fit equipment or a layered garment. **Shuffle** redraws the whole creature or one region, including equipment and worn layers. Variation strength controls the size of measurement changes. The `family`, `coat` and `skin` decks steer compatible draws. Each applied edit, shuffle or completed drag records one History entry.
+
+**Colours and coat** can generate a coat from the anatomy or apply your choice of plumage, pelt, scutes or wet skin. Adjust the palette, density, contrast and markings. On an imported creature with a saved plan, choose **Start editable copy from this plan** to rebuild the anatomy as a new character. On an adult, open **Adult wings** to fit or replace a matching pair at the shoulders.
+
 | Phase | Scope |
 | --- | --- |
 | 1 | Viewport display, focus and panel structure |
@@ -56,10 +62,10 @@ Open **Parts and surface details** under Properties. With a part selected, apply
 | 17 | Tailor layers of clothing | partly (six piece types done, armour surfaces pending) | 4, 5 |
 | 18 | Add freckles, scars or moles | done | 5 |
 | 19 | Apply a portrait to an adult's own head | missing | 8 |
-| 20 | Mount a pair of wings on an adult | missing | 6 |
-| 21 | Edit a creature's body plan with drag handles | missing | 6 |
-| 22 | Shuffle a chosen part of a creature's plan | missing | 6 |
-| 23 | Choose a creature's coat and markings | partly (surface finishes and markings done, coat generation pending) | 5, 6 |
+| 20 | Mount a pair of wings on an adult | done | 6 |
+| 21 | Edit a creature's body plan with drag handles | partly (static anatomy and drag handles done, animated poses pending) | 6 |
+| 22 | Shuffle a chosen part of a creature's plan | done | 6 |
+| 23 | Choose a creature's coat and markings | done | 5, 6 |
 | 24 | Match a face to portrait landmarks | partly | 8 |
 | 25 | Attach rigid accessories | done | 5 |
 | 26 | Shape a face from a side portrait | missing | 8 |
@@ -96,7 +102,7 @@ Open **Parts and surface details** under Properties. With a part selected, apply
 | 57 | Request and apply painted edits | partly | 8 |
 | 58 | Refine a proposal, compare it or keep an alternate | partly | 8 |
 | 59 | Inspect a game export | partly | 8 |
-| 60 | Generate a starting form by archetype, colouring and family | partly (adult done) | 2 (adults), 6 (other families) |
+| 60 | Generate a starting form by archetype, colouring and family | done | 2, 6 |
 | 61 | Trace artwork manually to build a character | partly | 8 |
 | 62 | Reuse a turnaround on other regions | partly | 8 |
 | 63 | Save and open form files and choose export options | partly | 8 |
@@ -107,3 +113,5 @@ Open **Parts and surface details** under Properties. With a part selected, apply
 ### Checking surface edits
 
 Run `qa:character` in `apps/desktop` against the packaged app when changing surface controls, rendering or character save files. It drives each of the twelve edits, captures the viewport before and after, and reopens the saved characters in a fresh project. On an RTX 5070 Ti the surface-edit sequence took about 2 minutes 34 seconds on first launch and on repeat. Reopening and checking the two studies added about 12 seconds. The screenshots and contact sheet are in `.reference-cache/phase5/`.
+
+The same run checks paired adult wings, creature starting families, drag handles, limb editing, scoped shuffles and coat generation. It reopens the saved winged adult and creature in a fresh project. The before and after images and the contact sheet in `.reference-cache/phase6/` include eight consecutive full-creature draws at default settings (seeds 0 through 7). On an RTX 5070 Ti the creature sequence takes about three minutes. Posing, wing beats and locomotion belong to phase 7.

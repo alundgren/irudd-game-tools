@@ -206,6 +206,7 @@ export const BaseSlot = Schema.Struct({
   rotation: Rotation,
   size: Size,
   color: Color,
+  features: Schema.optionalKey(FeaturePayloads),
 });
 export type BaseSlot = typeof BaseSlot.Type;
 export type BaseSlotInput = typeof BaseSlot.Encoded;
