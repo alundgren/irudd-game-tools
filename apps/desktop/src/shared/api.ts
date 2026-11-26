@@ -169,6 +169,7 @@ export type CharacterFileOutcome =
     };
 
 export interface DesktopApi {
+  copyDirection(code: string): Promise<void>;
   app(): Promise<AppInfo>;
   projectState(): Promise<ProjectState>;
   openProject(directory?: string): Promise<ProjectState>;
@@ -200,6 +201,7 @@ export type PreloadApi = {
 };
 
 export const channels = {
+  copyDirection: "workshop:copy-direction",
   app: "workshop:app",
   projectState: "workshop:project-state",
   openProject: "workshop:open-project",

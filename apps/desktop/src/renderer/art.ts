@@ -1,3 +1,4 @@
+import type { BriefDraft } from "./art-files.js";
 import type { AssetAttribution, CharacterDocument, Part } from "@irudd/document";
 import { ArtFitError, depthRefusal, traceTarget } from "@irudd/character/art-fit";
 import { buildAnchorRefusal } from "@irudd/character/trace-build";
@@ -31,6 +32,8 @@ import { sheetViews } from "./art-views.js";
 export type CaptureView = "current" | "front" | "side" | "back";
 
 export interface ArtOptions {
+  readonly enrich: (brief: BriefDraft) => BriefDraft;
+  readonly onRequests: () => void;
   readonly host: Workshop;
   readonly api: DesktopApi;
   readonly current: () =>
@@ -62,6 +65,7 @@ function fitRefusal(
 }
 
 export interface ArtPanel {
+  protectedParts(id: string): readonly string[];
   refresh(): Promise<void>;
   redraw(): void;
   reset(): void;
@@ -471,7 +475,7 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
     }));
     if (sheet && !attachments.some((a) => a.role === "source-sheet" && a.digest === sheet))
       attachments.push({ role: "source-sheet", digest: sheet, label: "current sheet" });
-    const brief: MethodParams["art.request"]["brief"] = {
+    const brief = options.enrich({
       format: "irudd.art-brief",
       version: 1,
       kind,
@@ -482,7 +486,7 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
       attachments,
       ...(parts.size ? { parts: [...parts] } : {}),
       ...(kind === "trace" && intent === "build" ? { intent } : {}),
-    };
+    });
     try {
       const sent = await host.call("art.request", {
         agent,
@@ -793,7 +797,9 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
     );
     if (note) root.append(el("p", { className: "muted", text: note }));
     const now = options.current();
-    const shown = requests.filter((r) => !now || r.brief.documentId === now.documentId);
+    const shown = requests.filter(
+      (r) => !r.brief.fromSteer && (!now || r.brief.documentId === now.documentId),
+    );
     if (shown.length) root.append(...shown.map(request));
   }
 
@@ -817,7 +823,10 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
         paired.map((p) => [p.agent, p.name, p.pairingId, p.availability.state]),
         requests,
       ]);
-      if (encoded !== lastSnapshot) render();
+      if (encoded !== lastSnapshot) {
+        render();
+        options.onRequests();
+      }
       lastSnapshot = encoded;
     } catch (error) {
       if (id !== refreshId) return;
@@ -840,6 +849,15 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
 
   return {
     refresh,
+    protectedParts(id) {
+      return requests
+        .filter(
+          (r) =>
+            r.brief.documentId === options.current()?.documentId &&
+            (r.steering?.proposalId === id || r.submissions.some((s) => s.proposal?.id === id)),
+        )
+        .flatMap((r) => r.brief.protected ?? []);
+    },
     redraw: render,
     reset() {
       refreshId++;

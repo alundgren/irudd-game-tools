@@ -1,4 +1,12 @@
-import { app, BrowserWindow, dialog, ipcMain, session, type IpcMainInvokeEvent } from "electron";
+import {
+  app,
+  BrowserWindow,
+  clipboard,
+  dialog,
+  ipcMain,
+  session,
+  type IpcMainInvokeEvent,
+} from "electron";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -388,6 +396,10 @@ function registerBridge(build: string): void {
     },
     hidden,
   };
+  handle(channels.copyDirection, (code) => {
+    if (typeof code !== "string" || code.length > 20100) throw new Error("Invalid direction code.");
+    return clipboard.writeText(code);
+  });
   handle(channels.app, () => info);
   handle(channels.projectState, () => state());
   handle(channels.openProject, async (directory) => {

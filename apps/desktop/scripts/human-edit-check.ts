@@ -166,4 +166,13 @@ export async function verifyHumanEditing(page: Page, agent: WorkshopClient, dire
   await change(page.selectOption("#human-castTop", "Striped polo"), "20-cast-top");
   await change(page.selectOption("#human-castBottom", "Shorts and shoes"), "21-cast-bottom");
   assert.equal((await current()).style.castBottom, "Shorts and shoes");
+  await page.click("#variation summary");
+  await page.fill("#variation-decks", "skin = #9d735b | #745241\noutfit = Smart | Festive");
+  await page.selectOption("#variation-strength", "subtle");
+  await page.click("#variation-draw");
+  const chosen = await page.locator("#variation-results label").allInnerTexts();
+  const chosenSkin = chosen.find((s) => s.includes("skin = "))?.split(" = ")[1];
+  assert.ok(chosenSkin);
+  await change(click("Try a new outfit and hairstyle"), "22-deck-look");
+  assert.equal((await current()).skin, chosenSkin);
 }

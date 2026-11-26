@@ -1,4 +1,5 @@
 import { readDocument, type CharacterDocument, type Registry } from "@irudd/document";
+import { protectedChanges } from "../protected-shape.js";
 import { describe, failure } from "./context.js";
 import { byId, button, el } from "../dom.js";
 import type { PanelContext } from "./context.js";
@@ -6,6 +7,7 @@ import type { PanelContext } from "./context.js";
 export function mountProposals(
   ctx: PanelContext,
   actions: {
+    readonly protectedParts: (id: string) => readonly string[];
     readonly registry: () => Registry;
     readonly displayDocument: (doc: CharacterDocument) => Promise<boolean>;
     readonly showHead: () => Promise<void>;
@@ -23,6 +25,18 @@ export function mountProposals(
     const shown = changes.slice(0, 8).map((c) => el("li", { text: c.path.join(".") }));
     if (changes.length > 8) shown.push(el("li", { text: `… ${changes.length - 8} more` }));
     return el("ul", { className: "changes" }, ...shown);
+  }
+
+  function warning(p: NonNullable<PanelContext["view"]>["proposals"][number]) {
+    const ids = protectedChanges(ctx.doc, ctx.humanBody, p.changes, actions.protectedParts(p.id));
+    return ids.length
+      ? el("p", {
+          className: "protected-warning",
+          text:
+            "This proposal changes protected geometry: " +
+            ids.map((id) => (ctx.part(id)?.label ?? id) + " (" + id + ")").join(", "),
+        })
+      : null;
   }
 
   async function showPreview(proposalId: string): Promise<void> {
@@ -52,6 +66,7 @@ export function mountProposals(
           {},
           el("strong", { text: `Previewing “${draft.proposal.summary}”` }),
           ` by ${draft.proposal.author.name ?? draft.proposal.author.id}, ${draft.changes.length} changes on revision ${draft.proposal.baseRevision}. `,
+          warning(draft.proposal),
           draft.stale ? `The document has moved on. ${rebased}` : "",
         ),
         button("Accept", () => void accept(proposalId, draft.proposal.version)),
@@ -102,6 +117,7 @@ export function mountProposals(
             className: p.author.kind === "agent" ? "actor-agent" : "actor-human",
             text: `${p.author.name ?? p.author.id} · version ${p.version} · base revision ${p.baseRevision}`,
           }),
+          warning(p),
           changeLines(p.changes),
           el(
             "div",

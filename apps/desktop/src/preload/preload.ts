@@ -7,6 +7,7 @@ async function invoke(channel: string, ...args: unknown[]): Promise<unknown> {
 }
 
 const api: PreloadApi = {
+  copyDirection: (code) => invoke(channels.copyDirection, code),
   app: () => invoke(channels.app),
   projectState: () => invoke(channels.projectState),
   openProject: (directory) => invoke(channels.openProject, directory),

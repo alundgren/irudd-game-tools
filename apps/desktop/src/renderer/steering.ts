@@ -1,3 +1,4 @@
+import type { BriefDraft } from "./art-files.js";
 import type {
   RecipientRoute,
   RecipientView,
@@ -10,6 +11,7 @@ import { button, el } from "./dom.js";
 
 export interface SteeringOptions {
   readonly host: Workshop;
+  readonly variationBrief: (text: string) => BriefDraft | undefined;
   readonly documentId: () => string | undefined;
   readonly failure: (error: unknown) => string;
 }
@@ -384,12 +386,20 @@ export function mountSteering(root: HTMLElement, options: SteeringOptions): Stee
       const doc = about.checked ? options.documentId() : undefined;
       send.disabled = true;
       void act(async () => {
-        await host.call("steer.send", {
-          agent: r.agent,
-          requestId: `steer-${crypto.randomUUID()}`,
-          text: message,
-          ...(doc ? { documentId: doc } : {}),
-        });
+        const brief = doc ? options.variationBrief(message) : undefined;
+        if (brief)
+          await host.call("art.request", {
+            agent: r.agent,
+            requestId: "steer-" + crypto.randomUUID(),
+            brief,
+          });
+        else
+          await host.call("steer.send", {
+            agent: r.agent,
+            requestId: `steer-${crypto.randomUUID()}`,
+            text: message,
+            ...(doc ? { documentId: doc } : {}),
+          });
         draft = "";
       });
     });

@@ -1,6 +1,8 @@
 import { sha256Digest, type AssetAttribution } from "@irudd/document";
 import type { ArtKind, AttachmentRole, MethodParams, MethodResults } from "@irudd/workshop/wire";
 
+export type BriefDraft = MethodParams["art.request"]["brief"];
+
 export const artKindsShown: ReadonlyArray<{ readonly kind: ArtKind; readonly label: string }> = [
   { kind: "variation", label: "Variation (geometry proposal)" },
   { kind: "turnaround", label: "Turnaround paint" },

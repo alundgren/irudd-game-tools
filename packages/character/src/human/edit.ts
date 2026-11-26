@@ -3,7 +3,7 @@ import { castSkin } from "./cast.js";
 import { randomHuman } from "./draw.js";
 import { humanWornCast, type HumanAdultParams } from "./generator.js";
 import { measurementGroups, type MeasurementRegion } from "./measurements.js";
-import { humanRange, type HumanAxis } from "./surface.js";
+import { humanRange, isHumanAxis, type HumanAxis } from "./surface.js";
 
 export function changeMeasurement(
   params: HumanAdultParams,
@@ -21,12 +21,16 @@ export function rerollRegion(
   params: HumanAdultParams,
   region: MeasurementRegion,
   seed: number,
+  strength?: "subtle" | "exploratory" | "radical",
 ): HumanAdultParams {
   const draw = randomHuman(body, seed, "any", { relaxed: false });
   const human = { ...params.human };
   for (const key of Object.keys(measurementGroups[region])) {
     const value = draw[key];
-    if (value !== undefined) human[key] = value;
+    if (value === undefined || !isHumanAxis(key)) continue;
+    const amount = strength === "subtle" ? 0.25 : strength === "exploratory" ? 0.65 : 1;
+    const from = human[key] ?? humanRange(key)[2];
+    human[key] = amount === 1 ? value : from + (value - from) * amount;
   }
   return { ...params, human };
 }

@@ -107,6 +107,60 @@
           <h2>Properties</h2>
           <div id="properties"></div>
         </section>
+        <section>
+          <details id="variation">
+            <summary>Variation</summary>
+            <div class="variation-controls">
+              <label
+                >Variation range
+                <select id="variation-strength">
+                  <option value="subtle">Subtle</option>
+                  <option value="exploratory" selected>Exploratory</option>
+                  <option value="radical">Radical</option>
+                </select></label
+              >
+              <label
+                >Your random choices
+                <textarea
+                  id="variation-decks"
+                  rows="3"
+                  maxlength="3200"
+                  placeholder="mood = calm | wary | fierce"
+                ></textarea>
+              </label>
+              <button id="variation-draw">Draw direction</button>
+              <div id="variation-results"></div>
+              <label>Direction code <input id="variation-code" spellcheck="false" /></label>
+              <div class="row-actions">
+                <button id="variation-copy">Copy code</button
+                ><button id="variation-replay">Replay</button
+                ><button id="variation-clear">Clear direction</button>
+              </div>
+              <label
+                >Use reference for
+                <select id="variation-reference-role">
+                  <option>Face</option>
+                  <option>Body silhouette</option>
+                  <option>Garment</option>
+                  <option>Color and surface</option>
+                </select> </label
+              ><label
+                >Visual references
+                <input
+                  id="variation-files"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  multiple
+              /></label>
+              <div id="variation-references"></div>
+              <label
+                ><input id="variation-protect" type="checkbox" /> Keep shape in AI edits
+                <span id="variation-part"></span
+              ></label>
+              <p id="variation-note" class="muted" role="status"></p>
+            </div>
+          </details>
+        </section>
         <section id="human-editor" hidden>
           <h2>Adult human</h2>
           <details id="human-anatomy" open>

@@ -34,6 +34,7 @@ import { mountProperties } from "./panels/properties.js";
 import { mountProposals } from "./panels/proposals.js";
 import { mountHistory } from "./panels/history.js";
 import { mountAgents } from "./panels/agents.js";
+import { mountVariation } from "./panels/variation.js";
 import { mountHuman } from "./panels/human.js";
 import { mountStart } from "./panels/start.js";
 import { mountLibrary } from "./panels/library.js";
@@ -106,6 +107,7 @@ function selectPart(part: string | null): void {
   viewport.select(part);
   outliner.select(part);
   properties.render();
+  variation.render();
 }
 
 function requestId(): string {
@@ -233,14 +235,19 @@ const panels: PanelContext = {
 mountDisplay(viewport);
 const outliner = mountOutliner(panels);
 const properties = mountProperties(panels);
+const variation = mountVariation(panels, () => proposals.render());
 const proposals = mountProposals(panels, {
+  protectedParts: (id: string): readonly string[] => [
+    ...(variation.current()?.protected ?? []),
+    ...art.protectedParts(id),
+  ],
   registry: () => registry,
   displayDocument,
   showHead,
   hideBanner,
 });
 const history = mountHistory(panels);
-const human = mountHuman(panels);
+const human = mountHuman(panels, () => variation.current()?.direction);
 const library = mountLibrary(panels, () => viewport.request());
 const start = mountStart(panels, async (id) => {
   viewport.select(null);
@@ -251,6 +258,26 @@ const start = mountStart(panels, async (id) => {
 const steering = mountSteering(byId("steering", HTMLDivElement), {
   host,
   documentId: () => documentId,
+  variationBrief: (text) => {
+    const settings = variation.current();
+    if (
+      !documentId ||
+      !view ||
+      !settings ||
+      !(settings.direction || settings.protected.size || settings.references.length)
+    )
+      return undefined;
+    return variation.enrich({
+      format: "irudd.art-brief",
+      version: 1,
+      kind: "variation",
+      fromSteer: true,
+      documentId,
+      revision: view.revision,
+      direction: text,
+      attachments: [],
+    });
+  },
   failure,
 });
 api.onSteer((notice) => steering.notice(notice));
@@ -262,6 +289,8 @@ const art = mountArt(byId("art", HTMLDivElement), {
     documentId && view?.documentId === documentId && doc
       ? { documentId, revision: view.revision, doc }
       : undefined,
+  enrich: variation.enrich,
+  onRequests: () => proposals.render(),
   selection: () => viewport.selection,
   capture: async (side, frameHead) => {
     if (busy || proposals.active || viewport.dragging || !doc || !viewport.shows(doc))
@@ -303,6 +332,7 @@ function renderAll(): void {
   syncCharacterFiles();
   outliner.render();
   properties.render();
+  variation.render();
   proposals.render();
   history.render();
   art.redraw();
@@ -438,6 +468,7 @@ async function adopt(state: ProjectState): Promise<void> {
   displaySequence++;
   proposals.reset();
   viewportPaint.reset();
+  variation.reset();
   project = state.project;
   projectLabel.textContent = project?.label ?? "No project";
   projectLabel.title = project?.untitled

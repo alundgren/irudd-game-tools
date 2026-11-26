@@ -81,6 +81,9 @@ export function bridge(): DesktopApi {
     throw new Error("The workshop bridge is missing; this page runs only in the desktop app.");
   const api = raw;
   return {
+    copyDirection: async (code) => {
+      await api.copyDirection(code);
+    },
     app: async () => check(await api.app(), isAppInfo, "app"),
     projectState: async () => check(await api.projectState(), isState, "project state"),
     openProject: async (directory) =>
