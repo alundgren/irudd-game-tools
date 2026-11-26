@@ -22,7 +22,7 @@ import {
   type MotionRoleName,
   occluderOrder,
 } from "@irudd/document";
-import { blobsDir, examplesDir, fixturesDir, g0Dir } from "./paths.js";
+import { referenceBlobsDir, examplesDir, fixturesDir, g0Dir } from "./paths.js";
 import {
   evaluateHuman,
   HumanAdultParams,
@@ -1097,9 +1097,9 @@ if (import.meta.main) {
     const { document, blobs } = prepareForm(name, legacyForm(name));
     const file = join(fixturesDir, name + ".json");
     writeFileSync(file, fixtureText(document));
-    mkdirSync(blobsDir, { recursive: true });
+    mkdirSync(referenceBlobsDir, { recursive: true });
     for (const [digest, bytes] of blobs)
-      writeFileSync(join(blobsDir, digest.replace(":", "-")), bytes);
+      writeFileSync(join(referenceBlobsDir, digest.replace(":", "-")), bytes);
     console.log(`Prepared ${file}${blobs.size ? ` and ${blobs.size} project blob(s)` : ""}`);
   }
 }

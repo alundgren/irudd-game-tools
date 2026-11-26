@@ -1,3 +1,4 @@
+import { readExampleArtwork } from "../../../../tools/build/example-artwork.js";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -31,8 +32,9 @@ import {
 } from "../../src/renderer/art-files.js";
 
 const repository = fileURLToPath(new URL("../../../../", import.meta.url));
+const exampleImages = readExampleArtwork(repository);
 const fixtures = path.join(repository, "verification", "families", "fixtures");
-const assets = path.join(repository, "packages", "character", "assets");
+const assets = path.join(repository, "character-view");
 const registry = createRegistry({ features: familyFeatures, generators: [frameCreature] });
 const stateRoot = fs.mkdtempSync(path.join(os.tmpdir(), "irudd-art-window-state-"));
 process.env["IRUDD_STATE_DIR"] = stateRoot;
@@ -76,9 +78,9 @@ async function withWindow(
     assert.ok(read.ok);
     const documentId = read.value.id;
     for (const asset of read.value.assets) {
-      const file = path.join(fixtures, "blobs", asset.digest.replace(":", "-"));
+      const bytes = exampleImages.get(asset.digest);
       const bundled = bundledAsset(asset.digest);
-      if (fs.existsSync(file)) await stagePicture(window, new Uint8Array(fs.readFileSync(file)));
+      if (bytes) await stagePicture(window, bytes);
       else if (bundled)
         await stagePicture(
           window,

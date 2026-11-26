@@ -1,3 +1,4 @@
+import { readExampleArtwork } from "../../../tools/build/example-artwork.js";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
@@ -158,6 +159,13 @@ async function failsWith(promise: Promise<unknown>, tag: string): Promise<Worksh
   assert.fail(`expected ${tag}`);
 }
 
+const exampleImages = readExampleArtwork(repository);
+function image(hex: string): Buffer {
+  const bytes = exampleImages.get("sha256:" + hex);
+  assert.ok(bytes, "Missing example artwork " + hex);
+  return bytes;
+}
+
 function feline(root: string, withArtwork: boolean): string {
   const dir = path.join(root, "forms");
   fs.mkdirSync(path.join(dir, "artwork"), { recursive: true });
@@ -165,21 +173,17 @@ function feline(root: string, withArtwork: boolean): string {
   if (!withArtwork) return dir;
   const files = [
     {
-      from: path.join(
-        fixtures,
-        "blobs",
-        "sha256-543dc50b834dd7f7193bd18878c35c52b6c64a07e88308e83f12e498e2906a98",
-      ),
+      bytes: image("543dc50b834dd7f7193bd18878c35c52b6c64a07e88308e83f12e498e2906a98"),
       file: "artwork/body.webp",
       origin: { kind: "project", license: "MIT", source: "examples/feline-worker.form.json" },
     },
     {
-      from: path.join(repository, "packages", "character", "assets", "surveyor.atlas.webp"),
+      bytes: fs.readFileSync(path.join(repository, "character-view", "surveyor.atlas.webp")),
       file: "artwork/surveyor.atlas.webp",
       origin: { kind: "project", license: "MIT", source: "character-view/surveyor.atlas.webp" },
     },
   ].map((f) => {
-    const bytes = fs.readFileSync(f.from);
+    const bytes = f.bytes;
     fs.writeFileSync(path.join(dir, ...f.file.split("/")), bytes);
     return {
       digest: `sha256:${createHash("sha256").update(bytes).digest("hex")}`,
@@ -373,13 +377,11 @@ function wardrobeForms(root: string): string {
     path.join(fixtures, "field-wardrobe.json"),
     path.join(dir, "field-wardrobe.json"),
   );
-  const blob = (hex: string) => path.join(fixtures, "blobs", `sha256-${hex}`);
   const files = [
-    blob("1f14b91745b427f807191eae2e86d0e579ebada4d700cd364029f689516e30f3"),
-    blob("48d8557541e91c3f1b542dd99649489fde674df15d460a3822c9a4f3834e4e81"),
-    path.join(repository, "packages", "character", "assets", "courier.atlas.webp"),
-  ].map((from, i) => {
-    const bytes = fs.readFileSync(from);
+    image("1f14b91745b427f807191eae2e86d0e579ebada4d700cd364029f689516e30f3"),
+    image("48d8557541e91c3f1b542dd99649489fde674df15d460a3822c9a4f3834e4e81"),
+    fs.readFileSync(path.join(repository, "character-view", "courier.atlas.webp")),
+  ].map((bytes, i) => {
     const file = `artwork/sheet-${i}.webp`;
     fs.writeFileSync(path.join(dir, ...file.split("/")), bytes);
     return {
