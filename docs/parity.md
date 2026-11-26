@@ -4,6 +4,10 @@ This checklist tracks what you can do in the desktop app. A feature is **done** 
 
 In the Workshop's **Display** panel, choose **Studio colour** to see the character's paint, **Clay** to inspect shape or **Silhouette** to check the outline. Choose **Front**, **Side**, **Back** or **Three-quarter** to turn the camera. Select a part and press **F** or click **Focus (F)** to frame it. Clear the selection with **Escape** to frame the whole character on the next focus.
 
+Choose **New random human** to pick an archetype and a Natural, Fantasy or Mixed colour range. The adult starts dressed. In **Anatomy**, choose a region and measurement, then move the slider or reroll the region. **Appearance** controls skin, eyes and facial detail. **Outfit and hairstyle** lets you change one item, roll a complete look in a chosen direction or inspect the base shape. Each edit has its own History entry.
+
+Cast artwork supplies its own hair, face and garments. Choose **Individual styling** to use the separate controls. The nine remaining styling keys are scheduled for phase 8 (`faceFamily`, `faceFamilyHair`, `facePlanes`, `facialHair`, `earrings`, `waistBag`, `handProp`, `hat`, `hatColor`).
+
 | Phase | Scope |
 | --- | --- |
 | 1 | Viewport display, focus and panel structure |
@@ -20,17 +24,17 @@ In the Workshop's **Display** panel, choose **Studio colour** to see the charact
 | 1 | Resize, move or turn a part and apply the change | partly | 5 |
 | 2 | Switch between Face, Build, Cloth and Spine modes and edit spine points | missing | 8 |
 | 3 | Make a small reroll or reset the shape | missing | 3 |
-| 4 | Adjust an adult body measurement by region | missing | 2 |
-| 5 | Reroll the body, face, limbs or portrait | missing | 2 |
+| 4 | Adjust an adult body measurement by region | done | 2 |
+| 5 | Reroll the body, face, limbs or portrait | done | 2 |
 | 6 | Fit a character to a 3D reference | missing | 8 |
 | 7 | Sculpt on the model by pulling its surface | missing | 8 |
 | 8 | Draw an appendage or place a branch | missing | 8 |
 | 9 | Protect selected parts during AI edits | partly | 3 |
 | 10 | Frame the selected part or the whole character | done | 1 |
-| 11 | Switch between the current outfit and the base shape | missing | 2 |
-| 12 | Try a new outfit and hairstyle and set a preference for new looks | partly | 2 |
-| 13 | Adjust skin tone, eye colour and facial detail | partly | 2 |
-| 14 | Style hair, fringe, brows, makeup, arm ink, eyewear, necklace, clothing, colours, designs and cast looks | missing | 2, 8 |
+| 11 | Switch between the current outfit and the base shape | done | 2 |
+| 12 | Try a new outfit and hairstyle and set a preference for new looks | done | 2 |
+| 13 | Adjust skin tone, eye colour and facial detail | done | 2 |
+| 14 | Style hair, fringe, brows, makeup, arm ink, eyewear, necklace, clothing, colours, designs and cast looks | partly (phase 2 controls done) | 2, 8 |
 | 15 | Choose a face family or studio head | missing | 8 |
 | 16 | Adjust an adult's posture | missing | 7 |
 | 17 | Tailor layers of clothing | missing | 4 |
@@ -76,7 +80,7 @@ In the Workshop's **Display** panel, choose **Studio colour** to see the charact
 | 57 | Request and apply painted edits | partly | 8 |
 | 58 | Refine a proposal, compare it or keep an alternate | partly | 8 |
 | 59 | Inspect a game export | partly | 8 |
-| 60 | Generate a starting form by archetype, colouring and family | partly | 2 (adults), 6 (other families) |
+| 60 | Generate a starting form by archetype, colouring and family | partly (adult done) | 2 (adults), 6 (other families) |
 | 61 | Trace artwork manually to build a character | partly | 8 |
 | 62 | Reuse a turnaround on other regions | partly | 8 |
 | 63 | Save and open form files and choose export options | partly | 8 |

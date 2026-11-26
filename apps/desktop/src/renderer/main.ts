@@ -34,6 +34,7 @@ import { mountProperties } from "./panels/properties.js";
 import { mountProposals } from "./panels/proposals.js";
 import { mountHistory } from "./panels/history.js";
 import { mountAgents } from "./panels/agents.js";
+import { mountHuman } from "./panels/human.js";
 import { mountStart } from "./panels/start.js";
 import { mountLibrary } from "./panels/library.js";
 import { describe, failure, type PanelContext } from "./panels/context.js";
@@ -206,6 +207,9 @@ const panels: PanelContext = {
   get doc() {
     return doc;
   },
+  get humanBody() {
+    return viewport.human;
+  },
   get project() {
     return project;
   },
@@ -236,6 +240,7 @@ const proposals = mountProposals(panels, {
   hideBanner,
 });
 const history = mountHistory(panels);
+const human = mountHuman(panels);
 const library = mountLibrary(panels, () => viewport.request());
 const start = mountStart(panels, async (id) => {
   viewport.select(null);
@@ -293,6 +298,7 @@ function syncCharacterFiles(): void {
 
 function renderAll(): void {
   start.render();
+  human.render();
   library.render();
   syncCharacterFiles();
   outliner.render();

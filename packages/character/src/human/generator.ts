@@ -17,6 +17,8 @@ import {
   regionName,
   surfaceRegions,
   type HumanDraw,
+  type Archetype,
+  type ColourRange,
 } from "./draw.js";
 import { faceMarkKindTable, faceMarkKinds, faceMarkLimit, faceMarkSides } from "./marks.js";
 import { makeupStyles } from "./makeup.js";
@@ -182,6 +184,7 @@ export const HumanAdultParams = Schema.Struct({
   human: HumanMeasurementsSchema,
   posture: Schema.optionalKey(HumanPostureSchema),
   skin: Color,
+  sourceSkin: Schema.optionalKey(Color),
   style: HumanStyleSchema,
   outfit: Schema.optionalKey(Schema.Literals(humanOutfits)),
   eyeColor: Schema.optionalKey(Schema.Literals(eyeColors)),
@@ -318,6 +321,11 @@ function reseatOnBlades(body: HumanBody, before: HumanAdultParams, after: HumanA
   return reseat;
 }
 
-export function seededHumanAdult(body: HumanBody, seed: number): HumanAdultParams {
-  return humanAdultParams(drawAdult(body, seed >>> 0));
+export function seededHumanAdult(
+  body: HumanBody,
+  seed: number,
+  archetype: Archetype = "any",
+  colours: ColourRange = "Mixed",
+): HumanAdultParams {
+  return humanAdultParams(drawAdult(body, seed >>> 0, archetype, colours));
 }

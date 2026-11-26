@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Page } from "@playwright/test";
 
-async function changedPixels(page: Page, left: Buffer, right: Buffer): Promise<number> {
+export async function changedPixels(page: Page, left: Buffer, right: Buffer): Promise<number> {
   return page.evaluate(
     async ([a, b]) => {
       async function pixels(base64: string): Promise<Uint8ClampedArray> {
@@ -33,26 +33,32 @@ async function changedPixels(page: Page, left: Buffer, right: Buffer): Promise<n
   );
 }
 
-export async function verifyDisplay(page: Page, directory: string): Promise<string> {
-  mkdirSync(directory, { recursive: true });
-  const viewport = page.locator("#viewport canvas");
-  const gpu = await viewport.evaluate((canvas) => {
+export async function hardwareRenderer(page: Page) {
+  const gpu = await page.locator("#viewport canvas").evaluate((canvas) => {
     const gl = canvas instanceof HTMLCanvasElement && canvas.getContext("webgl2");
     const debug = gl && gl.getExtension("WEBGL_debug_renderer_info");
     if (!gl || !debug) throw new Error("Cannot identify editor GPU.");
     return String(gl.getParameter(debug.UNMASKED_RENDERER_WEBGL));
   });
   assert.doesNotMatch(gpu, /swiftshader|llvmpipe|softpipe|basic render|warp|software/i);
-  const shot = async () => {
-    const png = await viewport.evaluate(async (canvas) => {
-      if (!(canvas instanceof HTMLCanvasElement)) throw new Error("Missing viewport canvas.");
-      document.getElementById("tool-select")?.click();
-      return new Promise<string>((done) =>
-        requestAnimationFrame(() => done(canvas.toDataURL("image/png"))),
-      );
-    });
-    return Buffer.from(png.slice(png.indexOf(",") + 1), "base64");
-  };
+  return gpu;
+}
+
+export async function viewportScreenshot(page: Page) {
+  const png = await page.locator("#viewport canvas").evaluate(async (canvas) => {
+    if (!(canvas instanceof HTMLCanvasElement)) throw new Error("Missing viewport canvas.");
+    document.getElementById("tool-select")?.click();
+    return new Promise<string>((done) =>
+      requestAnimationFrame(() => done(canvas.toDataURL("image/png"))),
+    );
+  });
+  return Buffer.from(png.slice(png.indexOf(",") + 1), "base64");
+}
+
+export async function verifyDisplay(page: Page, directory: string): Promise<string> {
+  mkdirSync(directory, { recursive: true });
+  const gpu = await hardwareRenderer(page);
+  const shot = () => viewportScreenshot(page);
   const shading = page.getByRole("combobox", { name: "Viewport shading" });
   assert.equal(await shading.inputValue(), "studio");
   await page.click("#camera-front");

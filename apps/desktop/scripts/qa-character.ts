@@ -349,6 +349,7 @@ try {
       };
     });
     await page.getByRole("button", { name: "New random human", exact: true }).click();
+    await page.getByRole("button", { name: "Create human", exact: true }).click();
     await waitRevision(page, 1);
     await page.waitForSelector("#outliner [data-part]");
     assert.equal(await page.locator("#outliner [data-part]").count(), 52);

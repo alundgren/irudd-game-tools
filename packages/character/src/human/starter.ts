@@ -1,7 +1,18 @@
 import type { GeneratorDefinition, Json } from "@irudd/document";
+import type { Archetype, ColourRange } from "./draw.js";
 import type { HumanBody } from "./body.js";
 import { humanAdultGenerator, seededHumanAdult } from "./generator.js";
+import { newHumanLook } from "./wardrobe.js";
 import { dressedAdult, humanLooks } from "./looks.js";
+
+export function randomDressedAdult(
+  body: HumanBody,
+  seed: number,
+  archetype: Archetype = "any",
+  colours: ColourRange = "Mixed",
+) {
+  return newHumanLook(seededHumanAdult(body, seed, archetype, colours), seed, "Any");
+}
 
 export interface HumanStarterPreset {
   readonly id: string;
@@ -52,7 +63,7 @@ export function humanAdultStarter(body: HumanBody): {
           params: dressedAdult(seededHumanAdult(body, look.seed), look),
         })),
       ],
-      seed: (seed) => seededHumanAdult(body, seed),
+      seed: (seed) => randomDressedAdult(body, seed),
     },
   };
 }
