@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
+import { bundledAssets } from "@irudd/character/assets";
 import { WorkshopError } from "@irudd/workshop/client";
 import { packageExtension } from "@irudd/workshop/contract";
 import {
@@ -413,6 +414,11 @@ function registerBridge(build: string): void {
     return link.call(method, params);
   });
   handle(channels.library, (): LibraryEntry[] => library.list());
+  handle(channels.bundledImage, async (digest) => {
+    const asset = bundledAssets.find((item) => item.digest === digest);
+    if (!asset) throw new Error("Unknown bundled artwork.");
+    return new Uint8Array(await fs.promises.readFile(path.join(assetsDir, asset.file)));
+  });
   handle(channels.humanPack, (file) => {
     const pack = humanPackPaths.find(
       (p) => typeof file === "string" && p === path.join("human", file),

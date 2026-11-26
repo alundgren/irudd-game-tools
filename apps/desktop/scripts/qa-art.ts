@@ -425,6 +425,7 @@ try {
   const documentId = await page.inputValue("#document");
 
   await step("pair the agent and bind its inbox", async () => {
+    await page.click("#agents details:not([open]) > summary");
     await page.fill("#agents input", "claude");
     await page.click("#agents button:has-text('Pair')");
     await page.waitForSelector("#agents p:has-text('Paired claude')");

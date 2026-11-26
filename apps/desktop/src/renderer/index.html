@@ -85,6 +85,25 @@
           <h2>Properties</h2>
           <div id="properties"></div>
         </section>
+        <section aria-labelledby="display-heading">
+          <h2 id="display-heading">Display</h2>
+          <div class="display-controls">
+            <select id="display-mode" aria-label="Viewport shading">
+              <option value="studio">Studio colour</option>
+              <option value="clay">Clay</option>
+              <option value="silhouette">Silhouette</option>
+            </select>
+            <button id="focus-selection" title="Frame the selected part or the whole character (F)">
+              Focus (F)
+            </button>
+          </div>
+          <div class="display-controls" role="group" aria-label="Camera angle">
+            <button id="camera-front">Front</button>
+            <button id="camera-side">Side</button>
+            <button id="camera-back">Back</button>
+            <button id="camera-threequarter">Three-quarter</button>
+          </div>
+        </section>
         <section>
           <h2>Proposals</h2>
           <div id="proposals"></div>

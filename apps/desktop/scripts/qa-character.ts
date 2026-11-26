@@ -12,7 +12,8 @@ import {
   readZipEntry,
   writeZip,
 } from "../../../packages/workshop/src/service/zip.js";
-import { appEnvironment } from "./electron.js";
+import { verifyDisplay } from "./display-check.js";
+import { appDir, appEnvironment } from "./electron.js";
 
 const { values } = parseArgs({
   options: { keep: { type: "boolean" }, executable: { type: "string" } },
@@ -336,6 +337,17 @@ try {
     assert.ok(typeof directory === "string");
     assert.equal(existsSync(directory), false);
     assert.ok((await page.locator("#start option").count()) > 60);
+    await page.evaluate(() => {
+      const sample = crypto.getRandomValues.bind(crypto);
+      crypto.getRandomValues = (array) => {
+        if (array instanceof Uint32Array && array.length === 1) {
+          crypto.getRandomValues = sample;
+          array[0] = 491;
+          return array;
+        }
+        return sample(array);
+      };
+    });
     await page.getByRole("button", { name: "New random human", exact: true }).click();
     await waitRevision(page, 1);
     await page.waitForSelector("#outliner [data-part]");
@@ -348,6 +360,10 @@ try {
     await waitStatus(page, /Saved /);
     assert.ok(existsSync(humanFile));
   });
+  await step(
+    "inspect the random human in three display modes, four angles and selection focus",
+    () => verifyDisplay(page, resolve(appDir, "../../.reference-cache/parity/display")),
+  );
   const parts = await step(
     "start a character from New character from… (frame creature)",
     async () => {
