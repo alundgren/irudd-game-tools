@@ -2,13 +2,26 @@ import { Schema } from "effect";
 import { Actor, DocumentId, RequestId } from "@irudd/document";
 import { AgentId, SteeringMessageId } from "./ids.js";
 
-export const steeringHosts = ["agent", "claude-code", "codex"] as const;
+export const steeringHosts = ["t3", "claude-code", "codex", "agent"] as const;
 export type SteeringHost = (typeof steeringHosts)[number];
 
-export const steeringTransports = ["claude-channel", "inbox"] as const;
+export const steeringTransports = ["t3-thread", "claude-channel", "codex-queue", "inbox"] as const;
 export type SteeringTransportName = (typeof steeringTransports)[number];
 
 const ShortText = Schema.String.check(Schema.isMaxLength(200));
+export const T3ThreadId = Schema.String.check(
+  Schema.isPattern(/^[A-Za-z0-9][A-Za-z0-9:%._~-]{0,511}$/, {
+    message: "Use the T3 thread ID exactly as T3 Code shows it.",
+  }),
+);
+export const EnvironmentRef = Schema.String.check(
+  Schema.isPattern(/^[A-Za-z0-9][A-Za-z0-9:._-]{0,127}$/, {
+    message: "Use local or the environment ID.",
+  }),
+);
+export const T3ProjectId = Schema.String.check(
+  Schema.isPattern(/^[A-Za-z0-9][A-Za-z0-9:._-]{0,127}$/, { message: "Use a T3 project ID." }),
+);
 const Uuid = Schema.String.check(
   Schema.isPattern(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/, {
     message: "Use the session's UUID.",
@@ -27,6 +40,14 @@ export const McpServerName = Schema.String.check(
 
 export const RecipientRoute = Schema.Union([
   Schema.Struct({
+    transport: Schema.Literal("t3-thread"),
+    host: Schema.Literal("t3"),
+    environment: EnvironmentRef,
+    project: Schema.optionalKey(T3ProjectId),
+    conversation: T3ThreadId,
+    delivery: Schema.optionalKey(Schema.Literals(["next-turn", "mid-turn"])),
+  }),
+  Schema.Struct({
     transport: Schema.Literal("claude-channel"),
     host: Schema.Literal("claude-code"),
     environment: Schema.Literal("local"),
@@ -35,9 +56,15 @@ export const RecipientRoute = Schema.Union([
     conversation: Schema.optionalKey(Uuid),
   }),
   Schema.Struct({
+    transport: Schema.Literal("codex-queue"),
+    host: Schema.Literal("codex"),
+    environment: Schema.Literal("local"),
+    conversation: Uuid,
+  }),
+  Schema.Struct({
     transport: Schema.Literal("inbox"),
     host: Schema.Literals(steeringHosts),
-    environment: Schema.Literal("local"),
+    environment: EnvironmentRef,
     conversation: Schema.optionalKey(ShortText),
   }),
 ]);
@@ -229,6 +256,7 @@ export interface HostReceipt {
   readonly hostMessageId?: string;
   readonly runId?: string;
   readonly delivery?: string;
+  readonly turn?: "mid-turn" | "next-turn" | "new-turn" | "restarted";
   readonly via?: string;
   readonly at: number;
 }

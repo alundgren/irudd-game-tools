@@ -83,10 +83,11 @@ const schema = [
 ];
 
 const Receipt = Schema.Struct({
-  transport: Schema.Literals(["claude-channel", "inbox"]),
+  transport: Schema.Literals(["t3-thread", "claude-channel", "codex-queue", "inbox"]),
   hostMessageId: Schema.optionalKey(Schema.String),
   runId: Schema.optionalKey(Schema.String),
   delivery: Schema.optionalKey(Schema.String),
+  turn: Schema.optionalKey(Schema.Literals(["mid-turn", "next-turn", "new-turn", "restarted"])),
   via: Schema.optionalKey(Schema.String),
   at: Schema.Number,
 });
@@ -322,10 +323,6 @@ export class SteeringStore {
           );
       }
     });
-    const supported =
-      "json_extract(route, '$.transport') IN ('inbox', 'claude-channel') AND json_extract(route, '$.host') IN ('agent', 'claude-code', 'codex') AND json_extract(route, '$.environment') = 'local'";
-    db.exec(`CREATE TEMP VIEW connected_messages AS SELECT * FROM messages WHERE ${supported}`);
-    db.exec(`CREATE TEMP VIEW connected_recipients AS SELECT * FROM recipients WHERE ${supported}`);
     if (fs.existsSync(file)) fs.chmodSync(file, 0o600);
     return { store, replaced };
   }
@@ -347,15 +344,12 @@ export class SteeringStore {
   }
 
   recipient(agent: string): Recipient | undefined {
-    const row = this.db.prepare("SELECT * FROM connected_recipients WHERE agent = ?").get(agent);
+    const row = this.db.prepare("SELECT * FROM recipients WHERE agent = ?").get(agent);
     return row ? toRecipient(row) : undefined;
   }
 
   recipients(): ReadonlyArray<Recipient> {
-    return this.db
-      .prepare("SELECT * FROM connected_recipients ORDER BY agent")
-      .all()
-      .map(toRecipient);
+    return this.db.prepare("SELECT * FROM recipients ORDER BY agent").all().map(toRecipient);
   }
 
   bind(recipient: Recipient): void {
@@ -383,9 +377,7 @@ export class SteeringStore {
   }
 
   availability(agent: string): RouteAvailability | undefined {
-    const row = this.db
-      .prepare("SELECT availability FROM connected_recipients WHERE agent = ?")
-      .get(agent);
+    const row = this.db.prepare("SELECT availability FROM recipients WHERE agent = ?").get(agent);
     if (!row) return undefined;
     return decodeJson(optText(row, "availability"), Availability, "availability") ?? undefined;
   }
@@ -397,15 +389,13 @@ export class SteeringStore {
   }
 
   message(messageId: string): SteeringMessage | undefined {
-    const row = this.db
-      .prepare("SELECT * FROM connected_messages WHERE message_id = ?")
-      .get(messageId);
+    const row = this.db.prepare("SELECT * FROM messages WHERE message_id = ?").get(messageId);
     return row ? toMessage(row) : undefined;
   }
 
   byRequest(agent: string, requestId: string): SteeringMessage | undefined {
     const row = this.db
-      .prepare("SELECT * FROM connected_messages WHERE agent = ? AND request_id = ?")
+      .prepare("SELECT * FROM messages WHERE agent = ? AND request_id = ?")
       .get(agent, requestId);
     return row ? toMessage(row) : undefined;
   }
@@ -443,7 +433,7 @@ export class SteeringStore {
 
   baseline(messageId: string): Baseline | null {
     const row = this.db
-      .prepare("SELECT baseline FROM connected_messages WHERE message_id = ?")
+      .prepare("SELECT baseline FROM messages WHERE message_id = ?")
       .get(messageId);
     if (!row) return null;
     return decodeJson(optText(row, "baseline"), Baseline, "baseline");
@@ -452,7 +442,7 @@ export class SteeringStore {
   unresolved(documentId?: string): ReadonlyArray<SteeringMessage> {
     const rows = this.db
       .prepare(
-        `SELECT * FROM connected_messages WHERE report IS NOT NULL AND applied IS NULL AND closed IS NULL
+        `SELECT * FROM messages WHERE report IS NOT NULL AND applied IS NULL AND closed IS NULL
            AND (? IS NULL OR json_extract(report, '$.documentId') = ?) ORDER BY seq`,
       )
       .all(documentId ?? null, documentId ?? null);
@@ -512,24 +502,22 @@ export class SteeringStore {
     if (filter.unacknowledged) where.push("acknowledged IS NULL AND closed IS NULL");
     return this.db
       .prepare(
-        `SELECT * FROM connected_messages WHERE ${where.join(" AND ")} ORDER BY seq LIMIT ${Math.max(1, Math.min(filter.limit ?? 500, 500))}`,
+        `SELECT * FROM messages WHERE ${where.join(" AND ")} ORDER BY seq LIMIT ${Math.max(1, Math.min(filter.limit ?? 500, 500))}`,
       )
       .all(...values)
       .map(toMessage);
   }
 
   lastSeq(): number {
-    const row = this.db
-      .prepare("SELECT COALESCE(MAX(seq), 0) AS last FROM connected_messages")
-      .get();
+    const row = this.db.prepare("SELECT COALESCE(MAX(seq), 0) AS last FROM messages").get();
     return row ? int(row, "last") : 0;
   }
 
   deliverable(): ReadonlyArray<SteeringMessage> {
     return this.db
       .prepare(
-        `SELECT * FROM connected_messages m WHERE seq = (
-           SELECT MIN(seq) FROM connected_messages o
+        `SELECT * FROM messages m WHERE seq = (
+           SELECT MIN(seq) FROM messages o
            WHERE o.agent = m.agent AND o.delivery_state = 'pending'
              AND o.acknowledged IS NULL AND o.closed IS NULL)
          ORDER BY seq`,
@@ -540,7 +528,7 @@ export class SteeringStore {
 
   inFlight(): ReadonlyArray<SteeringMessage> {
     return this.db
-      .prepare("SELECT * FROM connected_messages WHERE delivery_state = 'dispatching' ORDER BY seq")
+      .prepare("SELECT * FROM messages WHERE delivery_state = 'dispatching' ORDER BY seq")
       .all()
       .map(toMessage);
   }

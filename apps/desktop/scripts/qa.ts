@@ -556,6 +556,10 @@ try {
   await step("steer the paired agent: bind, send, acknowledge, apply, cancel", async () => {
     assert.ok(agent);
     await page.waitForSelector("#steering .steer-identity:has-text('qa-agent')");
+    const t3Timing = page.getByLabel("T3 delivery timing");
+    assert.equal(await t3Timing.inputValue(), "mid-turn");
+    await t3Timing.selectOption("next-turn");
+    assert.equal(await t3Timing.inputValue(), "next-turn");
     const unbound = (await page.textContent("#steering .steer-identity")) ?? "";
     assert.match(unbound, /pairing pair-[0-9a-f]{16}/, "the identity names the current pairing");
     await page.selectOption(

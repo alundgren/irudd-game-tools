@@ -85,10 +85,6 @@ export class Dispatcher {
     this.context = context;
   }
 
-  connected(link: AgentLink): void {
-    this.context.steering.connected(link);
-  }
-
   disconnected(linkId: string): void {
     this.context.steering.disconnected(linkId);
   }

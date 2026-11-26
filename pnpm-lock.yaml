@@ -394,6 +394,12 @@ importers:
         specifier: 'catalog:'
         version: 26.6.10
 
+  packages/hosts:
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.10
+
   packages/player:
     dependencies:
       three:
@@ -415,6 +421,9 @@ importers:
       '@irudd/document':
         specifier: workspace:*
         version: link:../document
+      '@irudd/hosts':
+        specifier: workspace:*
+        version: link:../hosts
       effect:
         specifier: 'catalog:'
         version: 4.1.5

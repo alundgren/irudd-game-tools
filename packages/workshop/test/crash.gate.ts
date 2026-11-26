@@ -305,6 +305,7 @@ for (const point of ["submission-pending", "proposal-committed"] as const)
       stateDir,
       human: person,
       durability: "full" as const,
+      transports: [],
     };
     try {
       const setup = await startHost({ ...base, create: { label: "Art crash" } });
@@ -314,10 +315,6 @@ for (const point of ["submission-pending", "proposal-committed"] as const)
       await human.call("recipient.bind", { agent: "claude", route: inbox });
       const part = (await human.call("current", { documentId: docId })).document?.parts[1]?.id;
       assert.ok(part);
-      const connected = await connect({
-        credential: { role: "agent", file: pair.credentialFile },
-        stateDir,
-      });
       const requested = await human.call("art.request", {
         agent: "claude",
         requestId: requestId("art"),
@@ -333,7 +330,6 @@ for (const point of ["submission-pending", "proposal-committed"] as const)
         },
       });
       human.close();
-      connected.close();
       await setup.close();
 
       const host = start({ path: project, stateDir, cut: point }, artHostScript);

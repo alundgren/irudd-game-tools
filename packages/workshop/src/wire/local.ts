@@ -25,6 +25,20 @@ export function stateRoot(options: LocationOptions = {}): string {
   return path.join(xdg, "irudd", "workshop");
 }
 
+export function t3GrantPath(options: LocationOptions = {}): string {
+  return path.join(stateRoot(options), "t3", "mcp-grant.json");
+}
+
+export {
+  connectT3,
+  disconnectT3,
+  findT3Server,
+  grantInfo,
+  readT3Grant,
+  usableGrant,
+  type T3GrantInfo,
+} from "@irudd/hosts";
+
 export function canonicalProjectPath(directory: string): string {
   let resolved = path.resolve(directory);
   try {
