@@ -46,6 +46,7 @@ import {
   figureFoot,
   seamGroupLimit,
   figureScute,
+  figureDrape,
   figureSweep,
   motionPoses,
   motionRole,
@@ -88,6 +89,7 @@ import {
   type FigureBuild,
   type FigureCage,
   type FigureMarkings,
+  type FigureDrape,
   type FigureSweep,
   type MotionRoleName,
   type OutfitName,
@@ -113,6 +115,7 @@ export interface BuildPart {
   readonly attach:
     | { readonly kind: "scaled"; readonly frameSize: Vec3 | undefined }
     | { readonly kind: "rigid" };
+  readonly drape: FigureDrape | undefined;
   readonly sweep: FigureSweep | undefined;
   readonly cage: FigureCage | undefined;
   readonly scute: boolean;
@@ -276,6 +279,7 @@ export function viewPart(part: Part): BuildPart {
     order: assembly?.order,
     attach: assembly ? { kind: "scaled", frameSize: assembly.frameSize } : { kind: "rigid" },
     sweep,
+    drape: figureDrape.read(part.features),
     cage: figureCage.read(part.features),
     scute: figureScute.read(part.features) !== undefined,
     markings: figureMarkings.read(part.features),

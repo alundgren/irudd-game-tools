@@ -37,6 +37,7 @@ import { mountProposals } from "./panels/proposals.js";
 import { mountHistory } from "./panels/history.js";
 import { mountAgents } from "./panels/agents.js";
 import { mountVariation } from "./panels/variation.js";
+import { mountShape } from "./panels/shape.js";
 import { mountSurface } from "./panels/surface.js";
 import { mountWardrobe } from "./panels/wardrobe.js";
 import { mountCreature } from "./panels/creature.js";
@@ -113,6 +114,7 @@ function selectPart(part: string | null): void {
   outliner.select(part);
   wardrobe.render();
   surface.render();
+  shape.render();
   properties.render();
   variation.render();
 }
@@ -255,6 +257,12 @@ const proposals = mountProposals(panels, {
   hideBanner,
 });
 const history = mountHistory(panels);
+const shape = mountShape(panels, viewport, async (id) => {
+  const view = await host.call("inspect", { documentId: id });
+  const result = readDocument(view.document, { registry });
+  if (!result.ok) throw new Error(describe(result.diagnostics));
+  return result.value;
+});
 const surface = mountSurface(
   panels,
   (face, pivot) => viewport.accessoryAnchor(face, pivot),
@@ -268,7 +276,10 @@ const creature = mountCreature(
   (p) => viewport.project(p),
   (p, label) => start.fromPlan(p, label),
 );
-viewport.onFrame = creature.place;
+viewport.onFrame = () => {
+  creature.place();
+  shape.place();
+};
 const human = mountHuman(panels, () => variation.current()?.direction);
 const library = mountLibrary(panels, () => viewport.request());
 const start = mountStart(panels, async (id) => {
@@ -353,6 +364,7 @@ function renderAll(): void {
   creature.render();
   wardrobe.render();
   surface.render();
+  shape.render();
   library.render();
   syncCharacterFiles();
   outliner.render();

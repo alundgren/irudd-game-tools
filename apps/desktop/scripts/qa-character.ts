@@ -14,6 +14,7 @@ import {
   readZipEntry,
   writeZip,
 } from "../../../packages/workshop/src/service/zip.js";
+import { verifyShapes } from "./shape-check.js";
 import { verifyMotion } from "./motion-check.js";
 import { verifyCreatures } from "./creature-check.js";
 import { verifySurface } from "./surface-check.js";
@@ -385,6 +386,9 @@ try {
     await waitStatus(page, new RegExp("as " + name));
     studies.push({ id, file, revision, document });
   }
+  await step("edit surfaces, styling and wardrobe with shape tools", () =>
+    verifyShapes(page, resolve(appDir, "../../.reference-cache/phase8a"), saveStudy),
+  );
   await step("pose, play and save human and creature motion", () =>
     verifyMotion(page, resolve(appDir, "../../.reference-cache/phase7"), saveStudy),
   );
@@ -627,7 +631,7 @@ try {
     return run.out.split("\n")[0] ?? "";
   });
   await step(
-    "reopen the saved wing, creature and surface studies and verify every edit",
+    "reopen the saved character, motion and surface studies and verify every edit",
     async () => {
       for (const study of studies) {
         await app?.answerDialogs({ open: study.file });

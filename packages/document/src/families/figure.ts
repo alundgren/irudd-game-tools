@@ -69,6 +69,22 @@ export const FigureSweep = Schema.Struct({
 });
 export type FigureSweep = typeof FigureSweep.Type;
 
+export const FigureDrape = Schema.Struct({
+  folds: Schema.Int.check(Schema.isBetween({ minimum: 2, maximum: 32 })),
+  depth: bounded(0, 0.3),
+  twist: bounded(-1, 1),
+  slit: bounded(0, 0.35),
+  slitHeight: bounded(0.05, 1),
+});
+export type FigureDrape = typeof FigureDrape.Type;
+export const figureDrape = family({
+  id: "figure.drape",
+  version: 1,
+  scope: "part",
+  schema: FigureDrape,
+  toJson: (v) => v,
+});
+
 export const figureSweep = family({
   id: "figure.sweep",
   version: 1,

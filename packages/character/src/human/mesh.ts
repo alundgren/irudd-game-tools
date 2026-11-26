@@ -25,6 +25,7 @@ import { mouthInterior, mouthLining } from "./mouth.js";
 import { skinShade } from "./skin-tone.js";
 import { browsAndLashes, strandColours } from "./strands.js";
 import { finishCloth } from "./dress/cloth-finish.js";
+import { fittedAccessories, type AccessoryStyle } from "./dress/accessories.js";
 import { fittedEyewear } from "./dress/eyewear.js";
 import { bakeGameFolds } from "./dress/fold-bake.js";
 import { fittedHair, type HairStyle } from "./dress/hair.js";
@@ -180,6 +181,7 @@ export interface WornCast {
 }
 
 export interface HumanDress {
+  readonly accessories?: AccessoryStyle | undefined;
   readonly tailor?: Tailor | undefined;
   readonly outfit?: { readonly name: OutfitPattern; readonly tones: OutfitTones } | undefined;
   readonly hair?: HairStyle | undefined;
@@ -291,6 +293,7 @@ function dressed(
     skin: { boneIndices: m.boneIndices, weights: m.weights, clothJoints: m.clothJoints },
   });
   const worn: Worn[] = [
+    ...fittedAccessories(cage, dress.accessories, material),
     ...garments.map(skinned),
     ...(hair ? [{ mesh: hair.cards, region: "head" }, skinned(hair.roots)] : []),
     ...grown.map(skinned),

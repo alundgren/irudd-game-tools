@@ -14,13 +14,14 @@ import {
   figureFinish,
   figureMarkings,
   figureScute,
+  figureDrape,
   figureSweep,
 } from "./figure.js";
 import { motionHold, motionPoses, motionRole } from "./motion.js";
 import { figureHand } from "./hand.js";
 import { figureHull } from "./hull.js";
 import { figureJoin } from "./join.js";
-import { figureFoot, figurePulls, figureSeam } from "./seam.js";
+import { figureLocations, figureFoot, figurePulls, figureSeam } from "./seam.js";
 import { figureOccluders, figurePaint } from "./paint.js";
 import { outfitFit, outfitLayers, outfitLooks, outfitWardrobe, outfitWear } from "./outfit.js";
 import { figureAnatomy } from "./anatomy.js";
@@ -68,6 +69,7 @@ export * from "./human.js";
 
 export const familyFeatures: ReadonlyArray<FeatureDefinition> = [
   figureAssembly.definition,
+  figureDrape.definition,
   figureSweep.definition,
   figureFinish.definition,
   figureScute.definition,
@@ -81,6 +83,7 @@ export const familyFeatures: ReadonlyArray<FeatureDefinition> = [
   figureJoin.definition,
   figureSeam.definition,
   figurePulls.definition,
+  figureLocations.definition,
   figureFoot.definition,
   motionRole.definition,
   motionPoses.definition,

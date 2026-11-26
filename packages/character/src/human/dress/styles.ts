@@ -1,5 +1,16 @@
 import type { GroomName } from "../groom.js";
 
+export const finishingStyles = {
+  faceFamily: ["None", "Angular", "Soft"],
+  faceFamilyHair: ["Family", "Chosen"],
+  facePlanes: ["None", "Subtle", "Sculpted"],
+  facialHair: ["None", "Moustache", "Short beard"],
+  earrings: ["None", "Hoops", "Single ear pendant"],
+  waistBag: ["None", "Dispatch folio", "Running belt"],
+  handProp: ["None", "Painted folding fan"],
+  hat: ["None", "Bucket hat", "Beret"],
+} as const;
+
 export const eyewearStyles = ["None", "Round wire", "Square acetate", "Upswept frames"] as const;
 export const necklaceStyles = ["None", "Teardrop pendant", "Pearl strand", "Fan collar"] as const;
 

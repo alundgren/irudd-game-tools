@@ -1,5 +1,5 @@
 import * as T from "three";
-import type { Finish } from "@irudd/document";
+import type { Finish, FigureCage, Vec3 } from "@irudd/document";
 import type { BuildPart } from "../view.js";
 
 const stations = [
@@ -27,6 +27,33 @@ const ring = [
   [0.58, -0.22],
   [-0.58, -0.22],
 ] as const;
+
+export function grownPlateCage(row: number, column: number): FigureCage {
+  const width = ring.length,
+    vertices: Vec3[] = [],
+    faces: number[][] = [],
+    creases: [number, number][] = [];
+  const bend = Math.sin((row + 1) * 19.73 + column * 7.87) * 0.09;
+  for (const [t, envelope, ridge, lift] of stations)
+    for (const [x, z] of ring) {
+      vertices.push([
+        x * envelope * 0.5 + bend * t * t,
+        0.5 - t + 0.08 * Math.abs(x) * Math.sin(Math.PI * t),
+        z * ridge + lift,
+      ]);
+    }
+  faces.push(Array.from({ length: width }, (_, i) => width - 1 - i));
+  for (let r = 0; r < stations.length - 1; r++) {
+    for (let c = 0; c < width; c++) {
+      const a = r * width + c,
+        b = r * width + ((c + 1) % width);
+      faces.push([a, b, b + width, a + width]);
+    }
+    for (const c of [0, 5, 3]) creases.push([r * width + c, (r + 1) * width + c]);
+  }
+  faces.push(Array.from({ length: width }, (_, i) => (stations.length - 1) * width + i));
+  return { vertices, faces, creases, levels: 1 };
+}
 
 export function hasPlatedAxis(part: BuildPart | undefined): boolean {
   if (!part?.sweep || !part.plateField) return false;

@@ -1,5 +1,7 @@
 import type * as T from "three";
 import type { Raster } from "../../raster.js";
+export type { TailoredPart } from "./armour.js";
+import { fitArmour, finishMail, type TailoredPart } from "./armour.js";
 import { finishTailored, type ClothStyle } from "./cloth-finish.js";
 import { finishFootwear } from "./shoe-finish.js";
 import type { Ray } from "../../game/raycast.js";
@@ -52,14 +54,6 @@ const str = (layer: TailorLayer, key: string): string => {
 };
 const mm = (value: number) => value / 1000;
 
-export interface TailoredPart {
-  readonly piece: Piece;
-  readonly tone: string;
-  readonly region: string;
-  readonly name: string;
-  readonly type: string;
-  readonly ground?: number;
-}
 const part = (
   piece: Piece,
   tone: string,
@@ -75,6 +69,7 @@ const part = (
 });
 
 interface Worn {
+  readonly armour?: readonly TailoredPart[];
   readonly kind: string;
   readonly shell?: Shell;
   readonly ease?: number;
@@ -765,6 +760,21 @@ function make(
       return gloves(body, m, layer);
     case "belt":
       return waistBelt(body, m, layer, worn);
+    case "travellingMantle":
+    case "cuirass":
+    case "pauldrons":
+    case "armguards":
+    case "legguards":
+    case "tassets": {
+      const parts = fitArmour(
+        body,
+        m,
+        layer,
+        shellsOf(worn),
+        worn.flatMap((w) => w.armour ?? []),
+      );
+      return { parts, worn: { kind: layer.piece, armour: parts } };
+    }
     default:
       throw new Error("Unknown outfit piece.");
   }
@@ -824,10 +834,11 @@ export function tailorHuman(
   for (const p of made.parts)
     if (p.piece.tri.length) {
       const mesh = p.piece.mesh(
-        material(p.tone, p.type === "mail" ? "cloth" : p.type),
+        material(p.tone, p.type === "mail" ? "metal" : p.type),
         p.region,
         p.name,
       );
+      if (finish && p.type === "mail") finishMail(mesh.mesh, finish.raster);
       if (finish) finishFootwear(finish.raster, mesh.mesh, p.piece.shoeUV);
       mesh.mesh.userData["styleType"] = p.type;
       meshes.push({

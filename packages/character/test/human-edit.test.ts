@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
+import * as T from "three";
+import { fittedAccessories } from "../src/human/dress/accessories.js";
+import { humanMeasurements } from "../src/human/generator.js";
+import { evaluateHuman, tailorLayer } from "../src/human/index.js";
+import { dressBody, dressLandmarks, tailorParts } from "../src/human/dress/index.js";
 import { decodeWith } from "@irudd/document";
 import {
   changeMeasurement,
@@ -115,4 +120,44 @@ test("tailoring restores the working clothes and keeps the pieces through unifor
   const removed = tailorAdult(tailored, []);
   assert.ok(!removed.style.tailor && removed.style.outfit);
   assert.throws(() => tailorAdult(person, [{ piece: "unknown" }]));
+});
+
+test("native face families, fitted accessories and individual armour use the selected body's proportions", () => {
+  const styled = chooseAdultStyle(showOutfit(person, true), {
+    faceFamily: "Soft",
+    faceFamilyHair: "Chosen",
+    facePlanes: "Sculpted",
+    earrings: "Hoops",
+    hat: "Beret",
+    hatColor: "#876533",
+    waistBag: "Dispatch folio",
+    handProp: "Painted folding fan",
+    facialHair: "Moustache",
+  });
+  assert.ok(decodeWith(HumanAdultParams, styled).ok);
+  assert.notDeepEqual(humanMeasurements(styled), humanMeasurements(person));
+  const surface = evaluateHuman(body, humanMeasurements(styled));
+  const items = fittedAccessories(
+    surface,
+    styled.style,
+    (tone) => new T.MeshStandardMaterial({ color: tone }),
+  );
+  for (const name of ["Beret", "Hoops", "Dispatch folio", "Painted folding fan", "Moustache"])
+    assert.ok(
+      items.some((i) => i.mesh.name === name),
+      name,
+    );
+  const fit = dressBody(surface);
+  for (const piece of [
+    "cuirass",
+    "pauldrons",
+    "armguards",
+    "legguards",
+    "tassets",
+    "travellingMantle",
+  ]) {
+    const made = tailorParts(fit, dressLandmarks(fit), { layers: [tailorLayer(piece)] });
+    assert.ok(made.parts.length >= 2);
+    assert.ok(made.parts.every((p) => p.piece.count > 0 && p.piece.pos.every(Number.isFinite)));
+  }
 });

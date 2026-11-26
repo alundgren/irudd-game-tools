@@ -27,6 +27,7 @@ import { castBottomNames, castOutfitProblems, castTopNames } from "./cast-wardro
 import { presetOutfitNames } from "./dress/outfit-names.js";
 import { tailorProblems } from "./dress/tailor-data.js";
 import {
+  finishingStyles,
   eyewearStyles,
   fittedHairStyles,
   fringeStyles,
@@ -122,6 +123,15 @@ export const HumanTailorSchema = Schema.Struct({
 export const humanOutfits = ["Anatomy", "Base layer", "Work clothes", "Pressure suit"] as const;
 
 export const HumanStyleSchema = Schema.Struct({
+  faceFamily: Schema.optionalKey(Schema.Literals(finishingStyles.faceFamily)),
+  faceFamilyHair: Schema.optionalKey(Schema.Literals(finishingStyles.faceFamilyHair)),
+  facePlanes: Schema.optionalKey(Schema.Literals(finishingStyles.facePlanes)),
+  facialHair: Schema.optionalKey(Schema.Literals(finishingStyles.facialHair)),
+  earrings: Schema.optionalKey(Schema.Literals(finishingStyles.earrings)),
+  waistBag: Schema.optionalKey(Schema.Literals(finishingStyles.waistBag)),
+  handProp: Schema.optionalKey(Schema.Literals(finishingStyles.handProp)),
+  hat: Schema.optionalKey(Schema.Literals(finishingStyles.hat)),
+  hatColor: Schema.optionalKey(Color),
   armInk: Schema.optionalKey(Schema.Literals(armInkStyles)),
   browStyle: Schema.optionalKey(Schema.Literals(browStyles)),
   cast: Schema.optionalKey(Schema.Literals(castNames)),
@@ -226,6 +236,21 @@ export function humanMeasurements(params: HumanAdultParams): HumanMeasurements {
   for (const axis of humanAxes) {
     const value = params.human[axis];
     if (value !== undefined) out[axis] = value;
+  }
+  const family = params.style.faceFamily,
+    planes = params.style.facePlanes;
+  if (family === "Angular") {
+    out.faceSquare = Math.min(1, (out.faceSquare ?? 0) + 0.55);
+    out.jawAngle = Math.min(1, (out.jawAngle ?? 0) + 0.35);
+  }
+  if (family === "Soft") {
+    out.faceRound = Math.min(1, (out.faceRound ?? 0) + 0.55);
+    out.cheekFullness = Math.min(1, (out.cheekFullness ?? 0) + 0.35);
+  }
+  if (planes && planes !== "None") {
+    const amount = planes === "Sculpted" ? 0.68 : 0.32;
+    out.cheekHollow = Math.min(1, (out.cheekHollow ?? 0) + amount);
+    out.zygomaticArch = Math.min(1, (out.zygomaticArch ?? 0) + amount);
   }
   return out;
 }
