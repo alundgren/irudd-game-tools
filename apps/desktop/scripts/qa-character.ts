@@ -1,3 +1,4 @@
+import { poseClipName } from "@irudd/character";
 import { isJson, jsonEqual } from "@irudd/document";
 import assert from "node:assert/strict";
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
@@ -13,6 +14,7 @@ import {
   readZipEntry,
   writeZip,
 } from "../../../packages/workshop/src/service/zip.js";
+import { verifyMotion } from "./motion-check.js";
 import { verifyCreatures } from "./creature-check.js";
 import { verifySurface } from "./surface-check.js";
 import { verifyDisplay } from "./display-check.js";
@@ -383,6 +385,9 @@ try {
     await waitStatus(page, new RegExp("as " + name));
     studies.push({ id, file, revision, document });
   }
+  await step("pose, play and save human and creature motion", () =>
+    verifyMotion(page, resolve(appDir, "../../.reference-cache/phase7"), saveStudy),
+  );
   await step("generate, sculpt and coat creatures and mount adult wings", () =>
     verifyCreatures(page, resolve(appDir, "../../.reference-cache/phase6"), saveStudy),
   );
@@ -632,6 +637,43 @@ try {
           study.id,
         );
         await waitRevision(page, study.revision);
+        const humanPose = study.file.endsWith("Human motion.irudd-character");
+        if (humanPose || study.file.endsWith("Creature motion.irudd-character")) {
+          const panel = page.locator("#motion-editor");
+          await panel.locator("summary").click();
+          const name = poseClipName(humanPose ? "Raised shoulder" : "Folded wing");
+          await panel.getByLabel("Pose or clip").selectOption(name);
+          await panel.locator("summary").click();
+          await page.selectOption("#export-preset", "clay");
+          await page.click("#export");
+          await page.waitForSelector("#library:not([hidden]) .entries li.selected", {
+            timeout: 120000,
+          });
+          const filename = await page.locator("#library-list li.selected").getAttribute("title");
+          assert.ok(filename);
+          const bytes = readFileSync(join(projectB, "exports", filename));
+          assert.equal(bytes.toString("ascii", 0, 4), "glTF");
+          const json: unknown = JSON.parse(bytes.toString("utf8", 20, 20 + bytes.readUInt32LE(12)));
+          const animations: unknown = Reflect.get(Object(json), "animations");
+          assert.ok(Array.isArray(animations));
+          for (const clip of ["Walk", "Idle", name, ...(humanPose ? [] : ["Fly"])])
+            assert.ok(
+              animations.some((a: unknown) => {
+                const channels: unknown = Reflect.get(Object(a), "channels");
+                return (
+                  Reflect.get(Object(a), "name") === clip &&
+                  Array.isArray(channels) &&
+                  channels.length > 0
+                );
+              }),
+              clip,
+            );
+          writeFileSync(
+            join(appDir, "../../.reference-cache/phase7", humanPose ? "human.glb" : "creature.glb"),
+            bytes,
+          );
+          await page.click("#tab-workshop");
+        }
         const restored: unknown = Reflect.get(
           Object(await call(page, "current", { documentId: study.id })),
           "document",

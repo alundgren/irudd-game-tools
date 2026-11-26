@@ -22,13 +22,19 @@ Open **Parts and surface details** under Properties. With a part selected, apply
 
 **Material and roles** sets the colour, finish, clothing region and movement role of a geometric part. In Studio colour, try fur, scales, satin or metal. **Surface markings** paints bands, spots, rosettes, countershading, reticulation or marbling. Adjust their colour, spacing, coverage and angle. Clear the selection to paint eligible body regions together. **Shared skin** blends neighbouring organic parts with a common tint, texture and softness. Select a sweep, cage or plate to seat it on its parent or release it.
 
-**Face marks** adds freckles, beauty marks, scars, makeup and paint to an adult. On a built-in head or traced face, fit movable eyes from the face paint or adjust their colour, proportions and placement. Fit attached accessory pieces to a shared pivot and set their clearance. Style a groom on a head, grow strands along selected sweep guides, or adjust the count, curl and spread of a fitted hand. Eye fitting creates the rig. Phase 7 covers gaze and motion playback controls.
+**Face marks** adds freckles, beauty marks, scars, makeup and paint to an adult. On a built-in head or traced face, fit movable eyes from the face paint or adjust their colour, proportions and placement. Fit attached accessory pieces to a shared pivot and set their clearance. Style a groom on a head, grow strands along selected sweep guides, or adjust the count, curl and spread of a fitted hand. Open **Motion and poses** to preview gaze and expressions.
 
 Choose **New random creature** for a complete body from one of fourteen families. Leave the seed empty for a new draw, or enter a seed to revisit the same body and colours. Pick a family such as glider or swimmer and a Natural, Fantasy or Mixed colour range. The starting-form menu also offers Figure, Humanoid and Hybrid. Hybrids combine a creature body with a humanoid head.
 
 In **Body plan**, change the spine proportions or choose **Show drag handles** to pull the body thicker or thinner and slide a limb group along the spine. Add a leg, arm, wing, fin or tentacle group and adjust its reach, shape and placement. Tune the jaw, eyes and ears, choose a dorsal growth and fit equipment or a layered garment. **Shuffle** redraws the whole creature or one region, including equipment and worn layers. Variation strength controls the size of measurement changes. The `family`, `coat` and `skin` decks steer compatible draws. Each applied edit, shuffle or completed drag records one History entry.
 
 **Colours and coat** can generate a coat from the anatomy or apply your choice of plumage, pelt, scutes or wet skin. Adjust the palette, density, contrast and markings. On an imported creature with a saved plan, choose **Start editable copy from this plan** to rebuild the anatomy as a new character. On an adult, open **Adult wings** to fit or replace a matching pair at the shoulders.
+
+Open **Motion and poses** to choose a clip, play or pause it, scrub time and inspect the joints. The rig determines which motions are available. A winged character can fly, a swimmer can undulate and an adult can walk in a posture you choose. Fitted eyes support gaze playback and manual aiming. Faces with expression targets can blink, smile or raise their brows.
+
+To make a pose, pause on a frame or start from rest, select a joint and rotate it in degrees or move it in metres. **Show joints** lets you pick a joint in the viewport and drag its rotation or translation handles. Set a name and choose **Save pose**. Reopen a named pose to adjust it. On a segmented arm, bend or open the elbow, hold the arm in a carry pose during motion, or recut a pair of swept sleeves. Close the panel to return to part editing.
+
+Posture, arm edits and named poses have History entries and travel with the character file. GLBs contain the character's locomotion clips, named poses and supported facial morph targets. Gaze playback and facial controls preview those morph targets in the editor.
 
 | Phase | Scope |
 | --- | --- |
@@ -58,12 +64,12 @@ In **Body plan**, change the spine proportions or choose **Show drag handles** t
 | 13 | Adjust skin tone, eye colour and facial detail | done | 2 |
 | 14 | Style hair, fringe, brows, makeup, arm ink, eyewear, necklace, clothing, colours, designs and cast looks | partly (phase 2 controls done) | 2, 8 |
 | 15 | Choose a face family or studio head | missing | 8 |
-| 16 | Adjust an adult's posture | missing | 7 |
+| 16 | Adjust an adult's posture | done | 7 |
 | 17 | Tailor layers of clothing | partly (six piece types done, armour surfaces pending) | 4, 5 |
 | 18 | Add freckles, scars or moles | done | 5 |
 | 19 | Apply a portrait to an adult's own head | missing | 8 |
 | 20 | Mount a pair of wings on an adult | done | 6 |
-| 21 | Edit a creature's body plan with drag handles | partly (static anatomy and drag handles done, animated poses pending) | 6 |
+| 21 | Edit a creature's body plan with drag handles | done | 6, 7 |
 | 22 | Shuffle a chosen part of a creature's plan | done | 6 |
 | 23 | Choose a creature's coat and markings | done | 5, 6 |
 | 24 | Match a face to portrait landmarks | partly | 8 |
@@ -77,7 +83,7 @@ In **Body plan**, change the spine proportions or choose **Show drag handles** t
 | 32 | Paint markings on a surface | done | 5 |
 | 33 | Add, duplicate, mirror or remove parts | done | 5 |
 | 34 | Reshape a part with a control cage | missing | 8 |
-| 35 | Bend an elbow, recut sleeves or set a carry pose | missing | 7 |
+| 35 | Bend an elbow, recut sleeves or set a carry pose | done | 7 |
 | 36 | Adjust a hand's finger count, curl and spread | done | 5 |
 | 37 | Seat a surface on its parent or release it | done | 5 |
 | 38 | Grow a field of plates | missing | 8 |
@@ -88,9 +94,9 @@ In **Body plan**, change the spine proportions or choose **Show drag handles** t
 | 43 | Show, hide, overdye or reorder garment layers | done | 4 |
 | 44 | Adjust the cut of a garment | done | 4 |
 | 45 | Save, wear or update an outfit | done | 4 |
-| 46 | Choose a pose or clip, scrub time, play motion and inspect joints | partly | 7 |
-| 47 | Adjust gaze and facial expression | partly (eye fitting done, gaze playback pending) | 7 |
-| 48 | Pose individual joints | missing | 7 |
+| 46 | Choose a pose or clip, scrub time, play motion and inspect joints | done | 7 |
+| 47 | Adjust gaze and facial expression | done | 7 |
+| 48 | Pose individual joints | done | 7 |
 | 49 | Switch between Studio colour, Clay and Silhouette and choose a camera angle | done | 1 |
 | 50 | Set world scale and compare character sizes | missing | 8 |
 | 51 | Write a brief for an AI variation | done | 3 |
@@ -114,4 +120,8 @@ In **Body plan**, change the spine proportions or choose **Show drag handles** t
 
 Run `qa:character` in `apps/desktop` against the packaged app when changing surface controls, rendering or character save files. It drives each of the twelve edits, captures the viewport before and after, and reopens the saved characters in a fresh project. On an RTX 5070 Ti the surface-edit sequence took about 2 minutes 34 seconds on first launch and on repeat. Reopening and checking the two studies added about 12 seconds. The screenshots and contact sheet are in `.reference-cache/phase5/`.
 
-The same run checks paired adult wings, creature starting families, drag handles, limb editing, scoped shuffles and coat generation. It reopens the saved winged adult and creature in a fresh project. The before and after images and the contact sheet in `.reference-cache/phase6/` include eight consecutive full-creature draws at default settings (seeds 0 through 7). On an RTX 5070 Ti the creature sequence takes about three minutes. Posing, wing beats and locomotion belong to phase 7.
+The same run checks paired adult wings, creature starting families, drag handles, limb editing, scoped shuffles and coat generation. It reopens the saved winged adult and creature in a fresh project. The before and after images and the contact sheet in `.reference-cache/phase6/` include eight consecutive full-creature draws at default settings (seeds 0 through 7). On an RTX 5070 Ti the creature sequence takes about three minutes.
+
+### Checking motion
+
+Run the packaged `qa:character` check after changing the rig, animation tracks or motion controls. It compares three paused frames from a walking adult and a flying creature, checks gaze and expression changes on a fitted portrait, and exercises arm edits and joint posing. It reopens the saved poses in a fresh project and inspects the animation channels in both exported GLBs. The motion editing sequence took 2 minutes 2 seconds on the first run and 2 minutes 4 seconds on repeat on an RTX 5070 Ti. Screenshots and the contact sheet are in `.reference-cache/phase7/`.

@@ -4,6 +4,9 @@ import { TransformControls } from "three/addons/controls/TransformControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import {
   buildCharacter,
+  MotionPreview,
+  skinCharacter,
+  armChains,
   partBounds,
   cutGarment,
   fitAccessory,
@@ -141,6 +144,11 @@ export class EditorViewport {
     this.gizmo.addEventListener("dragging-changed", (event) => {
       const dragging = event.value === true;
       this.orbit.enabled = !dragging;
+      if (this.motion) {
+        this.motion.playing = false;
+        this.onMotionFrame?.(this.motion.time);
+        return;
+      }
       if (dragging) this.beginDrag();
       else this.endDrag();
     });
@@ -155,6 +163,10 @@ export class EditorViewport {
       pressed = undefined;
       if (!start || this.gizmo.dragging) return;
       if (Math.hypot(e.clientX - start[0], e.clientY - start[1]) > 4) return;
+      if (this.motion) {
+        if (this.joints?.visible && !this.gizmo.axis) this.pickJoint(e.clientX, e.clientY);
+        return;
+      }
       this.events.onPick(this.pick(e.clientX, e.clientY));
     });
 
@@ -203,6 +215,94 @@ export class EditorViewport {
     return true;
   }
 
+  motion: MotionPreview | undefined;
+  private joints: T.SkeletonHelper | undefined;
+  private lastFrame = 0;
+  onMotionFrame: ((time: number) => void) | undefined;
+
+  arms() {
+    return this.built ? armChains(this.built) : [];
+  }
+
+  preview() {
+    if (!this.built || this.motion) return this.motion;
+    const display = this.mode;
+    this.setDisplay("studio");
+    try {
+      const rig = skinCharacter(this.built);
+      this.motion = new MotionPreview(rig);
+      this.scene.add(rig.actor);
+      rig.actor.traverse((node) => {
+        if (isMesh(node)) this.studio.set(node, node.material);
+      });
+      this.built.group.visible = false;
+      this.highlight.visible = false;
+      this.gizmo.detach();
+      return this.motion;
+    } finally {
+      this.setDisplay(display);
+    }
+  }
+
+  onJointPick: ((key: string) => void) | undefined;
+  private pickedBone: T.Bone | undefined;
+  private jointMode: "rotate" | "translate" = "rotate";
+
+  poseJoint(key: string, mode: "rotate" | "translate") {
+    this.pickedBone = this.motion?.rig.bindings.get(key)?.bone;
+    this.jointMode = mode;
+    this.attachGizmo();
+    this.request();
+  }
+
+  private pickJoint(x: number, y: number) {
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    let distance = 12;
+    let key: string | undefined;
+    const at = new T.Vector3();
+    for (const [id, b] of this.motion?.rig.bindings ?? []) {
+      b.bone.getWorldPosition(at).project(this.camera);
+      const d = Math.hypot(
+        rect.left + ((1 + at.x) * rect.width) / 2 - x,
+        rect.top + ((1 - at.y) * rect.height) / 2 - y,
+      );
+      if (d < distance) {
+        key = id;
+        distance = d;
+      }
+    }
+    if (key) this.onJointPick?.(key);
+  }
+
+  showJoints(visible: boolean) {
+    if (visible && this.motion && !this.joints) {
+      this.joints = new T.SkeletonHelper(this.motion.rig.actor);
+      this.scene.add(this.joints);
+    }
+    if (this.joints) this.joints.visible = visible;
+    this.request();
+  }
+
+  closeMotion() {
+    if (!this.motion) return;
+    this.joints?.removeFromParent();
+    this.joints?.dispose();
+    this.joints = undefined;
+    const actor = this.motion.rig.actor;
+    actor.removeFromParent();
+    actor.traverse((node) => {
+      if (isMesh(node)) this.studio.delete(node);
+    });
+    this.gizmo.detach();
+    this.pickedBone = undefined;
+    this.onJointPick = undefined;
+    this.onMotionFrame = undefined;
+    this.motion.dispose();
+    this.motion = undefined;
+    if (this.built) this.built.group.visible = true;
+    this.select(this.selected);
+  }
+
   human: HumanBody | undefined;
 
   show(
@@ -211,6 +311,7 @@ export class EditorViewport {
     studio?: { readonly kit: SurfaceKit; readonly finish: NonNullable<BuildOptions["finish"]> },
     humanPaint?: BuildOptions["humanPaint"],
   ): void {
+    this.closeMotion();
     this.dragStart = undefined;
     this.gizmo.detach();
     if (this.built) {
@@ -260,7 +361,7 @@ export class EditorViewport {
   select(partId: string | null): void {
     this.selected = partId;
     const part = partId === null ? undefined : this.built?.parts.get(partId);
-    if (part) {
+    if (part && !this.motion) {
       this.highlight.setFromObject(part.object);
       this.highlight.visible = true;
     } else {
@@ -278,7 +379,13 @@ export class EditorViewport {
 
   private attachGizmo(): void {
     const part = this.selected === null ? undefined : this.built?.parts.get(this.selected);
-    if (!part || this.tool === "select") {
+    if (this.motion && this.joints?.visible && this.pickedBone) {
+      this.gizmo.setSpace("local");
+      this.gizmo.setMode(this.jointMode);
+      this.gizmo.attach(this.pickedBone);
+      return;
+    }
+    if (this.motion || !part || this.tool === "select") {
       this.gizmo.detach();
       return;
     }
@@ -510,6 +617,13 @@ export class EditorViewport {
 
   private draw(): void {
     this.pending = null;
+    const now = performance.now();
+    if (this.motion?.playing) {
+      this.motion.advance(Math.min(0.08, (now - this.lastFrame) / 1000));
+      this.onMotionFrame?.(this.motion.time);
+      this.request();
+    }
+    this.lastFrame = now;
     const moved = this.orbit.update();
     this.renderer.render(this.scene, this.camera);
     this.onFrame?.();
