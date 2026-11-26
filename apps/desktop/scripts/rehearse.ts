@@ -514,10 +514,15 @@ try {
         "-NonInteractive",
         "-ExecutionPolicy",
         "Bypass",
-        "-File",
-        join(work, "install.ps1"),
+        "-Command",
+        "$ErrorActionPreference = 'Stop'; Get-Content -LiteralPath $env:IRUDD_TEST_BOOTSTRAP -Raw | Invoke-Expression",
       ],
-      { env: env(), encoding: "utf8", timeout: 60 * 60_000 },
+      {
+        cwd: scratch,
+        env: { ...env(), IRUDD_TEST_BOOTSTRAP: join(work, "install.ps1") },
+        encoding: "utf8",
+        timeout: 60 * 60_000,
+      },
     );
     if (run.status !== 0)
       throw new Error(
