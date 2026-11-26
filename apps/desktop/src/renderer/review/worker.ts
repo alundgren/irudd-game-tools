@@ -337,6 +337,7 @@ async function run(jobId: string): Promise<string> {
     human: body,
     ...(humanPaint ? { humanPaint } : {}),
     ...(textures ? { textures } : {}),
+    ...(job.staticMesh ? { staticMesh: true } : {}),
     ...(job.wardrobe ? { wardrobe: true } : {}),
   });
   const exportMs = Math.round(performance.now() - started);

@@ -49,6 +49,7 @@ export interface ExportParams {
   readonly revision?: number;
   readonly preset: ReviewPreset;
   readonly wardrobe?: boolean;
+  readonly staticMesh?: boolean;
 }
 
 export interface InspectParams extends Omit<ExportParams, "wardrobe"> {
@@ -334,6 +335,7 @@ export class Review {
       document: pinned.document,
       preset: params.preset,
       ...(looks ? { wardrobe: true as const } : {}),
+      ...(params.staticMesh ? { staticMesh: true as const } : {}),
       blobs: declared,
       ...(recipe ? { inspect: recipe } : {}),
     };
@@ -421,6 +423,8 @@ export class Review {
       preset: job.preset,
     };
     const differs = Object.entries(expected).filter(([k, v]) => provenance?.[k] !== v);
+    if (provenance?.["staticMesh"] !== job.staticMesh)
+      differs.push(["staticMesh", String(job.staticMesh)]);
     const stamped = provenance?.["wardrobe"];
     const wardrobe = isRecord(stamped) ? stamped : undefined;
     const looks = list(wardrobe?.["looks"]).filter((l): l is string => typeof l === "string");
@@ -456,7 +460,7 @@ export class Review {
       documentId: job.documentId,
       revision: job.revision,
     });
-    const key = `${job.documentDigest}|${job.revision}|${job.preset}|${String(provenance["build"])}${job.wardrobe ? "|wardrobe" : ""}`;
+    const key = `${job.documentDigest}|${job.revision}|${job.preset}|${String(provenance["build"])}${job.wardrobe ? "|wardrobe" : ""}${job.staticMesh ? "|static" : ""}`;
     const previous = this.store.lastExport(key);
     this.store.recordExport(key, artifact.sha256);
     const source: ReviewSource = {

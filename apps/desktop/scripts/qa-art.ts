@@ -1,4 +1,8 @@
+import { answerFileDialogs, callEditor, launchEditor } from "./editor-session.js";
 import assert from "node:assert/strict";
+import { portraitContactSheet } from "./contact-sheet.js";
+import { viewportScreenshot } from "./display-check.js";
+import { envelope } from "@irudd/workshop/client";
 import { execFileSync, spawn } from "node:child_process";
 import {
   copyFileSync,
@@ -78,7 +82,15 @@ const registry = createRegistry({ features: familyFeatures, generators: [frameCr
 const results: { step: string; ms: number; detail?: unknown }[] = [];
 const problems: string[] = [];
 
-let app: { page: Page; browser: Browser; pid: number; close(): Promise<void> } | undefined;
+let app:
+  | {
+      page: Page;
+      browser: Browser;
+      pid: number;
+      answerDialogs(answers: { save?: string; open?: string }): Promise<void>;
+      close(): Promise<void>;
+    }
+  | undefined;
 let appLog = "";
 const appEvents: string[] = [];
 let appExited: Promise<void> = Promise.resolve();
@@ -125,6 +137,7 @@ async function launch(): Promise<NonNullable<typeof app>> {
     [
       ...(values.packaged ? [] : [distribution]),
       "--hidden",
+      "--inspect=0",
       "--remote-debugging-port=0",
       "--user-data",
       userData,
@@ -147,13 +160,15 @@ async function launch(): Promise<NonNullable<typeof app>> {
   child.once("exit", (code, signal) => {
     if (!closing) appEvents.push(`the app exited with ${code ?? signal}`);
   });
+  let inspector = "";
   const endpoint = await new Promise<string>((done, fail) => {
     let text = "";
     const timer = setTimeout(() => fail(new Error(`No DevTools endpoint: ${text}`)), 60_000);
     child.stderr.on("data", (chunk: Buffer) => {
       text += chunk.toString();
       const match = /DevTools listening on (ws:\/\/\S+)/.exec(text);
-      if (match?.[1]) {
+      inspector = /Debugger listening on (ws:\/\/\S+)/.exec(text)?.[1] ?? "";
+      if (match?.[1] && inspector) {
         clearTimeout(timer);
         done(match[1]);
       }
@@ -182,6 +197,7 @@ async function launch(): Promise<NonNullable<typeof app>> {
     page,
     browser,
     pid,
+    answerDialogs: (answers) => answerFileDialogs(inspector, answers),
     async close() {
       closing = true;
       await page.evaluate(() => window.close()).catch(() => undefined);
@@ -451,6 +467,23 @@ try {
   });
   assert.ok(agent);
   const paired = agent;
+  const kept: { id: string; digest: string; file: string }[] = [];
+  async function keepFile(label: string, id: string) {
+    const file = join(scratch, label + ".irudd-character");
+    await app?.answerDialogs({ save: file });
+    await page.click("#character-save");
+    await page.waitForFunction(
+      (n) => document.querySelector("#status")?.textContent?.includes(n + ".irudd-character"),
+      label,
+    );
+    const view = await paired.call("current", { documentId: id });
+    assert.ok(view.documentDigest);
+    kept.push({ id, digest: view.documentDigest, file });
+  }
+  const phase = join(repository, ".reference-cache", "phase8b");
+  mkdirSync(phase, { recursive: true });
+  const capture = async (name: string) =>
+    writeFileSync(join(phase, name + ".png"), await viewportScreenshot(page));
 
   const base = await paired.call("current", { documentId });
   assert.ok(base.document);
@@ -461,6 +494,12 @@ try {
   assert.ok(bodyAtlas, "feline-worker's body is painted");
 
   const turnaround = await step("send a turnaround brief with an editor view", async () => {
+    await page.locator('#outliner [data-part="p-body"]').click();
+    const composer = page.locator("#art");
+    await composer.getByLabel("Kind of artwork").selectOption("turnaround");
+    await composer.getByRole("button", { name: "Select painted branch" }).click();
+    assert.ok((await composer.locator(".art-parts input:checked").count()) > 1);
+    await composer.getByLabel("Kind of artwork").selectOption("variation");
     await sendBrief(page, {
       kind: "turnaround",
       direction: "Repaint the body as a courier; keep the cut and registration.",
@@ -499,6 +538,9 @@ try {
   });
 
   await step("the agent's sheet is proposed, previewed, accepted and undone", async () => {
+    await page.locator('#outliner [data-part="p-body"]').click();
+    await page.click("#focus-selection");
+    await capture("57-painted-edit-before");
     const before = await editorPixels(page);
     await assert.rejects(
       paired.call("project.image", { digest: bodyAtlas, offset: 0 }),
@@ -542,6 +584,8 @@ try {
       0,
       "Accepted paint matches its preview.",
     );
+    await capture("57-painted-edit-after");
+    await keepFile("Painted edit", documentId);
     const accepted = (await paired.call("current", { documentId })).document;
     assert.ok(accepted);
     assert.equal(accepted.parts.find((p) => p.id === "p-body")?.paint?.atlas, courier.digest);
@@ -1513,12 +1557,115 @@ try {
     },
   );
 
+  await step("compare a proposal, request refinement and reopen its alternate", async () => {
+    await page.selectOption("#document", documentId);
+    const original = await paired.call("current", { documentId });
+    assert.ok(original.document);
+    await waitRevision(page, original.revision);
+    await page.locator('#outliner [data-part="p-body"]').click();
+    await page.click("#camera-threequarter");
+    await page.click("#focus-selection");
+    const proposal = "prop-painted-alternate";
+    const propose = async (refine: boolean) =>
+      paired.call("apply", {
+        request: envelope(
+          documentId,
+          original.revision,
+          {
+            type: refine ? "proposal.refine" : "proposal.create",
+            proposal,
+            ...(refine ? { version: 1 } : {}),
+            summary: refine ? "Wide painted body" : "Tall painted body",
+            content: {
+              kind: "ops",
+              ops: [
+                {
+                  op: "part.transform",
+                  part: "p-body",
+                  scale: refine ? [1.75, 0.8, 1.3] : [1, 1.6, 1],
+                },
+              ],
+            },
+          },
+          refine ? "qa-refine-alt" : "qa-create-alt",
+        ),
+      });
+    assert.notEqual((await propose(false)).kind, "rejected");
+    const card = page.locator("#proposals .proposal").filter({ hasText: "Tall painted body" });
+    await card.getByLabel("Refinement notes").fill("Widen the body and lower the silhouette.");
+    await card.getByRole("button", { name: "Request refinement" }).click();
+    await page.waitForFunction(() =>
+      document.querySelector("#status")?.textContent?.includes("Requested refinement"),
+    );
+    assert.match(JSON.stringify(await paired.call("inbox.read", { all: true })), /Widen the body/);
+    assert.notEqual((await propose(true)).kind, "rejected");
+    await page
+      .locator("#proposals .proposal")
+      .filter({ hasText: "Wide painted body" })
+      .getByText("Preview", { exact: true })
+      .click();
+    await page.locator("#banner").getByText("Show current", { exact: true }).click();
+    await capture("58-alternate-before");
+    await page.locator("#banner").getByText("Show proposal", { exact: true }).click();
+    await page.locator("#banner").getByText("Keep alternate", { exact: true }).waitFor();
+    await capture("58-alternate-after");
+    await page.locator("#banner").getByText("Keep alternate", { exact: true }).click();
+    await page.waitForFunction(
+      (id) => document.querySelector<HTMLSelectElement>("#document")?.value !== id,
+      documentId,
+    );
+    const alternate = await page.inputValue("#document");
+    assert.ok(alternate);
+    await keepFile("Refined alternate", alternate);
+    const target = await paired.call("current", { documentId: alternate });
+    assert.equal(target.document?.label, "Wide painted body alternate");
+    assert.equal(
+      (await paired.call("current", { documentId })).documentDigest,
+      original.documentDigest,
+    );
+    await page.reload();
+    await page.waitForSelector('#document option[value="' + alternate + '"]', {
+      state: "attached",
+    });
+    await page.selectOption("#document", alternate);
+    await waitRevision(page, 1);
+    assert.deepEqual(
+      (await paired.call("current", { documentId: alternate })).document,
+      target.document,
+    );
+  });
+  await portraitContactSheet(page, phase);
   auditProcesses("after the art flows");
   assert.deepEqual(problems, [], "no page errors");
   paired.close();
   agent = undefined;
   await step("quit", () => app?.close() ?? Promise.resolve());
   app = undefined;
+  await step("reopen painted edit and alternate from their character files", async () => {
+    assert.equal(kept.length, 2);
+    const replay = await launchEditor(
+      executable,
+      ["--project", join(scratch, "reopened"), "--create"],
+      join(scratch, "reopened-user"),
+      appEnvironment({ IRUDD_STATE_DIR: join(scratch, "reopened-state") }),
+      problems,
+      values.packaged ? undefined : distribution,
+    );
+    try {
+      for (const entry of kept) {
+        await replay.answerDialogs({ open: entry.file });
+        await replay.page.click("#character-open");
+        await replay.page.waitForFunction(
+          (id) => document.querySelector<HTMLSelectElement>("#document")?.value === id,
+          entry.id,
+        );
+        const current = await callEditor(replay.page, "current", { documentId: entry.id });
+        assert.equal(Reflect.get(Object(current), "documentDigest"), entry.digest);
+      }
+    } finally {
+      await replay.close();
+    }
+  });
   writeFileSync(join(evidence, "report.json"), JSON.stringify({ results, problems }, null, 2));
   console.log(`evidence: ${evidence}`);
 } finally {

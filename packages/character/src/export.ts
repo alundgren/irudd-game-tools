@@ -52,6 +52,7 @@ export interface Provenance {
   readonly revision: number;
   readonly build: string;
   readonly preset: Preset;
+  readonly staticMesh?: true;
   readonly wardrobe?: { readonly looks: ReadonlyArray<string> };
   readonly artwork?: ReadonlyArray<ArtworkUse>;
 }
@@ -79,6 +80,7 @@ export interface ExportOptions {
   readonly materials?: MaterialSource;
   readonly human?: HumanBody;
   readonly humanPaint?: HumanPaintSources;
+  readonly staticMesh?: boolean;
   readonly wardrobe?: boolean;
 }
 
@@ -229,7 +231,7 @@ export async function exportCharacter(
   if (!looks.length) throw new Error("Save an outfit before exporting the wardrobe.");
   const entries: Array<{
     readonly scene: T.Scene;
-    readonly rig: Rig;
+    readonly rig: Rig | undefined;
     readonly character: BuiltCharacter;
     page?: { dispose(): void };
   }> = [];
@@ -252,9 +254,9 @@ export async function exportCharacter(
         human: options.human,
         humanPaint: options.humanPaint,
       });
-      let rig: Rig;
+      let rig: Rig | undefined;
       try {
-        rig = skinCharacter(character);
+        if (!options.staticMesh) rig = skinCharacter(character);
       } catch (error) {
         character.dispose();
         throw error;
@@ -265,6 +267,9 @@ export async function exportCharacter(
       if (look) {
         scene.name = look.name;
         scene.userData["outfitName"] = look.name;
+      }
+      if (!rig) scene.add(character.group);
+      else if (look) {
         rig.actor.name = look.name + " rig";
         scene.add(rig.actor);
         scene.add(...rig.actor.children.filter(isMesh));
@@ -278,7 +283,7 @@ export async function exportCharacter(
           contact: true,
         });
     }
-    const clips = entries.map((e) => e.rig.clips);
+    const clips = entries.map((e) => e.rig?.clips ?? []);
     const output = await new GLTFExporter().parseAsync(
       entries.map((e) => e.scene),
       { binary: true, animations: entries.length === 1 ? (clips[0] ?? []) : clips },
@@ -299,6 +304,7 @@ export async function exportCharacter(
       revision: options.revision,
       build: options.build,
       preset: options.preset,
+      ...(options.staticMesh ? { staticMesh: true } : {}),
       ...(options.wardrobe
         ? { wardrobe: { looks: looks.flatMap((l) => (l ? [l.name] : [])) } }
         : {}),
@@ -322,9 +328,9 @@ export async function exportCharacter(
     return { bytes: writeGlb(stamped, rest), provenance, credits };
   } finally {
     for (const { scene, rig, character, page } of entries) {
-      rig.actor.add(...scene.children.filter((o) => o !== rig.actor));
+      if (rig) rig.actor.add(...scene.children.filter((o) => o !== rig.actor));
       page?.dispose();
-      rig.dispose();
+      rig?.dispose();
       character.dispose();
     }
   }

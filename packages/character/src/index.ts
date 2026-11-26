@@ -1,3 +1,7 @@
+export { referenceGlb } from "./reference-glb.js";
+export * from "./paint/portrait-edit.js";
+export { nativePortraitLayer } from "./human/project-portrait.js";
+export { headFrame as portraitFrame } from "./surfaces/front-fit.js";
 export * from "./view.js";
 export * from "./build.js";
 export * from "./export.js";

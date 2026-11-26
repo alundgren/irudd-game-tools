@@ -94,7 +94,10 @@ export function mountStart(ctx: PanelContext, onStarted: (id: string) => Promise
     startSelect.replaceChildren(new Option("New character from…", ""));
     if (!ctx.project) return;
     const list = await host.call("starters", {});
+    const studies = byId("study-choice", HTMLSelectElement);
+    studies.replaceChildren();
     for (const s of list.starters) {
+      if (s.kind === "form") studies.add(new Option(s.label, s.id));
       const reference = Reflect.get(s, "kind") !== "form" && s.reference;
       const label = reference ? `${s.label} (protocol reference)` : s.label;
       if (s.presets.length && !s.presets.some((p) => p.id === "default")) {
@@ -139,6 +142,8 @@ export function mountStart(ctx: PanelContext, onStarted: (id: string) => Promise
       openForm(type);
     } else void startCharacter(startSelect.value);
   };
+  byId("open-study", HTMLButtonElement).onclick = () =>
+    void startCharacter(byId("study-choice", HTMLSelectElement).value);
   randomHuman.onclick = () => dialog.showModal();
 
   async function startCharacter(value: string, params?: Json, label?: string): Promise<void> {

@@ -7,6 +7,7 @@ import type { PanelContext } from "./context.js";
 export function mountProposals(
   ctx: PanelContext,
   actions: {
+    readonly createCopy: (doc: CharacterDocument, label: string) => Promise<boolean>;
     readonly protectedParts: (id: string) => readonly string[];
     readonly registry: () => Registry;
     readonly displayDocument: (doc: CharacterDocument) => Promise<boolean>;
@@ -19,6 +20,24 @@ export function mountProposals(
   let preview = false;
   const proposals = byId("proposals", HTMLDivElement);
 
+  const name = byId("variation-name", HTMLInputElement),
+    keep = byId("save-variation", HTMLButtonElement);
+  let saving = false;
+  async function save(doc: CharacterDocument, label: string) {
+    if (saving) return;
+    saving = true;
+    try {
+      await actions.createCopy(doc, name.value.trim() || label);
+      name.value = "";
+    } catch (e) {
+      showBanner("error", failure(e));
+    } finally {
+      saving = false;
+    }
+  }
+  keep.onclick = () => {
+    if (ctx.doc) void save(ctx.doc, ctx.doc.label + " variation");
+  };
   function changeLines(
     changes: ReadonlyArray<{ readonly path: ReadonlyArray<string> }>,
   ): HTMLElement {
@@ -71,6 +90,21 @@ export function mountProposals(
         ),
         button("Accept", () => void accept(proposalId, draft.proposal.version)),
         button("Reject", () => void discard(proposalId)),
+        button(
+          "Keep alternate",
+          () => void save(read.value, draft.proposal.summary + " alternate"),
+        ),
+        button("Show current", async () => {
+          preview = false;
+          await showHead();
+          if (ctx.documentId === documentId)
+            showBanner(
+              "info",
+              "Current character",
+              button("Show proposal", () => void showPreview(proposalId)),
+              button("Close", endPreview),
+            );
+        }),
         button("Back to the document", endPreview),
       );
     } catch (error) {
@@ -102,7 +136,39 @@ export function mountProposals(
     void showHead();
   }
 
+  function refinement(id: string, version: number, agent: string) {
+    const input = el("input");
+    input.setAttribute("aria-label", "Refinement notes");
+    input.placeholder = "What should change?";
+    const documentId = ctx.documentId;
+    const send = button("Request refinement", async () => {
+      if (!documentId || !input.value.trim()) return;
+      send.disabled = true;
+      try {
+        await host.call("steer.send", {
+          requestId: "steer-" + crypto.randomUUID(),
+          documentId,
+          agent,
+          text:
+            "Refine proposal " +
+            id +
+            " version " +
+            version +
+            " using proposal.refine. " +
+            input.value.trim(),
+        });
+        ctx.say("Requested refinement from " + agent);
+        input.value = "";
+      } catch (e) {
+        showBanner("error", failure(e));
+      } finally {
+        send.disabled = false;
+      }
+    });
+    return el("div", {}, input, send);
+  }
   function renderProposals(): void {
+    keep.disabled = !ctx.doc || preview;
     proposals.replaceChildren();
     const open = (ctx.view?.proposals ?? []).filter((p) => p.status === "draft");
     const closed = (ctx.view?.proposals ?? []).filter((p) => p.status !== "draft");
@@ -119,6 +185,7 @@ export function mountProposals(
           }),
           warning(p),
           changeLines(p.changes),
+          p.author.kind === "agent" ? refinement(p.id, p.version, p.author.id) : null,
           el(
             "div",
             { className: "actions" },

@@ -8,6 +8,7 @@ import {
   skinCharacter,
   armChains,
   partBounds,
+  portraitFrame,
   cutGarment,
   fitAccessory,
   fitPaintedEyes,
@@ -733,6 +734,45 @@ export class EditorViewport {
       height: canvas.height,
       cssWidth: canvas.clientWidth,
       cssHeight: canvas.clientHeight,
+    };
+  }
+
+  portraitGuide(id: string) {
+    const object = this.built?.parts.get(id)?.object;
+    const face = object?.userData["faceSurface"]
+      ? object
+      : object?.children.find((c) => c.userData["faceSurface"]);
+    if (!face || !isMesh(face)) throw new Error("Choose a built-in head or traced face.");
+    const { center, factor, half } = portraitFrame(face);
+    const mesh = new T.Mesh(face.geometry, face.material);
+    mesh.scale.copy(factor);
+    mesh.position.copy(center).multiply(factor).negate();
+    const scene = new T.Scene();
+    scene.background = new T.Color(0x353b40);
+    const light = new T.DirectionalLight(0xffffff, 2);
+    light.position.set(2, 3, 4);
+    scene.add(mesh, new T.AmbientLight(0xffffff, 1.8), light);
+    const w = this.renderer.domElement.width,
+      h = this.renderer.domElement.height;
+    const vertical = half * Math.max(1, h / w),
+      horizontal = (vertical * w) / h;
+    const camera = new T.OrthographicCamera(-horizontal, horizontal, vertical, -vertical, 0.01, 10);
+    camera.position.z = 3;
+    this.renderer.render(scene, camera);
+    const image = document.createElement("canvas");
+    image.width = w;
+    image.height = h;
+    image.getContext("2d")?.drawImage(this.renderer.domElement, 0, 0);
+    this.request();
+    return {
+      image,
+      pick: (u: number, v: number): Vec3 => {
+        const ray = new T.Raycaster();
+        ray.setFromCamera(new T.Vector2(u * 2 - 1, 1 - v * 2), camera);
+        const hit = ray.intersectObject(mesh, false)[0];
+        if (!hit) throw new Error("Click a point on the face.");
+        return hit.point.toArray();
+      },
     };
   }
 

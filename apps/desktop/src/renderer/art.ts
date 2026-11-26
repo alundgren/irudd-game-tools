@@ -1,5 +1,10 @@
 import type { BriefDraft } from "./art-files.js";
-import type { AssetAttribution, CharacterDocument, Part } from "@irudd/document";
+import {
+  descendants,
+  type AssetAttribution,
+  type CharacterDocument,
+  type Part,
+} from "@irudd/document";
 import { ArtFitError, depthRefusal, traceTarget } from "@irudd/character/art-fit";
 import { buildAnchorRefusal } from "@irudd/character/trace-build";
 import type {
@@ -289,6 +294,18 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
           render();
         };
         list.append(el("label", { title: c.id }, tick, ` ${c.label}`));
+      }
+      const branchAtlas = choices.find((c) => c.id === selected)?.atlas;
+      if (kind === "turnaround" && selected && branchAtlas) {
+        list.prepend(
+          button("Select painted branch", () => {
+            const branch = descendants(now.doc, selected);
+            parts = new Set(
+              choices.filter((c) => c.atlas === branchAtlas && branch.has(c.id)).map((c) => c.id),
+            );
+            render();
+          }),
+        );
       }
       if (!choices.length)
         list.append(el("p", { className: "muted", text: "This document has no painted regions." }));

@@ -110,7 +110,7 @@ for (const pack of [...humanPackFiles, humanPaintFile])
 
 mkdirSync(join(dist, "licenses"), { recursive: true });
 copyFileSync(join(repository, "LICENSE"), join(dist, "licenses", "irudd-game-tools.txt"));
-for (const name of ["makehuman-cc0", "hsrd-100-cc-by-4.0"])
+for (const name of ["makehuman-cc0", "hsrd-100-cc-by-4.0", "studio-rain-cc-by-4.0"])
   copyFileSync(
     join(repository, "docs", "licenses", `${name}.md`),
     join(dist, "licenses", `${name}.txt`),

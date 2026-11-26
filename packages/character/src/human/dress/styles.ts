@@ -1,7 +1,7 @@
 import type { GroomName } from "../groom.js";
 
 export const finishingStyles = {
-  faceFamily: ["None", "Angular", "Soft"],
+  faceFamily: ["None", "Angular", "Soft", "Studio Rain"],
   faceFamilyHair: ["Family", "Chosen"],
   facePlanes: ["None", "Subtle", "Sculpted"],
   facialHair: ["None", "Moustache", "Short beard"],

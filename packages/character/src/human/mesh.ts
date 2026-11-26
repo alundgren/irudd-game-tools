@@ -1,3 +1,4 @@
+import { studioMeshes, studioCollar } from "./studio.js";
 import * as T from "three";
 import {
   faceAnatomyFields,
@@ -156,6 +157,7 @@ export interface HumanRegions {
 }
 
 export interface HumanRegionOptions {
+  readonly studio?: { hair: string; familyHair: boolean } | undefined;
   readonly material: (color: string) => T.Material;
   readonly dressMaterial?: (color: string, type: string) => T.Material;
   readonly plain: boolean;
@@ -425,7 +427,45 @@ export function humanRegions(
         group = new T.Group(),
         origin = triple(s.joints, k * 3);
       const corners = bins[k] ?? [];
-      if (corners.length) {
+      if (bone === "head" && options.studio) {
+        for (const mesh of studioMeshes(
+          body,
+          cage,
+          origin,
+          color(bone),
+          options.studio.hair,
+          options.studio.familyHair,
+          options.plain,
+        )) {
+          const n = mesh.geometry.getAttribute("position").count;
+          humanWeightsOf.set(mesh, {
+            boneIndices: Array.from({ length: n * 4 }, (_, i) => (i % 4 === 0 ? k : 0)),
+            weights: Array.from({ length: n * 4 }, (_, i) => (i % 4 === 0 ? 1 : 0)),
+            names: boneNames,
+          });
+          group.add(mesh);
+          if (mesh.userData["faceSurface"]) {
+            const collar = studioCollar(
+              body,
+              s,
+              corners,
+              origin,
+              mesh,
+              k,
+              color(bone),
+              options.plain,
+            );
+            if (collar) {
+              humanWeightsOf.set(collar.mesh, {
+                boneIndices: collar.bones,
+                weights: collar.weights,
+                names: boneNames,
+              });
+              group.add(collar.mesh);
+            }
+          }
+        }
+      } else if (corners.length) {
         const ink = paint !== null && inkBones.includes(bone);
         const chartKey = ink ? (bone.endsWith("_r") ? "r" : "l") : null;
         if (paint && chartKey && !inkCharts.has(chartKey))
@@ -511,7 +551,7 @@ export function humanRegions(
         mesh.castShadow = true;
         group.add(mesh);
       }
-      if (bone === "head") headPieces(body, group, s, origin, options);
+      if (bone === "head" && !options.studio) headPieces(body, group, s, origin, options);
       for (const piece of worn) {
         if (piece.region !== bone) continue;
         const mesh = piece.mesh.clone();

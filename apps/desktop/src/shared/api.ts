@@ -71,6 +71,7 @@ export interface ExportRequest {
   readonly label: string;
   readonly revision: number;
   readonly preset: string;
+  readonly staticMesh?: boolean;
   readonly wardrobe?: boolean;
   readonly bytes: Uint8Array;
 }

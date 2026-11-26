@@ -123,12 +123,40 @@
             Export GLB
           </button>
         </div>
+        <dialog id="game-report">
+          <h2>Game export inspection</h2>
+          <div id="game-results"></div>
+          <button id="inspection-close">Close</button>
+        </dialog>
         <div id="banner" class="banner" hidden></div>
       </section>
       <aside class="panel side">
         <section>
           <h2>Properties</h2>
           <div id="properties"></div>
+          <details id="study-shelf">
+            <summary>Reference studies</summary>
+            <select id="study-choice" aria-label="Reference study"></select
+            ><button id="open-study">Open study</button>
+          </details>
+          <details id="portrait-editor">
+            <summary>Portraits and references</summary>
+            <div id="portrait-actions"></div>
+          </details>
+          <details id="export-options">
+            <summary>Game export</summary>
+            <button id="inspect-game">Inspect game export</button
+            ><label
+              ><input type="checkbox" id="export-motion" checked />Include skeleton and motion in
+              exports</label
+            >
+          </details>
+          <dialog id="portrait-dialog">
+            <h2 id="portrait-title"></h2>
+            <div id="portrait-fields"></div>
+            <p id="portrait-status" role="status"></p>
+            <button id="portrait-apply">Apply</button><button id="portrait-close">Close</button>
+          </dialog>
           <details id="shape-editor">
             <summary>Shape tools</summary>
             <div></div>
@@ -257,6 +285,8 @@
         <section>
           <h2>Proposals</h2>
           <div id="proposals"></div>
+          <label>Variation name<input id="variation-name" maxlength="120" /></label
+          ><button id="save-variation">Keep current variation</button>
         </section>
         <section>
           <h2>History</h2>

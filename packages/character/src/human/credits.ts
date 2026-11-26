@@ -39,6 +39,11 @@ export function humanCredits(params: HumanAdultParams, regions?: number): HumanC
     )
     .map((axis) => capturedSources[axis]);
   const extras: Record<string, Json> = {};
+  if (!cast && params.style.faceFamily === "Studio Rain") {
+    copyright.push(
+      "Rain Rig (CC) Blender Foundation | studio.blender.org. Fitted head, expressions, hair and sampled vertex colour. https://studio.blender.org/characters/rain/v3/ | https://creativecommons.org/licenses/by/4.0/",
+    );
+  }
   if (scans.length) {
     const { title, author, year, license, source, changes } = captureCredit;
     copyright.push(`${title}, ${author} (${year}), CC BY 4.0. ${changes} ${source} ${license}`);
