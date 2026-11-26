@@ -1,4 +1,4 @@
-"""Print the head study's numbers as Markdown tables for docs/head-scan-study.md.
+"""Print the head study's numbers as Markdown tables.
 
 Usage: python scripts/head-study/tables.py CACHE [--label NAME]
 

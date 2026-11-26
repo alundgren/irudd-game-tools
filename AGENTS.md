@@ -12,8 +12,6 @@ Use the workshop tools in the conversation the person paired. They connect to th
 
 ## Developing the software
 
-This repository houses tools for game creation. The first design study is in [the character creator research plan](docs/character-creator.html). Its experiments and proposed data contracts are open for testing. Record measured results separately from predictions.
-
 Keep character recipes, generated assets and export formats distinct. Keep character assets and examples suitable for a public MIT project and record the origin and license of any contributed art. Use local validation. Before pushing documentation changes run `git diff --check HEAD`, check local links, and open the HTML at desktop and phone widths.
 
 Keep explanations in documentation. Code must pass the repository-wide no-comments rule (`pnpm check:comments`). Preserve interpreter directives and required legal notices.
@@ -22,9 +20,9 @@ Keep explanations in documentation. Code must pass the repository-wide no-commen
 
 - Budget a test against the regression it catches and the wall time it adds to developers' usual edit loop. Reuse existing coverage. For a costly check, record its cold and warm times, the failure it detects and when to run it. Keep focused checks fast. Run GPU comparisons, full-corpus checks, real-host exercises and installer rehearsals locally at their relevant gates.
 - Write the README for a person deciding whether to install the app. Aim for one page with its purpose, installation instructions and one highlight image showing the workshop in use. A compact architecture diagram can extend it slightly. Put feature documentation in docs and agent instructions here.
-- Use Scope's source-install and update model. An installer owns a per-user clone, builds a pinned main commit locally and keeps project data separate. Stage successful updates, then let the user restart. Failed and cancelled builds leave the running app usable. Keep the app and CLI on the same active build.
+- Provide a single install command for Windows and macOS that works from an empty directory. Keep program files separate from projects.
 - Use zero GitHub Actions workflows and zero GitHub Releases. Developers run checks locally and installations update directly from Git.
-- The [desktop dependency baseline](docs/desktop-dependencies.md) lists the intended direct dependencies. At port kickoff, refresh stable versions, verify the combination and record exact pins in the workspace catalog and lockfile. Use a frozen lockfile for installs and updates.
+- Pin workspace dependencies in the catalog and commit the frozen lockfile.
 
 ## Rendering
 

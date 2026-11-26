@@ -1,6 +1,6 @@
 # @irudd/document contract
 
-This is the interface that storage (G2) and builders and generators (G4) rely
+This is the interface that storage and builders and generators rely
 on. Everything is imported from the package entry `@irudd/document`; nothing
 deeper is public. The package is pure: no Node, DOM, Three or file access.
 Storage supplies bytes and lookups through `Environment`.
@@ -63,7 +63,7 @@ reduce(state: DocumentState, input: unknown, env: Environment): Step
 - Diagnostics are `{code, path, message, detail?}`. The codes are listed in
   `diagnosticCodes`. A conflict's detail names `editedIn {revision, actor}`.
 
-## Storage (G2)
+## Storage
 
 - **Durable record.** Persist `state.journal` in order, one
   `JournalEntry` per commit, plus the blobs documents reference. Nothing
@@ -129,7 +129,7 @@ reduce(state: DocumentState, input: unknown, env: Environment): Step
 - **Queries.** `documentAt`, `changesSince`, `diffRevisions`, `attribution`,
   `lastChange` and `previewProposal` are read-only.
 
-## Builders and generators (G4)
+## Builders and generators
 
 - **Generators.**
   - Register with `defineGenerator({id, version, label, schema, toJson, generate})`.
@@ -181,34 +181,3 @@ reduce(state: DocumentState, input: unknown, env: Environment): Step
     keeps its metric offset, so a hand-added horn sinks 5.5 mm into a head
     scaled by 1.05; under a figure-assembled parent it stays seated
     (`test/attachment.test.ts`).
-
-## Evidence
-
-- `pnpm --filter @irudd/document test` is the fast suite (about 1 s). It
-  exercises the package through its entry. `test/journal.test.ts` covers
-  recovery from stored bytes, a changed and a retired generator, a feature
-  codec upgrade, corruption, truncation and missing receipts, caller and
-  consumer aliasing, the branched undo trace and the draft-discard rule.
-- `pnpm --filter @irudd/verification-protocol check:fast` (about 4 s) runs
-  the protocol model at small bounds:
-  - every mutant
-  - an exhaustive comparison with the reducer for one project and two
-    actors, with an outcome coverage check
-  - seeded traces with and without drafts
-  - the named scenarios
-  - the broken-reducer controls
-- `pnpm --filter @irudd/verification-protocol gate:g1-protocol` is the full
-  gate, about 60 s warm on this PC, half of it the `deep` model exploration.
-  Run it before merging protocol changes:
-  - exhaustive model exploration (I1–I13) at the `pair`, `deep`, `drafts`
-    and `chains` bounds
-  - one caught mutant per broken rule, including undo of an undo, stale
-    draft versions, stale draft bases, agent policy and editor credit
-  - an exhaustive differential comparison of `reduce` against the
-    independent model at `fast`, `draft-diff` and `chains`, plus seeded
-    traces with and without drafts and policy
-  - the named scenarios: the branched undo chain, concurrent refinement of
-    one draft, and a stale draft base
-  - a check that every outcome the model produces also came from `reduce`
-  - broken reducers that forget request IDs, ignore the expected revision or
-    ignore draft versions, each of which must be caught

@@ -45,8 +45,6 @@ export function mountUpdates(api: DesktopApi): void {
         root.append(button("Check for updates", act("check")));
         break;
       case "unmanaged":
-        message.title =
-          "This copy was not installed by install.ps1, so it does not update itself. Pull and rebuild the checkout, or install the app to get updates.";
         break;
     }
     if (status.previous && status.phase !== "building" && status.phase !== "checking")
