@@ -4,7 +4,8 @@ function Install-IruddWorkshop {
     $ErrorActionPreference = 'Stop'
     Set-StrictMode -Version Latest
     [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
-    if ([Environment]::OSVersion.Platform -ne 'Win32NT' -or [Environment]::OSVersion.Version.Build -lt 22000 -or [Runtime.InteropServices.RuntimeInformation]::OSArchitecture -ne 'X64' -or -not [Environment]::Is64BitProcess) {
+    $nativeArchitecture = [Environment]::GetEnvironmentVariable('PROCESSOR_ARCHITECTURE', 'Machine')
+    if ([Environment]::OSVersion.Platform -ne 'Win32NT' -or [Environment]::OSVersion.Version.Build -lt 22000 -or $nativeArchitecture -ne 'AMD64' -or -not [Environment]::Is64BitProcess) {
         throw 'Irudd Workshop requires Windows 11 x64. Run this installer in a 64-bit PowerShell terminal.'
     }
     if ($Prepare -and $Prepare -cnotmatch '^[0-9a-f]{40}$') { throw 'Prepare requires a full Git commit ID.' }
