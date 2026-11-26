@@ -9,6 +9,7 @@
     "test": "node --import ../../packages/document/test/support/register.ts --test \"test/**/*.test.ts\"",
     "gate:clients": "node --import ../../packages/document/test/support/register.ts --test test/clients.gate.ts",
     "gate:steering": "node --import ../../packages/document/test/support/register.ts --test test/steering.gate.ts",
+    "gate:auto": "node --import ../../packages/document/test/support/register.ts --test test/auto.gate.ts",
     "gate:art": "node --import ../../packages/document/test/support/register.ts --test test/art.gate.ts"
   },
   "dependencies": {

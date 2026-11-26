@@ -30,6 +30,6 @@ On first launch, click **New random human** or pick a starter from **New charact
 
 Select a part in the outliner and drag it with **Move**. Each completed edit appears in History. Choose **Export GLB** to open that revision in the Library, where you can play its animations and save an inspection sheet.
 
-To try a repaint, start **feline-worker**, pair an agent, and select the painted body. In **Artwork**, send a turnaround brief to the paired conversation. Preview the returned sheet and accept it if you want to keep it. You can undo the repaint from the editor. [Pair an agent and request artwork](docs/workshop-clients.md)
+To try a repaint, start **feline-worker**, ask Claude Code or Codex to look at the workshop, and select the painted body. The installer connects both agents to the workshop. In **Artwork**, send a turnaround brief, then tell the agent to check the workshop. Preview the returned sheet and accept it if you want to keep it. You can undo the repaint from the editor. [Connect an agent and request artwork](docs/workshop-clients.md)
 
 The app code is MIT-licensed. Character assets carry their own credits. [License](LICENSE) · [Artwork and references](docs/artwork.md)

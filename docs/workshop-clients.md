@@ -59,6 +59,20 @@ describes it. JSON document archives from earlier builds open the same way.
 
 ## Connect an agent
 
+The installer registers the workshop MCP server with Claude Code and Codex, at user scope. Every new session of either agent can then use the project open in the desktop app, with no pairing step:
+
+```
+irudd agents connect      # what the installer runs; repeat it after installing an agent
+irudd agents status
+irudd agents disconnect
+```
+
+The registered server is `irudd mcp`, without a credential. It starts with the session and stays quiet. On each tool call it looks for the running workshop. When the app is closed, the call answers that Irudd Workshop isn't running; the first call after it opens works. The first call against a project pairs the agent as `claude` or `codex`, taken from the MCP client's name, and binds its inbox, so it appears under Agents, Steer and Artwork. Further sessions of the same agent reuse that pairing. `--project <dir>` pins a project, and `--agent <id>` picks another agent ID.
+
+**Disconnect** in the desktop, or `irudd unpair claude`, revokes the pairing. Its next connection is refused, and the agent no longer pairs itself with this project until a person pairs it again in the desktop or with `irudd pair`.
+
+To pair an agent that is not registered, for example a shell-based one:
+
 ```
 irudd pair claude --name Claude
 ```
@@ -74,9 +88,9 @@ What an agent can do:
 - **Identity.** The host stamps the paired identity on everything the agent does.
 - **Tools.** The agent reads documents and their changes, including a person's manual edits (`read_changes` with `by: "human"`), creates documents and drafts proposals.
 - **Editing.** It edits directly only on documents where a person ran `irudd policy <doc> --agent-direct-edit on`.
-- **Person-only actions.** No tool accepts proposals, changes policy or pairs agents.
+- **Person-only actions.** No tool accepts proposals, changes policy or pairs agents. An unconfigured `irudd mcp` pairs its own agent with the person's local key, which any program running as you can read (see [Limits](#limits)).
 
-`irudd pairs` lists paired agents. `irudd unpair claude` revokes one; its next connection is refused.
+`irudd pairs` lists paired agents.
 
 ## Inspect an exported character
 
@@ -94,14 +108,13 @@ In a paired MCP session, use `inspect_character` for the manifest and the first 
 
 ## Steer an agent
 
-Bind a paired agent to the conversation it is already in, then send it instructions:
+An agent that connected on its own already reads an inbox. Send it instructions, and tell it in its conversation to check the workshop:
 
 ```
-irudd route claude --inbox agent
 irudd send claude "Build on my jaw edit" --doc doc-marsh01
 ```
 
-The agent acknowledges each message with its own credential and links the edit or proposal it made. A proposal counts as applied only when you accept it. Routes, delivery states and per-host limits are in [workshop-steering.md](workshop-steering.md).
+For an agent paired by hand, bind its inbox first with `irudd route claude --inbox agent`. The agent acknowledges each message with its own credential and links the edit or proposal it made. A proposal counts as applied only when you accept it. Routes, delivery states and per-host limits are in [workshop-steering.md](workshop-steering.md).
 
 ## Ask for artwork
 

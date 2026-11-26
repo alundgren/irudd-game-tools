@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { defaultFrameCreatureParams } from "@irudd/document";
 import path from "node:path";
-import { connect, WorkshopError, type WorkshopClient } from "@irudd/workshop/client";
+import { connect, runningHosts, WorkshopError, type WorkshopClient } from "@irudd/workshop/client";
 import { attachOrHost, startHost, type RunningHost } from "@irudd/workshop/host";
 import { hostFiles } from "@irudd/workshop/endpoint";
 import type { MethodResults } from "@irudd/workshop/wire";
@@ -242,3 +242,31 @@ async function waitFor(condition: () => boolean, timeoutMs = 2000): Promise<void
     await new Promise((resolve) => setTimeout(resolve, 5));
   }
 }
+
+test("a local agent pairs itself once, and a person's unpair keeps it out", async () => {
+  await withHost("auto-pair", async (_host, { project, stateDir }) => {
+    assert.deepEqual(
+      runningHosts({ stateDir }).map((e) => hostFiles(e.project, { stateDir }).key),
+      [hostFiles(project, { stateDir }).key],
+    );
+    const human = await connect({ credential: { role: "human", project }, stateDir });
+    const auto = { agent: "claude", name: "Claude Code", auto: true } as const;
+    const first = await human.call("pair.agent", auto);
+    const again = await human.call("pair.agent", auto);
+    assert.equal(again.pairingId, first.pairingId, "a second session reuses the pairing");
+    const agent = await connect({
+      credential: { role: "agent", file: first.credentialFile },
+      stateDir,
+    });
+    assert.equal(agent.welcome.role, "agent");
+    agent.close();
+
+    await human.call("pair.revoke", { agent: "claude" });
+    await failsWith(human.call("pair.agent", auto), "Forbidden");
+    const repaired = await human.call("pair.agent", { agent: "claude" });
+    assert.notEqual(repaired.pairingId, first.pairingId);
+    assert.equal((await human.call("pair.agent", auto)).pairingId, repaired.pairingId);
+    human.close();
+  });
+  assert.equal(runningHosts({ stateDir: path.join(tempDir("no-hosts"), "state") }).length, 0);
+});

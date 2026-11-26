@@ -442,9 +442,9 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
       el("p", {
         className: "muted",
         text: !paired.length
-          ? "Pair an agent under Agents first."
+          ? "No agent yet. Ask Claude Code or Codex to look at the workshop and it connects on its own."
           : !connected
-            ? "Connect the agent and bind its inbox or channel under Agents."
+            ? "The agent is not running now. Ask it about the workshop in its conversation, then send."
             : needs.length
               ? `Still needed: ${needs.join(", ")}.`
               : `For revision ${now.revision}${sheet ? `, with the current sheet ${sheet.slice(0, 19)}…` : ""}.`,
@@ -787,7 +787,7 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
     root.append(
       el("p", {
         className: "muted",
-        text: "The paired agent makes the artwork in its own conversation; this app never generates images.",
+        text: "The agent makes the artwork in its own conversation; this app never generates images. After sending, tell the agent to check the workshop.",
       }),
       composer(),
     );

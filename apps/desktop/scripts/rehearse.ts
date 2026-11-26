@@ -71,6 +71,7 @@ const installEnv: Record<string, string> = {
   IRUDD_START_MENU: programs,
   IRUDD_NO_PATH: "1",
   IRUDD_NO_LAUNCH: "1",
+  IRUDD_NO_AGENTS: "1",
 };
 function env(extra: Record<string, string> = {}): Record<string, string> {
   const next: Record<string, string> = {};

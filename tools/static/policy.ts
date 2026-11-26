@@ -275,6 +275,10 @@ export const privilegedAdapters: readonly { readonly path: string; readonly reas
   { path: "^tools/", reason: "Local tooling starts compilers and linters." },
   { path: "^verification/", reason: "Gates start local processes." },
   { path: "^apps/desktop/src/main/update/", reason: "Stage and activate managed source updates." },
+  {
+    path: "^apps/cli/src/agents\\.ts$",
+    reason: "Register the MCP server through the claude and codex command-line tools.",
+  },
 ];
 
 export const bundledStyles: ReadonlyMap<string, readonly string[]> = new Map([

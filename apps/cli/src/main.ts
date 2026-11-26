@@ -9,6 +9,7 @@ import { steeringVerbs } from "./steering.js";
 import { reviewVerbs } from "./review.js";
 import { artVerbs } from "./art.js";
 import { characterVerbs } from "./character.js";
+import { runAgents } from "./agents.js";
 
 const verbs: ReadonlyArray<Verb> = [
   ...projectVerbs,
@@ -64,7 +65,8 @@ function mainHelp(): string {
     "",
     "Running a project:",
     `  ${"host <dir> [--create]".padEnd(width)}  Own a project headlessly and serve it (see "irudd host --help")`,
-    `  ${"mcp --credential <file>".padEnd(width)}  Run the MCP server for a paired agent, on stdio`,
+    `  ${"mcp".padEnd(width)}  Run the MCP server for agents, on stdio (see "irudd mcp --help")`,
+    `  ${"agents connect".padEnd(width)}  Register that server with Claude Code and Codex`,
     `  ${"version [--json]".padEnd(width)}  Print the build this CLI belongs to`,
     "",
     "Commands:",
@@ -136,6 +138,7 @@ async function run(
     );
     return exit.ok;
   }
+  if (name === "agents") return runAgents(rest, out, err);
   if (name === "host" || name === "mcp") {
     err(
       `irudd ${name} runs in its own process. Use the launcher (apps/cli/bin/irudd.cmd on Windows, apps/cli/bin/irudd elsewhere), which starts ${name === "host" ? "packages/workshop/src/host/main.ts" : "apps/mcp/src/main.ts"}.`,
