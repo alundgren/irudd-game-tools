@@ -12,6 +12,12 @@ In **Variation**, write one deck per line, such as `mood = calm | wary | fierce`
 
 Choose whether each reference guides the face, body silhouette, garment, or colour and surface. Attach the pictures or select a part and choose **Keep shape in AI edits**. Character-specific Steer messages with these settings and Artwork variation briefs carry the active draw, pictures and protected part IDs. The proposal card and preview name any protected shape the reply changes. Under **Properties**, **Small reroll** prepares a size nudge for one axis of the selected part. **Reset** clears the pending nudge and **Apply nudge** records it in History.
 
+In **Wardrobe**, open **Outfits and garments** to choose Anatomy, Base layer, Work clothes or Pressure suit. Under **Tailored pieces**, adults can wear up to twelve tops, trousers, boots, shoes, gloves and belts in dressing order. Choose a piece to change its dimensions, material and details. Individual armour plates, travelling mantles, armour variations and mail finishes still need their surface builders.
+
+Under **Cut and layer garments**, select a body region in the outliner or viewport and cut a cape, poncho, tabard or skirt to fit it. Choose a garment layer to set visibility, overdye and dressing order. Adjust the fabric, drop, flare and folds, the arm access of a shoulder garment, or a skirt's pleats, gather, tiers and train. To trace a skirt, mark the waist centre, waist edge and points along one side down to the hem.
+
+**Saved outfits** remembers the base outfit, fitted layer visibility, dyes, dressing order and palette tones. Wear a named outfit to recall those settings, or update it with the current ones. Garment cuts and tailored pieces belong to the character and are shared across its saved outfits.
+
 | Phase | Scope |
 | --- | --- |
 | 1 | Viewport display, focus and panel structure |
@@ -41,7 +47,7 @@ Choose whether each reference guides the face, body silhouette, garment, or colo
 | 14 | Style hair, fringe, brows, makeup, arm ink, eyewear, necklace, clothing, colours, designs and cast looks | partly (phase 2 controls done) | 2, 8 |
 | 15 | Choose a face family or studio head | missing | 8 |
 | 16 | Adjust an adult's posture | missing | 7 |
-| 17 | Tailor layers of clothing | missing | 4 |
+| 17 | Tailor layers of clothing | partly (six piece types done, armour surfaces pending) | 4, 5 |
 | 18 | Add freckles, scars or moles | missing | 5 |
 | 19 | Apply a portrait to an adult's own head | missing | 8 |
 | 20 | Mount a pair of wings on an adult | missing | 6 |
@@ -65,11 +71,11 @@ Choose whether each reference guides the face, body silhouette, garment, or colo
 | 38 | Grow a field of plates | missing | 8 |
 | 39 | Repeat plates along a spine | missing | 8 |
 | 40 | Set a part's clothing region, movement role, finish and colour | partly | 5 |
-| 41 | Choose an outfit in the wardrobe | missing | 4 |
-| 42 | Cut a cape, poncho, tabard or skirt | missing | 4 |
-| 43 | Show, hide, overdye or reorder garment layers | missing | 4 |
-| 44 | Adjust the cut of a garment | missing | 4 |
-| 45 | Save, wear or update an outfit | partly | 4 |
+| 41 | Choose an outfit in the wardrobe | done | 4 |
+| 42 | Cut a cape, poncho, tabard or skirt | done | 4 |
+| 43 | Show, hide, overdye or reorder garment layers | done | 4 |
+| 44 | Adjust the cut of a garment | done | 4 |
+| 45 | Save, wear or update an outfit | done | 4 |
 | 46 | Choose a pose or clip, scrub time, play motion and inspect joints | partly | 7 |
 | 47 | Adjust gaze and facial expression | partly | 7 |
 | 48 | Pose individual joints | missing | 7 |

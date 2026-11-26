@@ -507,16 +507,20 @@ h2 {
   padding-left: 1.2em;
 }
 
+#wardrobe details > div,
+#wardrobe form,
 #human-editor details > div,
 #human-start form {
   display: grid;
   gap: 6px;
   padding: 8px 0;
 }
+#wardrobe summary,
 #human-editor summary {
   cursor: pointer;
   padding: 4px 0;
 }
+#wardrobe label,
 #human-editor label,
 #human-start label {
   display: grid;
@@ -524,6 +528,9 @@ h2 {
   align-items: center;
   gap: 8px;
 }
+#wardrobe canvas,
+#wardrobe input,
+#wardrobe select,
 #human-editor input,
 #human-editor select {
   width: 100%;

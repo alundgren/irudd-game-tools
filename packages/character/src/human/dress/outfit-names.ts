@@ -15,5 +15,6 @@ export const presetOutfitNames = [
   "Leather armour",
 ] as const;
 export type PresetOutfit = (typeof presetOutfitNames)[number];
+export type OutfitPattern = PresetOutfit | "Pressure suit";
 export const isPresetOutfit = (name: string): name is PresetOutfit =>
   presetOutfitNames.some((n) => n === name);

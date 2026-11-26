@@ -1,3 +1,5 @@
+import { type OutfitName } from "@irudd/document";
+import { tailorProblems, type TailorLayer } from "./dress/tailor-data.js";
 import { castSkin } from "./cast.js";
 import { isCastFigureName, type CastFigureName } from "./cast-data.js";
 import { castOutfits } from "./cast-wardrobe.js";
@@ -94,6 +96,12 @@ export function chooseAdultStyle(
   }
   if (changes.outfit) delete style.tailor;
   const next = { ...params, style };
+  if (
+    !changes.outfit &&
+    !changes.cast &&
+    (params.outfit === "Base layer" || params.outfit === "Pressure suit")
+  )
+    return next;
   return showOutfit(
     next,
     changes.outfit !== "None" &&
@@ -172,4 +180,22 @@ export function newHumanLook(
       necklace: draw() < (direction === "Festive" ? 0.65 : 0.14) ? pick(necklaceStyles) : "None",
     },
   };
+}
+
+export function chooseAdultWardrobe(
+  params: HumanAdultParams,
+  outfit: OutfitName,
+): HumanAdultParams {
+  return outfit === "Work clothes" ? showOutfit(params, true) : { ...params, outfit };
+}
+
+export function tailorAdult(
+  params: HumanAdultParams,
+  layers: readonly TailorLayer[],
+): HumanAdultParams {
+  const problems = layers.length ? tailorProblems({ layers }) : [];
+  if (problems.length) throw new Error(problems.join(" "));
+  const { tailor: _old, ...style } = params.style;
+  const next = { ...params, style: layers.length ? { ...style, tailor: { layers } } : style };
+  return chooseAdultWardrobe(next, layers.length ? "Work clothes" : (params.outfit ?? "Anatomy"));
 }

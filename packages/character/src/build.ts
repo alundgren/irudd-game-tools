@@ -440,27 +440,14 @@ function withHandMadeParts(
     (p) => human.parts.has(p.id) && p.parent !== null && ids.has(p.parent),
   );
   if (stray) throw new Error(`The adult's region ${stray.label} hangs from a part added by hand.`);
-  const { generation: _generation, ...rest } = doc;
-  const added = buildCharacter(
-    {
-      ...rest,
-      parts: handMade.map((p) =>
-        p.parent !== null && ids.has(p.parent) ? p : { ...p, parent: null },
-      ),
-      features: {},
-    },
-    { ...options, human: undefined },
-  );
   const full = buildView(doc);
-  const parts = new Map(human.parts);
-  for (const [id, built] of added.parts) {
-    const part = full.byId.get(id) ?? built.part;
-    parts.set(id, { ...built, part });
-    const region =
-      part.parent === null || ids.has(part.parent) ? undefined : human.parts.get(part.parent);
-    if (region) region.mount.add(built.object);
-    else if (part.parent === null) human.group.add(built.object);
-  }
+  const byId = new Map([...full.byId, ...human.view.byId]);
+  const added = buildFigure(
+    { ...full, byId, parts: full.parts.filter((p) => ids.has(p.id)) },
+    options,
+    human,
+  );
+  const parts = new Map([...human.parts, ...added.parts]);
   const viewParts = [...human.view.parts, ...handMade.flatMap((p) => full.byId.get(p.id) ?? [])];
   return {
     ...human,
@@ -482,7 +469,14 @@ export function buildCharacter(doc: CharacterDocument, options: BuildOptions): B
     if (!options.human) throw new Error("Building an adult human needs the loaded body pack.");
     return withHandMadeParts(doc, buildHuman(doc, options.human, options), options);
   }
-  const view = buildView(doc);
+  return buildFigure(buildView(doc), options);
+}
+
+function buildFigure(
+  view: BuildView,
+  options: BuildOptions,
+  host?: BuiltCharacter,
+): BuiltCharacter {
   const portrait = view.parts.find((p) => p.nativePortrait);
   if (portrait)
     throw new Error(
@@ -723,14 +717,19 @@ export function buildCharacter(doc: CharacterDocument, options: BuildOptions): B
     built.set(part.id, { part, object, mount });
   }
   for (const { part, object } of built.values())
-    ((part.parent === null ? undefined : built.get(part.parent)?.mount) ?? group).add(object);
+    (
+      (part.parent === null
+        ? undefined
+        : (built.get(part.parent) ?? host?.parts.get(part.parent))?.mount) ?? group
+    ).add(object);
+  if (host) host.group.add(group);
   for (const { part, object } of built.values()) {
     const lining = isMesh(object) ? linings.get(object) : undefined;
     const head = part.parent === null ? undefined : built.get(part.parent);
     if (lining && part.hairCap && isMesh(object) && head?.part.sweep)
       seatHair(object, lining, head.object, head.part.sweep.knots, part.hairCap);
   }
-  fitGarments(view, built, reliefs);
+  fitGarments(view, host ? new Map([...host.parts, ...built]) : built, reliefs);
   const blendOwners = blendSkin(view, built, options.materials);
   const warp = view.build && warpBuild(group, view.build, built, blendOwners);
   for (const { part, object } of built.values()) {

@@ -378,3 +378,74 @@ export function apron(
   }
   return { piece, ties };
 }
+
+export function helmet(body: DressBody, m: Landmarks) {
+  const head = body.weight(/^head/);
+  let lowY = Infinity,
+    highY = -Infinity,
+    lowZ = Infinity,
+    highZ = -Infinity;
+  for (let v = 0; v < body.count; v++) {
+    if (at(head, v) <= 0.6) continue;
+    const [, y, z] = body.point(v);
+    lowY = Math.min(lowY, y);
+    highY = Math.max(highY, y);
+    lowZ = Math.min(lowZ, z);
+    highZ = Math.max(highZ, z);
+  }
+  const k = m.k,
+    opening = 0.92;
+  const centre: Vec = [0, (lowY + highY) / 2 + 0.012 * k, (lowZ + highZ) / 2 - 0.004 * k];
+  const radius = Math.max(highY - lowY, highZ - lowZ) / 2 + 0.05 * k;
+  const sight = unit([0, -0.12, 1]),
+    side: Vec = [1, 0, 0],
+    up = cross(sight, side);
+  const ring = (angle: number, r: number) =>
+    Array.from({ length: 40 }, (_, j) => {
+      const a = (j / 40) * TAU,
+        origin = add(centre, sight, Math.cos(angle) * r);
+      return add(
+        add(origin, side, Math.cos(a) * Math.sin(angle) * r),
+        up,
+        Math.sin(a) * Math.sin(angle) * r * 1.04,
+      );
+    });
+  const shell = new Piece(),
+    skin = body.rigid("head");
+  const surface = (r: number) =>
+    Array.from({ length: 19 }, (_, i) => ring(mix(opening, Math.PI - 0.001, i / 18), r));
+  shell.loft(surface(radius), skin);
+  shell.loft(surface(radius - 0.009 * k), skin, { flip: true });
+  shell.loft(
+    [
+      ring(opening, radius - 0.009 * k),
+      ring(opening - 0.02, radius - 0.004 * k),
+      ring(opening - 0.02, radius + 0.006 * k),
+      ring(opening + 0.03, radius + 0.007 * k),
+      ring(opening + 0.05, radius),
+    ],
+    skin,
+  );
+  const wide = radius * 0.8;
+  const collar = (dr: number, dy: number) =>
+    Array.from({ length: 40 }, (_, j): Vec => [
+      Math.cos((j / 40) * TAU) * (wide + dr * k),
+      m.neck[1] + (0.035 + dy) * k,
+      m.neck[2] + 0.004 * k + Math.sin((j / 40) * TAU) * (wide + dr * k) * 1.08,
+    ]);
+  const trim = new Piece().loft(
+    [
+      collar(-0.02, -0.03),
+      collar(0.012, -0.03),
+      collar(0.016, -0.012),
+      collar(0.012, 0.006),
+      collar(-0.012, 0.008),
+      collar(-0.02, -0.03),
+    ],
+    body.blend([
+      ["neck_01", 0.5],
+      ["spine_03", 0.5],
+    ]),
+  );
+  return { shell, trim };
+}

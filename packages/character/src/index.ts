@@ -2,6 +2,7 @@ export * from "./view.js";
 export * from "./build.js";
 export * from "./export.js";
 export * from "./wardrobe.js";
+export * from "./garments.js";
 export { expeditionAtlas, regionFit, type RegionFit } from "./dress.js";
 export * from "./assets.js";
 export { domRaster, type Raster, type RasterImage } from "./raster.js";

@@ -30,7 +30,7 @@ import { bakeGameFolds } from "./dress/fold-bake.js";
 import { fittedHair, type HairStyle } from "./dress/hair.js";
 import { fittedNecklace } from "./dress/necklace.js";
 import { tailorHuman, type Tailor } from "./dress/tailor.js";
-import type { PresetOutfit } from "./dress/outfit-names.js";
+import type { OutfitPattern } from "./dress/outfit-names.js";
 import { dressPreset, type OutfitTones } from "./dress/outfits.js";
 import { isGrownHairStyle, strandGroom } from "./dress/strand-groom.js";
 import { gameTriangleTarget } from "../game/optimize.js";
@@ -181,7 +181,7 @@ export interface WornCast {
 
 export interface HumanDress {
   readonly tailor?: Tailor | undefined;
-  readonly outfit?: { readonly name: PresetOutfit; readonly tones: OutfitTones } | undefined;
+  readonly outfit?: { readonly name: OutfitPattern; readonly tones: OutfitTones } | undefined;
   readonly hair?: HairStyle | undefined;
   readonly skin?: string | undefined;
   readonly eyewear?: string | undefined;

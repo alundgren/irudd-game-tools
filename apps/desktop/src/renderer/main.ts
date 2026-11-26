@@ -35,6 +35,7 @@ import { mountProposals } from "./panels/proposals.js";
 import { mountHistory } from "./panels/history.js";
 import { mountAgents } from "./panels/agents.js";
 import { mountVariation } from "./panels/variation.js";
+import { mountWardrobe } from "./panels/wardrobe.js";
 import { mountHuman } from "./panels/human.js";
 import { mountStart } from "./panels/start.js";
 import { mountLibrary } from "./panels/library.js";
@@ -106,6 +107,7 @@ for (const [name, b] of Object.entries(toolButtons))
 function selectPart(part: string | null): void {
   viewport.select(part);
   outliner.select(part);
+  wardrobe.render();
   properties.render();
   variation.render();
 }
@@ -247,6 +249,7 @@ const proposals = mountProposals(panels, {
   hideBanner,
 });
 const history = mountHistory(panels);
+const wardrobe = mountWardrobe(panels, (host, kind, color) => viewport.cut(host, kind, color));
 const human = mountHuman(panels, () => variation.current()?.direction);
 const library = mountLibrary(panels, () => viewport.request());
 const start = mountStart(panels, async (id) => {
@@ -328,6 +331,7 @@ function syncCharacterFiles(): void {
 function renderAll(): void {
   start.render();
   human.render();
+  wardrobe.render();
   library.render();
   syncCharacterFiles();
   outliner.render();

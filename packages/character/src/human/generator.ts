@@ -119,7 +119,7 @@ export const HumanTailorSchema = Schema.Struct({
   }),
 );
 
-export const humanOutfits = ["Anatomy", "Work clothes"] as const;
+export const humanOutfits = ["Anatomy", "Base layer", "Work clothes", "Pressure suit"] as const;
 
 export const HumanStyleSchema = Schema.Struct({
   armInk: Schema.optionalKey(Schema.Literals(armInkStyles)),

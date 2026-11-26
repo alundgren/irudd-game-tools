@@ -130,7 +130,9 @@ export async function verifyHumanEditing(page: Page, agent: WorkshopClient, dire
   assert.deepEqual(await current(), look);
   await change(page.selectOption("#human-hair", "Side-swept pixie"), "14-hairstyle");
   assert.equal((await current()).style.hair, "Side-swept pixie");
-  await change(page.selectOption("#human-outfit", "Chore jacket"), "15-clothing");
+  const clothing = look.style.outfit === "Chore jacket" ? "Coveralls" : "Chore jacket";
+  await change(page.selectOption("#human-outfit", clothing), "15-clothing");
+  assert.equal((await current()).style.outfit, clothing);
   await change(setValue("#human-clothColor", "#435e82"), "16-cloth-colour");
   assert.equal((await current()).style.clothColor, "#435e82");
   for (const [key, value] of [
