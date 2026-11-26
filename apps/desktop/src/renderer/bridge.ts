@@ -101,6 +101,12 @@ export function bridge(): DesktopApi {
         (v): v is LibraryEntry[] => Array.isArray(v) && v.every(isEntry),
         "library",
       ),
+    bundledImage: async (digest) =>
+      check(
+        await api.bundledImage(digest),
+        (v): v is Uint8Array => v instanceof Uint8Array,
+        "bundled image",
+      ),
     humanPack: async (file) =>
       check(await api.humanPack(file), (v): v is Uint8Array => v instanceof Uint8Array, "pack"),
     readLibrary: async (id) =>

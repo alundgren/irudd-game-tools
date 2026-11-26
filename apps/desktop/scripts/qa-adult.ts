@@ -243,6 +243,7 @@ try {
   });
 
   await step("pair an agent and connect it", async () => {
+    await page.click("#agents details:not([open]) > summary");
     await page.fill("#agents input", "qa-agent");
     await page.click("#agents button:has-text('Pair')");
     await page.waitForSelector("#agents p:has-text('Paired qa-agent')");

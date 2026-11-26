@@ -6,15 +6,11 @@ import {
   buildCharacter,
   type BuildOptions,
   type BuiltCharacter,
-  type MaterialSource,
+  surfaceMaterials,
+  type SurfaceKit,
 } from "@irudd/character";
 import type { HumanBody } from "@irudd/character/human";
-import {
-  worldDeltaInParent,
-  type CharacterDocument,
-  type Finish,
-  type Registry,
-} from "@irudd/document";
+import { worldDeltaInParent, type CharacterDocument, type Registry } from "@irudd/document";
 
 export const tools = ["select", "translate", "rotate", "scale"] as const;
 export type Tool = (typeof tools)[number];
@@ -30,40 +26,36 @@ export interface ViewportEvents {
   readonly onDragEnd: (partId: string, transform: Transform | undefined) => void;
 }
 
-const roughness: Record<Finish, number> = {
-  plain: 0.82,
-  canvas: 0.92,
-  satin: 0.45,
-  leather: 0.6,
-  metal: 0.35,
-  scales: 0.7,
-  horn: 0.55,
-  fur: 0.95,
-  jacket: 0.88,
-};
-const metalness: Partial<Record<Finish, number>> = { metal: 0.85 };
+export const displayModes = ["studio", "clay", "silhouette"] as const;
+export type DisplayMode = (typeof displayModes)[number];
 
-function viewportMaterials(): { source: MaterialSource; dispose(): void } {
-  const cache = new Map<string, T.MeshStandardMaterial>();
-  return {
-    source(color, finish) {
-      const key = `${color}|${finish}`;
-      let material = cache.get(key);
-      if (!material) {
-        material = new T.MeshStandardMaterial({
-          color,
-          roughness: roughness[finish],
-          metalness: metalness[finish] ?? 0,
-        });
-        cache.set(key, material);
-      }
-      return material;
-    },
-    dispose() {
-      for (const material of cache.values()) material.dispose();
-      cache.clear();
-    },
+const directions = {
+  front: new T.Vector3(0, 0, 1),
+  side: new T.Vector3(1, 0, 0),
+  back: new T.Vector3(0, 0, -1),
+  threequarter: new T.Vector3(0.62, 0.35, 1).normalize(),
+};
+export type CameraAngle = keyof typeof directions;
+
+function partBounds(object: T.Object3D): T.Box3 {
+  object.updateWorldMatrix(true, true);
+  const box = new T.Box3();
+  const visit = (node: T.Object3D): void => {
+    if (node !== object && (!node.visible || node.userData["partId"])) return;
+    if (isMesh(node)) {
+      if (!node.geometry.boundingBox) node.geometry.computeBoundingBox();
+      if (node.geometry.boundingBox)
+        box.union(node.geometry.boundingBox.clone().applyMatrix4(node.matrixWorld));
+    }
+    node.children.forEach(visit);
   };
+  visit(object);
+  if (box.isEmpty())
+    box.setFromCenterAndSize(
+      object.getWorldPosition(new T.Vector3()),
+      object.getWorldScale(new T.Vector3()),
+    );
+  return box;
 }
 
 function isMesh(object: T.Object3D): object is T.Mesh {
@@ -80,7 +72,15 @@ export class EditorViewport {
   private readonly gizmo: TransformControls;
   private readonly highlight = new T.BoxHelper(new T.Object3D(), 0xe2a447);
   private readonly observer: ResizeObserver;
-  private materials = viewportMaterials();
+  private mode: DisplayMode = "studio";
+  private readonly clay = new T.MeshStandardMaterial({
+    color: "#adb4ad",
+    roughness: 0.86,
+    side: T.DoubleSide,
+  });
+  private readonly silhouette = new T.MeshBasicMaterial({ color: "#203733", side: T.DoubleSide });
+  private readonly studio = new Map<T.Mesh, T.Material | T.Material[]>();
+
   private built: BuiltCharacter | undefined;
   private doc: CharacterDocument | undefined;
   private registry: Registry | undefined;
@@ -195,30 +195,37 @@ export class EditorViewport {
   show(
     doc: CharacterDocument | undefined,
     registry: Registry,
-    finish?: BuildOptions["finish"],
+    studio?: { readonly kit: SurfaceKit; readonly finish: NonNullable<BuildOptions["finish"]> },
     humanPaint?: BuildOptions["humanPaint"],
   ): void {
     this.dragStart = undefined;
     this.gizmo.detach();
     if (this.built) {
       this.built.group.removeFromParent();
+      for (const [mesh, original] of this.studio) mesh.material = original;
+      this.studio.clear();
       this.built.dispose();
       this.built = undefined;
     }
-    this.materials.dispose();
-    this.materials = viewportMaterials();
     this.doc = doc;
     this.registry = registry;
-    if (doc) {
+    if (doc && studio) {
+      const materials = surfaceMaterials(studio.kit);
       this.built = buildCharacter(doc, {
-        materials: this.materials.source,
+        materials,
+        groomMaterials: materials,
+        wingMaterials: materials,
         human: this.human,
         humanPaint,
-        ...(finish ? { finish } : {}),
+        finish: studio.finish,
       });
       this.built.group.traverse((node) => {
-        if (isMesh(node)) node.castShadow = true;
+        if (isMesh(node)) {
+          node.castShadow = true;
+          this.studio.set(node, node.material);
+        }
       });
+      this.setDisplay(this.mode);
       this.scene.add(this.built.group);
       if (!this.framed) {
         this.frame();
@@ -267,18 +274,50 @@ export class EditorViewport {
     this.gizmo.attach(part.object);
   }
 
-  frame(): void {
-    const box = new T.Box3();
-    if (this.built) box.setFromObject(this.built.group);
+  setDisplay(mode: DisplayMode): void {
+    this.mode = mode;
+    const material = mode === "clay" ? this.clay : this.silhouette;
+    for (const [mesh, original] of this.studio)
+      mesh.material =
+        mode === "studio"
+          ? original
+          : Array.isArray(original)
+            ? original.map(() => material)
+            : material;
+    this.scene.background = new T.Color(mode === "silhouette" ? 0xdce3de : 0x30383a);
+    this.request();
+  }
+
+  setAngle(angle: CameraAngle): void {
+    const target = this.orbit.target;
+    const distance = this.camera.position.distanceTo(target);
+    this.camera.position.copy(target).addScaledVector(directions[angle], distance);
+    this.orbit.update();
+    this.request();
+  }
+
+  focusSelection(): void {
+    const part = this.selected === null ? undefined : this.built?.parts.get(this.selected);
+    this.frame(
+      part && partBounds(part.object),
+      this.camera.position.clone().sub(this.orbit.target).normalize(),
+    );
+  }
+
+  frame(bounds?: T.Box3, along = directions.threequarter): void {
+    const box = bounds ?? new T.Box3();
+    if (!bounds && this.built) box.setFromObject(this.built.group);
     if (box.isEmpty()) box.set(new T.Vector3(-0.5, 0, -0.5), new T.Vector3(0.5, 1.4, 0.5));
     const centre = box.getCenter(new T.Vector3());
-    const size = box.getSize(new T.Vector3()).length();
+    const size = Math.max(0.001, box.getSize(new T.Vector3()).length());
+    const halfFov = Math.atan(
+      Math.tan(T.MathUtils.degToRad(this.camera.fov / 2)) * Math.min(1, this.camera.aspect),
+    );
+    const distance = (0.53 * size) / Math.sin(halfFov);
     this.orbit.target.copy(centre);
-    this.camera.position
-      .copy(centre)
-      .add(new T.Vector3(0.62, 0.35, 1).normalize().multiplyScalar(size * 1.6));
+    this.camera.position.copy(centre).addScaledVector(along, distance);
     this.camera.near = Math.max(size / 500, 0.001);
-    this.camera.far = Math.max(size * 60, 10);
+    this.camera.far = Math.max(size * 60, distance + size, 10);
     this.camera.updateProjectionMatrix();
     this.orbit.update();
     this.request();

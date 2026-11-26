@@ -6,6 +6,7 @@ const bridgeMethods = [
   "app",
   "call",
   "createProject",
+  "bundledImage",
   "humanPack",
   "library",
   "onCommit",

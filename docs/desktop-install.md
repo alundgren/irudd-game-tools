@@ -15,3 +15,5 @@ Program files live in `%LOCALAPPDATA%\irudd-game-tools`, settings in `%APPDATA%\
 If Git asks for developer tools, run `xcode-select --install`, finish the installation, then run the Mac install command. Find **Irudd Workshop** in `~/Applications`. The CLI is at `~/.local/bin/irudd`.
 
 To update, rerun the install command, quit the app and reopen it. Builds live in `~/Library/Application Support/Irudd Workshop Installer`. Projects and credentials are stored separately.
+
+See the [desktop feature checklist](parity.md) for editing tools and planned additions.

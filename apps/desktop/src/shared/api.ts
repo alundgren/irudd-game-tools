@@ -177,6 +177,7 @@ export interface DesktopApi {
   onCommit(listener: (notice: CommitNotice) => void): () => void;
   onSteer(listener: (notice: SteerNotice) => void): () => void;
   library(): Promise<ReadonlyArray<LibraryEntry>>;
+  bundledImage(digest: string): Promise<Uint8Array>;
   humanPack(file: string): Promise<Uint8Array>;
   readLibrary(id: string): Promise<LibraryFile | null>;
   openGlb(): Promise<LibraryFile | null>;
@@ -207,6 +208,7 @@ export const channels = {
   commit: "workshop:commit",
   steer: "workshop:steer",
   library: "workshop:library",
+  bundledImage: "workshop:bundled-image",
   humanPack: "workshop:human-pack",
   readLibrary: "workshop:read-library",
   openGlb: "workshop:open-glb",
