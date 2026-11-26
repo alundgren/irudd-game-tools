@@ -1,3 +1,4 @@
+import { context2d, drawable, type Raster } from "../raster.js";
 import type { FigureEyes } from "@irudd/document";
 import * as T from "three";
 import { faceProjector } from "../rig/expressions.js";
@@ -286,4 +287,113 @@ export function attachEyes(
   }
   mesh.userData["fittedEyes"] = true;
   return true;
+}
+
+export function fitPaintedEyes(
+  mesh: T.Mesh,
+  paint: HeadSpace | undefined,
+  material: T.Material | T.Material[],
+  raster: Raster,
+): FigureEyes {
+  const settings = { color: "#574331", width: 1, opening: 1, lift: 0, iris: 1, spacing: 1 };
+  const map = material instanceof T.MeshStandardMaterial ? material.map : null;
+  const im = drawable(map?.image);
+  if (!im || !map) return settings;
+  const { h, half, cx, cy, probe } = frame(mesh, paint);
+  const ctx = context2d(raster.canvas(im.width, im.height), { willReadFrequently: true });
+  ctx.drawImage(im, 0, 0);
+  const data = ctx.getImageData(0, 0, im.width, im.height).data;
+  const { width, height } = im,
+    flipY = map.flipY;
+  function luminance(x: number, y: number) {
+    const point = probe(x, y);
+    if (!point) return 0.27;
+    const u = T.MathUtils.clamp(point.u, 0, 1) * (width - 1),
+      v = T.MathUtils.clamp(flipY ? 1 - point.v : point.v, 0, 1) * (height - 1);
+    function sample(i: number, j: number) {
+      const k = 4 * (Math.min(height - 1, j) * width + Math.min(width - 1, i));
+      return (0.21 * (data[k] ?? 0) + 0.72 * (data[k + 1] ?? 0) + 0.07 * (data[k + 2] ?? 0)) / 255;
+    }
+    const a = Math.floor(u),
+      b = Math.floor(v);
+    return T.MathUtils.lerp(
+      T.MathUtils.lerp(sample(a, b), sample(a + 1, b), u - a),
+      T.MathUtils.lerp(sample(a, b + 1), sample(a + 1, b + 1), u - a),
+      v - b,
+    );
+  }
+  function offsetFor(sign: number): [number, number] {
+    const x0 = cx + sign * 0.425 * half;
+    let best = -Infinity,
+      offset: [number, number] = [0, 0];
+    for (let iy = -6; iy <= 6; iy++)
+      for (let ix = -7; ix <= 7; ix++) {
+        const dx = ix * 0.003,
+          dy = iy * 0.0027,
+          x = x0 + dx * h,
+          y = cy + dy * h;
+        const core =
+          (2 * luminance(x, y) +
+            luminance(x - 0.003 * h, y) +
+            luminance(x + 0.003 * h, y) +
+            luminance(x, y + 0.003 * h)) /
+          5;
+        const surround =
+          (luminance(x - 0.022 * h, y) +
+            luminance(x + 0.022 * h, y) +
+            luminance(x, y - 0.016 * h)) /
+          3;
+        const score = surround - core - 0.16 * core - 0.045 * ((ix / 7) ** 2 + (iy / 6) ** 2);
+        if (score > best) {
+          best = score;
+          offset = [dx, dy];
+        }
+      }
+    return offset;
+  }
+  const offsets = [offsetFor(-1), offsetFor(1)] as const;
+  function contourFor([dx, dy]: readonly [number, number], side: number) {
+    const sign = side ? 1 : -1,
+      ex = cx + sign * 0.425 * half + dx * h,
+      ey = cy + dy * h;
+    function trace(direction: number) {
+      const line: number[] = [];
+      for (let i = 0; i < 9; i++) {
+        const u = i / 4 - 1,
+          arc = Math.max(0, 1 - u * u) ** 0.66;
+        const prior = arc * (direction > 0 ? 0.021 : 0.015),
+          x = ex + u * 0.205 * half;
+        let best = -Infinity,
+          edge = prior;
+        for (let j = -5; j <= 5; j++) {
+          const distance = Math.max(0.002, prior + j * 0.0019 * arc),
+            y = ey + (0.006 * sign * u + direction * distance) * h;
+          const outside = luminance(x, y + direction * 0.004 * h),
+            inside = luminance(x, y - direction * 0.003 * h),
+            middle = luminance(x, y);
+          const score =
+            0.65 * Math.abs(inside - outside) +
+            0.35 * (Math.max(inside, outside) - middle) -
+            0.08 * (j / 5) ** 2;
+          if (score > best) {
+            best = score;
+            edge = distance;
+          }
+        }
+        line.push(direction * (arc ? edge : 0));
+      }
+      return line.map((v, i) =>
+        i && i < 8
+          ? Number((0.22 * (line[i - 1] ?? v) + 0.56 * v + 0.22 * (line[i + 1] ?? v)).toFixed(5))
+          : v,
+      );
+    }
+    return { upper: trace(1), lower: trace(-1) };
+  }
+  return {
+    ...settings,
+    source: true,
+    offsets,
+    contours: [contourFor(offsets[0], 0), contourFor(offsets[1], 1)],
+  };
 }

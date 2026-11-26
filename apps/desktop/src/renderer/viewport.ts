@@ -6,6 +6,10 @@ import {
   buildCharacter,
   partBounds,
   cutGarment,
+  fitAccessory,
+  fitPaintedEyes,
+  fitSweptHand,
+  domRaster,
   type BuildOptions,
   type BuiltCharacter,
   surfaceMaterials,
@@ -162,6 +166,29 @@ export class EditorViewport {
   cut(host: string, kind: Parameters<typeof cutGarment>[2], color: string) {
     if (!this.built) throw new Error("Wait for the character to load.");
     return cutGarment(this.built, host, kind, color);
+  }
+
+  fitHand(p: import("@irudd/document").Part) {
+    if (!this.built) throw new Error("Wait for the character to load.");
+    return fitSweptHand(this.built, p);
+  }
+
+  fitEyes(id: string) {
+    const built = this.built,
+      root = built?.parts.get(id)?.object;
+    const face = built && [...built.faces.keys()].find((m) => m === root || m.parent === root);
+    if (!face || !built) throw new Error("Select a registered face.");
+    return fitPaintedEyes(
+      face,
+      built.faces.get(face),
+      this.studio.get(face) ?? face.material,
+      domRaster(),
+    );
+  }
+
+  accessoryAnchor(face: string, pivot: string) {
+    if (!this.built) throw new Error("Wait for the character to load.");
+    return fitAccessory(this.built, face, pivot);
   }
 
   get dragging(): boolean {

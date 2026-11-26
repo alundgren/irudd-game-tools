@@ -86,10 +86,10 @@ export interface FaceMark {
   readonly turn?: number;
 }
 
-function faceMark(
+export function faceMark(
   kind: FaceMarkKind,
   seed: number,
-  set: Partial<Omit<FaceMark, "kind" | "seed">>,
+  set: Partial<Omit<FaceMark, "kind" | "seed">> = {},
 ): FaceMark {
   const k = faceMarkKindTable[kind];
   const mark: FaceMark = {
