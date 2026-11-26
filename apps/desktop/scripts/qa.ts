@@ -15,6 +15,7 @@ import { parseArgs } from "node:util";
 import { spawn } from "node:child_process";
 import { chromium, type Browser, type BrowserContext, type Page } from "@playwright/test";
 import { connect, type WorkshopClient } from "@irudd/workshop/client";
+import { verifyVariation } from "./variation-check.js";
 import { appDir, appEnvironment, electronExecutable } from "./electron.js";
 
 const { values } = parseArgs({
@@ -663,6 +664,19 @@ try {
       detail: ((await page.textContent("#steering .steer-identity")) ?? "").slice(0, 300),
     });
   });
+
+  await step(
+    "replay personal choices, send visual directions and review protected geometry",
+    async () => {
+      assert.ok(agent);
+      await verifyVariation(
+        page,
+        agent,
+        documentId,
+        join(repository, ".reference-cache", "phase3"),
+      );
+    },
+  );
 
   await step("export the head as a clay GLB and play it", async () => {
     await page.click("#export");

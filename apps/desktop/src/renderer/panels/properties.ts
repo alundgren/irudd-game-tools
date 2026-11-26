@@ -1,4 +1,4 @@
-import { byId, el, numberInput } from "../dom.js";
+import { button, byId, el, numberInput } from "../dom.js";
 import type { PanelContext } from "./context.js";
 
 export function mountProperties(ctx: PanelContext) {
@@ -29,6 +29,9 @@ export function mountProperties(ctx: PanelContext) {
     );
   }
 
+  let nudge:
+    | { id: string; documentId: string; revision: number; axis: number; percent: number }
+    | undefined;
   function renderProperties(): void {
     const { doc, view, part, rename, commit } = ctx;
     properties.replaceChildren();
@@ -72,6 +75,11 @@ export function mountProperties(ctx: PanelContext) {
       );
       return;
     }
+    if (
+      nudge &&
+      (nudge.documentId !== doc.id || nudge.id !== p.id || nudge.revision !== view.revision)
+    )
+      nudge = undefined;
     const label = el("input");
     label.value = p.label;
     label.onchange = () => void rename(p.id, label.value);
@@ -97,6 +105,55 @@ export function mountProperties(ctx: PanelContext) {
         el("span", { text: p.parent === null ? "none" : (part(p.parent)?.label ?? p.parent) }),
       ),
     );
+    const pending = nudge;
+    const roll = button("Small reroll", () => {
+      const values = crypto.getRandomValues(new Uint32Array(2));
+      const axis = (values[0] ?? 0) % 3;
+      const size = p.size[axis] ?? 1;
+      const drawn = (values[1] ?? 0) % 20;
+      const amount = 3 + (drawn % 10);
+      const shrinking =
+        size > 100 / (1 + amount / 100) || (drawn >= 10 && size * (1 - amount / 100) >= 0.0005);
+      nudge = {
+        id: p.id,
+        documentId: doc.id,
+        revision: view.revision,
+        axis,
+        percent: shrinking ? -amount : amount,
+      };
+      renderProperties();
+    });
+    const reset = button("Reset", () => {
+      nudge = undefined;
+      renderProperties();
+    });
+    const apply = button("Apply nudge", () => {
+      if (!pending) return;
+      const size = p.size.map((len, i) =>
+        i === pending.axis ? len * (1 + pending.percent / 100) : len,
+      );
+      const summary = "Nudge " + p.label;
+      void commit(
+        { type: "edit", ops: [{ op: "part.set", part: p.id, set: { size } }], summary },
+        summary,
+        { documentId: doc.id, revision: view.revision },
+      );
+    });
+    reset.disabled = apply.disabled = !pending;
+    properties.append(el("div", { className: "row-actions" }, roll, reset, apply));
+    if (pending)
+      properties.append(
+        el("output", {
+          text:
+            p.label +
+            " · " +
+            ["width", "height", "depth"][pending.axis] +
+            " " +
+            (pending.percent > 0 ? "+" : "") +
+            pending.percent +
+            "%",
+        }),
+      );
   }
   return { render: renderProperties };
 }

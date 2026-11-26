@@ -71,13 +71,37 @@ export const ArtBrief = Schema.Struct({
   kind: Schema.Literals(artKinds),
   documentId: DocumentId,
   revision: Revision,
-  direction: Text(4000),
+  direction: Text(8000),
+  fromSteer: Schema.optionalKey(Schema.Literal(true)),
+  variation: Schema.optionalKey(
+    Schema.Struct({
+      strength: Schema.Literals(["subtle", "exploratory", "radical"]),
+      seed: Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 0xffffffff })),
+      magnitude: Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 100 })),
+      cues: Schema.Array(Text(96)).check(Schema.isMaxLength(2)),
+      choices: Schema.Array(Schema.Struct({ label: Text(48), value: Text(96) })).check(
+        Schema.isMaxLength(8),
+      ),
+    }),
+  ),
   attachments: Schema.Array(ArtAttachment).check(Schema.isMaxLength(artLimits.attachments)),
   parts: Schema.optionalKey(Schema.Array(PartId).check(Schema.isMaxLength(128))),
   height: Schema.optionalKey(Height),
   protected: Schema.optionalKey(Schema.Array(Text(64)).check(Schema.isMaxLength(32))),
   intent: Schema.optionalKey(Schema.Literals(traceIntents)),
 }).check(
+  Schema.makeFilter(
+    (b) =>
+      b.fromSteer ||
+      b.direction.length <= 4000 ||
+      "Keep the artwork direction under 4000 characters.",
+  ),
+  Schema.makeFilter(
+    (b) =>
+      b.kind === "variation" ||
+      (!b.variation && !b.fromSteer) ||
+      "Choose a variation brief for a drawn direction.",
+  ),
   Schema.makeFilter(
     (b) =>
       b.intent === undefined ||
@@ -321,7 +345,7 @@ export interface ArtRequestView {
   readonly pairingId: string;
   readonly requestId: string;
   readonly messageId: string;
-  readonly steering: { readonly status: string } | null;
+  readonly steering: { readonly status: string; readonly proposalId?: string } | null;
   readonly brief: ArtBrief;
   readonly attachments: ReadonlyArray<ArtAttachmentView>;
   readonly createdAt: number;

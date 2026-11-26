@@ -26,6 +26,7 @@ import {
   type LookDirection,
   type MeasurementRegion,
 } from "@irudd/character/human";
+import type { Direction } from "../direction.js";
 import { button, byId, el } from "../dom.js";
 import type { PanelContext } from "./context.js";
 
@@ -96,7 +97,7 @@ function keys<T extends object>(record: T) {
   return result;
 }
 
-export function mountHuman(ctx: PanelContext) {
+export function mountHuman(ctx: PanelContext, variation: () => Direction | undefined) {
   const panel = byId("human-editor", HTMLElement);
   const anatomy = byId("human-anatomy", HTMLDetailsElement);
   const appearance = byId("human-appearance", HTMLDetailsElement);
@@ -169,7 +170,10 @@ export function mountHuman(ctx: PanelContext) {
       field(name, slider),
       reading,
       button("Reroll " + region, () =>
-        steer(rerollRegion(body, params, region, seed()), "Reroll " + region),
+        steer(
+          rerollRegion(body, params, region, seed(), variation()?.strength),
+          "Reroll " + region,
+        ),
       ),
     );
 
@@ -211,6 +215,16 @@ export function mountHuman(ctx: PanelContext) {
       field("Eye colour", eye),
       field("Facial detail", complexion),
     );
+    function rollLook() {
+      const decks = variation()?.decks;
+      const choice = (name: string) => decks?.find((d) => d.label.toLowerCase() === name)?.value;
+      const family = lookDirections.find(
+        (v) => v.toLowerCase() === choice("outfit")?.toLowerCase(),
+      );
+      const look = newHumanLook(params, seed(), family ?? direction);
+      const skin = choice("skin");
+      return skin && /^#[0-9a-f]{6}$/i.test(skin) ? tintSkin(look, skin) : look;
+    }
     const dressed = params.outfit === "Work clothes";
     const style = params.style;
     const fields: HTMLElement[] = [
@@ -224,7 +238,7 @@ export function mountHuman(ctx: PanelContext) {
         }),
       ),
       button("Try a new outfit and hairstyle", () =>
-        steer(newHumanLook(params, seed(), direction), "Try a new outfit and hairstyle"),
+        steer(rollLook(), "Try a new outfit and hairstyle"),
       ),
       field(
         "Character artwork",

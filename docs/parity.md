@@ -8,6 +8,10 @@ Choose **New random human** to pick an archetype and a Natural, Fantasy or Mixed
 
 Cast artwork supplies its own hair, face and garments. Choose **Individual styling** to use the separate controls. The nine remaining styling keys are scheduled for phase 8 (`faceFamily`, `faceFamilyHair`, `facePlanes`, `facialHair`, `earrings`, `waistBag`, `handProp`, `hat`, `hatColor`).
 
+In **Variation**, write one deck per line, such as `mood = calm | wary | fierce`, choose a range and draw. Pin a cue or choice before redrawing. Copy the direction code to replay the same draw, including its pins and decks. Subtle and exploratory draws soften adult region rerolls. When trying a new outfit and hairstyle, an `outfit` deck can choose a look direction such as Everyday or Festive, and a `skin` deck can choose a hex skin colour.
+
+Choose whether each reference guides the face, body silhouette, garment, or colour and surface. Attach the pictures or select a part and choose **Keep shape in AI edits**. Character-specific Steer messages with these settings and Artwork variation briefs carry the active draw, pictures and protected part IDs. The proposal card and preview name any protected shape the reply changes. Under **Properties**, **Small reroll** prepares a size nudge for one axis of the selected part. **Reset** clears the pending nudge and **Apply nudge** records it in History.
+
 | Phase | Scope |
 | --- | --- |
 | 1 | Viewport display, focus and panel structure |
@@ -23,13 +27,13 @@ Cast artwork supplies its own hair, face and garments. Choose **Individual styli
 | --- | --- | --- | --- |
 | 1 | Resize, move or turn a part and apply the change | partly | 5 |
 | 2 | Switch between Face, Build, Cloth and Spine modes and edit spine points | missing | 8 |
-| 3 | Make a small reroll or reset the shape | missing | 3 |
+| 3 | Make a small reroll or reset the shape | done | 3 |
 | 4 | Adjust an adult body measurement by region | done | 2 |
 | 5 | Reroll the body, face, limbs or portrait | done | 2 |
 | 6 | Fit a character to a 3D reference | missing | 8 |
 | 7 | Sculpt on the model by pulling its surface | missing | 8 |
 | 8 | Draw an appendage or place a branch | missing | 8 |
-| 9 | Protect selected parts during AI edits | partly | 3 |
+| 9 | Protect selected parts during AI edits | done | 3 |
 | 10 | Frame the selected part or the whole character | done | 1 |
 | 11 | Switch between the current outfit and the base shape | done | 2 |
 | 12 | Try a new outfit and hairstyle and set a preference for new looks | done | 2 |
@@ -71,12 +75,12 @@ Cast artwork supplies its own hair, face and garments. Choose **Individual styli
 | 48 | Pose individual joints | missing | 7 |
 | 49 | Switch between Studio colour, Clay and Silhouette and choose a camera angle | done | 1 |
 | 50 | Set world scale and compare character sizes | missing | 8 |
-| 51 | Write a brief for an AI variation | partly | 3 |
-| 52 | Set a variation range, give direction cues and pin choices | missing | 3 |
-| 53 | Build decks of your own random choices | missing | 3 |
-| 54 | Replay a direction from its code | missing | 3 |
+| 51 | Write a brief for an AI variation | done | 3 |
+| 52 | Set a variation range, give direction cues and pin choices | done | 3 |
+| 53 | Build decks of your own random choices | done | 3 |
+| 54 | Replay a direction from its code | done | 3 |
 | 55 | Mark a location on the model | missing | 8 |
-| 56 | Add visual references | partly | 3 |
+| 56 | Add visual references | done | 3 |
 | 57 | Request and apply painted edits | partly | 8 |
 | 58 | Refine a proposal, compare it or keep an alternate | partly | 8 |
 | 59 | Inspect a game export | partly | 8 |

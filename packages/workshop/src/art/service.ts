@@ -39,7 +39,7 @@ import {
   type ArtSubmitResult,
   type TraceIntent,
 } from "../wire/art.js";
-import type { SteeringMessage, SteeringStatus } from "../wire/steering.js";
+import type { SteeringMessage } from "../wire/steering.js";
 import {
   SteeringError,
   steeringMessageId,
@@ -671,9 +671,18 @@ export class Art {
 
   private summary(artId: string, brief: ArtBrief, files: ReadonlyArray<StoredFile>): string {
     const lines = [
-      `Art request ${artId}: ${brief.kind}, an ${artBriefFormat} v1 brief for ${brief.documentId} at revision ${brief.revision}.`,
+      brief.fromSteer
+        ? `Steering references and direction: use art_brief for ${artId}.`
+        : `Art request ${artId}: ${brief.kind}, an ${artBriefFormat} v1 brief for ${brief.documentId} at revision ${brief.revision}.`,
       "",
       brief.direction,
+      ...(brief.variation
+        ? [
+            brief.variation.strength + " variation, magnitude " + brief.variation.magnitude + "%",
+            ...brief.variation.cues,
+            ...brief.variation.choices.map((c) => c.label + " = " + c.value),
+          ]
+        : []),
       "",
       ...brief.attachments.map((a, i) => {
         const f = files[i];
@@ -696,7 +705,7 @@ export class Art {
     cli: { readonly irudd: string; readonly cred: string },
   ): ReadonlyArray<string> | undefined {
     const request = this.options.store.byMessage(message.messageId);
-    if (!request) return undefined;
+    if (!request || request.brief.fromSteer) return undefined;
     const { irudd, cred } = cli;
     const id = request.artId;
     const kind = request.brief.kind;
@@ -1291,11 +1300,13 @@ export class Art {
     const current = await Effect.runPromise(project.current(request.brief.documentId));
     const proposals = (await Effect.runPromise(project.inspect(request.brief.documentId)))
       .proposals;
-    let status: SteeringStatus | null = null;
+    let delivery: ArtRequestView["steering"] = null;
     try {
-      status = steering.get(request.messageId).status;
+      const message = steering.get(request.messageId);
+      const proposalId = message.report?.proposal?.id;
+      delivery = { status: message.status, ...(proposalId ? { proposalId } : {}) };
     } catch {
-      status = null;
+      delivery = null;
     }
     const submissions: ArtSubmissionView[] = store.submissions(request.artId).map((s) => {
       const live = s.proposal ? proposals.find((q) => q.id === s.proposal?.id) : undefined;
@@ -1331,7 +1342,7 @@ export class Art {
       pairingId: request.pairingId,
       requestId: request.requestId,
       messageId: request.messageId,
-      steering: status ? { status } : null,
+      steering: delivery,
       brief: request.brief,
       attachments: request.brief.attachments.map((a, i) => {
         const f = request.files[i];

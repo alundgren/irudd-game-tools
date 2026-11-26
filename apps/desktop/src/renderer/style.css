@@ -119,6 +119,7 @@ h2 {
   border-right: 1px solid var(--line);
 }
 .side {
+  grid-template-columns: minmax(0, 1fr);
   border-left: 1px solid var(--line);
   display: grid;
   align-content: start;
@@ -537,4 +538,26 @@ h2 {
 }
 #human-start::backdrop {
   background: rgb(0 0 0 / 45%);
+}
+
+.variation-controls,
+#variation-results,
+#variation-references {
+  display: grid;
+  gap: 0.4rem;
+}
+.variation-controls {
+  grid-template-columns: minmax(0, 1fr);
+  overflow-wrap: anywhere;
+  margin-top: 0.5rem;
+}
+.variation-controls input:not([type="checkbox"]),
+.variation-controls textarea,
+.variation-controls select {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+}
+.protected-warning {
+  color: #ffbd79;
 }

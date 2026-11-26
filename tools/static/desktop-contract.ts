@@ -15,6 +15,7 @@ const bridgeMethods = [
   "openCharacter",
   "openGlb",
   "openProject",
+  "copyDirection",
   "projectState",
   "readLibrary",
   "saveCharacter",
