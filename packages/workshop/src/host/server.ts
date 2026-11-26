@@ -173,6 +173,7 @@ export function serveConnection(socket: net.Socket, context: ConnectionContext):
               return true;
             },
           };
+        if (link) context.dispatcher.connected(link);
         state = {
           t: "ready",
           caller: { actor, role, session: bound.value, connection, ...(link ? { link } : {}) },

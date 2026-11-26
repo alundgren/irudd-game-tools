@@ -95,11 +95,10 @@ const schema = [
 // ── Stored JSON ─────────────────────────────────────────────────────────────
 
 const Receipt = Schema.Struct({
-  transport: Schema.Literals(["t3-thread", "claude-channel", "codex-queue", "inbox"]),
+  transport: Schema.Literals(["claude-channel", "inbox"]),
   hostMessageId: Schema.optionalKey(Schema.String),
   runId: Schema.optionalKey(Schema.String),
   delivery: Schema.optionalKey(Schema.String),
-  turn: Schema.optionalKey(Schema.Literals(["mid-turn", "next-turn", "new-turn", "restarted"])),
   via: Schema.optionalKey(Schema.String),
   at: Schema.Number,
 });

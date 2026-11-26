@@ -35,12 +35,8 @@ const time = (at: number | null | undefined): string =>
 
 export function routeLine(route: RecipientRoute): string {
   switch (route.transport) {
-    case "t3-thread":
-      return `t3 thread ${route.conversation} (${route.environment}${route.project ? `, project ${route.project}` : ""}, ${route.delivery ?? "next-turn"})`;
     case "claude-channel":
       return `claude channel ${route.instance} via MCP server ${route.server}${route.conversation ? `, session ${route.conversation}` : ""}`;
-    case "codex-queue":
-      return `codex session ${route.conversation}`;
     case "inbox":
       return `${route.host} inbox only${route.conversation ? ` (${route.conversation})` : ""}`;
   }
@@ -118,30 +114,11 @@ function readText(context: Context, index: number): string {
 }
 
 function buildRoute(context: Context): RecipientRoute {
-  const t3 = text(context, "t3-thread");
-  const codex = text(context, "codex-session");
   const channel = text(context, "claude-channel");
   const inbox = text(context, "inbox");
-  const given = [t3, codex, channel, inbox].filter((v) => v !== undefined).length;
-  if (given !== 1)
-    throw new UsageError(
-      "Give exactly one of --t3-thread, --codex-session, --claude-channel or --inbox.",
-    );
-  const environment = text(context, "environment") ?? "local";
+  const given = [channel, inbox].filter((v) => v !== undefined).length;
+  if (given !== 1) throw new UsageError("Give exactly one of --claude-channel or --inbox.");
   const conversation = text(context, "conversation");
-  if (t3 !== undefined) {
-    const project = text(context, "t3-project");
-    return {
-      transport: "t3-thread",
-      host: "t3",
-      environment,
-      conversation: t3,
-      ...(project === undefined ? {} : { project }),
-      ...(context.options["mid-turn"] === true ? { delivery: "mid-turn" as const } : {}),
-    };
-  }
-  if (codex !== undefined)
-    return { transport: "codex-queue", host: "codex", environment: "local", conversation: codex };
   if (channel !== undefined)
     return {
       transport: "claude-channel",
@@ -151,12 +128,12 @@ function buildRoute(context: Context): RecipientRoute {
       instance: channel,
       ...(conversation === undefined ? {} : { conversation }),
     };
-  if (inbox !== "t3" && inbox !== "claude-code" && inbox !== "codex")
-    throw new UsageError("--inbox is t3, claude-code or codex.");
+  if (inbox !== "agent" && inbox !== "claude-code" && inbox !== "codex")
+    throw new UsageError("--inbox is agent, claude-code or codex.");
   return {
     transport: "inbox",
     host: inbox,
-    environment,
+    environment: "local",
     ...(conversation === undefined ? {} : { conversation }),
   };
 }
@@ -187,8 +164,6 @@ export const steeringVerbs: ReadonlyArray<Verb> = [
     summary: "Bind a paired agent to the one conversation it works in",
     details: [
       "Examples:",
-      "  irudd route claude --t3-thread thread:abc123 --t3-project <t3-project-id> [--mid-turn]",
-      "  irudd route codex --codex-session 019a…",
       "  irudd route claude --claude-channel chn-… (an instance from irudd recipients)",
       "  irudd route codex --inbox codex --conversation 019a…",
       "The host delivers only to this conversation. It never starts one, never picks",
@@ -196,13 +171,6 @@ export const steeringVerbs: ReadonlyArray<Verb> = [
       "already sent. Re-pairing the agent unbinds it.",
     ].join("\n"),
     options: {
-      "t3-thread": { type: "string", value: "thread-id", help: "A T3 Code thread ID." },
-      "t3-project": { type: "string", value: "id", help: "The T3 project the thread belongs to." },
-      "mid-turn": {
-        type: "boolean",
-        help: "T3: steer a running turn when T3 and its provider can (needs irudd t3 connect).",
-      },
-      "codex-session": { type: "string", value: "uuid", help: "A saved Codex session ID." },
       "claude-channel": {
         type: "string",
         value: "instance",
@@ -212,14 +180,13 @@ export const steeringVerbs: ReadonlyArray<Verb> = [
       inbox: {
         type: "string",
         value: "host",
-        help: "No push: t3, claude-code or codex. The agent reads its inbox.",
+        help: "No push: agent, claude-code or codex. The agent reads its inbox.",
       },
       conversation: {
         type: "string",
         value: "id",
         help: "The host's conversation ID, for display (inbox and channel routes).",
       },
-      environment: { type: "string", value: "id", help: "local (default) or a T3 environment ID." },
       doc: {
         type: "string",
         multiple: true,

@@ -14,6 +14,7 @@
 // The host runs with --no-push, so it never calls T3 Code or Codex. The SDK
 // client stands in for Claude Code: this proves what the irudd side sends,
 // not that a Claude Code session displays it (see docs/workshop-steering.md).
+import { connect } from "@irudd/workshop/client";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFile, spawn, type ChildProcess } from "node:child_process";
@@ -89,7 +90,6 @@ function startHost(create: boolean): Promise<ChildProcess> {
       "--json",
       "--durability",
       "normal",
-      "--no-push",
     ],
     { env, stdio: ["ignore", "pipe", "pipe"], windowsHide: true },
   );
@@ -140,7 +140,7 @@ async function until<T>(read: () => Promise<T>, done: (v: T) => boolean, what: s
 test(
   "steering through a real host: channel push, inbox, ack, cursor, applied, restart",
   { timeout: 180_000 },
-  async () => {
+  async (ctx) => {
     const timings: Record<string, number> = {};
     const started = Date.now();
     let host = await startHost(true);
@@ -297,6 +297,11 @@ test(
         ).code,
         0,
       );
+      const connected = await connect({
+        credential: { role: "agent", file: codexCredential },
+        stateDir,
+      });
+      ctx.after(() => connected.close());
       const view = await cliJson("recipients", "codex");
       assert.equal(field(view.value, 0, "availability", "state"), "inbox-only");
       const forCodex = await cliJson("send", "codex", "Check the tail proposal.", "--doc", doc);

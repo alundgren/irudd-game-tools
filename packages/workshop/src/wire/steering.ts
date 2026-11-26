@@ -25,7 +25,7 @@ import { Schema } from "effect";
 import { Actor, DocumentId, RequestId } from "@irudd/document";
 import { AgentId, SteeringMessageId } from "./ids.js";
 
-export const steeringHosts = ["t3", "claude-code", "codex"] as const;
+export const steeringHosts = ["agent", "claude-code", "codex"] as const;
 export type SteeringHost = (typeof steeringHosts)[number];
 
 /**
@@ -37,25 +37,11 @@ export type SteeringHost = (typeof steeringHosts)[number];
  * - `codex-queue`: `codex queue --thread <id>`, queued for that saved session.
  * - `inbox`: no push. The agent reads its inbox in the same paired session.
  */
-export const steeringTransports = ["t3-thread", "claude-channel", "codex-queue", "inbox"] as const;
+export const steeringTransports = ["claude-channel", "inbox"] as const;
 export type SteeringTransportName = (typeof steeringTransports)[number];
 
 const ShortText = Schema.String.check(Schema.isMaxLength(200));
 /** T3 thread IDs, including delegated ones such as `thread:delegated-task:command%3A…`. */
-export const T3ThreadId = Schema.String.check(
-  Schema.isPattern(/^[A-Za-z0-9][A-Za-z0-9:%._~-]{0,511}$/, {
-    message: "Use the T3 thread ID exactly as T3 Code shows it.",
-  }),
-);
-/** `local`, or a linked T3 environment ID. */
-export const EnvironmentRef = Schema.String.check(
-  Schema.isPattern(/^[A-Za-z0-9][A-Za-z0-9:._-]{0,127}$/, {
-    message: "Use local or the environment ID.",
-  }),
-);
-export const T3ProjectId = Schema.String.check(
-  Schema.isPattern(/^[A-Za-z0-9][A-Za-z0-9:._-]{0,127}$/, { message: "Use a T3 project ID." }),
-);
 const Uuid = Schema.String.check(
   Schema.isPattern(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/, {
     message: "Use the session's UUID.",
@@ -76,17 +62,6 @@ export const McpServerName = Schema.String.check(
 /** One conversation and the transport that reaches it. Every field is the host's own identifier. */
 export const RecipientRoute = Schema.Union([
   Schema.Struct({
-    transport: Schema.Literal("t3-thread"),
-    host: Schema.Literal("t3"),
-    /** `local` for this machine's T3 Code server. */
-    environment: EnvironmentRef,
-    /** The T3 project the thread belongs to, for display and checks. */
-    project: Schema.optionalKey(T3ProjectId),
-    conversation: T3ThreadId,
-    /** next-turn (default) or mid-turn: into the running turn when T3 and its provider can. */
-    delivery: Schema.optionalKey(Schema.Literals(["next-turn", "mid-turn"])),
-  }),
-  Schema.Struct({
     transport: Schema.Literal("claude-channel"),
     host: Schema.Literal("claude-code"),
     environment: Schema.Literal("local"),
@@ -102,16 +77,9 @@ export const RecipientRoute = Schema.Union([
     conversation: Schema.optionalKey(Uuid),
   }),
   Schema.Struct({
-    transport: Schema.Literal("codex-queue"),
-    host: Schema.Literal("codex"),
-    environment: Schema.Literal("local"),
-    /** The Codex session (thread) UUID. */
-    conversation: Uuid,
-  }),
-  Schema.Struct({
     transport: Schema.Literal("inbox"),
     host: Schema.Literals(steeringHosts),
-    environment: EnvironmentRef,
+    environment: Schema.Literal("local"),
     /** The host's conversation ID, when known, so the person can tell sessions apart. */
     conversation: Schema.optionalKey(ShortText),
   }),
@@ -376,7 +344,6 @@ export interface HostReceipt {
   /** The host's word for what happened: `queued`, `started`, `channel-notified`, … */
   readonly delivery?: string;
   /** When the conversation gets it: inside its running turn, as its next turn, as a new turn, or by restarting the turn. */
-  readonly turn?: "mid-turn" | "next-turn" | "new-turn" | "restarted";
   /** Which mechanism carried it: `t3-mcp`, `t3-cli`, `claude-channel`, `codex-cli`. */
   readonly via?: string;
   readonly at: number;

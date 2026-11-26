@@ -22,7 +22,6 @@
   "dependencies": {
     "@effect/sql-sqlite-node": "catalog:",
     "@irudd/document": "workspace:*",
-    "@irudd/hosts": "workspace:*",
     "effect": "catalog:"
   },
   "devDependencies": {

@@ -144,7 +144,6 @@ async function withHost(
     create: { label: "Review test" },
     human: person,
     durability: "normal",
-    transports: [],
     ...(forms ? { forms: loadForms(forms).forms } : {}),
   });
   try {

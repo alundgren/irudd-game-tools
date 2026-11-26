@@ -97,7 +97,7 @@ In a paired MCP session, use `inspect_character` for the manifest and the first 
 Bind a paired agent to the conversation it is already in, then send it instructions:
 
 ```
-irudd route claude --t3-thread <thread-id>
+irudd route claude --inbox agent
 irudd send claude "Build on my jaw edit" --doc doc-marsh01
 ```
 

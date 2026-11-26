@@ -718,6 +718,7 @@ export class Art {
           agent: p.agent,
         });
       // Stored first, so the steering prompt finds the brief when it is built.
+      this.options.steering.requireConnected(p.agent);
       const stored = store.insertRequest({
         artId,
         agent: p.agent,

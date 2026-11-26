@@ -92,6 +92,10 @@ export class Dispatcher {
   }
 
   /** A connection closed: forget its inbox watch. */
+  connected(link: AgentLink): void {
+    this.context.steering.connected(link);
+  }
+
   disconnected(linkId: string): void {
     this.context.steering.disconnected(linkId);
   }

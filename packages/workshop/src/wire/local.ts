@@ -48,25 +48,6 @@ export function stateRoot(options: LocationOptions = {}): string {
   return path.join(xdg, "irudd", "workshop");
 }
 
-/**
- * This OS account's grant from T3 Code's MCP endpoint ("irudd t3 connect"): one per
- * account, shared by every project's host. Private to the account.
- */
-export function t3GrantPath(options: LocationOptions = {}): string {
-  return path.join(stateRoot(options), "t3", "mcp-grant.json");
-}
-
-/** T3 Code MCP authorization for steering ("irudd t3"). No storage; safe for clients. */
-export {
-  connectT3,
-  disconnectT3,
-  findT3Server,
-  grantInfo,
-  readT3Grant,
-  usableGrant,
-  type T3GrantInfo,
-} from "@irudd/hosts";
-
 /** The resolved, comparable form of a project directory. */
 export function canonicalProjectPath(directory: string): string {
   let resolved = path.resolve(directory);

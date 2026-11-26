@@ -171,7 +171,6 @@ async function withRig(body: (rig: Rig) => Promise<void>): Promise<void> {
     human: person,
     registry,
     durability: "normal",
-    transports: [],
     artTranslators: desktopArtTranslators(raster),
     shippedArtwork,
   });

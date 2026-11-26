@@ -9,8 +9,7 @@
     "test": "node --import ../../packages/document/test/support/register.ts --test \"test/**/*.test.ts\"",
     "gate:clients": "node --import ../../packages/document/test/support/register.ts --test test/clients.gate.ts",
     "gate:steering": "node --import ../../packages/document/test/support/register.ts --test test/steering.gate.ts",
-    "gate:art": "node --import ../../packages/document/test/support/register.ts --test test/art.gate.ts",
-    "canary:t3": "node --import ../../packages/document/test/support/register.ts test/t3-canary.ts"
+    "gate:art": "node --import ../../packages/document/test/support/register.ts --test test/art.gate.ts"
   },
   "dependencies": {
     "@irudd/document": "workspace:*",

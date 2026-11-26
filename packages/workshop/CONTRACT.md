@@ -302,15 +302,7 @@ if (opened.mode === "host") {
 
 The host keeps a steering outbox per project and OS account
 (`steering.sqlite` beside the pairings, recording the project ID). The person
-binds a paired agent to one existing conversation (`recipient.bind`: a T3
-thread, a Claude Code channel instance, a saved Codex session, or inbox only)
-and sends messages (`steer.send`, idempotent per agent and request ID). The
-host delivers each one only through that route's named adapter from
-`@irudd/hosts`, or through the agent's own channel connection. It never starts,
-retargets or falls back to another conversation or provider. A T3 route may ask
-for `delivery: "mid-turn"`. The host's receipt then says which turn the message
-reached (`turn`: `mid-turn`, `next-turn`, `new-turn` or `restarted`) and by
-which path (`via`).
+binds the paired agent to an inbox or a connected Claude channel. Sending a new message or artwork brief requires a live authenticated connection for that pairing.
 
 States are kept apart: host-accepted (the conversation's host took it),
 acknowledged (`inbox.ack` on a connection authenticated with that pairing),

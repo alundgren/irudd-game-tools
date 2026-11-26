@@ -41,18 +41,14 @@ export interface Steering {
 /** The exact conversation a route reaches, in the host's own identifiers. */
 export function describeRoute(route: RecipientRoute): string {
   switch (route.transport) {
-    case "t3-thread":
-      return `T3 Code thread ${route.conversation} on ${route.environment === "local" ? "this machine" : `environment ${route.environment}`}${route.project ? `, project ${route.project}` : ""} ? ${route.delivery === "mid-turn" ? "during the active turn when available" : "queue for the next turn"}`;
     case "claude-channel":
       return `Claude Code session ${route.conversation ?? "(session ID not reported)"} through its MCP server ${route.server}, instance ${route.instance}`;
-    case "codex-queue":
-      return `Codex session ${route.conversation}`;
     case "inbox":
-      return `${hostNames[route.host]} inbox${route.conversation ? ` for ${route.conversation}` : ""} on ${route.environment === "local" ? "this machine" : `environment ${route.environment}`}; the agent reads it itself`;
+      return `${hostNames[route.host]} inbox${route.conversation ? ` for ${route.conversation}` : ""} on this machine; the agent reads it itself`;
   }
 }
 
-const hostNames = { t3: "T3 Code", "claude-code": "Claude Code", codex: "Codex" } as const;
+const hostNames = { agent: "Agent", "claude-code": "Claude Code", codex: "Codex" } as const;
 
 const statusText: Record<SteeringStatus, string> = {
   queued: "Queued",
@@ -280,26 +276,14 @@ export function mountSteering(root: HTMLElement, options: SteeringOptions): Stee
     const transport = el("select");
     transport.setAttribute("aria-label", "How to reach the conversation");
     const choices: [Transport, string][] = [
-      ["t3-thread", "T3 Code thread"],
       ["claude-channel", "Claude Code session (channel)"],
-      ["codex-queue", "Codex session"],
       ["inbox", "Inbox only (no push)"],
     ];
     for (const [value, label] of choices) transport.append(new Option(label, value));
     const previous = r.recipient?.route;
-    transport.value = previous?.transport ?? (r.channels.length ? "claude-channel" : "t3-thread");
+    transport.value = previous?.transport ?? (r.channels.length ? "claude-channel" : "inbox");
     const fields = el("div");
-    const environment = text("local or environment ID", previous?.environment ?? "local");
     const conversation = text("conversation ID exactly as the host shows it");
-    const project = text("T3 project ID (optional)");
-    const timing = el("select");
-    timing.setAttribute("aria-label", "T3 delivery timing");
-    timing.append(
-      new Option("During the active turn when available", "mid-turn"),
-      new Option("Queue for the next turn", "next-turn"),
-    );
-    timing.value =
-      previous?.transport === "t3-thread" ? (previous.delivery ?? "next-turn") : "mid-turn";
     const channel = el("select");
     channel.setAttribute("aria-label", "Connected Claude Code session");
     const inboxHost = el("select");
@@ -308,21 +292,12 @@ export function mountSteering(root: HTMLElement, options: SteeringOptions): Stee
       inboxHost.append(new Option(label, value));
     if (previous) {
       if (previous.conversation) conversation.value = previous.conversation;
-      if (previous.transport === "t3-thread" && previous.project) project.value = previous.project;
       if (previous.transport === "inbox") inboxHost.value = previous.host;
     }
 
     function show(): void {
       fields.replaceChildren();
       switch (transport.value) {
-        case "t3-thread":
-          fields.append(
-            field("Environment", environment),
-            field("Thread", conversation),
-            field("Delivery", timing),
-            field("Project", project),
-          );
-          break;
         case "claude-channel":
           channel.replaceChildren(
             ...r.channels.map(
@@ -343,15 +318,8 @@ export function mountSteering(root: HTMLElement, options: SteeringOptions): Stee
             field("Session ID", conversation),
           );
           break;
-        case "codex-queue":
-          fields.append(field("Session", conversation));
-          break;
         default:
-          fields.append(
-            field("Host", inboxHost),
-            field("Environment", environment),
-            field("Conversation", conversation),
-          );
+          fields.append(field("Host", inboxHost), field("Conversation", conversation));
       }
     }
     transport.onchange = show;
@@ -359,20 +327,7 @@ export function mountSteering(root: HTMLElement, options: SteeringOptions): Stee
 
     function route(): RecipientRoute | string {
       const id = conversation.value.trim();
-      const env = environment.value.trim() || "local";
       switch (transport.value) {
-        case "t3-thread": {
-          if (!id) return "Enter the T3 thread ID.";
-          const p = project.value.trim();
-          return {
-            transport: "t3-thread",
-            host: "t3",
-            delivery: timing.value === "mid-turn" ? "mid-turn" : "next-turn",
-            environment: env,
-            conversation: id,
-            ...(p ? { project: p } : {}),
-          };
-        }
         case "claude-channel": {
           const live = r.channels.find((c) => c.instance === channel.value);
           if (!live) return "Choose a connected Claude Code session.";
@@ -385,21 +340,13 @@ export function mountSteering(root: HTMLElement, options: SteeringOptions): Stee
             ...(id ? { conversation: id } : {}),
           };
         }
-        case "codex-queue":
-          if (!id) return "Enter the Codex session ID.";
-          return {
-            transport: "codex-queue",
-            host: "codex",
-            environment: "local",
-            conversation: id,
-          };
         default: {
           const h = inboxHost.value;
-          const which = h === "claude-code" ? "claude-code" : h === "codex" ? "codex" : "t3";
+          const which = h === "claude-code" ? "claude-code" : h === "codex" ? "codex" : "agent";
           return {
             transport: "inbox",
             host: which,
-            environment: env,
+            environment: "local",
             ...(id ? { conversation: id } : {}),
           };
         }
@@ -471,7 +418,7 @@ export function mountSteering(root: HTMLElement, options: SteeringOptions): Stee
         draft = "";
       });
     });
-    send.disabled = !r.recipient;
+    send.disabled = !r.recipient || r.availability.state === "offline";
     return el(
       "div",
       { className: "steer-compose" },
@@ -558,19 +505,13 @@ export function mountSteering(root: HTMLElement, options: SteeringOptions): Stee
         const receipt = m.delivery.receipt;
         const inbox = m.route.transport === "inbox" || m.delivery.state === "inbox-only";
         const accepted = receipt !== null || m.delivery.state === "accepted";
-        const turnLabel = {
-          "mid-turn": "Delivered during the active turn",
-          "next-turn": "Queued for the next turn",
-          "new-turn": "Started a turn in this conversation",
-          restarted: "Restarted the active turn",
-        } as const;
         const track = el(
           "div",
           { className: "steer-track" },
           inbox
             ? step("In inbox (no push)", true, "The agent reads its inbox in the paired session.")
             : step(
-                receipt?.turn ? turnLabel[receipt.turn] : "Host accepted",
+                "Host accepted",
                 accepted,
                 receipt
                   ? `${receipt.via ?? receipt.transport}${receipt.delivery ? ` ${receipt.delivery}` : ""}${receipt.hostMessageId ? ` · ${receipt.hostMessageId}` : ""} at ${time(receipt.at)}`

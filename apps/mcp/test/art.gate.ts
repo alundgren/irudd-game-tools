@@ -141,7 +141,6 @@ function startHost(): Promise<ChildProcess> {
       "--json",
       "--durability",
       "normal",
-      "--no-push",
     ],
     { env, stdio: ["ignore", "pipe", "pipe"], windowsHide: true },
   );
@@ -209,6 +208,16 @@ test(
 
       // A variation brief with two pictures, from the person's CLI.
       let mark = Date.now();
+      const transport = new StdioClientTransport({
+        command: process.execPath,
+        args: ["--import", register, mcpMain, "--credential", credential],
+        env: stringEnv,
+        stderr: "pipe",
+      });
+      client = new Client({ name: "paired-agent", version: "gate" });
+      await client.connect(transport);
+
+      await tool(client, "workshop_status");
       const variationId = await request(
         "--kind",
         "variation",
@@ -222,15 +231,6 @@ test(
         part,
       );
       timings["request with 2 pictures"] = Date.now() - mark;
-
-      const transport = new StdioClientTransport({
-        command: process.execPath,
-        args: ["--import", register, mcpMain, "--credential", credential],
-        env: stringEnv,
-        stderr: "pipe",
-      });
-      client = new Client({ name: "paired-agent", version: "gate" });
-      await client.connect(transport);
 
       const listed = await tool(client, "art_requests");
       assert.equal(listed.isError, false, listed.summary);

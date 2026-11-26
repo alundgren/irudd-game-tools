@@ -23,7 +23,6 @@ import type { Actor, Registry } from "@irudd/document";
 import { ProjectLocked, type ProjectError } from "../contract/errors.js";
 import { projectFileName, type Project } from "../contract/project.js";
 import { createProject, openProject } from "../service/project.js";
-import { defaultTransports } from "@irudd/hosts";
 
 import {
   methodNames,
@@ -36,7 +35,7 @@ import {
   type MethodParams,
   type MethodResults,
 } from "../wire/protocol.js";
-import type { SteerEvent, SteeringTransport } from "../wire/steering.js";
+import type { SteerEvent } from "../wire/steering.js";
 import { Steering } from "../steering/service.js";
 import { SteeringStore } from "../steering/store.js";
 import {
@@ -44,7 +43,6 @@ import {
   canonicalProjectPath,
   endpointAddress,
   hostFiles,
-  t3GrantPath,
   writePrivateFile,
   type Endpoint,
   type HostFiles,
@@ -103,12 +101,6 @@ export interface HostOptions extends LocationOptions {
   readonly lockTimeoutMs?: number;
   /** Connection log lines, for example to stderr. */
   readonly log?: (line: string) => void;
-  /**
-   * Steering transports for bound recipients (T3 threads, Codex sessions).
-   * Default: `defaultTransports()` from @irudd/hosts. The Claude channel and
-   * inbox routes are built in. Pass [] for a host that never pushes.
-   */
-  readonly transports?: ReadonlyArray<SteeringTransport>;
   /** The irudd command agents are told to run in steering messages. Default: `irudd`. */
   readonly agentCommand?: string;
   /**
@@ -254,15 +246,6 @@ export const hostProject = (
       store: opened.store,
       project,
       pairings: credentials,
-      transports:
-        options.transports ??
-        defaultTransports({
-          t3: {
-            grantFile: t3GrantPath(
-              options.stateDir === undefined ? {} : { stateDir: options.stateDir },
-            ),
-          },
-        }),
       emit: (event) => {
         broadcast(event, ["human"]);
         for (const listener of steerListeners) listener(event);

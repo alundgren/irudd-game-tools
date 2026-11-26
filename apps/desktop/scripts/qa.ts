@@ -586,10 +586,6 @@ try {
   await step("steer the paired agent: bind, send, acknowledge, apply, cancel", async () => {
     assert.ok(agent);
     await page.waitForSelector("#steering .steer-identity:has-text('qa-agent')");
-    const t3Timing = page.getByLabel("T3 delivery timing");
-    assert.equal(await t3Timing.inputValue(), "mid-turn");
-    await t3Timing.selectOption("next-turn");
-    assert.equal(await t3Timing.inputValue(), "next-turn");
     const unbound = (await page.textContent("#steering .steer-identity")) ?? "";
     assert.match(unbound, /pairing pair-[0-9a-f]{16}/, "the identity names the current pairing");
     await page.selectOption(
@@ -598,7 +594,7 @@ try {
     );
     await page.fill("#steering .steer-bind label:has-text('Conversation') input", "qa-session");
     await page.click("#steering .steer-bind button:has-text('Bind')");
-    await page.waitForSelector("#steering .steer-route:has-text('T3 Code inbox for qa-session')");
+    await page.waitForSelector("#steering .steer-route:has-text('Agent inbox for qa-session')");
     await page.waitForSelector("#steering .steer-identity .badge:has-text('inbox-only')");
     await page.fill("#steering textarea", "Make the tail longer");
     await page.click("#steering button:has-text('Send to qa-agent')");

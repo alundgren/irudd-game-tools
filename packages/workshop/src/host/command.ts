@@ -23,8 +23,6 @@ Options:
                         defaults to the form library shipped with its build.
   --agent-command <cmd> The irudd command steering messages tell agents to run
                         (default: $IRUDD_AGENT_COMMAND, set by the launcher, or irudd).
-  --no-push             Keep steering messages in agents' inboxes; never call
-                        T3 Code or Codex.
   --json                Print one JSON line when ready, for scripts.
   -h, --help            Show this help.
 
@@ -55,7 +53,6 @@ export async function runHeadless(catalog?: HostCatalog): Promise<void> {
         durability: { type: "string" },
         forms: { type: "string" },
         "agent-command": { type: "string" },
-        "no-push": { type: "boolean" },
         json: { type: "boolean" },
         help: { type: "boolean", short: "h" },
       },
@@ -103,7 +100,6 @@ export async function runHeadless(catalog?: HostCatalog): Promise<void> {
       forms,
       log,
       agentCommand: values["agent-command"] ?? process.env["IRUDD_AGENT_COMMAND"] ?? "irudd",
-      ...(values["no-push"] ? { transports: [] } : {}),
     });
   } catch (error) {
     const tag: unknown =
