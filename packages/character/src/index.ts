@@ -4,6 +4,7 @@ export * from "./export.js";
 export * from "./wardrobe.js";
 export * from "./garments.js";
 export * from "./surface-edit.js";
+export * from "./shape-tools.js";
 export { fitSweptHand } from "./surfaces/fit-hand.js";
 export { fitPaintedEyes } from "./surfaces/eyes.js";
 export { expeditionAtlas, regionFit, type RegionFit } from "./dress.js";

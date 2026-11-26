@@ -31,6 +31,15 @@ import { button, byId, el } from "../dom.js";
 import type { PanelContext } from "./context.js";
 
 const styleLabels = {
+  faceFamily: "Face family",
+  faceFamilyHair: "Family hairstyle",
+  facePlanes: "Face planes",
+  facialHair: "Facial hair",
+  earrings: "Earrings",
+  waistBag: "Waist bag",
+  handProp: "Hand prop",
+  hat: "Hat",
+
   hair: "Hairstyle",
   fringe: "Fringe",
   browStyle: "Eyebrows",
@@ -43,6 +52,7 @@ const styleLabels = {
   secondDesign: "Second piece design",
 };
 const tones = {
+  hatColor: "Hat colour",
   hairColor: "Hair colour",
   clothColor: "Cloth tint",
   clothSecond: "Second cloth",
@@ -330,6 +340,7 @@ export function mountHuman(ctx: PanelContext, variation: () => Direction | undef
       }
       const palette = outfitPalette(style);
       const defaults = {
+        hatColor: "#526377",
         hairColor: "#45352e",
         clothColor: palette["main"],
         clothAccent: "#dfd0ae",
@@ -337,7 +348,7 @@ export function mountHuman(ctx: PanelContext, variation: () => Direction | undef
       for (const key of keys(tones)) {
         const label = tones[key];
         const fallback =
-          key === "hairColor" || key === "clothColor" || key === "clothAccent"
+          key === "hatColor" || key === "hairColor" || key === "clothColor" || key === "clothAccent"
             ? defaults[key]
             : palette[toneFields[key]];
         fields.push(

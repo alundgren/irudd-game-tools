@@ -47,6 +47,30 @@ export interface TailorPiece {
 }
 
 export const tailorPieces: Readonly<Record<string, TailorPiece>> = {
+  ...Object.fromEntries(
+    Object.entries({
+      travellingMantle: "Travelling mantle",
+      cuirass: "Cuirass",
+      pauldrons: "Shoulder plates",
+      armguards: "Arm guards",
+      legguards: "Leg guards",
+      tassets: "Hip plates",
+    }).map(([key, label]) => [
+      key,
+      {
+        label,
+        fields: {
+          color: colour(key === "travellingMantle" ? "#404857" : "#8d9197"),
+          trim: colour("#ac905d", "Edging"),
+          room: range("Clearance (mm)", 3, 40, 12, 1),
+          length: range("Coverage", 0, 1, 0.6),
+          ...(key === "travellingMantle"
+            ? {}
+            : { material: choice("Plate finish", ["steel", "leather"]) }),
+        },
+      },
+    ]),
+  ),
   top: {
     label: "Top or jacket",
     fields: {

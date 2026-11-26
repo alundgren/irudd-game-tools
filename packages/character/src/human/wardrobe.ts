@@ -6,6 +6,7 @@ import { castOutfits } from "./cast-wardrobe.js";
 import { armInkStyles } from "./draw.js";
 import { presetOutfitNames, type PresetOutfit } from "./dress/outfit-names.js";
 import {
+  finishingStyles,
   eyewearStyles,
   fittedHairStyles,
   fringeStyles,
@@ -20,6 +21,7 @@ import { randomStream } from "./identity.js";
 
 type Style = HumanAdultParams["style"];
 export const adultStyleOptions = {
+  ...finishingStyles,
   hair: [...fittedHairStyles, ...grownHairStyles],
   fringe: fringeStyles,
   browStyle: browStyles,
@@ -76,6 +78,7 @@ export function chooseAdultStyle(
 ): HumanAdultParams {
   const style = { ...params.style, ...changes };
   if (clear) delete style[clear];
+  if (changes.faceFamily && changes.faceFamily !== "None") delete style.cast;
   if ("cast" in changes || clear === "cast") {
     delete style.castTop;
     delete style.castBottom;

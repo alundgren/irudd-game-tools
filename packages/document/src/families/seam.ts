@@ -38,6 +38,21 @@ export const figurePulls = family({
   toJson: (v) => v,
 });
 
+export const figureLocations = family({
+  id: "figure.locations",
+  version: 1,
+  scope: "part",
+  schema: Schema.Struct({
+    marks: Schema.Array(
+      Schema.Struct({
+        name: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(48)),
+        at: Vec3Between(-24, 24),
+      }),
+    ).check(Schema.isMaxLength(12)),
+  }),
+  toJson: (v) => v,
+});
+
 export const footSections = ["bare", "upper", "sole"] as const;
 export type FootSectionName = (typeof footSections)[number];
 

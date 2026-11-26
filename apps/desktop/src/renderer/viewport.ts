@@ -19,7 +19,13 @@ import {
   type SurfaceKit,
 } from "@irudd/character";
 import type { HumanBody } from "@irudd/character/human";
-import { worldDeltaInParent, type CharacterDocument, type Registry } from "@irudd/document";
+import {
+  figureLocations,
+  worldDeltaInParent,
+  type CharacterDocument,
+  type Registry,
+  type Vec3,
+} from "@irudd/document";
 
 export const tools = ["select", "translate", "rotate", "scale"] as const;
 export type Tool = (typeof tools)[number];
@@ -55,6 +61,55 @@ const clampScale = (value: number): number => Math.min(Math.max(value, 0.01), 10
 export class EditorViewport {
   readonly renderer: T.WebGLRenderer;
   private readonly scene = new T.Scene();
+  private readonly locations = new T.Group();
+  setLocations(visible: boolean) {
+    this.locations.visible = visible;
+    this.request();
+  }
+  private rebuildLocations(doc: CharacterDocument | undefined) {
+    for (const node of this.locations.children.slice()) {
+      if (node instanceof T.Sprite) {
+        node.material.map?.dispose();
+        node.material.dispose();
+      }
+      this.locations.remove(node);
+    }
+    if (!doc) return;
+    this.scene.add(this.locations);
+    for (const p of doc.parts)
+      for (const m of figureLocations.read(p.features)?.marks ?? []) {
+        const part = this.built?.parts.get(p.id);
+        if (!part) continue;
+        const canvas = document.createElement("canvas"),
+          ctx = canvas.getContext("2d");
+        if (!ctx) continue;
+        ctx.font = "24px sans-serif";
+        canvas.width = Math.ceil(ctx.measureText(m.name).width) + 18;
+        canvas.height = 38;
+        ctx.font = "24px sans-serif";
+        ctx.fillStyle = "#242b30";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#ffbb56";
+        ctx.fillRect(0, 0, 5, canvas.height);
+        ctx.fillStyle = "white";
+        ctx.fillText(m.name, 10, 27);
+        const texture = new T.CanvasTexture(canvas);
+        texture.colorSpace = T.SRGBColorSpace;
+        const sprite = new T.Sprite(
+          new T.SpriteMaterial({
+            map: texture,
+            sizeAttenuation: false,
+            depthTest: false,
+            depthWrite: false,
+          }),
+        );
+        sprite.position.copy(part.object.localToWorld(new T.Vector3(...m.at)));
+        sprite.center.set(0, 0);
+        sprite.scale.set(canvas.width * 0.00055, canvas.height * 0.00055, 1);
+        sprite.renderOrder = 1000;
+        this.locations.add(sprite);
+      }
+  }
   private readonly camera = new T.PerspectiveCamera(34, 1, 0.01, 500);
   private readonly orbit: OrbitControls;
   private readonly gizmo: TransformControls;
@@ -346,6 +401,7 @@ export class EditorViewport {
         this.framed = true;
       }
     }
+    this.rebuildLocations(doc);
     this.select(this.selected && this.built?.parts.has(this.selected) ? this.selected : null);
     this.request();
   }
@@ -443,27 +499,161 @@ export class EditorViewport {
     this.request();
   }
 
-  private pick(x: number, y: number): string | null {
-    if (!this.built) return null;
+  private pointerRay(x: number, y: number) {
     const rect = this.renderer.domElement.getBoundingClientRect();
     const ray = new T.Raycaster();
     ray.setFromCamera(
-      new T.Vector2(((x - rect.left) * 2) / rect.width - 1, 1 - ((y - rect.top) * 2) / rect.height),
+      new T.Vector2((2 * (x - rect.left)) / rect.width - 1, 1 - (2 * (y - rect.top)) / rect.height),
       this.camera,
     );
+    return ray;
+  }
+
+  surfaceHit(x: number, y: number) {
+    if (!this.built || this.motion) return;
     const meshes: T.Mesh[] = [];
-    this.built.group.traverse((node) => {
-      if (isMesh(node) && node.visible) meshes.push(node);
+    this.built.group.traverseVisible((n) => {
+      if (isMesh(n)) meshes.push(n);
     });
-    for (const hit of ray.intersectObjects(meshes, false)) {
-      let node: T.Object3D | null = hit.object;
-      while (node) {
-        const id: unknown = node.userData["partId"];
-        if (typeof id === "string") return id;
-        node = node.parent;
+    for (const hit of this.pointerRay(x, y).intersectObjects(meshes, false)) {
+      const owners = isMesh(hit.object) && this.built.blendOwners.get(hit.object);
+      if (owners && hit.face) {
+        const scores = new Map<string, number>();
+        for (const vertex of [hit.face.a, hit.face.b, hit.face.c]) {
+          const w = owners.weight[vertex] ?? 1;
+          for (const [idx, weight] of [
+            [owners.first[vertex], w],
+            [owners.second[vertex], 1 - w],
+          ] as const) {
+            const id = idx === undefined ? undefined : owners.ids[idx];
+            if (id) scores.set(id, (scores.get(id) ?? 0) + weight);
+          }
+        }
+        const id = [...scores].sort((a, b) => b[1] - a[1])[0]?.[0];
+        if (id) return { id, world: hit.point.toArray() };
+      }
+      for (let n: T.Object3D | null = hit.object; n; n = n.parent) {
+        const id: unknown = n.userData["partId"];
+        if (typeof id === "string") return { id, world: hit.point.toArray() };
       }
     }
-    return null;
+    return;
+  }
+
+  private pick(x: number, y: number) {
+    return this.surfaceHit(x, y)?.id ?? null;
+  }
+
+  planePoint(x: number, y: number, anchor: Vec3): Vec3 {
+    const plane = new T.Plane().setFromNormalAndCoplanarPoint(
+      this.camera.getWorldDirection(new T.Vector3()),
+      new T.Vector3(...anchor),
+    );
+    return (
+      this.pointerRay(x, y).ray.intersectPlane(plane, new T.Vector3()) ?? new T.Vector3(...anchor)
+    ).toArray();
+  }
+
+  partPoint(id: string, p: Vec3, direction: "world" | "local" | "mount"): Vec3 {
+    const part = this.built?.parts.get(id);
+    if (!part) throw new Error("Select a visible part.");
+    const v = new T.Vector3(...p);
+    return (
+      direction === "world"
+        ? part.object.localToWorld(v)
+        : (direction === "mount" ? part.mount : part.object).worldToLocal(v)
+    ).toArray();
+  }
+
+  brushReach(id: string, metres: number): Vec3 {
+    const s =
+      this.built?.parts.get(id)?.object.getWorldScale(new T.Vector3()) ?? new T.Vector3(1, 1, 1);
+    return [metres / s.x, metres / s.y, metres / s.z];
+  }
+
+  graftPoint(id: string): Vec3 {
+    const b = this.built?.parts.get(id);
+    if (!b) throw new Error("Select a destination part.");
+    const box = partBounds(b.object),
+      at = box.getCenter(new T.Vector3());
+    at.y = box.max.y;
+    return b.mount.worldToLocal(at).toArray();
+  }
+
+  private sizePreview: { doc: CharacterDocument; image: string } | undefined;
+  private measured: { doc: CharacterDocument; box: T.Box3 } | undefined;
+
+  private visibleBounds() {
+    if (this.doc && this.measured?.doc === this.doc) return this.measured.box;
+    const box = new T.Box3(),
+      v = new T.Vector3();
+    this.built?.group.updateWorldMatrix(true, true);
+    this.built?.group.traverseVisible((n) => {
+      if (!isMesh(n)) return;
+      const pos = n.geometry.getAttribute("position");
+      for (let i = 0; i < pos.count; i++)
+        box.expandByPoint(v.fromBufferAttribute(pos, i).applyMatrix4(n.matrixWorld));
+    });
+    if (this.doc) this.measured = { doc: this.doc, box };
+    return box;
+  }
+
+  height() {
+    return this.visibleBounds().getSize(new T.Vector3()).y;
+  }
+
+  comparisonImage() {
+    if (!this.doc || !this.built) return "";
+    if (this.sizePreview?.doc === this.doc) return this.sizePreview.image;
+    const box = this.visibleBounds(),
+      span = box.getSize(new T.Vector3()),
+      centre = box.getCenter(new T.Vector3());
+    const height = Math.max(0.01, span.y) * 1.04,
+      width = Math.max(0.01, span.x) * 1.04;
+    const camera = new T.OrthographicCamera(
+      -width / 2,
+      width / 2,
+      height / 2,
+      -height / 2,
+      0.01,
+      span.z * 2 + 4,
+    );
+    camera.position.copy(centre);
+    camera.position.z += span.z + 1;
+    camera.lookAt(centre);
+    const canvas = document.createElement("canvas");
+    canvas.height = 144;
+    canvas.width = Math.max(1, Math.min(512, Math.round((144 * width) / height)));
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return "";
+    const target = new T.WebGLRenderTarget(canvas.width, canvas.height);
+    target.texture.colorSpace = T.SRGBColorSpace;
+    const previous = this.renderer.getRenderTarget(),
+      pixels = new Uint8Array(canvas.width * canvas.height * 4);
+    const hidden = this.scene.children.filter(
+      (node) => node.visible && node !== this.built?.group && !(node instanceof T.Light),
+    );
+    try {
+      for (const node of hidden) node.visible = false;
+      this.renderer.setRenderTarget(target);
+      this.renderer.render(this.scene, camera);
+      this.renderer.readRenderTargetPixels(target, 0, 0, canvas.width, canvas.height, pixels);
+    } finally {
+      this.renderer.setRenderTarget(previous);
+      for (const node of hidden) node.visible = true;
+      target.dispose();
+    }
+    const result = ctx.createImageData(canvas.width, canvas.height),
+      stride = canvas.width * 4;
+    for (let y = 0; y < canvas.height; y++)
+      result.data.set(
+        pixels.subarray(y * stride, (y + 1) * stride),
+        (canvas.height - 1 - y) * stride,
+      );
+    ctx.putImageData(result, 0, 0);
+    const image = canvas.toDataURL();
+    this.sizePreview = { doc: this.doc, image };
+    return image;
   }
 
   private beginDrag(): void {

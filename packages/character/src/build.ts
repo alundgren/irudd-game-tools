@@ -39,6 +39,7 @@ import { mantleGeometry } from "./surfaces/mantle.js";
 import { skirtGeometry } from "./surfaces/skirt.js";
 import { groomGeometry } from "./surfaces/groom.js";
 import { scuteGeometry } from "./surfaces/scute.js";
+import { pleat, splitHem } from "./surfaces/drapery.js";
 import { sweepGeometry } from "./surfaces/sweep.js";
 import { wingGeometry } from "./surfaces/wing.js";
 import { markingField, paintJoinedCoat, paintMarkings } from "./surfaces/markings.js";
@@ -210,7 +211,9 @@ function authoredGeometry(
     if (part.paint) fitDepth(geometry, part.paint.depth?.pins, part.paint.trace.height);
     if (traced && part.sculpt)
       deformFace(geometry, part.sculpt, part.paint?.trace.portrait?.chin ?? 0.24);
-    return geometry;
+    return part.drape
+      ? splitHem(pleat(geometry, part.sweep.knots, part.drape), part.sweep.knots, part.drape)
+      : geometry;
   }
   if (part.cage) {
     const surface = cageSurface(part.cage, surfaces.chart);

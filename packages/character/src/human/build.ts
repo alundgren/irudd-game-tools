@@ -17,6 +17,7 @@ import { browParting } from "./scars.js";
 import { fittedBrow } from "./strands.js";
 import { surfaceRegions } from "./draw.js";
 import { humanRegions, humanWeightsOf } from "./mesh.js";
+import { pullSurface } from "../surfaces/pull.js";
 import { readTailor } from "./dress/tailor-data.js";
 import type { HumanBuild } from "./binding.js";
 import { isPresetOutfit } from "./dress/outfit-names.js";
@@ -177,13 +178,23 @@ export function buildHuman(
       params.outfit === "Anatomy"
         ? undefined
         : {
+            accessories: preset === "Pressure suit" ? undefined : params.style,
             tailor:
               !work || params.style.tailor === undefined
                 ? undefined
                 : readTailor(params.style.tailor),
             outfit: preset ? { name: preset, tones: params.style } : undefined,
             hair: {
-              hair: preset === "Pressure suit" ? "Crop" : params.style.hair,
+              hair:
+                preset === "Pressure suit"
+                  ? "Crop"
+                  : params.style.faceFamily &&
+                      params.style.faceFamily !== "None" &&
+                      params.style.faceFamilyHair !== "Chosen"
+                    ? params.style.faceFamily === "Angular"
+                      ? "Layered short"
+                      : "Tied bun"
+                    : params.style.hair,
               fringe: params.style.fringe,
               hairColor: params.style.hairColor,
             },
@@ -212,6 +223,7 @@ export function buildHuman(
       if (!face || !isMesh(face)) throw new Error("The adult's head has no painted face.");
       applyNativePortrait(face, layer, paint.sources.raster);
     }
+    pullSurface(object, part.pulls, (original) => original.dispose());
     object.name = part.label;
     object.position.fromArray(part.position);
     object.scale.fromArray(part.size);
