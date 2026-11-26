@@ -1,5 +1,6 @@
+import { readExampleArtwork } from "../../../tools/build/example-artwork.js";
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import {
@@ -36,7 +37,7 @@ import {
   type Outcome,
 } from "@irudd/document";
 import { installNodeExporter } from "../src/node-exporter.js";
-import { blobsDir, fixturesDir, repository } from "../src/paths.js";
+import { fixturesDir, repository } from "../src/paths.js";
 import { familyRegistry } from "../src/prepare.js";
 
 installNodeExporter();
@@ -195,12 +196,11 @@ const noRaster: Raster = {
 };
 const noPaint: PaintAtlases = { raster: noRaster, panels: () => undefined, missing: [] };
 const bundledBytes = (a: BundledAsset) =>
-  new Uint8Array(readFileSync(join(repository, "packages", "character", "assets", a.file)));
+  new Uint8Array(readFileSync(join(repository, "character-view", a.file)));
+const exampleImages = readExampleArtwork(repository);
 const projectBytes = (digest: Digest) => {
-  const file = join(blobsDir, digest.replace(":", "-"));
-  return existsSync(file)
-    ? { bytes: new Uint8Array(readFileSync(file)), mediaType: "image/webp" }
-    : undefined;
+  const bytes = exampleImages.get(digest);
+  return bytes ? { bytes, mediaType: "image/webp" } : undefined;
 };
 
 test("a textured export refuses plates whose bytes are missing", () => {

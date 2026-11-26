@@ -99,10 +99,7 @@ const { forms } = stageForms(repository, join(dist, "forms"));
 
 mkdirSync(join(dist, "assets"), { recursive: true });
 for (const asset of bundledAssets)
-  copyFileSync(
-    join(repository, "packages", "character", "assets", asset.file),
-    join(dist, "assets", asset.file),
-  );
+  copyFileSync(join(repository, "character-view", asset.file), join(dist, "assets", asset.file));
 
 mkdirSync(join(dist, "assets", "human"), { recursive: true });
 for (const pack of [...humanPackFiles, humanPaintFile])

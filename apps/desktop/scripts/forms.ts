@@ -1,3 +1,4 @@
+import { readExampleArtwork } from "../../../tools/build/example-artwork.js";
 import { createHash } from "node:crypto";
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -257,7 +258,8 @@ export function stageForms(
   readonly artwork: number;
 } {
   const fixtures = join(repository, "verification", "families", "fixtures");
-  const bundledDir = join(repository, "packages", "character", "assets");
+  const exampleImages = readExampleArtwork(repository);
+  const bundledDir = join(repository, "character-view");
   mkdirSync(join(out, "artwork"), { recursive: true });
   const files = new Map<string, unknown>();
   for (const form of verifiedForms) {
@@ -278,9 +280,9 @@ export function stageForms(
         file = `artwork/${bundled.file}`;
         origin = bundled.origin;
       } else if (listed) {
-        bytes = new Uint8Array(
-          readFileSync(join(fixtures, "blobs", entry.digest.replace(":", "-"))),
-        );
+        const image = exampleImages.get(entry.digest);
+        if (!image) throw new Error(form + ": missing example artwork " + entry.digest);
+        bytes = image;
         file = `artwork/${entry.digest.slice(7)}.webp`;
         origin = listed.origin;
       } else

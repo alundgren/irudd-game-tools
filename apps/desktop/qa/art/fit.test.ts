@@ -1,3 +1,4 @@
+import { readExampleArtwork } from "../../../../tools/build/example-artwork.js";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -34,16 +35,16 @@ import { desktopArtTranslators, shippedArtwork, type ArtRaster } from "../../src
 
 const repository = fileURLToPath(new URL("../../../../", import.meta.url));
 const fixturesDir = path.join(repository, "verification", "families", "fixtures");
-const blobsDir = path.join(fixturesDir, "blobs");
+const exampleImages = readExampleArtwork(repository);
 const registry = createRegistry({ features: familyFeatures, generators: [frameCreature] });
 const person = { kind: "human", id: "tester", name: "Tester" } as const;
 const headId = "p-head-and-neck";
-const characterAssets = path.join(repository, "packages", "character", "assets");
+const characterAssets = path.join(repository, "character-view");
 const decodeDigest = Schema.decodeUnknownSync(Digest);
 
 function bytesOf(digest: string): Uint8Array {
-  const file = path.join(blobsDir, digest.replace(":", "-"));
-  if (fs.existsSync(file)) return new Uint8Array(fs.readFileSync(file));
+  const bytes = exampleImages.get(digest);
+  if (bytes) return bytes;
   const asset = bundledAsset(decodeDigest(digest));
   if (asset) return new Uint8Array(fs.readFileSync(path.join(characterAssets, asset.file)));
   throw new Error(`No bytes for ${digest}.`);

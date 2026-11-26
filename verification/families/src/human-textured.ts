@@ -103,7 +103,7 @@ function bundle(): string {
 }
 
 async function route(page: Page, script: string): Promise<void> {
-  const assets = join(repository, "packages", "character", "assets");
+  const assets = join(repository, "character-view");
   const packs = new Set([...humanPackFiles, humanPaintFile].map((p) => `assets/human/${p.file}`));
   await page.route(`${origin}/**`, async (r) => {
     const path = new URL(r.request().url()).pathname.slice(1);

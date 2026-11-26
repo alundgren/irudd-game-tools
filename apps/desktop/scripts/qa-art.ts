@@ -409,9 +409,7 @@ async function latest(agent: WorkshopClient, documentId: string) {
 
 const courier = bundledAssetNamed("courier");
 assert.ok(courier);
-const courierBytes = new Uint8Array(
-  readFileSync(join(repository, "packages", "character", "assets", courier.file)),
-);
+const courierBytes = new Uint8Array(readFileSync(join(repository, "character-view", courier.file)));
 let agent: WorkshopClient | undefined;
 let credentialFile = "";
 try {
@@ -1213,7 +1211,7 @@ try {
 
       const asset = bundledAssets.find((a) => a.digest === atlas);
       assert.ok(asset, "the body paints from a shipped sheet");
-      const sheet = readFileSync(join(repository, "packages", "character", "assets", asset.file));
+      const sheet = readFileSync(join(repository, "character-view", asset.file));
       const quadrants = await page.evaluate(
         async ([base64, mediaType, size]) => {
           const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));

@@ -18,7 +18,7 @@ import { assetResolver, bundledAssets, type BundledAsset } from "../src/assets.j
 import { creditArtwork, creditsFor } from "../src/export.js";
 
 const read = (asset: BundledAsset) =>
-  new Uint8Array(readFileSync(new URL(`../assets/${asset.file}`, import.meta.url)));
+  new Uint8Array(readFileSync(new URL(`../../../character-view/${asset.file}`, import.meta.url)));
 
 test("every bundled file matches its manifest digest, size and origin", () => {
   for (const asset of bundledAssets) {

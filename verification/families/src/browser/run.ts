@@ -1,3 +1,4 @@
+import { readExampleArtwork } from "../../../../tools/build/example-artwork.js";
 import { mkdirSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -6,7 +7,8 @@ import { chromium, type Browser, type Page } from "@playwright/test";
 import { bundledAssets, type Preset } from "@irudd/character";
 import { humanPackFiles } from "@irudd/character/human";
 import { humanPaintFile } from "@irudd/character/human/paint";
-import { blobsDir, outDir, referenceBlobsDir, repository } from "../paths.js";
+import { humanAssetsDir } from "../human-assets.js";
+import { outDir, referenceBlobsDir, repository } from "../paths.js";
 import type { ExportRequest, ExportResponse } from "./entry.js";
 
 const origin = "https://g4a.invalid";
@@ -44,7 +46,8 @@ function bundle(): string {
 }
 
 async function route(page: Page, script: string): Promise<void> {
-  const assets = join(repository, "packages", "character", "assets");
+  const exampleImages = readExampleArtwork(repository);
+  const assets = join(repository, "character-view");
   const packs = new Set([...humanPackFiles, humanPaintFile].map((p) => `assets/human/${p.file}`));
   await page.route(`${origin}/**`, async (r) => {
     const path = new URL(r.request().url()).pathname.slice(1);
@@ -57,7 +60,7 @@ async function route(page: Page, script: string): Promise<void> {
     if (packs.has(path))
       return r.fulfill({
         contentType: "application/octet-stream",
-        body: readFileSync(join(assets, path.slice("assets/".length))),
+        body: readFileSync(join(humanAssetsDir, path.slice("assets/human/".length))),
       });
     const asset =
       path.startsWith("assets/") && bundledAssets.find((a) => `assets/${a.file}` === path);
@@ -66,12 +69,14 @@ async function route(page: Page, script: string): Promise<void> {
         contentType: asset.mediaType,
         body: readFileSync(join(assets, asset.file)),
       });
-    if (path.startsWith("blobs/"))
-      for (const dir of [blobsDir, referenceBlobsDir]) {
-        const file = join(dir, path.slice(6));
-        if (existsSync(file))
-          return r.fulfill({ contentType: "application/octet-stream", body: readFileSync(file) });
-      }
+    const match = /^blobs\/sha256-([a-f0-9]{64})$/.exec(path);
+    if (match) {
+      const bytes = exampleImages.get("sha256:" + match[1]);
+      if (bytes) return r.fulfill({ contentType: "image/webp", body: bytes });
+      const file = join(referenceBlobsDir, path.slice(6));
+      if (existsSync(file))
+        return r.fulfill({ contentType: "application/octet-stream", body: readFileSync(file) });
+    }
     return r.fulfill({ status: 404, body: "" });
   });
 }
