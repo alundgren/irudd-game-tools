@@ -73,6 +73,7 @@ const Target = {
   documentId: DocumentId,
   revision: Schema.optionalKey(Revision),
   preset: Preset,
+  staticMesh: Schema.optionalKey(Schema.Boolean),
 };
 
 export const reviewParams = {
@@ -131,6 +132,7 @@ export interface RenderJob {
   readonly document: unknown;
   readonly preset: ReviewPreset;
   readonly wardrobe?: true;
+  readonly staticMesh?: true;
   readonly blobs: ReadonlyArray<{ readonly digest: string; readonly mediaType: string }>;
   readonly inspect?: {
     readonly sheets: ReadonlyArray<ReviewSheet>;

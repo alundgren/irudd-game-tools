@@ -205,7 +205,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function exportRequest(value: unknown): ExportRequest {
   if (!isRecord(value)) throw new Error("Invalid export.");
-  const { documentId, label, revision, preset, wardrobe, bytes } = value;
+  const { documentId, label, revision, preset, wardrobe, staticMesh, bytes } = value;
   if (
     typeof documentId !== "string" ||
     typeof label !== "string" ||
@@ -214,13 +214,22 @@ function exportRequest(value: unknown): ExportRequest {
     revision < 1 ||
     typeof preset !== "string" ||
     !/^[a-z]{1,16}$/.test(preset) ||
+    (staticMesh !== undefined && typeof staticMesh !== "boolean") ||
     (wardrobe !== undefined && typeof wardrobe !== "boolean") ||
     !(bytes instanceof Uint8Array) ||
     bytes.byteLength > maxGlbBytes ||
     !isGlb(bytes)
   )
     throw new Error("Invalid export.");
-  return { documentId, label, revision, preset, ...(wardrobe ? { wardrobe } : {}), bytes };
+  return {
+    documentId,
+    label,
+    revision,
+    preset,
+    ...(wardrobe ? { wardrobe } : {}),
+    ...(staticMesh ? { staticMesh } : {}),
+    bytes,
+  };
 }
 
 function inspectionSave(value: unknown): InspectionSave {
@@ -454,7 +463,7 @@ function registerBridge(build: string): void {
   handle(channels.saveExport, (value) => {
     const request = exportRequest(value);
     return library.saveExport(
-      `${safeName(request.label)}-r${request.revision}-${request.preset}${request.wardrobe ? "-outfits" : ""}`,
+      `${safeName(request.label)}-r${request.revision}-${request.preset}${request.staticMesh ? "-static" : ""}${request.wardrobe ? "-outfits" : ""}`,
       request.bytes,
     );
   });

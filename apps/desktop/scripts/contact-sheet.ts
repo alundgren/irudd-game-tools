@@ -1,6 +1,25 @@
-import { writeFileSync } from "node:fs";
+import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Page } from "@playwright/test";
+
+export async function portraitContactSheet(page: Page, directory: string) {
+  const names = readdirSync(directory);
+  const files = names
+    .filter(
+      (n) => n.endsWith("-before.png") && names.includes(n.replace("-before.png", "-after.png")),
+    )
+    .sort();
+  return contactSheet(
+    page,
+    directory,
+    files
+      .flatMap((before) => [before, before.replace("-before.png", "-after.png")])
+      .map((name) => ({
+        name: name.slice(0, -4),
+        image: readFileSync(join(directory, name)).toString("base64"),
+      })),
+  );
+}
 
 export async function contactSheet(
   page: Page,

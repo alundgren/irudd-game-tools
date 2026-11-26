@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import * as T from "three";
+import { humanRegions, humanWeightsOf } from "../src/human/mesh.js";
+import { referenceGlb } from "../src/reference-glb.js";
 import { fittedAccessories } from "../src/human/dress/accessories.js";
 import { humanMeasurements } from "../src/human/generator.js";
-import { evaluateHuman, tailorLayer } from "../src/human/index.js";
+import { fitReference, referenceVertices, evaluateHuman, tailorLayer } from "../src/human/index.js";
 import { dressBody, dressLandmarks, tailorParts } from "../src/human/dress/index.js";
 import { decodeWith } from "@irudd/document";
 import {
@@ -31,6 +33,74 @@ const body = await loadHumanPacks((file) =>
   readFileSync(new URL("../assets/human/" + file, import.meta.url)),
 );
 const person = seededHumanAdult(body, 491, "neutral", "Natural");
+
+test("reference fit follows measured dimensions and retains wardrobe", () => {
+  const target = evaluateHuman(body, { height: 1.5, weight: 1, muscle: 1, frame: 1 });
+  const next = fitReference(body, person, target.positions);
+  assert.ok(Math.abs((next.human["height"] ?? 0) - 1.5) < 0.02);
+  assert.deepEqual(next.style, person.style);
+  assert.ok((next.human["weight"] ?? 0) > (person.human["weight"] ?? 0));
+  assert.deepEqual(
+    referenceVertices("v 0 1 2\nf 1 2 3\nv -1 3 4"),
+    Float32Array.of(0, 1, 2, -1, 3, 4),
+  );
+  assert.throws(() => fitReference(body, person, Float32Array.of(0, 0, 0)), /upright/);
+});
+
+test("an embedded GLB contributes vertices in upright world coordinates", async () => {
+  const vertices = new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]);
+  const description = JSON.stringify({
+    asset: { version: "2.0" },
+    scene: 0,
+    scenes: [{ nodes: [0] }],
+    nodes: [{ mesh: 0, translation: [2, 3, 4] }],
+    meshes: [{ primitives: [{ attributes: { POSITION: 0 } }] }],
+    accessors: [
+      {
+        bufferView: 0,
+        componentType: 5126,
+        count: 3,
+        type: "VEC3",
+        min: [0, 0, 0],
+        max: [1, 1, 0],
+      },
+    ],
+    bufferViews: [{ buffer: 0, byteLength: vertices.byteLength }],
+    buffers: [{ byteLength: vertices.byteLength }],
+  });
+  const json = Buffer.from(description.padEnd(Math.ceil(description.length / 4) * 4));
+  const glb = new ArrayBuffer(28 + json.length + vertices.byteLength);
+  const view = new DataView(glb);
+  [0x46546c67, 2, glb.byteLength, json.length, 0x4e4f534a].forEach((value, i) =>
+    view.setUint32(4 * i, value, true),
+  );
+  new Uint8Array(glb, 20, json.length).set(json);
+  view.setUint32(20 + json.length, vertices.byteLength, true);
+  view.setUint32(24 + json.length, 0x004e4942, true);
+  new Float32Array(glb, 28 + json.length).set(vertices);
+  assert.deepEqual(await referenceGlb(glb), Float32Array.of(2, 3, 4, 3, 3, 4, 2, 4, 4));
+});
+
+test("Studio Rain keeps expression targets, family hair and a skinned neckline", () => {
+  const regions = humanRegions(body, {}, () => "#bb8866", {
+    studio: { hair: "#452915", familyHair: true },
+    material: (colour) => new T.MeshStandardMaterial({ color: colour }),
+    plain: false,
+    height: 1.72,
+    paint: null,
+    face: { skin: "#bb8866", age: 0, frame: 0, brow: "eyebrow001", parted: null },
+  });
+  const group = regions.region("head"),
+    skin = group.getObjectByName("Studio Rain skin"),
+    neck = group.getObjectByName("Studio Rain neck");
+  const mesh = (node: T.Object3D | undefined): node is T.Mesh => node instanceof T.Mesh;
+  assert.ok(mesh(skin) && mesh(neck));
+  assert.deepEqual(Object.keys(skin.morphTargetDictionary ?? {}), ["Blink", "Smile", "BrowLift"]);
+  assert.ok(group.getObjectByName("Studio Rain hair_ponytail"));
+  const weights = humanWeightsOf.get(neck);
+  assert.ok(weights && new Set(weights.boneIndices).size > 2);
+  assert.equal(weights.weights.length, neck.geometry.getAttribute("position").count * 4);
+});
 
 test("a seeded start honours the chosen frame and colour range", () => {
   for (const [archetype, frame] of [

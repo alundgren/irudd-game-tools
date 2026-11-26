@@ -1,4 +1,7 @@
 import {
+  requireDeclaredFeatures,
+  type AssetEntry,
+  type DocumentId,
   affineFromTrs,
   composeAffine,
   createRegistry,
@@ -432,6 +435,51 @@ function regionGeometry(
   if (outfit !== undefined && isOutfit(outfit))
     features[outfitWear.id] = outfitWear.json({ role: outfit });
   return { shape, position, features, notes };
+}
+
+export function traceRoot(
+  id: DocumentId,
+  label: string,
+  asset: AssetEntry,
+  panels: SheetPanels,
+  outlines: readonly [readonly Point[], readonly Point[]],
+): CharacterDocument {
+  const g = regionGeometry(
+    { id: label, method: "loft", front: outlines[0], side: outlines[1] },
+    panels,
+    asset.digest,
+    1.72,
+  );
+  return requireDeclaredFeatures(
+    {
+      format: "irudd.character",
+      version: 1,
+      id,
+      label,
+      requires: [],
+      catalog: [],
+      assets: [asset],
+      parts: [
+        {
+          id: partId("p-traced-body"),
+          label,
+          parent: null,
+          shape: g.shape,
+          position: g.position,
+          size: [1, 1, 1],
+          rotation: [0, 0, 0, 1],
+          color: "#ffffff",
+          sculpt: [],
+          paint: { atlas: asset.digest },
+          features: g.features,
+        },
+      ],
+      poses: [],
+      features: {},
+      extensions: {},
+    },
+    registry,
+  );
 }
 
 export function traceBuildOperations(

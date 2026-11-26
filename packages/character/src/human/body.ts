@@ -1,3 +1,4 @@
+import { readStudio } from "./studio-data.js";
 import {
   ancestryMorphs,
   bodyAxes,
@@ -144,6 +145,7 @@ export interface StrandCard {
 }
 
 export interface HumanBody {
+  readonly studio: Pack;
   readonly arrays: Pack;
   readonly morph: (name: string) => Int16Array;
   readonly patch: {
@@ -171,7 +173,9 @@ export async function readHumanBody(
   face: Uint8Array,
   groom: Uint8Array,
   castBytes: Uint8Array,
+  studioBytes: Uint8Array,
 ): Promise<HumanBody> {
+  const studio = await readStudio(studioBytes);
   const grooms = readHumanGrooms(groom);
   const cast = readHumanCast(castBytes);
   const arrays = await readPack(body, humanBodySpec, "human-body.bin");
@@ -231,6 +235,7 @@ export async function readHumanBody(
     },
     floatWeights: Float32Array.from(arrays.u16("weights"), (w) => w / 65535),
     subFloatWeights: Float32Array.from(arrays.u16("subWeights"), (w) => w / 65535),
+    studio,
     grooms: await grooms,
     cast: await cast,
   };

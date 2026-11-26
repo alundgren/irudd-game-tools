@@ -5,7 +5,7 @@ import { readHumanPaint, type HumanPaint } from "./paint-data.js";
 export { rocketboxLicense } from "./credits.js";
 
 export interface HumanPackFile {
-  readonly name: "body" | "captured" | "face" | "groom" | "cast" | "paint";
+  readonly name: "body" | "captured" | "face" | "groom" | "cast" | "paint" | "studio";
   readonly file: string;
   readonly digest: Digest;
   readonly byteLength: number;
@@ -62,6 +62,15 @@ export const humanPackFiles: ReadonlyArray<HumanPackFile> = [
       "Microsoft Rocketbox Avatar Library (MIT, Copyright (c) 2020 Microsoft): the clothed cast figures, their hair cards and the outfits fitted from their garments",
     ],
   },
+  {
+    name: "studio",
+    file: "studio-rain.bin",
+    digest: digestBrand("sha256:d70eaf77bd76c76168b20871f217c13bde12ef5d8c8c81cc7f95fd2955087ee4"),
+    byteLength: 374896,
+    sources: [
+      "Rain Rig, Blender Foundation (CC BY 4.0), fitted head, hair, expressions and vertex colour derived from the workshop Rain asset",
+    ],
+  },
 ];
 
 export async function loadHumanPacks(
@@ -75,9 +84,10 @@ export async function loadHumanPacks(
       return data;
     }),
   );
-  const [body, captured, face, groom, cast] = bytes;
-  if (!body || !captured || !face || !groom || !cast) throw new Error("Missing human pack.");
-  return readHumanBody(body, captured, face, groom, cast);
+  const [body, captured, face, groom, cast, studio] = bytes;
+  if (!body || !captured || !face || !groom || !cast || !studio)
+    throw new Error("Missing human pack.");
+  return readHumanBody(body, captured, face, groom, cast, studio);
 }
 
 export const humanPaintFile: HumanPackFile = {
@@ -206,6 +216,7 @@ export * from "./generator.js";
 export * from "./starter.js";
 export { dressedAdult, humanLooks, look491, unbraidedLook8950, type HumanLook } from "./looks.js";
 export * from "./edit.js";
+export * from "./reference-fit.js";
 export * from "./measurements.js";
 export * from "./wardrobe.js";
 export { castDonor, castSkin } from "./cast.js";

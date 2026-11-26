@@ -89,7 +89,7 @@ export async function stagePicture(host: Caller, bytes: Uint8Array) {
       base64: toBase64(bytes.subarray(offset, Math.min(bytes.length, offset + chunkBytes))),
     });
   if (!last?.stored) throw new Error(`The host did not store ${digest}.`);
-  return last.stored;
+  return { ...last.stored, digest, mediaType };
 }
 
 export async function readPicture(

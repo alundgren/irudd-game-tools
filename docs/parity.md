@@ -6,7 +6,7 @@ In the Workshop's **Display** panel, choose **Studio colour** to see the charact
 
 Choose **New random human** to pick an archetype and a Natural, Fantasy or Mixed colour range. The adult starts dressed. In **Anatomy**, choose a region and measurement, then move the slider or reroll the region. **Appearance** controls skin, eyes and facial detail. **Outfit and hairstyle** lets you change one item, roll a complete look in a chosen direction or inspect the base shape. Each edit has its own History entry.
 
-Cast artwork supplies its own hair, face and garments. Choose **Individual styling** to use the separate controls. Individual styling includes two native face families, a family or chosen hairstyle, face planes, facial hair, earrings, waist bags, a folding fan, hats and hat colour. The browser's Studio Rain head and the full accessory catalogue are still separate work.
+Cast artwork supplies its own hair, face and garments. Choose **Individual styling** to use the separate controls. Individual styling includes two native face families, a family or chosen hairstyle, face planes, facial hair, earrings, waist bags, a folding fan, hats and hat colour. Select **Studio Rain** for the fitted studio head and its ponytail, or choose a separate hairstyle. [Rain artwork credit](licenses/studio-rain-cc-by-4.0.md).
 
 In **Variation**, write one deck per line, such as `mood = calm | wary | fierce`, choose a range and draw. Pin a cue or choice before redrawing. Copy the direction code to replay the same draw, including its pins and decks. Subtle and exploratory draws soften adult region rerolls. When trying a new outfit and hairstyle, an `outfit` deck can choose a look direction such as Everyday or Festive, and a `skin` deck can choose a hex skin colour.
 
@@ -55,7 +55,7 @@ Posture, arm edits and named poses have History entries and travel with the char
 | 3 | Make a small reroll or reset the shape | done | 3 |
 | 4 | Adjust an adult body measurement by region | done | 2 |
 | 5 | Reroll the body, face, limbs or portrait | done | 2 |
-| 6 | Fit a character to a 3D reference | missing | 8b |
+| 6 | Fit a character to a 3D reference | partly (upright OBJ and embedded GLB body fit) | 8b |
 | 7 | Sculpt on the model by pulling its surface | partly (local surface pulls, including adult regions) | 8a |
 | 8 | Draw an appendage or place a branch | partly (drawn branches) | 8a |
 | 9 | Protect selected parts during AI edits | done | 3 |
@@ -64,19 +64,19 @@ Posture, arm edits and named poses have History entries and travel with the char
 | 12 | Try a new outfit and hairstyle and set a preference for new looks | done | 2 |
 | 13 | Adjust skin tone, eye colour and facial detail | done | 2 |
 | 14 | Style hair, fringe, brows, makeup, arm ink, eyewear, necklace, clothing, colours, designs and cast looks | partly (nine styling controls, native face families and a smaller accessory catalogue) | 2, 8a |
-| 15 | Choose a face family or studio head | partly (native face families) | 8a, 8b |
+| 15 | Choose a face family or studio head | partly (Studio Rain with expressions and hair, plus native families) | 8a, 8b |
 | 16 | Adjust an adult's posture | done | 7 |
 | 17 | Tailor layers of clothing | partly (individual armour, mantle and mail available) | 4, 8a |
 | 18 | Add freckles, scars or moles | done | 5 |
-| 19 | Apply a portrait to an adult's own head | missing | 8b |
+| 19 | Apply a portrait to an adult's own head | done | 8b |
 | 20 | Mount a pair of wings on an adult | done | 6 |
 | 21 | Edit a creature's body plan with drag handles | done | 6, 7 |
 | 22 | Shuffle a chosen part of a creature's plan | done | 6 |
 | 23 | Choose a creature's coat and markings | done | 5, 6 |
-| 24 | Match a face to portrait landmarks | partly | 8b |
+| 24 | Match a face to portrait landmarks | done | 8b |
 | 25 | Attach rigid accessories | done | 5 |
-| 26 | Shape a face from a side portrait | missing | 8b |
-| 27 | Adjust a portrait's depth | partly | 8b |
+| 26 | Shape a face from a side portrait | done | 8b |
+| 27 | Adjust a portrait's depth | done | 8b |
 | 28 | Fit movable eyes | done | 5 |
 | 29 | Style hair with the groom tools | done | 5 |
 | 30 | Grow strands along guide curves | done | 5 |
@@ -106,16 +106,16 @@ Posture, arm edits and named poses have History entries and travel with the char
 | 54 | Replay a direction from its code | done | 3 |
 | 55 | Mark a location on the model | done | 8a |
 | 56 | Add visual references | done | 3 |
-| 57 | Request and apply painted edits | partly | 8b |
-| 58 | Refine a proposal, compare it or keep an alternate | partly | 8b |
-| 59 | Inspect a game export | partly | 8b |
+| 57 | Request and apply painted edits | partly (painted regions and branches, trace and depth replies) | 8b |
+| 58 | Refine a proposal, compare it or keep an alternate | done | 8b |
+| 59 | Inspect a game export | partly (renders and metrics for the current game export) | 8b |
 | 60 | Generate a starting form by archetype, colouring and family | done | 2, 6 |
-| 61 | Trace artwork manually to build a character | partly | 8b |
-| 62 | Reuse a turnaround on other regions | partly | 8b |
-| 63 | Save and open form files and choose export options | partly | 8b |
+| 61 | Trace artwork manually to build a character | partly (manual lofts, hulls and membranes from two traced outlines) | 8b |
+| 62 | Reuse a turnaround on other regions | done | 8b |
+| 63 | Save and open form files and choose export options | done | 8b |
 | 64 | Graft a part from a saved form | partly (independent part branches) | 8a |
-| 65 | Save and revisit variations and alternates | partly | 8b |
-| 66 | Open reference studies | partly | 8b |
+| 65 | Save and revisit variations and alternates | done | 8b |
+| 66 | Open reference studies | partly (shipped editable studies) | 8b |
 
 ### Checking surface edits
 
@@ -138,3 +138,22 @@ In Pull mode, drag the surface to move nearby geometry. Draw starts a horn, tail
 The pull brush works within a single part. The browser's connected-skin adult brush also follows neighbouring body regions. Plate fields support placement, crest height and overlap. Individual random tip variants remain open. Adjusting a field preserves edits on its surviving plates. Armour layers support fit and finish controls. The browser's embossed devices, asymmetric armour variants and specialised cuts remain open. Grafting supports independent part hierarchies. Native adult rig regions depend on their original body generator.
 
 The packaged `qa:character` check uses real pointer strokes and control-point drags, compares the rendered results, undoes and redoes a plate arrangement, and reopens the saved studies in a fresh project. The shape sequence took 3 minutes 19 seconds on the first run and 3 minutes 11 seconds on repeat on an RTX 5070 Ti. Its before and after images and contact sheet are in `.reference-cache/phase8a/`.
+
+### Portraits, artwork and files
+
+Open **Portraits and references** on an editable adult to fit the build to an upright OBJ or embedded GLB. Use individual styling for native portrait paint. Mark the eyes and lip seam on a front picture, then optionally mark the eye, nose and lips on a right-facing profile. On a figure or traced head, mark matching points on the model and the photograph to reshape the face. Trace a profile from forehead to chin to set its silhouette. A painted head can also take a grayscale depth map with adjustable strength.
+
+Choose **Trace a new character** to draw front and profile outlines on a four-view sheet. Select a painted region to add a rounded loft, solid hull or thin membrane, or reuse a turnaround on that region. In **Artwork**, request a painted edit for the selected regions. Preview a reply, compare it with the current character, ask its author for a refinement, or keep the preview as a separate alternate. Named variations and alternates appear in the project's character selector and can be saved as character files. [Artwork requests and replies](artwork.md).
+
+Open **Reference studies** to start an editable copy of a shipped form. Under **Game export**, inspect rendered body and portrait views and the game's mesh, texture and rig counts. Clear **Include skeleton and motion** to export static geometry. The Workshop's save and open buttons transfer a character and its referenced project assets between projects.
+
+Run `qa:portraits` and `qa:art` in `apps/desktop` after changing these workflows. They drive the desktop controls, use a local paired client for artwork, and open the saved character files in fresh projects. On an RTX 5070 Ti, the portrait and file sequence took 3 minutes 45 seconds on the first run and 3 minutes 47 seconds on repeat. The 14 before-and-after pairs and their contact sheet are in `.reference-cache/phase8b/`.
+
+### Remaining parity gaps
+
+- **6 and 15**. Body fitting adjusts stature and build from an upright reference. Registered neutral meshes, per-vertex head transfer and imported head families still require the browser.
+- **7 and 8**. The pull brush affects one part. Connected adult sculpting and placing an existing branch between picked anchors remain open.
+- **14 and 17**. Individual styling has a smaller accessory catalogue. Embossed devices, asymmetric armour and specialised garment cuts remain open.
+- **38 and 64**. Plate fields lack individual random tip variants. Grafting handles independent branches, while native adult rig regions depend on the source generator.
+- **57 and 59**. Scalp-only and isolated wearable artwork requests lack dedicated desktop actions. The game inspection shows the current revision. Cross-proposal export and coverage comparisons remain open.
+- **61 and 66**. Hand tracing supports lofts, hulls and membranes. Tracing a path from paired centreline points and opening the browser's locally prepared scan studies remain open.

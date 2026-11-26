@@ -37,6 +37,7 @@ import { mountProposals } from "./panels/proposals.js";
 import { mountHistory } from "./panels/history.js";
 import { mountAgents } from "./panels/agents.js";
 import { mountVariation } from "./panels/variation.js";
+import { mountPortrait } from "./panels/portrait.js";
 import { mountShape } from "./panels/shape.js";
 import { mountSurface } from "./panels/surface.js";
 import { mountWardrobe } from "./panels/wardrobe.js";
@@ -115,6 +116,7 @@ function selectPart(part: string | null): void {
   wardrobe.render();
   surface.render();
   shape.render();
+  portrait.render();
   properties.render();
   variation.render();
 }
@@ -251,11 +253,38 @@ const proposals = mountProposals(panels, {
     ...(variation.current()?.protected ?? []),
     ...art.protectedParts(id),
   ],
+  createCopy,
   registry: () => registry,
   displayDocument,
   showHead,
   hideBanner,
 });
+async function createCopy(source: CharacterDocument, label: string) {
+  const id = "doc-" + crypto.randomUUID().slice(0, 12),
+    projectAtStart = project;
+  const result = await host.call("apply", {
+    request: {
+      format: commandFormat,
+      version: commandVersion,
+      requestId: requestId(),
+      documentId: id,
+      expectedRevision: 0,
+      command: {
+        type: "document.create",
+        document: { ...source, id, label: label.trim().slice(0, 120) },
+      },
+    },
+  });
+  if (result.kind === "rejected") throw new Error(describe(result.diagnostics));
+  if (project !== projectAtStart) return false;
+  proposals.reset();
+  hideBanner();
+  viewport.select(null);
+  await loadDocuments(id);
+  viewport.frame();
+  return true;
+}
+const portrait = mountPortrait(panels, viewport, createCopy);
 const history = mountHistory(panels);
 const shape = mountShape(panels, viewport, async (id) => {
   const view = await host.call("inspect", { documentId: id });
@@ -365,6 +394,7 @@ function renderAll(): void {
   wardrobe.render();
   surface.render();
   shape.render();
+  portrait.render();
   library.render();
   syncCharacterFiles();
   outliner.render();

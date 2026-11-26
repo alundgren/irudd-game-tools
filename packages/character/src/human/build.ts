@@ -162,6 +162,13 @@ export function buildHuman(
   const regions = humanRegions(body, measurements, (bone) => colors.get(bone) ?? params.skin, {
     material: (color) => options.materials(color, "plain"),
     dressMaterial,
+    studio:
+      params.style.faceFamily === "Studio Rain"
+        ? {
+            hair: params.style.hairColor ?? "#533b30",
+            familyHair: params.style.faceFamilyHair !== "Chosen",
+          }
+        : undefined,
     plain,
     game: options.game === true,
     face: {
@@ -184,20 +191,23 @@ export function buildHuman(
                 ? undefined
                 : readTailor(params.style.tailor),
             outfit: preset ? { name: preset, tones: params.style } : undefined,
-            hair: {
-              hair:
-                preset === "Pressure suit"
-                  ? "Crop"
-                  : params.style.faceFamily &&
-                      params.style.faceFamily !== "None" &&
-                      params.style.faceFamilyHair !== "Chosen"
-                    ? params.style.faceFamily === "Angular"
-                      ? "Layered short"
-                      : "Tied bun"
-                    : params.style.hair,
-              fringe: params.style.fringe,
-              hairColor: params.style.hairColor,
-            },
+            hair:
+              params.style.faceFamily === "Studio Rain" && params.style.faceFamilyHair !== "Chosen"
+                ? undefined
+                : {
+                    hair:
+                      preset === "Pressure suit"
+                        ? "Crop"
+                        : params.style.faceFamily &&
+                            params.style.faceFamily !== "None" &&
+                            params.style.faceFamilyHair !== "Chosen"
+                          ? params.style.faceFamily === "Angular"
+                            ? "Layered short"
+                            : "Tied bun"
+                          : params.style.hair,
+                    fringe: params.style.fringe,
+                    hairColor: params.style.hairColor,
+                  },
             skin: params.skin,
             eyewear: params.style.eyewear,
             necklace: preset === "Pressure suit" ? "None" : params.style.necklace,
@@ -216,7 +226,7 @@ export function buildHuman(
     const bone = bones.get(part.id);
     if (!bone) continue;
     const object = regions.region(bone);
-    if (part.nativePortrait && paint) {
+    if (part.nativePortrait && paint && !member && params.style.faceFamily !== "Studio Rain") {
       const layer = options.finish?.plates?.image(part.nativePortrait);
       if (!layer) throw new Error(`The native portrait layer ${part.nativePortrait} did not load.`);
       const face = object.children.find((c) => c.userData["faceSurface"] === true);

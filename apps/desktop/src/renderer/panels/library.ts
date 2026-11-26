@@ -150,6 +150,7 @@ export function mountLibrary(ctx: PanelContext, redrawViewport: () => void) {
     if (!doc || !view || !documentId) return;
     const preset = exportPresets.find((p) => p === exportPreset.value) ?? "clay";
     const wardrobe = exportOutfits.checked && !exportOutfits.disabled;
+    const staticMesh = !byId("export-motion", HTMLInputElement).checked;
     say(
       `Exporting revision ${view.revision} at ${preset}${wardrobe ? " with every saved outfit" : ""}…`,
     );
@@ -159,6 +160,7 @@ export function mountLibrary(ctx: PanelContext, redrawViewport: () => void) {
         revision: view.revision,
         preset,
         ...(wardrobe ? { wardrobe: true } : {}),
+        ...(staticMesh ? { staticMesh: true } : {}),
       });
       const bytes = await artifactBytes(exported.glb.sha256);
       const entry = await api.saveExport({
@@ -167,6 +169,7 @@ export function mountLibrary(ctx: PanelContext, redrawViewport: () => void) {
         revision: exported.source.revision,
         preset,
         ...(exported.wardrobe ? { wardrobe: true } : {}),
+        ...(staticMesh ? { staticMesh: true } : {}),
         bytes,
       });
       say(
@@ -175,6 +178,68 @@ export function mountLibrary(ctx: PanelContext, redrawViewport: () => void) {
       await play(entry, bytes);
     } catch (error) {
       showBanner("error", `Export failed: ${failure(error)}`);
+    }
+  };
+  const report = byId("game-report", HTMLDialogElement),
+    results = byId("game-results", HTMLDivElement);
+  byId("inspection-close", HTMLButtonElement).onclick = () => report.close();
+  const inspect = byId("inspect-game", HTMLButtonElement);
+  inspect.onclick = async () => {
+    const { view, documentId, project } = ctx;
+    if (!view || !documentId) return;
+    results.replaceChildren(el("p", { text: "Inspecting revision " + view.revision + "..." }));
+    report.showModal();
+    inspect.disabled = true;
+    try {
+      const result = await host.call("review.inspect", {
+        documentId,
+        revision: view.revision,
+        preset: "game",
+        ...(!byId("export-motion", HTMLInputElement).checked ? { staticMesh: true } : {}),
+        sheets: ["body", "portrait"],
+        width: 256,
+        height: 256,
+      });
+      const m = result.metrics,
+        views = await Promise.all(
+          result.images.map(async (im) => {
+            const bytes = await artifactBytes(im.sha256),
+              img = el("img");
+            img.alt = im.name;
+            img.width = im.width;
+            img.height = im.height;
+            const url = URL.createObjectURL(new Blob([bytes.slice()], { type: "image/png" }));
+            img.onload = img.onerror = () => URL.revokeObjectURL(url);
+            img.src = url;
+            return img;
+          }),
+        );
+      if (ctx.project !== project || ctx.documentId !== documentId) {
+        report.close();
+        return;
+      }
+      results.replaceChildren(
+        el("p", {
+          text:
+            "Revision " +
+            view.revision +
+            ", " +
+            m.geometry.triangles +
+            " triangles, " +
+            m.textures.images +
+            " textures, " +
+            m.rig.joints +
+            " joints, " +
+            m.rig.clips +
+            " clips",
+        }),
+        ...views,
+        ...result.notes.map((text) => el("p", { text })),
+      );
+    } catch (e) {
+      results.textContent = failure(e);
+    } finally {
+      inspect.disabled = false;
     }
   };
   return { refresh: refreshLibrary, render: syncOutfits };
