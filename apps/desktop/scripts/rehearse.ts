@@ -515,7 +515,7 @@ try {
         "-ExecutionPolicy",
         "Bypass",
         "-Command",
-        "$ErrorActionPreference = 'Stop'; Get-Content -LiteralPath $env:IRUDD_TEST_BOOTSTRAP -Raw | Invoke-Expression",
+        "$ErrorActionPreference = 'Stop'; Import-Module PSReadLine; Get-Content -LiteralPath $env:IRUDD_TEST_BOOTSTRAP -Raw | Invoke-Expression",
       ],
       {
         cwd: scratch,
