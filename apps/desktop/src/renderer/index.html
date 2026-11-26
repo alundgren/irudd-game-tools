@@ -49,6 +49,28 @@
       <section class="viewport-wrap">
         <div id="viewport" class="viewport" tabindex="0" aria-label="Character viewport"></div>
         <button id="random-human" class="quick-start" hidden>New random human</button>
+        <dialog id="human-start">
+          <form method="dialog">
+            <h2>New random human</h2>
+            <label
+              >Archetype
+              <select id="human-archetype">
+                <option value="any">Any</option>
+                <option value="female">Female</option>
+                <option value="male">Male</option>
+                <option value="neutral">Neutral</option>
+              </select></label
+            >
+            <label
+              >Colour range
+              <select id="human-colours"></select
+            ></label>
+            <div class="display-controls">
+              <button value="cancel" type="button" id="human-start-cancel">Cancel</button
+              ><button value="create" type="submit">Create human</button>
+            </div>
+          </form>
+        </dialog>
         <div class="tools" role="toolbar" aria-label="Transform">
           <button id="tool-select" class="on" title="Select (Q)">Select</button>
           <button id="tool-move" title="Move (G)">Move</button>
@@ -84,6 +106,21 @@
         <section>
           <h2>Properties</h2>
           <div id="properties"></div>
+        </section>
+        <section id="human-editor" hidden>
+          <h2>Adult human</h2>
+          <details id="human-anatomy" open>
+            <summary>Anatomy</summary>
+            <div></div>
+          </details>
+          <details id="human-appearance">
+            <summary>Appearance</summary>
+            <div></div>
+          </details>
+          <details id="human-styling">
+            <summary>Outfit and hairstyle</summary>
+            <div></div>
+          </details>
         </section>
         <section aria-labelledby="display-heading">
           <h2 id="display-heading">Display</h2>

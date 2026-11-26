@@ -1,3 +1,8 @@
+import {
+  adultColourRanges,
+  randomDressedAdult,
+  type HumanAdultParams,
+} from "@irudd/character/human";
 import { describe, failure } from "./context.js";
 import { byId } from "../dom.js";
 import type { PanelContext } from "./context.js";
@@ -6,6 +11,27 @@ export function mountStart(ctx: PanelContext, onStarted: (id: string) => Promise
   const { host, showBanner, say } = ctx;
   const startSelect = byId("start", HTMLSelectElement);
   const randomHuman = byId("random-human", HTMLButtonElement);
+  const dialog = byId("human-start", HTMLDialogElement);
+  const archetype = byId("human-archetype", HTMLSelectElement);
+  const colours = byId("human-colours", HTMLSelectElement);
+  colours.replaceChildren(...adultColourRanges.map((name) => new Option(name, name)));
+  byId("human-start-cancel", HTMLButtonElement).onclick = () => dialog.close();
+  dialog.onsubmit = (event) => {
+    event.preventDefault();
+    const body = ctx.humanBody;
+    if (!body) return;
+    const seed = crypto.getRandomValues(new Uint32Array(1))[0] ?? 0;
+    const frame = archetype.value;
+    const range = adultColourRanges.find((name) => name === colours.value);
+    if (
+      !range ||
+      !(frame === "any" || frame === "male" || frame === "female" || frame === "neutral")
+    )
+      return;
+    const params = randomDressedAdult(body, seed, frame, range);
+    dialog.close();
+    void startCharacter("human-adult", params);
+  };
   async function loadStarters(): Promise<void> {
     startSelect.disabled = true;
     startSelect.replaceChildren(new Option("New character from…", ""));
@@ -39,10 +65,15 @@ export function mountStart(ctx: PanelContext, onStarted: (id: string) => Promise
     return { starter };
   }
 
-  startSelect.onchange = () => void startCharacter(startSelect.value);
-  randomHuman.onclick = () => void startCharacter("human-adult/seed");
+  startSelect.onchange = () => {
+    if (startSelect.value === "human-adult/seed") {
+      startSelect.value = "";
+      dialog.showModal();
+    } else void startCharacter(startSelect.value);
+  };
+  randomHuman.onclick = () => dialog.showModal();
 
-  async function startCharacter(value: string): Promise<void> {
+  async function startCharacter(value: string, params?: HumanAdultParams): Promise<void> {
     if (startSelect.disabled) return;
     const choice = startChoice(value);
     const starter = choice.starter;
@@ -56,6 +87,7 @@ export function mountStart(ctx: PanelContext, onStarted: (id: string) => Promise
         documentId: id,
         requestId: "desk-" + crypto.randomUUID(),
         ...choice,
+        ...(params ? { params, label: `Adult human ${params.seed}` } : {}),
       });
       if (started.result.kind === "rejected") {
         showBanner("error", `Could not start: ${describe(started.result.diagnostics)}`);

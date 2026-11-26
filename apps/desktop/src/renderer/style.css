@@ -505,3 +505,36 @@ h2 {
   margin: 4px 0 0;
   padding-left: 1.2em;
 }
+
+#human-editor details > div,
+#human-start form {
+  display: grid;
+  gap: 6px;
+  padding: 8px 0;
+}
+#human-editor summary {
+  cursor: pointer;
+  padding: 4px 0;
+}
+#human-editor label,
+#human-start label {
+  display: grid;
+  grid-template-columns: 1fr minmax(0, 1.25fr);
+  align-items: center;
+  gap: 8px;
+}
+#human-editor input,
+#human-editor select {
+  width: 100%;
+  min-width: 0;
+}
+#human-start {
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  min-width: 280px;
+}
+#human-start::backdrop {
+  background: rgb(0 0 0 / 45%);
+}

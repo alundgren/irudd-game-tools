@@ -9,3 +9,4 @@ export {
   type TailoredParts,
 } from "./tailor.js";
 export { fittedHair, type FittedHair, type HairStyle } from "./hair.js";
+export { outfitPalette, toneFields } from "./outfits.js";

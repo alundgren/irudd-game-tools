@@ -19,6 +19,7 @@ import { readProvenance } from "@irudd/character";
 import { humanSlot } from "@irudd/character/human";
 import { BaseSlot, decodeWith, transportOffset } from "@irudd/document";
 import { connect, type WorkshopClient } from "@irudd/workshop/client";
+import { verifyHumanEditing } from "./human-edit-check.js";
 import { appDir, appEnvironment, electronExecutable } from "./electron.js";
 
 const { values } = parseArgs({
@@ -369,6 +370,11 @@ try {
     );
   });
 
+  await step("tune a new random human through the desktop panels and undo", async () => {
+    assert.ok(agent);
+    await page.click("#tab-workshop");
+    await verifyHumanEditing(page, agent, join(outDir, "editing"));
+  });
   agent?.close();
   agent = undefined;
   await step("quit", () => (app ? app.close() : Promise.resolve()));
@@ -378,7 +384,7 @@ try {
   await app?.close().catch(() => undefined);
   const report = { results, problems, out: outDir, scratch: keep ? scratch : undefined };
   console.log(JSON.stringify(report, null, 2));
-  if (!keep) rmSync(scratch, { recursive: true, force: true });
+  if (!keep) rmSync(scratch, { recursive: true, force: true, maxRetries: 10 });
 }
 if (problems.length) {
   console.error("Page errors were reported.");

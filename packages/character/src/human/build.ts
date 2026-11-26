@@ -161,23 +161,28 @@ export function buildHuman(
     height: measurements["height"] ?? 1.72,
     paint,
     cast,
-    dress: {
-      tailor:
-        !work || params.style.tailor === undefined ? undefined : readTailor(params.style.tailor),
-      outfit: preset ? { name: preset, tones: params.style } : undefined,
-      hair: {
-        hair: params.style.hair,
-        fringe: params.style.fringe,
-        hairColor: params.style.hairColor,
-      },
-      skin: params.skin,
-      eyewear: params.style.eyewear,
-      necklace: params.style.necklace,
-      clothAccent: params.style.clothAccent,
-      clothDesign: params.style.clothDesign,
-      secondDesign: params.style.secondDesign,
-      metalColor: params.style.metalColor,
-    },
+    dress:
+      params.outfit === "Anatomy"
+        ? undefined
+        : {
+            tailor:
+              !work || params.style.tailor === undefined
+                ? undefined
+                : readTailor(params.style.tailor),
+            outfit: preset ? { name: preset, tones: params.style } : undefined,
+            hair: {
+              hair: params.style.hair,
+              fringe: params.style.fringe,
+              hairColor: params.style.hairColor,
+            },
+            skin: params.skin,
+            eyewear: params.style.eyewear,
+            necklace: params.style.necklace,
+            clothAccent: params.style.clothAccent,
+            clothDesign: params.style.clothDesign,
+            secondDesign: params.style.secondDesign,
+            metalColor: params.style.metalColor,
+          },
   });
   const group = new T.Group();
   const built = new Map<
