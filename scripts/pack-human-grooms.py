@@ -25,8 +25,6 @@ from human_cutout import cutout
 
 Image.MAX_IMAGE_PIXELS = None
 
-# System assets record their CC0 release. Community assets must carry CC0 both in
-# the asset index and in the mesh-clothing file distributed with the original art.
 GROOMS = {
     "short_layered": dict(folder="short01", author="MakeHuman team", system=True,
         source="https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html", pack="makehuman_system_assets_cc0"),
@@ -123,12 +121,8 @@ def strand_tone(im, size):
     im.thumbnail((size, size), Image.Resampling.LANCZOS)
     gray = np.asarray(im.convert("L"), dtype=float)
     alpha = np.asarray(im.getchannel("A"))
-    # The middle strand takes the tint as chosen: a black wig and a blond one both pack to the same value,
-    # so a grey or dyed tint reads as that colour and not as its shadow.
     middle = max(8.0, float(np.median(gray[alpha > 128])))
     tone = np.clip(gray / middle, 0.05, 4) ** 0.6
-    # A game atlas holds this map at a third of its size. Locks and partings a few texels wide survive that;
-    # single hairs do not, so the lock-scale light and dark is drawn a little stronger than painted.
     soft = np.asarray(Image.fromarray(np.clip(tone * 120, 0, 255).astype("uint8")).filter(ImageFilter.GaussianBlur(size / 110)), dtype=float) / 120
     tone = tone + 0.55 * (tone - soft)
     value = Image.fromarray(np.clip(tone * 188, 58, 255).astype("uint8"))
@@ -174,8 +168,6 @@ def strand_relief(image):
     normals = np.stack((-rx, ry, np.ones_like(rx)), axis=-1)
     normals /= np.linalg.norm(normals, axis=-1, keepdims=True)
     distance = ndimage.distance_transform_edt(inside)
-    # Thin the last few millimetres in the strand direction. Keep the
-    # author's existing transparency wherever it cuts deeper into the lock.
     margin = np.clip((distance + 2. + 6.*strands) / 5., 0, 1)
     gray = np.clip(tone + .145*strands, .07, 1.)
     rgba = np.stack([gray, gray, gray, np.minimum(alpha, margin)], axis=-1)
@@ -190,8 +182,6 @@ def beard_texture(strands, normal):
     distance = ndimage.distance_transform_edt(alpha > .28)
     light = rgb[:,:,0]/255.
     fibres = light - ndimage.gaussian_filter(light,3)
-    # Adjacent whiskers reach different distances into the cheek. This
-    # breaks up the hard perimeter of a single mapped beard shell.
     edge = np.clip((distance - 4 + 26*fibres)/14,0,1)
     rgb[:,:,3] = np.rint(255*np.minimum(alpha,edge))
     w,h = strands.size
@@ -240,8 +230,6 @@ def recede(im, points, tex, corners, texcorners):
     x,y,z = ((points-centre) / (high-centre)).T
     azimuth = np.abs(np.arctan2(x,z))
     elevation = np.arctan2(y, np.hypot(x,z))
-    # A continuous horseshoe runs from the bare forehead to the occiput.
-    # Lower at the front temples, higher as it turns round the back.
     limit = np.interp(np.degrees(azimuth), [0,35,55,75,90,115,140,180], [-52,-52,-28,5,22,39,54,62])
     below = np.radians(limit) - elevation
     gone = np.clip(-below / 0.055, -1, 1)
@@ -267,7 +255,6 @@ def recede(im, points, tex, corners, texcorners):
         value = a * g[0] + b * g[1] + (1 - a - b) * g[2]
         patch = field[y0:y1 + 1, x0:x1 + 1]
         patch[inside] = np.fmax(patch[inside], value[inside])
-    # Texels beside a card take the card's own value, so a sampled edge does not bring back a line of cleared hair.
     for _ in range(8):
         blank = np.isnan(field)
         if not blank.any():
@@ -290,7 +277,6 @@ def coil_tail(points, corners, refs, weights, offsets):
     t = np.asarray(corners).reshape(-1, 3)
     graph = coo_matrix((np.ones(t.size), (t.ravel(), np.roll(t, 1, axis=1).ravel())), shape=(len(points), len(points)))
     n, component = connected_components(graph, directed=False)
-    # The separate locks whose entire length is behind the scalp share a tie.
     tail = np.zeros(len(points), bool)
     for i in range(n):
         group = component == i
@@ -300,8 +286,6 @@ def coil_tail(points, corners, refs, weights, offsets):
     low, high = v[:, 1].min(), v[:, 1].max()
     u = np.clip((high - v[:, 1]) / (high - low), 0, 1)
     root = np.median(v[u < 0.06], axis=0)
-    # Estimate the source cross-section down the tail; preserve the shape and
-    # UVs of each lock as its former straight centreline becomes a spiral.
     stations = np.linspace(0, 1, 14)
     centre = np.array([np.median(v[np.abs(u - s) < .065],axis=0) for s in stations])
     dx = v[:,0] - np.interp(u, stations, centre[:,0])
@@ -309,7 +293,6 @@ def coil_tail(points, corners, refs, weights, offsets):
     angle = u * 2 * np.pi * 1.18
     radius = 0.36 * (1 - .49 * u)
     compression = 1 - .24 * u
-    # Start at the tie, escape rearward, then tuck the tips against the scalp.
     x = root[0] + (radius + dx * compression) * np.cos(angle) - .27 * (1 - np.minimum(u * 5, 1))
     y = root[1] - (radius + dx * compression) * np.sin(angle)
     z = root[2] + .12 * np.minimum(1, u * 6) - .25 * np.sin(np.pi * np.minimum(1, u * 1.1))**.65 - .10 * u + dz * compression
@@ -335,7 +318,6 @@ def pack_one(name, spec, root, index):
     if spec.get("facial"):
         hide = []
     if spec.get("system"):
-        # A system asset carries its release in its own header.
         if "explicitly released as CC0" not in text:
             raise ValueError(name + " does not carry the system CC0 release")
         file_licence = "CC0 (system asset release, September 2020)"
@@ -344,8 +326,6 @@ def pack_one(name, spec, root, index):
     im = Image.open(diffuse).convert("RGBA")
     if "CC0" not in file_licence.upper():
         raise ValueError(name + ": no CC0 release in the groom header")
-    # A few grooms repeat their picture outside the first UV square. Bake
-    # the repetitions into one tile before normalising to the portable atlas.
     uv_array = np.array(tex)
     low = np.floor(uv_array.min(axis=0))
     span = np.maximum(1, np.ceil(uv_array.max(axis=0)) - low).astype(int)
@@ -367,7 +347,6 @@ def pack_one(name, spec, root, index):
         refs=encode(refs, "<u2"),
         weights=encode(weights, "<f4"),
         offsets=encode(offsets, "<f4"),
-        # MakeClothes scales each offset by a span of the wearer's head; the finish step resolves it on this body.
         scale={k: list(v) for k, v in scale.items()},
         uv=encode(np.rint(np.array(tex) * 65535).clip(0, 65535), "<u2"),
         corners=encode(corners, "<u2"),
@@ -391,7 +370,6 @@ def pack_one(name, spec, root, index):
 def pack(root, out, names):
     index = json.loads(next(root.parent.rglob("assets.json")).read_text(encoding="utf8"))
     library = {name: pack_one(name, spec, root, index) for name, spec in GROOMS.items() if not names or name in names}
-    # The library is finished beside its place and moved in whole, so nothing reads a half-packed file.
     draft = out.with_name(out.name + ".draft")
     draft.write_text(json.dumps(library, separators=(",", ":")) + chr(10))
     subprocess.run(["node", str(pathlib.Path(__file__).with_name("pack-human-grooms-finish.mjs")), str(draft)], check=True)

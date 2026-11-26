@@ -31,7 +31,6 @@ class Body:
         self.face_region = None
         if vertex_region is not None:
             corners = np.asarray(vertex_region)[self.faces]
-            # A face takes the label two of its corners share, else its first corner's.
             self.face_region = np.where(corners[:, 1] == corners[:, 2], corners[:, 1], corners[:, 0])
 
     def transformed(self, rotation, translation):
@@ -68,7 +67,7 @@ def align(candidate, target, iterations=80, points=10000, trim=0.9):
     for _ in range(iterations):
         moved = pc @ rotation.T + translation
         d1, q1, _, _ = target.surface.closest(moved)
-        back = (pt - translation) @ rotation  # target samples in the candidate's own frame
+        back = (pt - translation) @ rotation
         d2, q2, _, _ = candidate.surface.closest(back)
         keep1, keep2 = d1 <= np.quantile(d1, trim), d2 <= np.quantile(d2, trim)
         source = np.concatenate([pc[keep1], q2[keep2]])
@@ -84,7 +83,7 @@ def _direction(points, normals, surface):
     d, q, face, bary = surface.closest(points)
     other = surface.smooth_normal(face, bary)
     cosine = np.clip(np.einsum("ij,ij->i", normals, other), -1, 1)
-    signed = np.einsum("ij,ij->i", points - q, other)  # positive: the query lies outside the other surface
+    signed = np.einsum("ij,ij->i", points - q, other)
     return d, face, np.degrees(np.arccos(cosine)), signed
 
 
@@ -119,7 +118,6 @@ def compare(candidate, target, aligned=True, local=True):
         "chamfer": round(float(d_ct.mean() + d_tc.mean()) * 500, 2),
         "hausdorff95": round(float(max(np.percentile(d_ct, 95), np.percentile(d_tc, 95))) * 1000, 2),
         "normalAngleDegrees": round(float((angle_ct.mean() + angle_tc.mean()) / 2), 2),
-        # Mean signed offset of the candidate surface from the target: positive is fuller.
         "meanSignedOffset": round(float((signed_ct.mean() - signed_tc.mean()) * 500), 2),
         "fscore": {},
     }
@@ -143,7 +141,6 @@ def compare(candidate, target, aligned=True, local=True):
             if local:
                 row["local"] = _local_residual(moved.points[c], target.points[t], moved, target)
             out["regions"][name] = row
-        # The face: head samples whose outward normal points forwards.
         head = target.region_names.index("head")
         c = (c_region == head) & (moved.normals[:, 2] > 0.3)
         t = (t_region == head) & (target.normals[:, 2] > 0.3)
@@ -153,12 +150,11 @@ def compare(candidate, target, aligned=True, local=True):
     return out, detail
 
 
-# ------------------------------------------------------------ measurements
 def _hull_perimeter(points_2d):
     if len(points_2d) < 3:
         return 0.0
     try:
-        return float(ConvexHull(points_2d).area)  # for 2D input, `area` is the perimeter
+        return float(ConvexHull(points_2d).area)
     except Exception:
         return 0.0
 
@@ -200,7 +196,6 @@ def measurements(body, arm_face_mask):
         inside = (heights >= lo) & (heights <= hi)
         return float(pick(values[inside]))
 
-    # Thickness along the viewing axis, seen from the front and from behind.
     pixels = 400.0
     center = np.array([0.0, floor + stature / 2, 0.0])
     width, height = int(1.6 * pixels), int((stature + 0.1) * pixels)

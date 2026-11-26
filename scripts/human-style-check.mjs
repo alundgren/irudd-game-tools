@@ -1,9 +1,3 @@
-// Renders styled humans to a contact sheet for visual checks:
-//   node scripts/human-style-check.mjs --outfit "T-shirt and jeans" --hair Bob --bodies f1,m1 --views 0,35,180 --out sheet.png
-// Options: --clay (one neutral material), --frame head|bust|torso|legs|feet|body, --size 300x600,
-// --bare (hide the body), --pitch degrees, --columns n. Lists take commas; back faces render red.
-// The sheet is drawn on the graphics card through a headless browser. On a machine without a usable one
-// the CPU renderer draws it. The script prints which renderer it used.
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import * as T from "three";

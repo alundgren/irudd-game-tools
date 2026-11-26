@@ -1,6 +1,4 @@
 import { Bone, MathUtils, Vector3 } from "three";
-// Wrist and arm bones are already in the neutral world frame. Give each
-// digit its own three pivots so ordinary glTF animation can drive it.
 export function bindFingers(region, bones, index) {
   const sources = new Map();
   for (const mesh of region.meshes) {

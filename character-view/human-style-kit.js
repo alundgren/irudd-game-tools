@@ -1,10 +1,6 @@
-// Geometry tools for dressing the human surface. Garments and hair are derived
-// from the body itself: a region of skin is cut out along anatomical lines,
-// lifted off the body, relaxed like cloth under tension and closed at its edges.
-// Every vertex keeps blended skin weights from the body beneath it.
 import * as T from "three";
 
-const BODY_SOURCE_VERTICES = 13380; // MPFB ids below this are skin; the rest are helpers.
+const BODY_SOURCE_VERTICES = 13380;
 export const clamp = (x, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, x));
 export const mix = (a, b, t) => a + (b - a) * t;
 export const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a)); return t * t * (3 - 2 * t); };
@@ -16,7 +12,6 @@ export const length = a => Math.hypot(a[0], a[1], a[2]);
 export const unit = a => { const l = length(a) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
 export const lerp3 = (a, b, t) => [mix(a[0], b[0], t), mix(a[1], b[1], t), mix(a[2], b[2], t)];
 
-/** Repeatable value noise in 3D, range 0..1. */
 export function noise3(x, y, z) {
   const xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z);
   const fx = x - xi, fy = y - yi, fz = z - zi;
@@ -37,7 +32,6 @@ export function mergeSkin(pairs) {
   return [bones, weights];
 }
 
-/** Measurements, weight fields and spatial lookups shared by every garment. */
 export function analyse(surface) {
   const { positions: P, names, ids } = surface;
   let count = 0;
@@ -60,7 +54,6 @@ export function analyse(surface) {
   const bone = name => { const i = names.indexOf(name); if (i < 0) throw new Error("The human rig has no " + name + " joint."); return i; };
   const joint = name => { const i = bone(name) * 3; return [surface.joints[i], surface.joints[i + 1], surface.joints[i + 2]]; };
   const fields = new Map();
-  /** Summed skin weight of the bones whose names match. */
   function weight(pattern) {
     const key = String(pattern);
     if (!fields.has(key)) {
@@ -71,7 +64,6 @@ export function analyse(surface) {
     return fields.get(key);
   }
   const point = v => [P[v * 3], P[v * 3 + 1], P[v * 3 + 2]];
-  // Position along a limb: 0 at its root joint, 1 at the middle joint, 2 at the end joint.
   function limb(rootName, middleName, endName, tipPattern) {
     const out = new Float32Array(count).fill(-.3), most = new Float32Array(count);
     for (const side of ["l", "r"]) {
@@ -81,7 +73,6 @@ export function analyse(surface) {
       const wc = weight(new RegExp("^(" + endName + "|" + tipPattern + ")_?.*_" + side + "$"));
       for (let v = 0; v < count; v++) {
         const total = wa[v] + wb[v] + wc[v];
-        // A stray trace of the other side's weight must not replace the side a point belongs to.
         if (total <= most[v]) continue;
         most[v] = total;
         const p = point(v), ta = dot(sub(p, root), a) / la, tb = dot(sub(p, middle), b) / lb;
@@ -92,7 +83,6 @@ export function analyse(surface) {
     return out;
   }
   const scale = (top - floor) / 1.72;
-  // A coarse grid finds the skin nearest to any point.
   const cell = .03 * scale, grid = new Map();
   const key = (x, y, z) => (Math.floor(x / cell) + 512) + (Math.floor(y / cell) + 512) * 1024 + (Math.floor(z / cell) + 512) * 1048576;
   for (let v = 0; v < count; v++) { const k = key(P[v * 3], P[v * 3 + 1], P[v * 3 + 2]); if (!grid.has(k)) grid.set(k, []); grid.get(k).push(v); }
@@ -110,14 +100,12 @@ export function analyse(surface) {
   const skinOf = v => [[...surface.boneIndices.subarray(v * 4, v * 4 + 4)], [...surface.weights.subarray(v * 4, v * 4 + 4)]];
   const rigid = name => [[bone(name), 0, 0, 0], [1, 0, 0, 0]];
   function skinAt(p) { const v = nearest(p, 8); return v < 0 ? rigid("spine_02") : skinOf(v); }
-  /** The skin of the trunk and legs nearest a point: what a belt, a pocket or a coat's skirt moves with, however close a hand hangs. */
   let arms = null;
   function trunkAt(p) {
     arms ??= weight(/^(upperarm|lowerarm|hand|thumb|index|middle|ring|pinky)/).map(w => w > .05 ? 1 : 0);
     const v = nearest(p, 8, arms);
     return v < 0 ? rigid("spine_02") : skinOf(v);
   }
-  /** Push a point out of the body, leaving a gap. */
   function clear(p, gap) {
     const v = nearest(p, 2);
     if (v < 0) return p;
@@ -134,7 +122,6 @@ export function analyse(surface) {
   return body;
 }
 
-/** A piece of skin lifted off the body. `anc` is the skin point each vertex belongs to. */
 export class Shell {
   constructor() { this.pos = []; this.anc = []; this.nrm = []; this.bones = []; this.weights = []; this.tri = []; this.f = {}; }
   get count() { return this.pos.length / 3; }
@@ -158,7 +145,6 @@ export function bodyShell(body, fields = {}) {
   return s;
 }
 
-/** Keep the part of the shell where `value` is positive. New edge vertices lie exactly on the cut. */
 export function cut(s, value) {
   const n = s.count, f = new Float32Array(n);
   for (let i = 0; i < n; i++) f[i] = value(i);
@@ -175,7 +161,7 @@ export function cut(s, value) {
     }
     return map[i];
   }
-  function split(a, b) { // a is kept, b is cut away
+  function split(a, b) {
     const key = a < b ? a * n + b : b * n + a;
     if (!edges.has(key)) {
       const t = f[a] / (f[a] - f[b]);
@@ -205,7 +191,6 @@ export function cut(s, value) {
   return out;
 }
 
-/** Keep only the connected part nearest to a point. */
 export function connected(s, near) {
   const parent = Array.from({ length: s.count }, (_, i) => i);
   const find = i => { while (parent[i] !== i) i = parent[i] = parent[parent[i]]; return i; };
@@ -217,18 +202,15 @@ export function connected(s, near) {
 }
 
 const topologies = new WeakMap();
-/** Neighbours of every vertex and the walk along open edges. Kept while the shell's triangles stay as they are; read only. */
 function topology(s) {
   const known = topologies.get(s);
   if (known && known.tri === s.tri && known.size === s.tri.length && known.count === s.count) return known.made;
   const n = s.count, tri = s.tri, half = new Set(), fill = new Int32Array(n + 1);
   for (let t = 0; t < tri.length; t += 3) for (let k = 0; k < 3; k++) half.add(tri[t + k] * n + tri[t + (k + 1) % 3]);
-  // A boundary half edge has no twin. `next` and `prev` walk the open edge.
   const next = new Int32Array(n).fill(-1), prev = new Int32Array(n).fill(-1), pairs = [];
   for (const key of half) {
     const a = Math.floor(key / n), b = key % n, twin = half.has(b * n + a);
     if (!twin) { next[a] = b; prev[b] = a; }
-    // An edge with two sides is listed once, from its lower vertex.
     if (!twin || a < b) pairs.push(a, b);
   }
   for (const v of pairs) fill[v + 1]++;
@@ -241,7 +223,6 @@ function topology(s) {
   return made;
 }
 
-/** Ordered open edges of a shell, each a list of vertex indices walked along the triangle winding. */
 export function loops(s) {
   const { next } = topology(s), seen = new Uint8Array(s.count), out = [];
   for (let i = 0; i < s.count; i++) {
@@ -253,16 +234,11 @@ export function loops(s) {
   return out;
 }
 
-/** Lift every vertex off its skin point along the skin normal. */
 export function lift(s, distance) {
   for (let i = 0; i < s.count; i++) { const d = typeof distance === "function" ? distance(i) : distance; s.set(i, add(s.anchor(i), s.normal(i), d)); }
   return s;
 }
 
-/**
- * Pull the cloth taut. Each pass averages neighbours, which spans hollows and
- * softens anatomy, then keeps every vertex at least `gap` above its skin point.
- */
 export function relax(s, { passes = 6, strength = .5, gap = .003, edge = .5, hold, alongNormal = false, apart = false } = {}) {
   const { neighbours, next, prev } = topology(s), n = s.count;
   for (let pass = 0; pass < passes; pass++) {
@@ -280,9 +256,7 @@ export function relax(s, { passes = 6, strength = .5, gap = .003, edge = .5, hol
     for (let i = 0; i < n; i++) {
       const g = typeof gap === "function" ? gap(i) : gap, nx = s.nrm[i * 3], ny = s.nrm[i * 3 + 1], nz = s.nrm[i * 3 + 2];
       const d = (s.pos[i * 3] - s.anc[i * 3]) * nx + (s.pos[i * 3 + 1] - s.anc[i * 3 + 1]) * ny + (s.pos[i * 3 + 2] - s.anc[i * 3 + 2]) * nz;
-      // Sliding sideways would carry cloth into neighbouring bulges, so softening moves only in and out.
       if (alongNormal) { s.pos[i * 3] = s.anc[i * 3] + nx * d; s.pos[i * 3 + 1] = s.anc[i * 3 + 1] + ny * d; s.pos[i * 3 + 2] = s.anc[i * 3 + 2] + nz * d; }
-      // Left and right halves may meet at the centre line but never pass through each other.
       if (apart && Math.abs(s.anc[i * 3]) > .0002 && s.pos[i * 3] * s.anc[i * 3] < 0) s.pos[i * 3] = 0;
       if (d < g) { s.pos[i * 3] += nx * (g - d); s.pos[i * 3 + 1] += ny * (g - d); s.pos[i * 3 + 2] += nz * (g - d); }
       if (apart && Math.abs(s.anc[i * 3]) > .0002 && s.pos[i * 3] * s.anc[i * 3] < 0) s.pos[i * 3] = 0;
@@ -291,7 +265,6 @@ export function relax(s, { passes = 6, strength = .5, gap = .003, edge = .5, hol
   return s;
 }
 
-/** Split every triangle in four. Run before fine displacement such as hair grooves. */
 export function subdivide(s) {
   const out = new Shell(), n = s.count, names = Object.keys(s.f), edges = new Map();
   for (const key of ["pos", "anc", "nrm", "bones", "weights"]) out[key] = s[key].slice();
@@ -317,10 +290,6 @@ export function subdivide(s) {
   return out;
 }
 
-/**
- * A radial height map around an axis: for each station along the axis and each
- * direction around it, how far the body reaches. Cloth hangs from it.
- */
 export class Envelope {
   constructor(origin, axis, h0, h1, rows, cols = 48) {
     this.o = origin; this.a = unit(axis); this.h0 = h0; this.h1 = h1; this.rows = rows; this.cols = cols;
@@ -333,13 +302,11 @@ export class Envelope {
   row(h) { return clamp((h - this.h0) / (this.h1 - this.h0), 0, 1) * (this.rows - 1); }
   local(p) { const d = sub(p, this.o); return [dot(d, this.a), dot(d, this.u), dot(d, this.v)]; }
   centre(h) { const f = this.row(h), i = Math.min(this.rows - 2, Math.floor(f)), t = f - i; return [mix(this.cu[i], this.cu[i + 1], t), mix(this.cv[i], this.cv[i + 1], t)]; }
-  /** Station, direction and radius of a point. */
   polar(p) { const [h, x, y] = this.local(p), [cx, cy] = this.centre(h); return [h, Math.atan2(y - cy, x - cx), Math.hypot(x - cx, y - cy)]; }
   point(h, angle, radius) {
     const [cx, cy] = this.centre(h), x = cx + Math.cos(angle) * radius, y = cy + Math.sin(angle) * radius;
     return [this.o[0] + this.a[0] * h + this.u[0] * x + this.v[0] * y, this.o[1] + this.a[1] * h + this.u[1] * x + this.v[1] * y, this.o[2] + this.a[2] * h + this.u[2] * x + this.v[2] * y];
   }
-  /** Measure the given points (an array of [x,y,z]). Set `fixed` first to keep every ring centred on the axis. */
   measure(points) {
     const { rows, cols } = this, lo = Array.from({ length: rows }, () => [Infinity, Infinity]), hi = Array.from({ length: rows }, () => [-Infinity, -Infinity]);
     const locals = points.map(p => this.local(p)).filter(([h]) => h >= this.h0 - (this.h1 - this.h0) / rows && h <= this.h1 + (this.h1 - this.h0) / rows);
@@ -354,7 +321,6 @@ export class Envelope {
       const [cx, cy] = this.centre(h), radius = Math.hypot(x - cx, y - cy), fr = this.row(h), fc = ((Math.atan2(y - cy, x - cx) / (2 * Math.PI) + 1) % 1) * cols;
       for (const i of [Math.floor(fr), Math.min(rows - 1, Math.floor(fr) + 1)]) for (const j of [Math.floor(fc) % cols, (Math.floor(fc) + 1) % cols]) this.r[i * cols + j] = Math.max(this.r[i * cols + j], radius);
     }
-    // Fill unmeasured directions from their neighbours around the ring, then empty rows from the nearest row.
     const full = [];
     for (let i = 0; i < rows; i++) {
       const row = this.r.subarray(i * cols, (i + 1) * cols), old = row.slice(), filled = [];
@@ -374,7 +340,6 @@ export class Envelope {
     }
     return this;
   }
-  /** Bridge hollows around each ring. `span` (radians) limits how wide a hollow is bridged. */
   taut(tension = 1, span = Math.PI) {
     const { rows, cols } = this, reach = Math.max(1, Math.round(span / (2 * Math.PI) * cols / 2)), step = 2 * Math.PI / cols;
     for (let i = 0; i < rows; i++) {
@@ -388,7 +353,6 @@ export class Envelope {
     }
     return this;
   }
-  /** Let cloth hang: travelling down the axis it may return to the body only at `fall` metres per metre; `rise` does the same upward. */
   hang(fall = .2, rise = 1) {
     const { rows, cols } = this, dh = (this.h1 - this.h0) / (rows - 1);
     for (let j = 0; j < cols; j++) {
@@ -413,7 +377,6 @@ export class Envelope {
     const fc = ((angle / (2 * Math.PI) % 1) + 1) % 1 * cols, j = Math.floor(fc) % cols, s = fc - Math.floor(fc), k = (j + 1) % cols;
     return mix(mix(this.r[i * cols + j], this.r[i * cols + k], s), mix(this.r[(i + 1) * cols + j], this.r[(i + 1) * cols + k], s), t);
   }
-  /** Move shell vertices out to the hanging surface. `mask(i)` fades the effect, `extra` adds ease. */
   drape(s, mask, extra = 0) {
     for (let i = 0; i < s.count; i++) {
       const m = mask ? mask(i) : 1;
@@ -429,12 +392,10 @@ export class Envelope {
   }
 }
 
-/** Collects triangles with skin weights and turns them into one mesh. */
 export class Piece {
   constructor() { this.pos = []; this.bones = []; this.weights = []; this.tri = []; }
   get count() { return this.pos.length / 3; }
   vertex(p, skin) { this.pos.push(p[0], p[1], p[2]); this.bones.push(...skin[0]); this.weights.push(...skin[1]); return this.count - 1; }
-  /** Add a shell and close its open edges back to the skin so no underside shows. */
   shell(s, { thickness = .004, close = true, flip = false } = {}) {
     const base = this.count;
     (this.shells ??= []).push(s);
@@ -447,16 +408,12 @@ export class Piece {
       if (next[i] < 0) continue;
       const p = s.at(i), a = s.anchor(i), n = s.normal(i), skin = s.skin(i), gap = length(sub(p, a));
       const inner = gap > thickness + .001 ? add(p, unit(sub(a, p)), thickness) : add(a, n, .0008);
-      // The recess ends a little way inside the opening. Under cloth that hangs well clear it ends below the skin,
-      // so the two sides of a hem over a cleft part into the body instead of crossing in the cleft.
       let deep = [0, 0, 0], total = 0;
       for (const j of neighbours[i]) if (next[j] < 0 && prev[j] < 0) { deep = add(deep, s.anchor(j)); total++; }
       const sunk = gap > .012 ? -Math.min(.012, (gap - .012) * .6) : .0006;
       deep = total ? add(lerp3(a, [deep[0] / total, deep[1] / total, deep[2] / total], .8), n, sunk) : add(a, n, sunk);
       ring.set(i, [this.vertex(p, skin), this.vertex(inner, skin), this.vertex(deep, skin), Math.min(1, Math.max(0, (gap - .012) / .02))]);
     }
-    // Under a hem that hangs well clear, the recess keeps an even line round the opening and does not follow the skin
-    // into a narrow cleft, where its two sides would face each other.
     for (let pass = 0; pass < 16; pass++) {
       const old = this.pos.slice();
       for (const [i, [, , deep, clear]] of ring) {
@@ -474,7 +431,6 @@ export class Piece {
     }
     return this;
   }
-  /** Add a grid of points: rings[i][j]. `closed` wraps each ring, `caps` fans the first and last ring shut. */
   loft(rings, skin, { closed = true, capStart = false, capEnd = false, flip = false } = {}) {
     const base = this.count, m = rings[0].length;
     rings.forEach((ring, i) => ring.forEach((p, j) => this.vertex(p, typeof skin === "function" ? skin(p, i, j) : skin)));
@@ -492,10 +448,6 @@ export class Piece {
     }
     return this;
   }
-  /**
-   * Add a sheet with thickness from two grids of points, outer[i][j] and inner[i][j],
-   * with its four edges closed. Every face is turned away from the middle of the sheet.
-   */
   slab(outer, inner, skin) {
     const rows = outer.length, cols = outer[0].length, base = this.count, at = (grid, i, j) => base + (grid ? rows * cols : 0) + i * cols + j;
     const weigh = (p, i, j) => typeof skin === "function" ? skin(p, i, j) : skin;
@@ -507,8 +459,6 @@ export class Piece {
     };
     const middle = (i, j) => lerp3(outer[i][j], inner[i][j], .5);
     for (let i = 0; i + 1 < rows; i++) for (let j = 0; j + 1 < cols; j++) {
-      // In a twisted quad the diagonal midpoint can lie outside a thin sheet.
-      // Use the middle of all four thicknesses to choose the outward winding.
       const core = lerp3(
         lerp3(middle(i, j), middle(i, j + 1), .5),
         lerp3(middle(i + 1, j), middle(i + 1, j + 1), .5), .5,
@@ -516,7 +466,6 @@ export class Piece {
       quad(at(0, i, j), at(0, i, j + 1), at(0, i + 1, j + 1), at(0, i + 1, j), core);
       quad(at(1, i, j), at(1, i, j + 1), at(1, i + 1, j + 1), at(1, i + 1, j), core);
     }
-    // Edges face away from the body of the sheet; rows may end early and repeat their last point.
     const mean = list => list.reduce((s, p) => add(s, p), [0, 0, 0]).map(x => x / list.length);
     for (let j = 0; j + 1 < cols; j++) {
       const lane = mean(outer.flatMap((row, i) => [middle(i, j), middle(i, j + 1)]));
@@ -546,7 +495,6 @@ export class Piece {
   }
 }
 
-/** Convex outline of 2D points, counter-clockwise. */
 export function hull2(points) {
   const p = points.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
   if (p.length < 3) return p;
@@ -556,7 +504,6 @@ export function hull2(points) {
   for (const q of p.reverse()) { while (upper.length > 1 && turn(upper.at(-2), upper.at(-1), q) <= 0) upper.pop(); upper.push(q); }
   return lower.slice(0, -1).concat(upper.slice(0, -1));
 }
-/** Distance from `centre` to a convex outline along a direction. */
 export function reach2(outline, centre, angle) {
   const dx = Math.cos(angle), dy = Math.sin(angle);
   let best = 0;
@@ -569,7 +516,6 @@ export function reach2(outline, centre, angle) {
   return best;
 }
 
-/** Where a ray meets one triangle, as a multiple of its direction, or Infinity. */
 function meet(pos, a, b, c, ox, oy, oz, dx, dy, dz) {
   const e1x = pos[b] - pos[a], e1y = pos[b + 1] - pos[a + 1], e1z = pos[b + 2] - pos[a + 2], e2x = pos[c] - pos[a], e2y = pos[c + 1] - pos[a + 1], e2z = pos[c + 2] - pos[a + 2];
   const px = dy * e2z - dz * e2y, py = dz * e2x - dx * e2z, pz = dx * e2y - dy * e2x, det = e1x * px + e1y * py + e1z * pz;
@@ -582,7 +528,6 @@ function meet(pos, a, b, c, ox, oy, oz, dx, dy, dz) {
   return d > 1e-6 ? d : Infinity;
 }
 
-/** First hit of a ray on a triangle soup; returns the distance or Infinity. */
 export function raycast(pos, tri, origin, direction) {
   let best = Infinity;
   const [ox, oy, oz] = origin, [dx, dy, dz] = direction;
@@ -590,10 +535,6 @@ export function raycast(pos, tri, origin, direction) {
   return best;
 }
 
-/**
- * The same for many rays against triangles that stay where they are: returns `(origin, direction) => distance`.
- * The triangles are sorted into a grid once and a ray only meets those in the cells it passes through.
- */
 export function raycaster(pos, tri, cell = .03) {
   const count = tri.length / 3, lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
   if (!count) return () => Infinity;
@@ -608,7 +549,6 @@ export function raycaster(pos, tri, cell = .03) {
   const seen = new Uint32Array(count);
   let stamp = 0;
   return (origin, direction, maxDistance = Infinity) => {
-    // The stretch of the ray inside the grid.
     let enter = 0, leave = maxDistance;
     for (let d = 0; d < 3; d++) {
       if (Math.abs(direction[d]) < 1e-12) { if (origin[d] < lo[d] - 1e-9 || origin[d] > hi[d] + 1e-9) return Infinity; continue; }
@@ -634,7 +574,6 @@ export function raycaster(pos, tri, cell = .03) {
         if (d < best) best = d;
       }
       const axis = edge[0] < edge[1] ? (edge[0] < edge[2] ? 0 : 2) : (edge[1] < edge[2] ? 1 : 2);
-      // A hit before the ray leaves this cell cannot be beaten by a triangle further on.
       if (best <= edge[axis] || edge[axis] >= leave) return best <= maxDistance ? best : Infinity;
       c[axis] += way[axis];
       if (way[axis] === 0 || c[axis] < 0 || c[axis] >= size[axis]) return best <= maxDistance ? best : Infinity;

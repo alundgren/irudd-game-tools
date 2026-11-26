@@ -28,8 +28,6 @@ import { movementRoles, skinCharacter } from "./skin.js";
 import { sweepGeometry } from "./surface.js";
 import { wingGeometry } from "./wing-surface.js";
 
-// The workshop model needs browser image loaders. This stand-in builds the
-// same hierarchy and attachment frames from plain geometry.
 export function plainModel(form) {
   const material = new MeshBasicMaterial(),
     group = new Group(),
@@ -89,7 +87,6 @@ test("every preset and 300 drawn body plans build valid, replayable forms", () =
       ].join(),
     );
   }
-  // Leg, arm, wing and fin counts combine freely across the draws.
   assert.ok(signatures.size >= 24, String(signatures.size));
 });
 
@@ -182,7 +179,6 @@ test("a spatial two-link solve reaches a goal beside, behind and above the rest 
       at.distanceTo(ankle.clone().add(new Vector3(0, lift, dz))) < 1e-6,
       [dz, lift, drop, at.toArray()].join(),
     );
-    // The knee stays on its own side and the foot keeps facing forward.
     assert.ok(b.getWorldPosition(new Vector3()).x > hip.x + 0.1);
     const toe = foot.getWorldPosition(new Vector3()).sub(at);
     assert.ok(toe.distanceTo(new Vector3(0, 0, 0.1)) < 1e-6);
@@ -260,7 +256,6 @@ test("each body plan walks: every foot lifts, lands and stays planted in stance"
         Math.max(...zs) - Math.min(...zs) > 0.12 * span,
         name + " " + id + " does not stride",
       );
-      // While a foot is down it stays level and does not wander sideways.
       const planted = t.samples.filter((p) => p.y - low < 0.012 * span);
       assert.ok(
         planted.length >= steps * 0.4,
@@ -304,7 +299,6 @@ test("changing the body plan keeps hand sculpting, added regions and repainting"
     },
   ];
   validateForm(edited);
-  // A third pair of legs leaves the head, tail and first two pairs alone.
   const more = structuredClone(plan);
   more.limbs[0].pairs = 3;
   const next = validateForm(rebuildCreature(edited, more));
@@ -315,14 +309,12 @@ test("changing the body plan keeps hand sculpting, added regions and repainting"
   assert.ok(part(next, "left leg 3 thigh"));
   assert.deepEqual(next.origin.plan, more);
   assert.equal(next.poses[0].joints.length, 2);
-  // A longer neck moves the head: the repaint and the horn stay with it.
   const longer = structuredClone(more);
   longer.head.neck = 0.6;
   const tall = validateForm(rebuildCreature(next, longer));
   assert.equal(part(tall, "head").color, "#aa3344");
   assert.notDeepEqual(part(tall, "head").position, part(next, "head").position);
   assert.ok(part(tall, "brow horn"));
-  // Removing the legs drops the pose joints that belonged to them.
   const legless = structuredClone(longer);
   legless.limbs = [];
   const snake = validateForm(rebuildCreature(tall, legless));
@@ -330,13 +322,11 @@ test("changing the body plan keeps hand sculpting, added regions and repainting"
     snake.poses[0].joints.map((j) => j.part),
     ["neck"],
   );
-  // A form without a plan is simply built.
   assert.deepEqual(rebuildCreature({ parts: [] }, plan), built);
 });
 
 test("an assistant builds and steers a creature through operations", () => {
   const part = (form, id) => form.parts.find((p) => p.id === id);
-  // A preset with changes on top of it.
   let form = applyOperations({ parts: [] }, [
     {
       op: "buildCreature",
@@ -354,7 +344,6 @@ test("an assistant builds and steers a creature through operations", () => {
   );
   assert.equal(form.origin.plan.head.teeth, 3);
   assert.ok(part(form, "upper left tooth 3"));
-  // The artist repaints the tail, then the assistant changes the legs.
   part(form, "tail").color = "#aa3344";
   const legs = form.origin.plan.limbs.findIndex((l) => l.kind === "leg");
   const count = form.origin.plan.limbs.length;
@@ -375,7 +364,6 @@ test("an assistant builds and steers a creature through operations", () => {
   assert.equal(form.origin.plan.skin.markings, null);
   assert.deepEqual(form.origin.plan.details, ["frill"]);
   assert.equal(part(form, "tail").color, "#aa3344");
-  // Changing the kind of a group starts from that kind and keeps its place.
   const turned = steerCreaturePlan(form.origin.plan, {
     setLimbs: [{ index: legs, kind: "tentacle" }],
     removeLimbs: [count - 1],
@@ -385,7 +373,6 @@ test("an assistant builds and steers a creature through operations", () => {
   assert.equal(turned.limbs[legs].pairs, 3);
   assert.equal(turned.limbs[legs].style, undefined);
   validateForm(buildCreature(turned));
-  // Refusals name what went wrong.
   assert.throws(
     () => applyOperations({ parts: [] }, [{ op: "steerCreature", set: {} }]),
     /Start one with buildCreature/,
@@ -414,10 +401,8 @@ test("the request tells an assistant how to steer a body plan", () => {
   assert.equal(brief.creaturePlanInstructions, creaturePlanInstructions);
   assert.deepEqual(brief.creaturePlanOptions.preset, Object.keys(creaturePresets));
   assert.deepEqual(brief.creaturePlanOptions.limbKind, creatureOptions.limbKind);
-  // Every option list and plan field is named in the instructions.
   for (const key of ["spine", "head", "tail", "back", "skin", "details", "setLimbs", "removeLimbs", "addLimbs"])
     assert.ok(creaturePlanInstructions.includes(key), key);
-  // A reply made of the two operations is accepted against that request.
   const next = readProposal(
     {
       format: "irudd.form-proposal.v1",

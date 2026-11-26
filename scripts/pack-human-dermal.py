@@ -21,11 +21,8 @@ def smooth(a, b, values):
 
 
 def integrate(normals):
-    # U runs right, V runs up, and bitmap rows run down.
     gx = -normals[..., 0] / np.maximum(.5, normals[..., 2])
     gy = normals[..., 1] / np.maximum(.5, normals[..., 2])
-    # Discard the coarse head shape already supplied by the character mesh.
-    # Reflect the field at each border to keep the Fourier solve periodic.
     gx = np.block([[gx, -gx[:, ::-1]], [gx[::-1], -gx[::-1, ::-1]]])
     gy = np.block([[gy, gy[:, ::-1]], [-gy[::-1], -gy[::-1, ::-1]]])
     h, w = gx.shape
@@ -48,8 +45,6 @@ def pack(source, target):
     h,w=face.shape
     y,x=np.mgrid[:h,:w]
     x,y=x/(w-1),y/(h-1)
-    # Exclude the donor's hairline, ears and under-jaw. These sit outside
-    # the face island's central ellipse. Neither sclera nor mouth lining is skin.
     mask=face*(1-smooth(.75,.99,((x-.51)/.39)**2+((y-.5)/.40)**2))
     eye=((x-.405)/.027)**2+((abs(y-.5)-.119)/.045)**2
     mask *= smooth(.72,1.22,eye)
@@ -69,10 +64,7 @@ def pack(source, target):
         lum=np.log(.05+albedo@np.array([.213,.715,.072]))
         cavity=gaussian_filter(lum,1.0)-gaussian_filter(lum,9.)
         if name=='mindfront_aksel_skin':
-            # One eye is bruised in this donor. Use its intact opposite side.
-            # Bitmap symmetry is horizontal in the upright face (vertical in UV).
             safe=smooth(.47,.53,y)
-            # The bruise is on the right of a clockwise-rotated face: low bitmap rows.
             for field in [height,spec,cavity]:
                 field[:] = field*safe + field[::-1,:]*(1-safe)
         reflection=spec-gaussian_filter(spec,30)

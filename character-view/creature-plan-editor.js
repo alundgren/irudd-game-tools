@@ -16,8 +16,6 @@ import { readEquipment } from "./creature-equipment.js";
 import { readDress } from "./creature-dress.js";
 import { growthFamilies } from "./creature-growth.js";
 
-// The body plan panel. Every control edits the plan stored on the form and
-// rebuilds the creature as one undoable step.
 const make = (tag, props = {}, ...children) => {
   const node = Object.assign(document.createElement(tag), props);
   node.append(...children);
@@ -26,8 +24,6 @@ const make = (tag, props = {}, ...children) => {
 const title = (text) => text[0].toUpperCase() + text.slice(1);
 const o = creatureOptions;
 
-// [key, label, least, most, step] is a slider, [key, label, options] a list,
-// [key, label, "color"] a colour and [key, label, "check"] a switch.
 const fields = {
   spine: [
     ["length", "Body length", 0.2, 3, 0.01],
@@ -161,7 +157,6 @@ const limbFields = {
     ["curl", "Tip curl", -1, 1, 0.01],
   ],
 };
-// What a structured wing adds, named for the anatomy it changes.
 const wingFields = {
   bat: [
     ["ribs", "Fingers", ...wingCounts.bat, 1],
@@ -216,8 +211,6 @@ export function creatureEditor(read, commit, frame, handles) {
     locked = false;
   const note = make("p", { className: "micro", role: "status" });
 
-  // A change to the plan keeps hand sculpting, added regions and poses. A
-  // preset or a whole new draw starts another animal, so nothing carries over.
   function apply(change, message, reframe = false, fresh = false) {
     const form = read();
     if (!form.origin?.plan) return;
@@ -382,10 +375,7 @@ export function creatureEditor(read, commit, frame, handles) {
             (p) => p.limbs[index]?.[spec[0]] ?? spec[5],
             (p, v) => {
               const limb = p.limbs[index];
-              // A single limb sits at its first station; moving that station
-              // moves the limb instead of leaving the last one behind.
               if (spec[0] === "from" && limb.pairs === 1) limb.to = v;
-              // Another structure counts other ribs.
               if (spec[0] === "structure" && limb.structure !== v) delete limb.ribs;
               limb[spec[0]] = v;
             },
@@ -403,9 +393,7 @@ export function creatureEditor(read, commit, frame, handles) {
       add.onclick = () =>
         apply((draft) => {
           const starter = { ...starters[kind] };
-          // New wings are built the way the animal would grow them.
           if (kind === "wing") starter.structure = suggestWingStructure(draft, 0.3);
-          // New limbs start clear of the limbs of the same kind.
           const taken = draft.limbs.filter((l) => l.kind === kind);
           if (taken.length) {
             const least = Math.min(...taken.map((l) => Math.min(l.from, l.to))),
@@ -565,7 +553,6 @@ export function creatureEditor(read, commit, frame, handles) {
       [skin, "skin"],
     ];
     for (const [node, key] of sections) node.dataset.key = key;
-    // Handles on the model move limb groups and change the trunk thickness.
     const onModel = [];
     if (handles) {
       const box = make("input", { type: "checkbox" });
@@ -624,8 +611,6 @@ export function creatureEditor(read, commit, frame, handles) {
     if (!raw) return;
     plan = readCreaturePlan(raw);
     locked = isLocked;
-    // The controls are rebuilt only when their set changes, so a slider keeps
-    // focus while it is being stepped.
     const layout = JSON.stringify([
       plan.limbs.map((l) => [l.kind, l.pairs, l.side, l.style, l.structure]),
       Boolean(plan.skin.markings), Boolean(plan.skin.coat),

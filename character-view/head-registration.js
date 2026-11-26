@@ -2,9 +2,6 @@ import { Box3, Matrix4, Quaternion, Vector3 } from "three";
 
 const point = (xyz) => new Vector3(...xyz);
 
-// Three non-collinear pairs specify a similarity transform without changing handedness.
-// After matching the planes, solve the remaining in-plane rotation and uniform scale
-// in least squares. This also handles imperfectly matched artist landmarks.
 export function fitLandmarks(source, target) {
   function frame(points) {
     if (points.length !== 3 || points.some(p => p.length !== 3 || !p.every(Number.isFinite)))
@@ -44,8 +41,6 @@ export function fitLandmarks(source, target) {
   return { transform, rmsMm, scale };
 }
 
-// Bring an isolated scan into the head pane so the artist can mark it. The
-// three point pairs refine this provisional size and pose against the actual person.
 export function placeHeadScan(raw, options, surface, registration) {
   const head = surface.names.indexOf("head"), skull = new Box3(), p = new Vector3();
   for (let i=0; i<surface.bodyVertices; i++)
@@ -54,7 +49,6 @@ export function placeHeadScan(raw, options, surface, registration) {
   const orient = new Matrix4().makeRotationY((Number(options.turn)||0)*Math.PI/180);
   if (options.up === "z") orient.multiply(new Matrix4().makeRotationX(-Math.PI/2));
   const box = new Box3();
-  // Only referenced positions count towards the initial frame.
   for (const i of raw.indices) box.expandByPoint(p.fromArray(raw.positions,i*3).applyMatrix4(orient));
   const size = box.getSize(new Vector3()), sourceCenter = box.getCenter(new Vector3());
   if (size.y <= 1e-8 || size.x <= 1e-8) throw new Error("The head scan needs a measurable surface.");

@@ -81,8 +81,6 @@ export const equipmentRegionCount = (gear) =>
   (needed[gear?.kind ?? "none"] ?? 0) +
   (gear?.kind === "courier satchel" && gear.handling === "offer" ? 1 : 0);
 
-// Each shell is authored in world metres; finalize the winding independently
-// before combining hardware that shares a material and rig attachment.
 function shell(rings, closedPath = false) {
   const vertices = rings.flat(),
     faces = [],
@@ -199,8 +197,6 @@ function band(spine, station, width) {
     true,
   );
 }
-// The sling crosses the opposite shoulder and returns to the satchel's
-// hip. Its station varies around the girth, giving it a diagonal silhouette.
 function diagonalSling(
   spine,
   station,
@@ -275,8 +271,6 @@ function bagPosition(frame, side, hang, unit, mount = "flank") {
     .addScaledVector(frame.dorsal, frame.radius[1] * Math.sin(angle));
   base.x += side * frame.radius[0] * 0.91 * Math.cos(angle);
   base.y = Math.max(base.y, unit * 0.77 + 0.008);
-  // A high pack on an upright back faces backwards. Its depth must clear
-  // the spine rather than jutting sideways through the wearer's arms.
   const turn =
     mount === "back" ? MathUtils.smoothstep(-hang, 0.52, 1.39) * angle : 0;
   const outward = new Vector3(
@@ -318,7 +312,6 @@ function limbClearance(parts, includeLegs = false) {
         blockers.push(new Sphere(point, Math.max(a, b) * 1.12));
       }
     else if (p.shape === "hand") {
-      // Hand geometry extends along local -Y from its wrist pivot.
       blockers.push(
         new Sphere(
           new Vector3(0, -p.size[1] * 0.11, 0)
@@ -362,9 +355,6 @@ function wingClearance(form, wings) {
   return facets;
 }
 
-// Route the far shoulder and near hip independently around limb roots.
-// Score the triangles of the band itself against the wing membranes and
-// against a slightly padded arm envelope to allow room through a stride.
 function routedSling(form, spine, station, side, halfWidth) {
   const spheres = limbClearance(form.parts);
   for (const s of spheres) s.radius *= 1.18;
@@ -425,8 +415,6 @@ function routedSling(form, spine, station, side, halfWidth) {
   return best;
 }
 
-// A new load gets offered actual wing clearance. Manual station and hang
-// changes still use the exact requested position. Older saved recipes replay.
 export function fitDrawnEquipment(plan, kit, form, spine) {
   const wings = form.parts.filter((p) => p.shape === "wing");
   const limbs = limbClearance(form.parts, plan.anatomyRevision === 2);
@@ -668,8 +656,6 @@ export function equipCreature(form, plan, spine, unavailableHands) {
       "#c58e55",
       "leather",
     );
-    // A weatherproof dispatch tube has a deep-lipped screw cap and a large
-    // contrasting seal. Its diagonal separates it from the horizontal bedding.
     const lift = 0.82 + 0.19 * draw();
     const line = (t) => [0.64, 0.04 + lift * t, -0.55 + 1.14 * t];
     const tubeId = add(
@@ -779,8 +765,6 @@ export function equipCreature(form, plan, spine, unavailableHands) {
       "#a83d30",
       "leather",
     );
-    // A folded dispatch sits in the front document sleeve. The exposed
-    // envelope, triangular fold and wax seal distinguish it from a bedroll.
     const envelope = add(
       "gear dispatch envelope",
       "gear flap",
@@ -852,8 +836,6 @@ export function equipCreature(form, plan, spine, unavailableHands) {
       kit.color,
       "metal",
     );
-    // Telescoping brass stages rise out of a folded tripod. The objective
-    // points toward the animal's head, where the front orbit shows its glass.
     const pitch = 0.35 + 0.3 * draw(),
       za = -1.09,
       zb = 1.27;
@@ -1020,7 +1002,6 @@ export function equipCreature(form, plan, spine, unavailableHands) {
     const bag = pouch(far);
     closures(far, bag);
     bedroll(far, bag);
-    // An open flared pannier has an internal wall and floor around its cargo.
     const rings = [
       [-0.64, 0.74],
       [-0.54, 0.85],

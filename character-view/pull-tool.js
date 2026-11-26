@@ -64,7 +64,6 @@ export function pullTool(
           offset: [0, 0, 0],
         };
         if (mirror) {
-          // Local symmetry is about the edited region's centre, even on an off-centre limb.
           const bounds = new Box3().makeEmpty();
           const v = new Vector3();
           function collect(o) {

@@ -29,7 +29,6 @@ test("every bristle tile holds separate hairs inside a clear gutter", () => {
         }
       assert.ok(solid > 0.01 * tw * th, kind + " has hair");
       assert.ok(clear > 0.2 * tw * th, kind + " has gaps between hairs");
-      // The tips are far thinner than the roots: no tile ends in a solid edge.
       assert.ok(top < 0.5 * solid, kind + " thins toward its tips");
     }
   assert.equal(bristleMaps().map.colorSpace, T.SRGBColorSpace);
@@ -40,7 +39,6 @@ test("a short beard is rooted cards that follow the skin's joints and expression
   const g = beard.geometry, count = g.attributes.position.count;
   assert.equal(beard.userData.originalBeardGroom, "Short beard");
   assert.equal(beard.material.map, bristleMaps().map);
-  // Only four-cornered cards: no continuous raised layer under the hair.
   assert.equal(g.index.count / 6, count / 4);
   assert.ok(g.index.count / 3 <= 6000, g.index.count / 3 + " triangles");
 
@@ -61,7 +59,6 @@ test("a short beard is rooted cards that follow the skin's joints and expression
   const smile = g.morphAttributes.position[beard.morphTargetDictionary.Smile];
   let moved = 0;
   for (let i = 0; i < count; i += 4) {
-    // A card moves as one piece with its root.
     for (let k = 1; k < 4; k++) assert.equal(smile.getY(i + k), smile.getY(i));
     if (Math.hypot(smile.getX(i), smile.getY(i), smile.getZ(i)) > 0.001) moved++;
   }
@@ -70,7 +67,6 @@ test("a short beard is rooted cards that follow the skin's joints and expression
 
 test("short beard hair thins toward the cheek and stands tallest along the jaw and chin", () => {
   const beard = beardOf(head(warden())), p = beard.geometry.attributes.position, box = new T.Box3().setFromBufferAttribute(p);
-  // Count cards in the top and bottom thirds of the beard's height.
   const third = (box.max.y - box.min.y) / 3;
   let upper = 0, lower = 0;
   for (let i = 0; i < p.count; i += 4) {

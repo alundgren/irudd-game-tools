@@ -24,7 +24,6 @@ keep = (moved[faces][:, :, 1].min(1) > top - .34) & (np.abs(moved[faces][:, :, 0
 used = np.unique(faces[keep]); remap = -np.ones(len(xyz), int); remap[used] = np.arange(len(used))
 np.savez_compressed(here / 'work' / (name + '-aligned.npz'), xyz=moved[used].astype('f'), faces=remap[faces[keep]], fuv=fuv[keep].astype('f'), marks=(s * marks @ Rm.T + t).astype('f'), native_marks=nmarks.astype('f'), scale=s)
 print('head vertices', len(used), 'triangles', int(keep.sum()), 'native top', round(float(top), 4), 'scan top', round(float(moved[used][:, 1].max()), 4))
-# Both heads from the front, the side and above, in the same frame.
 aligned = R.Head((moved, faces, fuv, image))
 centre = native.center
 views = []

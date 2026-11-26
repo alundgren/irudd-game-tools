@@ -59,7 +59,6 @@ def pack(archive):
     ox, oy = origin
     rgb = np.asarray(image, dtype="f")[oy:oy+height, ox:ox+width]
     red, green, blue = rgb.transpose(2, 0, 1)
-    # Hair and skin separate in red-green chroma on this particular donor.
     chroma = (red - green) / np.maximum(8, green)
     neighbourhood = cv2.GaussianBlur(chroma, (0, 0), 3.3)
     coverage = smoothstep((.49 - neighbourhood) / .18)
@@ -70,7 +69,6 @@ def pack(archive):
     grain = np.clip((luminance - 18) / 30, -.42, .7)
     channels = np.stack([density, .5 + grain*.64], axis=2)
 
-    # Pad the island at the crown and nape so UV filtering samples the same hair across a seam.
     inside = cv2.erode(mask, np.ones((5, 5), np.uint8)) > 0
     nearest = distance_transform_edt(~inside, return_distances=False, return_indices=True)
     channels = np.where(inside[:, :, None], channels, channels[nearest[0], nearest[1]])

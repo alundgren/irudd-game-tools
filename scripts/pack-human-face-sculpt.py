@@ -29,9 +29,6 @@ def pack(sources, destination):
     human = json.loads((dst.parent / "human-data.json").read_bytes())
     source_ids = np.frombuffer(zlib.decompress(base64.b64decode(human["packet"]["ids"])), dtype="<u2")
     ids = source_ids[:human["meta"]["bodyVertices"]]
-    # Average nearby displacements on the native cage. Cartilage references
-    # use different ear and lid proportions; the fine peaks otherwise turn
-    # small triangles over at the helix and the inside of the upper lid.
     faces = np.frombuffer(zlib.decompress(base64.b64decode(human["packet"]["indices"])), dtype="<u2")[:3*human["meta"]["bodyTriangles"]].reshape(-1,3)
     pairs = np.sort(np.concatenate([faces[:,[0,1]],faces[:,[1,2]],faces[:,[2,0]]]),axis=1)
     i,j = np.unique(pairs,axis=0).T
@@ -49,7 +46,6 @@ def pack(sources, destination):
                 raise ValueError("Check source " + str(node))
             credits[str(node)] = entry
             changes = np.loadtxt(raw.splitlines(), ndmin=2)
-            # MakeHuman targets are in decimetres.
             total[changes[:, 0].astype(int)] += changes[:, 1:4] * gain * 1000
         delta = total[ids]
         if axis in {"earDefinition","lidDefinition"}:
@@ -62,15 +58,11 @@ def pack(sources, destination):
             rest = np.frombuffer(zlib.decompress(base64.b64decode(human["packet"]["base"])),dtype="<f4").reshape(-1,3)[:len(ids)].copy()
             rest[:,0] = np.abs(rest[:,0])
         if axis == "earDefinition":
-            # Shape the raised helix and outer bowl, leaving the folded
-            # attachment to the skull seated on the wearer's own ear.
             centre = rest[5751]
             radius = np.linalg.norm((rest-centre)/[.011,.014,.011],axis=1)
             fade = np.clip((radius-.75)/.68,0,1)
             delta *= (fade*fade*(3-2*fade))[:,None]
         if axis == "mouthCreases":
-            # The nasolabial and marionette folds frame each mouth corner.
-            # End them before the delicate inner and outer lip rims meet.
             distance = np.linalg.norm(rest - rest[431],axis=1)
             fade = np.clip((distance - .008)/.009,0,1)
             delta *= (fade*fade*(3-2*fade))[:,None]

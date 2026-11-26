@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2024"],
+    "types": [],
+    // effect 4.1.5 declarations name web globals (AbortSignal, URL, streams, FormData, Blob)
+    // in APIs this package does not use. Skipping library checks keeps those globals
+    // undeclared for our own sources, so any first-party use of them still fails.
+    "skipLibCheck": true
+  },
+  "include": ["src"]
+}

@@ -3,15 +3,11 @@ import sys
 from pathlib import Path
 import numpy as np
 
-# The scans, the fitted heads and every intermediate file stay in the ignored cache; only these scripts and the
-# packed result are part of the repository.
 here = Path(__file__).resolve().parents[2] / '.reference-cache' / 'scan-hair11'
 person = here.parent / 'scan-person11'
 sys.path.insert(0, str(person))
-import render as R  # noqa: E402  (the coordinator's renderer and native head port; needs the repo root as cwd)
+import render as R
 
-# Face-mesh points that stay put between people and expressions: eye corners, nose bridge and base, brow ridge,
-# cheekbones, the sides of the face by the ears, and the chin.
 STABLE = [33, 133, 263, 362, 168, 6, 197, 2, 98, 327, 70, 300, 107, 336, 10, 151, 9, 116, 345, 234, 454, 127, 356, 152, 148, 377, 172, 397, 132, 361]
 
 

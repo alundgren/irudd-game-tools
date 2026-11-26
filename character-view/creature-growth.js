@@ -15,7 +15,6 @@ const { clamp, lerp } = MathUtils;
 const tint = (a, b, mix) =>
   "#" + new Color(a).lerp(new Color(b), mix).getHexString();
 
-// The extra draw is isolated so adding a coat never redraws a limb or a head.
 export function drawBackGrowth(plan, seed) {
   const draw = randomStream((seed ^ 0x37bd8113) >>> 0);
   const roll = draw();
@@ -54,8 +53,6 @@ export function drawBackGrowth(plan, seed) {
   };
 }
 
-// Closed transverse rings are also the editable cage. Use the volume sign so
-// the right and left organ both export with outward-facing triangles.
 function ringCage(rings, growBranch) {
   const sides = rings[0].length;
   const vertices = rings.flat();
@@ -116,8 +113,6 @@ function gillCage(frame, outward, side, length, width, lobes, sweep, phase) {
     .normalize();
   const back = frame.tangent.clone().negate();
   const cross = new Vector3().crossVectors(branch, back).normalize();
-  // Turn the feather plane away from the sagittal plane. This keeps
-  // both rows of filaments distinct from behind and in three-quarter view.
   const vane = back
     .clone()
     .addScaledVector(cross, side * 0.67)
@@ -183,8 +178,6 @@ function sacCage(frame, outward, size, width, height, phase) {
   const vertical = new Vector3()
     .crossVectors(outward, frame.tangent)
     .normalize();
-  // A broad fused base supports a fluted lip. Its aperture slopes towards the
-  // rear where the recessed, dark membrane fits inside the chamber.
   const stations = [
     [0, 0.62],
     [0.08, 0.91],
@@ -233,8 +226,6 @@ function shagMantle(form, plan, spine, carrier, available) {
   const across = back.spread > 0.54 && available > 5 * rows ? 5 : 3;
   const draw = randomStream(back.seed);
   const base = new Vector3(...carrier.position);
-  // Guard hairs thin out at the game mesh budget. Model the dense short
-  // underfur independently so bare patches do not open between their roots.
   const stations = [0.09, 0.14, 0.23, 0.36, 0.5, 0.66, 0.81, 0.9, 0.96];
   const coat = stations.map((t, i) => {
     const frame = spine.at(t);
@@ -290,8 +281,6 @@ function shagMantle(form, plan, spine, carrier, available) {
         .clone()
         .multiplyScalar(Math.sin(angle))
         .addScaledVector(frame.dorsal, Math.cos(angle));
-      // Longer guard hairs cover the centre. Shorter locks let the fleece
-      // taper into the rump and flanks instead of ending in a blunt shelf.
       const length =
         back.height * plan.scale * (0.61 + 0.83 * t) * (1 - 0.16 * Math.abs(u));
       const width = Math.max(
@@ -342,8 +331,6 @@ function shagMantle(form, plan, spine, carrier, available) {
   return { ...form, parts };
 }
 
-// A logarithmic whorl opens around the shoulder. Its increasing tube radius
-// brings successive turns into contact. The spire moves sideways as it narrows.
 function spiralShell(form, plan, spine, carrier, available) {
   if (available < 1) return form;
   const { back, skin, scale } = plan;
@@ -357,7 +344,6 @@ function spiralShell(form, plan, spine, carrier, available) {
   function point(t, a, flare=1) {
     const s=taper**(1-t), theta=phase+2*Math.PI*turns*(t-1);
     const rad=frame.tangent.clone().multiplyScalar(Math.cos(theta)).addScaledVector(frame.dorsal,Math.sin(theta));
-    // A swollen body whorl, shouldered upper edge and an oval aperture.
     const shoulder = .78*Math.cos(a) + .045*Math.cos(2*a);
     return rad.multiplyScalar(s*(1+flare*shoulder))
       .addScaledVector(across,handed*((1-s)*(.64+.31*back.spread) + s*flare*.91*Math.sin(a)));
@@ -365,8 +351,6 @@ function spiralShell(form, plan, spine, carrier, available) {
   const ring=(t,flare=1)=>Array.from({length:8},(_,i)=>point(t,i*Math.PI/4,flare));
   const rows=Array.from({length:20},(_,i)=>ring(i/19));
   rows.push(ring(1.009,1.066),ring(1.017,1.069),ring(1.017,.91),ring(.961,.83));
-  // Keep the aperture level with the shoulder of a low walker. A deep
-  // aperture on a short-legged animal otherwise hangs down beside its feet.
   if (!pelagic) {
     const lowest = Math.min(...rows.flat().map(p => p.dot(frame.dorsal)));
     const current = frame.radius[1]*.76 + radius*.43;
@@ -395,7 +379,6 @@ export function applyBackGrowth(form, plan, spine) {
   if (back.kind === "shag mantle")
     return shagMantle(form, plan, spine, carrier, available);
   if (back.kind === "shingles") {
-    // Fit a staggered mantle around the trunk. The skull and pelvis remain exposed.
     const desiredRows = Math.max(2, back.count);
     const narrow = plan.scale * plan.spine.girth < 0.025;
     const columns =
@@ -534,8 +517,6 @@ export function applyBackGrowth(form, plan, spine) {
   return { ...form, parts };
 }
 
-// Reapply a changed shingle plan to the artist's field. Ordinary creature
-// rebuilding has already handled the body and its other attachments.
 export function refitPlanShingles(previous, current, next, result) {
   const body = (form) => form.parts.find((p) => p.id === "body");
   const old = body(previous);
@@ -570,7 +551,6 @@ export function refitPlanShingles(previous, current, next, result) {
         }
       : p,
   );
-  // A shrinking plan must surface any live attachment to an omitted socket.
   const missingChildren = current.parts.filter(
     (p) => siteIds.has(p.parent) && !ids.has(p.id),
   );

@@ -1,11 +1,3 @@
-// Draws check figures on the graphics card when the machine has one.
-//   const draw = await openRenderer();
-//   const image = await draw.render(meshes, { yaw, center, span, width, height });
-//   await draw.close();
-// It starts a headless Chrome or Edge without any renderer flags, draws with Three.js and reads the pixels back, so
-// it needs no package beyond the ones the project already has. Set CHROME_PATH to choose the browser. When there is
-// no browser, or the browser only has a software renderer, it uses the CPU renderer in human-style-raster.mjs.
-// `draw.name` says which one drew, and results should quote it.
 import { spawn } from "node:child_process";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -31,7 +23,6 @@ async function browser(path) {
   const profile = mkdtempSync(join(tmpdir(), "human-style-render-"));
   const child = spawn(path, ["--headless=new", "--remote-debugging-port=0", "--user-data-dir=" + profile, "--no-first-run", "--no-default-browser-check", "about:blank"], { stdio: ["ignore", "ignore", "pipe"] });
   const gone = new Promise(resolve => { child.once("exit", resolve); child.once("error", resolve); });
-  // A script that stops on an error must not leave its browser running.
   const stop = () => { if (child.exitCode === null) child.kill(); };
   process.once("exit", stop);
   let socket = null;
@@ -42,7 +33,7 @@ async function browser(path) {
     stop();
     process.off("exit", stop);
     if (dirname(resolve(profile)) === resolve(tmpdir()) && basename(profile).startsWith("human-style-render-")) {
-      try { rmSync(profile, { recursive: true, maxRetries: 10, retryDelay: 200 }); } catch { /* Chrome may still hold its temporary profile. */ }
+      try { rmSync(profile, { recursive: true, maxRetries: 10, retryDelay: 200 }); } catch {   }
     }
   };
   try {
@@ -81,7 +72,6 @@ async function browser(path) {
       name, hardware: true, close,
       async render(meshes, view = {}) {
         if (meshes !== loaded) {
-          // Meshes cut from one skinned figure share their positions, so each array is sent once.
           const buffers = [], seen = new Map();
           const slot = (array, Type) => {
             if (!seen.has(array)) { seen.set(array, buffers.length); buffers.push(base64(array instanceof Type ? array : Type.from(array))); }
@@ -101,7 +91,6 @@ async function browser(path) {
   }
 }
 
-/** A renderer for check sheets: the graphics card through a headless browser, or the CPU when that is not possible. */
 export async function openRenderer() {
   if (typeof WebSocket === "undefined") return software("this Node has no WebSocket");
   const failures = [];

@@ -1,8 +1,6 @@
 import { CanvasTexture, Float32BufferAttribute, SRGBColorSpace } from "three";
 import { randomStream } from "./random.js";
 
-// Fine hairs at the edge of the underlayer taper into exposed scalp. Deeper in
-// the groom the same chart shows the short hairs underneath longer locks.
 let rootsMap;
 function hairlineTexture() {
   if (rootsMap) return rootsMap;
@@ -35,8 +33,6 @@ export function textureHairRoots(mesh, shell, frame) {
   const uv = new Float32Array(mesh.geometry.attributes.position.count*2);
   for (let i=0; i<shell.count; i++) {
     const {q} = frame.aim(shell.anchor(i));
-    // A continuous longitude projection across the front, temples and nape.
-    // Extra vertices on the closed underside keep the clear edge of the map.
     uv[2*i] = .5 + .42*q[0] + .06*q[2];
     uv[2*i+1] = Math.max(0,Math.min(1,shell.f.line[i] / .24));
   }

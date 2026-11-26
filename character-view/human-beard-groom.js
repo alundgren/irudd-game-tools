@@ -1,9 +1,3 @@
-// Original procedural beard groom built from coherent directed overlapping locks,
-// feathered graduating cheek borders, and individual silhouette hairs across
-// anatomical facial growth zones. Roots and silhouette fibres share an original texture.
-//   beardGroom(skin, form, material, colours, fit) -> THREE.Mesh | null
-//   beardStrandPixels() -> { width, height, data }
-//   beardStrandMap() -> THREE.Texture
 import * as T from "three";
 import { bedColumn, bedRow, beardStrandMap, beardSurfaceMaps, shortBeardCover, shortBeardGrowth } from "./human-beard-texture.js";
 export { beardStrandMap, beardStrandPixels } from "./human-beard-texture.js";
@@ -37,11 +31,6 @@ function noise3(x, y, z, seed = 101) {
   return mix(mix(c00, c10, uy), mix(c01, c11, uy), uz);
 }
 
-// ---------------------------------------------------------------------------------------------
-// Original 256x256 beard strand atlas (4x2 grid of 64x128 tiles)
-// Every tile has feathered roots AND staggered feathered hair tips — ZERO opaque square edges!
-// Row 0: 4 dense overlapping tapered beard-lock tiles (crisp individual hairs + feathered tips)
-// Row 1: two sparse edge tiles and a continuous 128px patch of short hairs.
 
 export const BEARD_TILES = {
   lock: [
@@ -57,8 +46,6 @@ export const BEARD_TILES = {
   bed: [128, 128, 128, 128],
 };
 
-// ---------------------------------------------------------------------------------------------
-// Faithful hair-colour palette with genuine tonal variation (grey salt-and-pepper, blond depth, dark sheen)
 
 function classifyHair(hair) {
   const sr = srgbOf(clamp(hair.r)), sg = srgbOf(clamp(hair.g)), sb = srgbOf(clamp(hair.b));
@@ -75,22 +62,16 @@ function lockVertexColour(out, hair, skin, cls, opts) {
   const { layer, along, streak, lockRnd, downFacing, borderFade, centerChin, lipCrease } = opts;
   const { greyness, blondness, darkness } = cls;
 
-  // Keep per-card root-to-tip swing subtle (eliminates scaly/checkerboard card-edge chatter!)
-  // while putting bold sculptural shading at the anatomical macro & vertical lock-streak scale.
   const alongProfile = 0.90 + 0.16 * Math.sin(clamp(along) * Math.PI * 0.72);
   const underShadow = 1 - 0.30 * downFacing;
   const creaseShadow = 1 - 0.15 * lipCrease;
   const layerMult = layer === "border" ? 0.96 : layer === "whisker" ? 1.06 : 1.03;
 
-  // Coherent multi-card vertical lock streaks (minimal per-card random jitter so adjacent shingled locks flow together)
   let tone = 1.00 + 0.22 * streak + (lockRnd - 0.5) * 0.08;
   let rShift = 1, gShift = 1, bShift = 1;
   let sheenFloor = 0;
 
   if (greyness > 0.02) {
-    // True multi-tone salt-and-pepper grey anchored cleanly to the character's grey hairColor:
-    // Coherent steel/ash-grey streaks (0.64..0.82) woven with weathered mid-grey (0.86..1.04)
-    // and silver highlights on the chin centre & moustache (1.08..1.24).
     const silverSignal = clamp(
       0.50 + 0.36 * streak + 0.18 * centerChin + (lockRnd - 0.5) * 0.16 +
       (layer === "whisker" ? 0.12 : 0.04)
@@ -131,7 +112,6 @@ function lockVertexColour(out, hair, skin, cls, opts) {
   let g = clamp(hair.g * gain * gShift + sheenFloor);
   let b = clamp(hair.b * gain * bShift + sheenFloor * 1.03);
 
-  // Graduating cheek border: fine rooted hairs near bare skin soften smoothly out of the cheek
   if (borderFade < 1) {
     const skinMix = (1 - borderFade) * (1 - clamp(along * 0.72)) * (layer === "border" ? 0.58 : 0.24);
     r = mix(r, skin.r, skinMix);
@@ -144,8 +124,6 @@ function lockVertexColour(out, hair, skin, cls, opts) {
   out[2] = b;
 }
 
-// ---------------------------------------------------------------------------------------------
-// Anatomical beard groom builder
 
 const STYLE_CONFIG = {
   "Clipped beard": {
@@ -158,13 +136,11 @@ const STYLE_CONFIG = {
   },
   "Short beard": {
     full: false,
-    // Rooted hair: lengths, tip lift and fringe height in millimetres for each part of the face.
     rooted: {
       paintFloor: 0.5, paintFull: 0.86, mousWidth: [1.7, 2.5],
       length: { mous: 4.6, chin: 9.0, jaw: 8.4, cheek: 7.0, sideburn: 6.0 },
       lift: { mous: 0.45, chin: 1.6, jaw: 1.3, cheek: 0.75, sideburn: 0.65 },
       fringeHeight: { mous: 2.0, chin: 5.2, jaw: 4.6, cheek: 2.7, sideburn: 2.4 },
-      // The share of fringe sites that grow one: most along the jaw and chin, few on the cheek.
       fringeShare: { mous: 0.25, chin: 1, jaw: 1, cheek: 0.5, sideburn: 0.5 },
       coatSpacing: 3.8,
       mousSpacing: 1.7,
@@ -172,9 +148,6 @@ const STYLE_CONFIG = {
       straySpacing: 9,
       featherSpacing: 4.6,
       thatchSpacing: 4.2,
-      // Clumps: their width in millimetres, how far each turns from the growth around it and
-      // gathers to a point, how much its tone differs from the next, and how far the outer hair
-      // opens along the partings between clumps.
       clumpSize: 5.5,
       clumpStretch: 2.4,
       clumpTurn: 0.6,
@@ -182,13 +155,11 @@ const STYLE_CONFIG = {
       clumpTone: 0.5,
       parting: 0.42,
       partingShade: 0.2,
-      // Shade of the undergrowth and of the root of each hair against its tip.
       underShade: 0.56,
       rootShade: 0.66,
       tipLight: 1.08,
       gain: 1.26,
       skinWarmth: 0.1, thinWarmth: 0.12,
-      // A game model carries fewer, larger cards and leaves out the single hairs.
       compact: { coatSpacing: 4.7, thatchSpacing: 5.2, mousSpacing: 2.2, fringeSpacing: 6.4, straySpacing: 0, featherSpacing: 6.5, cardScale: 1.22 },
     },
   },
@@ -208,11 +179,6 @@ const STYLE_CONFIG = {
 
 export const beardGroomStyles = Object.keys(STYLE_CONFIG);
 
-/**
- * Build an original anatomical beard groom directly on the adult's head skin geometry.
- * Every vertex inherits barycentric expression morph targets (Blink, Smile, BrowLift)
- * from its anchor skin triangle so the beard moves seamlessly with smiles and jaw shapes.
- */
 export function beardGroom(skin, form, material, colours, fit = null, compact = false) {
   const styleName = form.humanStyle?.facialHair;
   const cfg = STYLE_CONFIG[styleName];
@@ -229,7 +195,6 @@ export function beardGroom(skin, form, material, colours, fit = null, compact = 
   const k = (form.human?.height ?? 1.72) / 1.72;
   const mm = k / 1000;
 
-  // Locate exact eye lower floor so sideburns climb beside ears cleanly without ever entering eye bounds
   let eyeMinY = Infinity, eyeHalfX = 0.046 * k;
   if (fit?.s?.eyeGroups && fit.origin) {
     let minY = Infinity, maxAbsX = 0;
@@ -247,20 +212,18 @@ export function beardGroom(skin, form, material, colours, fit = null, compact = 
     }
   }
 
-  // Evaluate growth zones & face landmarks on skin vertices
   const wMous = new Float32Array(count);
   const wChin = new Float32Array(count);
   const wSide = new Float32Array(count);
   const dens = new Float32Array(count);
   const borderFactor = new Float32Array(count);
-  const zoneId = new Uint8Array(count); // 0=none, 1=mous, 2=chin, 3=jaw, 4=cheek, 5=sideburn
+  const zoneId = new Uint8Array(count);
   const w = [0, 0, 0];
 
   let mousLowY = Infinity, mousCenterLowY = Infinity, mousCenterHighY = -Infinity;
   let chinHighY = -Infinity, chinCenterHighY = -Infinity, chinLowY = Infinity;
   let jawMaxX = 0.05 * k, minYAll = Infinity, maxYAll = -Infinity, backZ = Infinity;
 
-  // First quick pass to measure exact centre vs corner upper/lower lip borders and jaw landmarks
   for (let i = 0; i < count; i++) {
     const px = pos.getX(i), py = pos.getY(i), ax = Math.abs(px);
     const [fx, fy] = facePoint(uv.getX(i), uv.getY(i));
@@ -286,8 +249,6 @@ export function beardGroom(skin, form, material, colours, fit = null, compact = 
       ? 0.5 * (mousLowY + chinHighY)
       : chinLowY + 0.048 * k;
   if (!Number.isFinite(eyeMinY)) eyeMinY = mouthY + 0.065 * k;
-  // Exact arched red-lip clearance curves matching real anatomical upper & lower vermilion borders:
-  // `mousCenterHighY` sits right under the nose, `mousCenterLowY` sits at the upper lip border.
   const lipSlitY = Number.isFinite(mousCenterLowY) ? mousCenterLowY : mouthY;
   const philtrumSpan = Number.isFinite(mousCenterHighY) ? Math.max(10 * mm, mousCenterHighY - lipSlitY) : 14 * mm;
   const upperLipCenterY = lipSlitY + Math.max(2.0 * mm, philtrumSpan * 0.14);
@@ -299,20 +260,17 @@ export function beardGroom(skin, form, material, colours, fit = null, compact = 
   const upperLipArchY = (absX) => mix(upperLipCenterY, upperLipCornerY, smooth(absX, 4 * mm, 24 * mm));
   const lowerLipArchY = (absX) => mix(lowerLipCenterY, upperLipCornerY - 3.5 * mm, smooth(absX, 6 * mm, 24 * mm));
 
-  // Second pass: continuous anatomical beard mask with clean curved cheek line & seamless sideburns
   for (let i = 0; i < count; i++) {
     const px = pos.getX(i), py = pos.getY(i), pz = pos.getZ(i), ax = Math.abs(px);
     const [fx, fy] = facePoint(uv.getX(i), uv.getY(i));
     growthAt(fx, fy, w);
 
-    // Gentle organic cheek contour rising smoothly from mouth corners toward a tapered pre-ear sideburn
     const wobble =
       (noise3(px * 26, py * 26, pz * 26, (seed ^ 0x19d2) & 0xffff) - 0.5) * 0.044 +
       (noise3(px * 74, py * 74, pz * 74, (seed ^ 0x4b71) & 0xffff) - 0.5) * 0.022;
     const lateral = Math.abs(fy - 0.5) * 2;
     const cheekLineFx = 0.635 - 0.085 * smooth(lateral, 0.28, 0.74);
     const cheekMask = smooth(fx + wobble, cheekLineFx - 0.075, cheekLineFx + 0.075);
-    // Softly tapered vertical sideburn curving naturally up in front of the ear (no rectangular box step)
     const sbHeight = smooth(py, mouthY - 6 * mm, eyeMinY - 4 * mm);
     const sbFrontZ = mix(0.044, 0.026, sbHeight) * k;
     const preEarSideburn =
@@ -327,7 +285,6 @@ export function beardGroom(skin, form, material, colours, fit = null, compact = 
     const rim = smooth(Math.min(fx, 1 - fx), 0.005, 0.038) * smooth(Math.min(fy, 1 - fy), 0.006, 0.036);
     const neckTrim = smooth(pz, 0.008 * k, 0.024 * k);
 
-    // Arched upper & lower vermilion lip exclusion — keeps red lips 100% framed and unobstructed
     const uArch = upperLipArchY(ax);
     const lArch = lowerLipArchY(ax);
     const inLipOval = ax < 24 * mm && py < uArch && py > lArch;
@@ -341,7 +298,6 @@ export function beardGroom(skin, form, material, colours, fit = null, compact = 
       preEarSideburn * 0.84
     );
     if (cfg.rooted) {
-      // Cards grow only where the skin paint is already well covered, so thin growth is paint alone.
       const hairs = smooth(shortBeardCover(shortBeardGrowth(fx, fy, w)), cfg.rooted.paintFloor, cfg.rooted.paintFull);
       m *= smooth(shortBeardCover(shortBeardGrowth(fx, fy, w)), 0.22, 0.6);
       c *= hairs;
@@ -361,7 +317,6 @@ export function beardGroom(skin, form, material, colours, fit = null, compact = 
     }
   }
 
-  // Classify anatomical zones & cheek-border graduation factor per vertex
   for (let i = 0; i < count; i++) {
     const d = dens[i];
     if (d < 0.10) {
@@ -375,19 +330,19 @@ export function beardGroom(skin, form, material, colours, fit = null, compact = 
     }
     const m = wMous[i], c = wChin[i], s = wSide[i];
     if (m >= c && m >= s && m > 0.16) {
-      zoneId[i] = 1; // moustache
+      zoneId[i] = 1;
       borderFactor[i] = smooth(m, 0.16, 0.58);
     } else if (c >= s && c > 0.14) {
-      zoneId[i] = 2; // chin & soul patch
+      zoneId[i] = 2;
       borderFactor[i] = smooth(c, 0.14, 0.52);
     } else if (Math.abs(px) > jawMaxX * 0.74 && py > mouthY + 4 * mm) {
-      zoneId[i] = 5; // sideburn
+      zoneId[i] = 5;
       borderFactor[i] = smooth(s, 0.14, 0.58);
     } else if (py < mouthY - 7 * mm || ny < -0.18) {
-      zoneId[i] = 3; // jawline & lower cheek
+      zoneId[i] = 3;
       borderFactor[i] = smooth(s, 0.14, 0.54);
     } else {
-      zoneId[i] = 4; // upper cheek border
+      zoneId[i] = 4;
       borderFactor[i] = smooth(s, 0.12, 0.68);
     }
   }
@@ -397,7 +352,6 @@ export function beardGroom(skin, form, material, colours, fit = null, compact = 
   const skinTone = colours.skin;
   const hairCls = classifyHair(hair);
 
-  // Collect eligible skin triangles
   const a = new T.Vector3(), b = new T.Vector3(), cVec = new T.Vector3();
   const ab = new T.Vector3(), ac = new T.Vector3();
   const tris = [];
@@ -419,7 +373,6 @@ export function beardGroom(skin, form, material, colours, fit = null, compact = 
   }
   if (!tris.length) return null;
 
-  // Stratified 3D grid sampler with subtle per-pass offset so under-coat & outer locks interleave cleanly
   function sampleStratified(predicate, spacingMm, passSeed, gridOffset = 0) {
     const cell = spacingMm * mm;
     const rng = randomStream(seed ^ passSeed);
@@ -473,8 +426,6 @@ export function beardGroom(skin, form, material, colours, fit = null, compact = 
     const grown = rootedBeard(
       { pos, nor, moves, skinTone, dens, borderFactor, wMous, wChin, mm, mouthY, inside, sample: sampleStratified, inLips, onUpperLip, eyeFloor,
         skinWeights: skin.humanWeights?.weights ? skin.humanWeights : null },
-      // Pale hair is lifted to stay silver among its own shadows. Dark hair keeps its depth.
-      // Dark hair takes less of the colour of the skin, which would turn it purple.
       { ...cfg.rooted, ...(compact ? cfg.rooted.compact : null), gain: mix(1, cfg.rooted.gain, smooth(hairCls.luma, 0.12, 0.4)), mousRootShade: mix(cfg.rooted.rootShade, 0.44, smooth(hairCls.luma, 0.12, 0.4)), warmth: mix(0.35, 1, smooth(hairCls.luma, 0.03, 0.2)) }, colour, (x, y, z) => noise3(x, y, z, (seed ^ 0x5c31) & 0xffff), randomStream(seed ^ 0x62ea4d06), seed ^ 0x3c6e);
     if (!grown.index.length) return null;
     const mesh = beardMesh(grown.position, grown.normal, grown.colour, grown.uv, grown.index, grown.moves, moves, material, bristleMaps(), styleName);
@@ -524,7 +475,6 @@ export function beardGroom(skin, form, material, colours, fit = null, compact = 
     skinN.normalize();
     if (dVal < 0.10) return;
     if(layer==="outer" && tri.z!==1 && mVal<.34 && skinN.y>-.26 && bVal>.58 && rng()<(cfg.full ? .42 : .26)) return;
-    // Reject any root inside the arched vermilion lip oval
     const axRoot = Math.abs(root.x);
     if (axRoot < 24 * mm && root.y < upperLipArchY(axRoot) && root.y > lowerLipArchY(axRoot)) return;
 
@@ -537,7 +487,6 @@ export function beardGroom(skin, form, material, colours, fit = null, compact = 
     const sgnX = root.x >= 0 ? 1 : -1;
     const yawNoise = (rng() - 0.5) * (layer === "whisker" ? 0.28 : 0.12);
     if (isMous) {
-      // Part cleanly at philtrum and sweep horizontally outward along the upper lip arch — ZERO fangs over red lip!
       const outPull = smooth(Math.abs(root.x), 1.0 * mm, 9 * mm);
       const cornerDrop = smooth(Math.abs(root.x), 12 * mm, 24 * mm);
       flow.set(sgnX * (0.78 + 0.22 * outPull) + yawNoise * 0.15, -0.16 - 0.34 * cornerDrop, 0.08);
@@ -546,7 +495,6 @@ export function beardGroom(skin, form, material, colours, fit = null, compact = 
     } else if (isCheek) {
       flow.set(-sgnX * 0.10 + yawNoise, -0.95, -0.04);
     } else if (isChin) {
-      // Broad, strong natural beard drape (avoid pointy V-tip on full beard!)
       const inward = cfg.full ? -sgnX * 0.06 * smooth(Math.abs(root.x), 14 * mm, 42 * mm) : 0;
       flow.set(inward + yawNoise * 0.36, -1.0, cfg.full ? 0.12 : 0.06);
     } else {
@@ -575,7 +523,6 @@ export function beardGroom(skin, form, material, colours, fit = null, compact = 
     let stand = cfg.standOut[zKey] * (0.78 + 0.36 * bVal) * mm;
 
     if (layer === "border") {
-      // Extra-sleek graduating cheek-border transition hairs hugging the cheek flush
       len *= 0.68 + 0.26 * bVal;
       wid *= 0.94;
       stand *= 0.18 + 0.28 * bVal;
@@ -587,7 +534,6 @@ export function beardGroom(skin, form, material, colours, fit = null, compact = 
       stand *= 0.90 + 0.22 * rng();
     }
 
-    // Keep moustache neat & trim right above the central Cupid's bow
     if (isMous) {
       const philtrumTrim = 0.56 + 0.44 * smooth(Math.abs(root.x), 5 * mm, 18 * mm);
       len *= philtrumTrim;
@@ -617,7 +563,6 @@ export function beardGroom(skin, form, material, colours, fit = null, compact = 
             ? 1
             : 2;
 
-    // Coherent vertical lock-streak noise (smooth multi-lock salt-and-pepper & tonal ribbons)
     const streak = (noise3(root.x * 48, root.y * 12, root.z * 48, (seed ^ 0x5c31) & 0xffff) - 0.5) * 2;
     const lockRnd = rng();
     const downFacing = smooth(-skinN.y, 0.05, 0.68);
@@ -641,7 +586,6 @@ export function beardGroom(skin, form, material, colours, fit = null, compact = 
 
     for (let step = 0; step <= steps; step++) {
       const along = step / steps;
-      // Sleek combed profile: rises smoothly from root and settles down along the beard contour
       const arch = smooth(along, 0, 0.52) * (1 - 0.28 * along * along);
       const lift = mix(rootSink, stand, arch);
       const dropY = -(len * (cfg.full ? 0.14 : 0.05) + extraDrop * 0.34) * along * along;
@@ -657,12 +601,9 @@ export function beardGroom(skin, form, material, colours, fit = null, compact = 
         pt.y += dropY;
         pt.z += forwardZ;
 
-        // Hard eye-floor clamp between outer eye corners
         if (Math.abs(pt.x) < eyeHalfX + 2.5 * mm && pt.y > eyeMinY - 2.5 * mm) {
           pt.y = eyeMinY - 2.5 * mm;
         }
-        // Strict arched red-lip clearance for EVERY lock regardless of zone:
-        // locks rooted above the lip slit never dip below the upper lip arch; locks rooted below never rise above the lower lip arch!
         const axPt = Math.abs(pt.x);
         if (axPt < 25 * mm) {
           if (root.y >= lipSlitY) {
@@ -674,7 +615,6 @@ export function beardGroom(skin, form, material, colours, fit = null, compact = 
           }
         }
 
-        // Smooth cohesive macro-lighting + subtle lock ridge relief (eliminates flat-chip sparkle)
         vNorm
           .copy(macroN)
           .multiplyScalar(0.76)
@@ -718,14 +658,11 @@ export function beardGroom(skin, form, material, colours, fit = null, compact = 
 
   const passRng = randomStream(seed ^ 0x62ea4d06);
 
-  // A low, continuous layer of short hairs fills the core below the loose whiskers.
   const bedVertex = new Int32Array(count).fill(-1);
   const cells = new Map(), samples = [];
   function bedPoint(id) {
     if (bedVertex[id] >= 0) return bedVertex[id];
     const [fx,fy] = facePoint(uv.getX(id),uv.getY(id));
-    // Cluster in the face chart so neighbouring samples follow the same UV
-    // and morphs without spending the game face's triangles on buried hair.
     const cell = Math.floor(36*fx) + 64*Math.floor(46*fy);
     let slot = cells.get(cell);
     if (slot === undefined) {
@@ -776,7 +713,6 @@ export function beardGroom(skin, form, material, colours, fit = null, compact = 
     outUv[2*i]/=samples[i]; outUv[2*i+1]/=samples[i];
   }
 
-  // 2. Primary sculpted outer beard locks (interleaved 0.5-cell offset for seamless overlap)
   const outerSamples = sampleStratified(
     (tr) => tr.z !== 1 && tr.dAvg >= 0.26 && tr.bAvg >= 0.24,
     cfg.outerSpacing,
@@ -785,7 +721,6 @@ export function beardGroom(skin, form, material, colours, fit = null, compact = 
   );
   for (const s of outerSamples) emitLock(s, "outer", passRng);
 
-  // 3. Moustache & upper-lip locks
   const mousSamples = sampleStratified(
     (tr) => tr.z === 1 || tr.mAvg >= 0.34,
     cfg.mousSpacing,
@@ -794,7 +729,6 @@ export function beardGroom(skin, form, material, colours, fit = null, compact = 
   );
   for (const s of mousSamples) emitLock(s, "outer", passRng);
 
-  // 4. Graduating cheek-border & sideburn feathered transition locks (soft rooted fringe along cheek line)
   const borderSamples = sampleStratified(
     (tr) => tr.z !== 1 && tr.dAvg >= 0.12 && tr.bAvg >= 0.10 && tr.bAvg < 0.78,
     cfg.borderSpacing,
@@ -803,7 +737,6 @@ export function beardGroom(skin, form, material, colours, fit = null, compact = 
   );
   for (const s of borderSamples) emitLock(s, "border", passRng);
 
-  // 5. Loose individual silhouette whiskers & flyaway hairs along chin & jaw rim
   const whiskerSamples = sampleStratified(
     (tr) => tr.dAvg >= 0.32 && (tr.z === 2 || tr.z === 3),
     cfg.whiskerSpacing,

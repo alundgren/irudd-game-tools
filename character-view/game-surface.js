@@ -1,7 +1,5 @@
 import { Vector3 } from "three";
 
-// Recover metres per unit of U and V for a material's height field. Weight
-// by UV triangle area so tiny, distorted islands do not dominate the scale.
 export function measureTileScale(mesh, batch, totals) {
   const geometry = mesh.geometry;
   const { position, uv } = geometry.attributes;
@@ -33,8 +31,6 @@ export function packSurfaceChannels(out, rough, metal, roughness, metalness, amb
   }
 }
 
-// Filtering a tangent-space normal map for a smaller atlas tile shortens the
-// vectors. Apply the original material's normal strength and encode unit vectors.
 export function packNormals(out, pixels, scale) {
   for (let i = 0; i < out.length; i += 4) {
     const x = (pixels[i] / 127.5 - 1) * scale.x;
@@ -48,8 +44,6 @@ export function packNormals(out, pixels, scale) {
   }
 }
 
-// A glTF material can carry tangent-space normals. Bake the slope of the
-// height actually sampled at this detail level; a constant height stays flat.
 export function heightNormals(out, heights, w, h, scale, totals, srgb) {
   const linear = Float64Array.from({ length: 256 }, (_, i) => {
     const v = i / 255;

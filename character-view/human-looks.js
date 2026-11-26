@@ -1,22 +1,12 @@
-// Complete looks with art direction for the adult human.
-//   completeLook(form, seed, direction) -> { style, outfit, paint, marks }
-// A look is put together the way a costume designer would: a wardrobe silhouette is chosen first, then a palette
-// of related tones (a feature colour, a ground colour, an accent, a pale and a deep neutral, leather, soles and
-// metal), then each tone is given to the pieces it suits, and last one design is placed on a piece that carries
-// it well. Nothing here names a person or a finished costume: every look is drawn from rules, so another seed
-// gives another look. `style` holds only what is worn; hair, face and body are not touched.
 import { armourLooks, armourSet } from "./human-armour.js";
 import { faceMark } from "./human-face-marks.js";
 import { randomStream } from "./random.js";
 import { einarOutfit, einarShare } from "./human-einar-attire.js";
 import { scannedClothes, scannedShare } from "./human-scanned-tops.js";
 
-/** What a look may be asked to lean towards. "Any" draws from everything. */
 export const lookDirections = ["Any", "Everyday", "Smart", "Workwear", "Outdoors", "Festive", "Adventure"];
-/** The style fields a complete look owns. A new look replaces all of them, so nothing of the last look shows through. */
 export const lookFields = ["outfit", "tailor", "armour", "clothColor", "clothSecond", "clothLight", "accentColor", "leatherColor", "soleColor", "metalColor", "clothDesign", "secondDesign", "clothAccent"];
 
-// Colour, as hue, saturation and lightness of the sRGB value.
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 const rgb = hex => [1, 3, 5].map(at => parseInt(hex.slice(at, at + 2), 16) / 255);
 const hex = channels => "#" + channels.map(c => Math.round(clamp(c) * 255).toString(16).padStart(2, "0")).join("");
@@ -31,25 +21,22 @@ function fromHsl(h, s, l) {
   const channel = t => { t = (t + 1) % 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < .5 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; };
   return hex([channel(h + 1 / 3), channel(h), channel(h - 1 / 3)]);
 }
-/** How light a colour reads, 0 to 1. */
 export const value = colour => { const [r, g, b] = rgb(colour); return .299 * r + .587 * g + .114 * b; };
 const apart = (a, b) => Math.hypot(...rgb(a).map((c, i) => c - rgb(b)[i]));
 const shade = (colour, k) => hex(rgb(colour).map(c => c * k));
 
-// Eleven hues round the wheel, each as a pastel, a rich and a deep tone. Neighbours in the list sit beside each
-// other on the wheel, and the hue five or six places on is its opposite.
 const hues = [
-  ["#e3b3ad", "#b8443c", "#6e2a2e"], // red
-  ["#eebfa8", "#d2694c", "#8c3f2c"], // coral
-  ["#e8c3a0", "#b5622e", "#7a3f20"], // rust
-  ["#ead9a0", "#c8962e", "#8a6a22"], // ochre
-  ["#cfd6a8", "#7d8a45", "#4a5630"], // moss
-  ["#b9d8c0", "#2f7a55", "#254a3a"], // green
-  ["#aed6d0", "#2a7f80", "#1f4f55"], // teal
-  ["#b6cde3", "#3f6fb0", "#27407a"], // blue
-  ["#c3c4e6", "#5057a8", "#2f3166"], // indigo
-  ["#d6bfdc", "#8a4a86", "#4f2a4e"], // plum
-  ["#ebbccb", "#a53c64", "#6c2445"], // berry
+  ["#e3b3ad", "#b8443c", "#6e2a2e"],
+  ["#eebfa8", "#d2694c", "#8c3f2c"],
+  ["#e8c3a0", "#b5622e", "#7a3f20"],
+  ["#ead9a0", "#c8962e", "#8a6a22"],
+  ["#cfd6a8", "#7d8a45", "#4a5630"],
+  ["#b9d8c0", "#2f7a55", "#254a3a"],
+  ["#aed6d0", "#2a7f80", "#1f4f55"],
+  ["#b6cde3", "#3f6fb0", "#27407a"],
+  ["#c3c4e6", "#5057a8", "#2f3166"],
+  ["#d6bfdc", "#8a4a86", "#4f2a4e"],
+  ["#ebbccb", "#a53c64", "#6c2445"],
 ];
 const warmHues = new Set([0, 1, 2, 3, 4, 10]);
 const neutrals = {
@@ -69,13 +56,11 @@ function tools(draw) {
     chance: p => draw() < p,
     whole: (a, b) => Math.round(between(a, b)),
     part: (a, b) => Math.round(between(a, b) * 100) / 100,
-    /** One value of [[weight, value], ...]. */
     weighted(table) {
       let at = draw() * table.reduce((sum, [weight]) => sum + weight, 0);
       for (const [weight, item] of table) if ((at -= weight) < 0) return item;
       return table.at(-1)[1];
     },
-    /** The same colour a little off, so no two looks share a dye lot. */
     vary(colour) {
       const [h, s, l] = hsl(colour);
       return fromHsl((h + (draw() - .5) * .022 + 1) % 1, clamp(s * (1 + (draw() - .5) * .16)), clamp(l + (draw() - .5) * .045));
@@ -89,13 +74,8 @@ const schemes = {
   Workwear: [[30, "ground"], [22, "denim"], [18, "tonal"], [12, "analogous"], [18, "pop"]],
   Festive: [[38, "festive"], [26, "analogous"], [18, "pastel"], [18, "ground"]],
 };
-/**
- * A palette: `top` and `bottom` for the two large pieces, an `accent` for a small one, a `pale` and a `deep`
- * neutral, `leather`, `sole` and `metal`. `lean` lets a wardrobe ask for deeper or quieter cloth.
- */
 function drawPalette(t, direction, lean = {}, skin = null) {
   const at = Math.floor(t.draw() * hues.length), step = t.chance(.5) ? 1 : -1;
-  // Everyday cloth is dyed quieter than the wheel: only a festive look wears the colours at full strength.
   const strength = direction === "Festive" ? 1 : lean.strength ?? .7;
   const hue = (n, depth) => {
     const [h, s, l] = hsl(hues[((n % hues.length) + hues.length) % hues.length][depth - 1]);
@@ -105,7 +85,6 @@ function drawPalette(t, direction, lean = {}, skin = null) {
   const scheme = t.weighted(schemes[direction] ?? schemes.Any);
   let feature, ground, accent, key = at;
   if (scheme === "ground") {
-    // One colour against a neutral, with a relative of the colour or its opposite as the accent.
     feature = hue(at, depth);
     ground = t.pick(depth === 3 ? [...neutrals.pale, ...neutrals.mid] : depth === 1 ? [...neutrals.deep, ...neutrals.mid] : [...neutrals.deep, ...neutrals.deep, ...neutrals.mid, ...neutrals.pale]);
     accent = t.chance(.5) ? hue(at + step, depth === 1 ? 2 : 1) : hue(at + 5 + (step > 0 ? 1 : 0), 2);
@@ -115,7 +94,6 @@ function drawPalette(t, direction, lean = {}, skin = null) {
     feature = t.chance(.3) ? t.pick(neutrals.pale) : hue(key, t.weighted([[2, 1], [4, 2], [2, 3]]));
     accent = hue(t.pick([1, 2, 3]), 2);
   } else if (scheme === "tonal") {
-    // One hue worn light and dark.
     const [a, b] = t.pick([[1, 3], [3, 1], [2, 3], [2, 3], [1, 2]]);
     feature = hue(at, a);
     ground = hue(at + (t.chance(.4) ? step : 0), b);
@@ -125,13 +103,11 @@ function drawPalette(t, direction, lean = {}, skin = null) {
     ground = hue(at + step, 3);
     accent = hue(at - step, t.chance(.5) ? 1 : 2);
   } else if (scheme === "pop") {
-    // Two neutrals and one small strong colour.
     const [a, b] = t.pick([["pale", "deep"], ["deep", "mid"], ["mid", "deep"], ["deep", "pale"], ["pale", "mid"]]);
     feature = t.pick(neutrals[a]);
     ground = t.pick(neutrals[b]);
     accent = hue(at, 2);
   } else if (scheme === "festive") {
-    // Two rich colours from across the wheel over a pale ground.
     feature = hue(at, 2);
     ground = hue(at + 4 + Math.floor(t.draw() * 3), t.chance(.6) ? 3 : 2);
     accent = t.chance(.5) ? hue(3, 2) : hue(at - 4, 2);
@@ -141,19 +117,15 @@ function drawPalette(t, direction, lean = {}, skin = null) {
     accent = hue(at + step, 2);
   }
   if (scheme === "festive" && direction !== "Festive") { const lift = colour => { const [h, s, l] = hsl(colour); return fromHsl(h, Math.min(1, s * 1.25), l); }; feature = lift(feature); accent = lift(accent); }
-  // A wardrobe that is usually sober swaps the colour for a neutral and keeps it as the accent.
   if (lean.neutral && scheme !== "pop" && direction !== "Festive" && t.chance(lean.neutral)) {
     accent = hsl(feature)[2] > .62 ? hue(key, 2) : feature;
     feature = t.pick(value(ground) > .45 ? neutrals.deep : [...neutrals.pale, ...neutrals.mid]);
   }
   const warm = warmHues.has(key);
-  // The two large pieces differ clearly in lightness, and the accent is neither of them.
   if (Math.abs(value(feature) - value(ground)) < .15) ground = t.pick(value(feature) > .48 ? neutrals.deep : neutrals.pale);
   if (apart(accent, feature) < .2 || apart(accent, ground) < .2) accent = t.pick(value(feature) > .5 ? hues.map(h => h[1]) : hues.map(h => h[0]));
-  // A large piece the colour of the wearer's skin reads as no piece at all.
   if (skin && apart(feature, skin) < .17) feature = shade(feature, value(feature) > .4 ? .62 : 1.5);
   if (skin && apart(ground, skin) < .17) ground = shade(ground, value(ground) > .4 ? .62 : 1.5);
-  // Cloth worn from shoulder to ankle in one colour is taken a little quieter than the same colour on a shirt.
   if (lean.calm && direction !== "Festive") { const [h, s, l] = hsl(feature); if (s > .4 && l > .3 && l < .7) feature = fromHsl(h, s * .78, l * .9); }
   const swap = scheme !== "pop" && t.chance(lean.swap ?? .28);
   const pale = t.pick(warm ? ["#efe8d8", "#e2d8c3", "#f1eee6"] : ["#f1eee6", "#d5d3cc", "#e6e9ea"]);
@@ -164,7 +136,6 @@ function drawPalette(t, direction, lean = {}, skin = null) {
     sole: t.pick(["#2c2a28", "#2c2a28", "#3a312b", "#b08a5c"]),
     metal: t.pick(metals[warm ? "warm" : "cool"]),
   };
-  // Two strong colours on the two large pieces shout. Outside a festive look the lower one is worn deep.
   const strong = colour => { const [, s, l] = hsl(colour); return s > .42 && l > .3 && l < .7; };
   if (strong(tones.top) && strong(tones.bottom) && (scheme !== "festive" || t.chance(.5))) {
     const [h, s, l] = hsl(tones.bottom), deeper = fromHsl(h, s * .7, l * .52);
@@ -174,23 +145,14 @@ function drawPalette(t, direction, lean = {}, skin = null) {
   return Object.assign(tones, { scheme, warm });
 }
 
-// Which tone of the palette each named tone of a preset outfit takes. Most outfits wear the feature colour on
-// top, the ground below, the pale neutral next to the skin and the accent on a small piece.
 const usual = p => ({ clothColor: p.top, clothSecond: p.bottom, clothLight: p.pale, accentColor: p.accent });
 const quiet = [6, "Quiet weave"];
-// A festive look seldom wears plain cloth or office stripes and often wears a border, a yoke or a check.
 const festiveDesigns = { "Quiet weave": 1 / 3, Pinstripe: .4, "Breton stripe": .6, "Hem border": 2, "Knit yoke": 2, Gingham: 1.5, Windowpane: 1.3, "Small dots": 1.5, "Chest band": 1.3 };
-// A suit is one cloth from shoulder to ankle, never paler than stone, with a shirt paler than the cloth and a tie that shows against both.
 function suited(p) {
   const cloth = value(p.top) > .74 ? p.deep : p.top, shirt = value(cloth) < .62 && value(p.accent) > .6 ? p.accent : p.pale;
   const tie = [p.accent, p.bottom, echo(p.accent, shirt, p.deep), p.deep].find(colour => apart(colour, cloth) > .22 && apart(colour, shirt) > .3) ?? p.deep;
   return { clothColor: cloth, clothSecond: cloth, clothLight: shirt, accentColor: tie };
 }
-/**
- * The preset wardrobes: how often each is drawn, the directions it suits, how its tones are given out, the
- * designs its main piece carries well and those of its second piece. `denim` is how often the lower piece is denim.
- */
-// Field clothes that have seen weather: every tone of the look is worn drab and deep, never bright or pale.
 const drab = (colour, low, high, keep = .55) => { const [h, s, l] = hsl(colour); return fromHsl(h, s * keep, clamp(l, low, high)); };
 const weathered = p => ({ clothColor: drab(p.top, .2, .36), clothSecond: drab(p.bottom, .16, .32, .5), clothLight: drab(p.deep, .1, .24, .6), accentColor: drab(p.accent, .2, .4, .6) });
 const presets = {
@@ -216,33 +178,19 @@ const presets = {
   "Field jacket and denim": { weight: 1.2, suits: ["Everyday", "Outdoors"], denim: 1, lean: { swap: 0 }, designs: [[1, "Outfit swatch"]] },
   "Workshop overalls": { weight: .4, suits: ["Workwear"], lean: { swap: 0 }, tones: p => ({ clothColor: p.top, clothSecond: p.deep, clothLight: p.pale, accentColor: p.accent }), designs: [[1, "Outfit swatch"]] },
   "Tailored suit": { weight: 1.2, suits: ["Smart"], lean: { depth: [[.7, 1], [1.5, 2], [8, 3]], neutral: .45, swap: 0, calm: true }, tones: suited, designs: [[1, "Outfit swatch"]] },
-  // Costumes by community authors (human-attire.js). They are drawn from a stream of their own, in `attireShare`
-  // of the looks of a direction, so every other look of a seed stays the look it was.
   "Mail tunic and boots": { weight: 0, attire: 1.5, suits: ["Adventure"], hide: true, lean: { depth: [[.4, 1], [4, 2], [6, 3]], swap: 0 }, designs: [[1, "Outfit swatch"]] },
   "Rope-belted robe": { trousers: false, weight: 0, attire: 1, suits: ["Adventure"], hide: true, lean: { depth: [[.6, 1], [4, 2], [6, 3]], swap: 0, calm: true, neutral: .3 }, tones: p => ({ clothColor: p.top, clothSecond: echo(p.top, p.top, p.deep), clothLight: p.pale, accentColor: p.accent }), designs: [[1, "Outfit swatch"]] },
-  // The weathered coat, trousers and boots of human-einar-attire.js, drawn from a stream of their own in `einarShare`
-  // of the looks of a direction. Canvas takes the cloth, knit and trousers the second cloth, patches the accent.
   [einarOutfit]: { weight: 0, suits: ["Adventure", "Outdoors"], hide: true, lean: { depth: [[.5, 1], [4, 2], [5, 3]], swap: 0, calm: true, neutral: .4 }, tones: weathered, designs: [[1, "Outfit swatch"]] },
   "Survey vest": { weight: 0, suits: ["Workwear", "Outdoors"], hide: true, tones: weathered, designs: [[1, "Outfit swatch"]] },
   "Hoodie and denim shorts": { weight: 0, suits: ["Everyday"], hide: true, denim: .85, designs: [[1, "Outfit swatch"]] },
-  // Tops scanned from real clothing (human-scanned-tops.js) over trousers the library holds. The top takes the
-  // cloth colour and the trousers the second cloth.
   "Crew sweatshirt and trousers": { weight: 0, suits: ["Everyday", "Outdoors"], lean: { swap: 0 }, tones: p => ({ clothColor: p.top, clothSecond: p.bottom, clothLight: p.pale, accentColor: p.accent }), designs: [[1, "Outfit swatch"]] },
   "Crew sweatshirt and cargo trousers": { weight: 0, suits: ["Everyday", "Outdoors", "Workwear"], lean: { swap: 0 }, tones: p => ({ clothColor: p.top, clothSecond: p.bottom, clothLight: p.pale, accentColor: p.accent }), designs: [[1, "Outfit swatch"]] },
   "Cable V-neck and trousers": { weight: 0, suits: ["Everyday", "Smart"], lean: { swap: 0 }, tones: p => ({ clothColor: p.top, clothSecond: p.bottom, clothLight: p.pale, accentColor: p.accent }), designs: [[1, "Outfit swatch"]] },
   "Cable V-neck and cargo trousers": { weight: 0, suits: ["Everyday", "Outdoors"], lean: { swap: 0 }, tones: p => ({ clothColor: p.top, clothSecond: p.bottom, clothLight: p.pale, accentColor: p.accent }), designs: [[1, "Outfit swatch"]] },
-  // Everyday ensembles by community authors (human-attire.js `everydayClothes`). Like the costumes they are drawn
-  // from a stream of their own, in `everydayShare` of the looks of a direction, so every other look of a seed stays
-  // the look it was. The dress is one cloth with its bindings in a second tone; the skirt is a print of the second
-  // cloth and the pale one under plain knitwear.
   "Shift dress": { trousers: false, weight: 0, everyday: .6, suits: ["Smart", "Everyday", "Festive"], lean: { depth: [[1, 1], [4, 2], [5, 3]], swap: 0, calm: true }, tones: p => ({ clothColor: p.top, clothSecond: apart(p.accent, p.top) > .35 ? p.accent : value(p.top) > .45 ? p.deep : p.pale, clothLight: p.pale, accentColor: p.accent }), designs: [[1, "Outfit swatch"]] },
   "Rib knit and full skirt": { trousers: false, weight: 0, everyday: 1, suits: ["Everyday", "Smart", "Festive"], lean: { swap: 0 }, tones: p => { const ground = value(p.bottom) < .36 ? p.bottom : echo(p.bottom, p.top, p.deep); const flowers = value(p.accent) - value(ground) > .3 ? p.accent : p.pale; return { clothColor: p.top, clothSecond: ground, clothLight: hex(rgb(ground).map((c, i) => c + (rgb(flowers)[i] - c) * .5)), accentColor: p.accent }; }, designs: [[1, "Outfit swatch"]] },
   "Striped blouse and skirt": { trousers: false, weight: .7, suits: ["Smart", "Everyday"], tones: p => ({ clothColor: echo(p.bottom, p.top, p.deep), clothSecond: p.top, clothLight: p.pale, accentColor: p.accent }), designs: [[1, "Outfit swatch"]] },
 };
-// The capsule (human-style-capsule.js): outfits with a silhouette of their own, each cut two ways. Like the
-// ensembles above they are drawn from a stream of their own, in `capsuleShare` of the looks of a direction, so
-// every other look of a seed stays the look it was. A mantle is a second cloth over the tunic with a lining that
-// answers both; a bomber's ribbing is a relative of its shell; a bodice gown opens on a panel of the accent.
 const far = (colour, beside, ...others) => [colour, ...others].find(c => apart(c, beside) > .3) ?? others.at(-1) ?? colour;
 const mantled = p => { const cloak = [p.bottom, p.deep, shade(p.top, .45)].find(c => value(c) < .5 && apart(c, p.top) > .25) ?? p.deep; return { clothColor: p.top, accentColor: cloak, clothLight: far(p.accent, cloak, p.pale, p.deep), clothSecond: far(p.deep, p.top, p.pale) }; };
 const ribbed = p => ({ clothColor: p.top, clothSecond: p.bottom, clothLight: far(p.pale, p.top, p.accent, p.deep), accentColor: value(p.top) > .3 ? shade(p.top, .55) : shade(p.top, 1.7) });
@@ -261,29 +209,24 @@ const armourShare = { Any: 1.5, Adventure: 5 };
 const attireShare = { Any: .06, Adventure: .3 };
 const everydayShare = { Any: .1, Everyday: .12, Smart: .1, Festive: .1 };
 
-/** A deep, quiet relative of `colour` to repeat it elsewhere in the look, or `fallback` where that would sit too close to `beside`. */
 function echo(colour, beside, fallback) {
   const [h, s, l] = hsl(colour), deeper = fromHsl(h, s * .8, Math.min(l * .55, .3));
   return s > .12 && Math.abs(value(deeper) - value(beside)) > .14 ? deeper : fallback;
 }
-/** Trousers in a strong mid tone are usually worn a shade deeper and quieter than the same colour on top. */
 function settled(t, colour, beside) {
   const [h, s, l] = hsl(colour);
   if (s < .42 || l < .34 || l > .62 || !(t.chance(.65) || s > .55)) return colour;
   const quieter = fromHsl(h, s * .74, l * .7);
   return Math.abs(value(quieter) - value(beside)) > .13 ? quieter : colour;
 }
-/** The lower piece of a look with trousers: sometimes denim, a strong colour usually settled, always clear of the top in tone. */
 function lower(t, p, denim) {
   const blues = denims.filter(colour => Math.abs(value(colour) - value(p.top)) > .16);
   if (blues.length && t.chance(denim)) p.bottom = t.vary(t.pick(blues));
   else p.bottom = settled(t, p.bottom, p.top);
-  // Pale trousers are the exception: most of the time a mid or deep neutral is worn instead.
   const darker = [...neutrals.mid, ...neutrals.deep].filter(colour => Math.abs(value(colour) - value(p.top)) > .16);
   if (value(p.bottom) > .72 && darker.length && t.chance(denim >= 1 ? 1 : .6)) p.bottom = t.vary(t.pick(darker));
   if (Math.abs(value(p.bottom) - value(p.top)) < .12) p.bottom = value(p.top) > .45 ? p.deep : p.pale;
 }
-/** A colour for a print that ties the patterned piece to the rest of the look. */
 function printColour(t, cloth, p) {
   const echoes = [p.bottom, p.top, p.accent, value(cloth) > .5 ? p.deep : p.pale].filter(colour => apart(colour, cloth) > .28);
   return echoes.length && t.chance(.78) ? t.pick(echoes) : null;
@@ -291,15 +234,12 @@ function printColour(t, cloth, p) {
 function presetLook(t, outfit, direction, skin) {
   const spec = presets[outfit], p = drawPalette(t, direction, spec.lean, skin);
   if (spec.trousers !== false) lower(t, p, spec.denim ?? 0);
-  // Hide worn as armour or on a journey is brown, whatever the cloth.
   if (spec.hide) p.leather = t.vary(t.pick(leathers.warm.slice(0, 4)));
   const style = { outfit, ...(spec.tones ?? usual)(p), leatherColor: p.leather, soleColor: p.sole, metalColor: p.metal };
   const festive = direction === "Festive";
   style.clothDesign = t.weighted(spec.designs.map(([weight, name]) => [festive ? weight * (festiveDesigns[name] ?? 1) : weight, name]));
-  // One patterned piece at a time: the second piece is patterned only beside a plain or finely woven main piece.
   const second = ["Quiet weave", "Herringbone"].includes(style.clothDesign) && spec.second ? t.weighted(spec.second) : null;
   if (second) style.secondDesign = second;
-  // Herringbone is woven tone on tone; other designs may take a colour from elsewhere in the look.
   if (!["Quiet weave", "Outfit swatch", "Herringbone"].includes(style.clothDesign)) {
     const print = printColour(t, style.clothColor, p);
     if (print) style.clothAccent = print;
@@ -307,8 +247,6 @@ function presetLook(t, outfit, direction, skin) {
   return { style, outfit: outfit === "Pressure suit" ? "Pressure suit" : "Work clothes", palette: p };
 }
 
-// Separates: an outfit put together from tailor layers. Each cut is a range, not a garment, so the same cut
-// comes out longer or shorter, closer or roomier from one look to the next.
 const bottoms = {
   straight: t => ({ length: 2.03, fit: t.part(.06, .18), ease: t.whole(8, 11), rise: t.part(.45, .7), pockets: "back", hemBand: 14 }),
   relaxed: t => ({ length: 2.03, fit: t.part(0, .08), ease: t.whole(12, 17), rise: t.part(.6, .85), pockets: t.pick(["back", "none"]), hemBand: t.pick([14, 30]) }),
@@ -345,7 +283,6 @@ const footwear = {
   mid: t => ["boots", { height: t.part(1.42, 1.6), ease: t.whole(9, 12), straight: .5, cuff: t.pick([0, 30, 36]), thick: t.whole(14, 20), heel: t.whole(8, 12) }],
   tall: t => ["boots", { height: t.part(1.14, 1.3), ease: t.whole(8, 11), straight: .3, cuff: t.whole(30, 44), thick: t.whole(12, 15), heel: t.whole(10, 22) }],
 };
-// What goes with what. Each row is [weight, name]; a direction may leave rows out.
 const outerDesigns = {
   bomber: [quiet, [2, "Chest band"], [2, "Colour block"]], waistcoat: [[4, "Quiet weave"], [3, "Pinstripe"], [3, "Herringbone"], [2, "Windowpane"]],
   overshirt: [[4, "Quiet weave"], [4, "Gingham"], [3, "Windowpane"]], cardigan: [[4, "Quiet weave"], [2, "Knit yoke"], [2, "Breton stripe"], [2, "Herringbone"]],
@@ -373,7 +310,6 @@ function separatesLook(t, direction, skin) {
   const lean = { ...(smart ? { depth: [[1, 1], [3, 2], [6, 3]], neutral: .3 } : {}), ...(over === "leather" ? { swap: 0 } : {}) };
   const p = drawPalette(t, direction, lean, skin);
   lower(t, p, smart || cut === "cargo" ? 0 : .32);
-  // Under a jacket the inner layer steps back to a neutral or carries the accent; a leather jacket lets it keep the colour.
   const hide = over === "leather" ? t.vary(t.pick(["#2a2725", "#4a3528", "#3b2d29", "#5e2b2b", p.leather])) : null;
   const inner = !over || hide ? p.top : t.weighted([[5, p.pale], [3, p.accent], [2, Math.abs(value(p.deep) - value(p.top)) > .15 ? p.deep : p.pale]]);
   const [shoePiece, shoeCut] = footwear[shoe](t), sporty = shoe === "trainers" || shoe === "hightops";
@@ -381,16 +317,13 @@ function separatesLook(t, direction, skin) {
   const trousers = { piece: "trousers", ...bottoms[cut](t), color: p.bottom };
   const base = { piece: "top", ...bases[under](t), color: inner, trim: ["shirt", "campShirt"].includes(under) ? p.pale : p.metal };
   const layers = [];
-  // Slim legs go into a boot; other legs fall over one, so the boot is put on first.
   const tucked = shoePiece === "boots" && (cut === "slim" || shoe === "tall");
-  // A boot worn under the leg is close and low, so no part of its shaft shows through the cloth.
   if (shoePiece === "boots" && !tucked) layers.push({ ...shoeLayer, height: Math.max(shoeLayer.height, 1.68), ease: Math.min(shoeLayer.ease, 5), straight: 0, cuff: 0 });
   layers.push(trousers, base);
   if (over) layers.push({ piece: "top", ...outers[over](t), color: hide ?? p.top, trim: p.metal });
   if (over === "tunicCoat") layers.push({ piece: "belt", color: p.leather, at: 1, height: t.whole(34, 44), trim: p.metal });
   if (shoePiece !== "boots" || tucked) layers.push(shoeLayer);
   if ((over === "tunicCoat" || over === "leather") && t.chance(.2)) layers.push({ piece: "gloves", color: p.leather, from: t.part(1.78, 1.9), cuff: t.pick([0, 14]) });
-  // The design goes on the outermost cloth: the jacket, or the layer under a leather one.
   const patterned = over && !hide ? outerDesigns[over] : baseDesigns[under], festive = direction === "Festive";
   const style = { outfit: "None", tailor: { layers }, clothColor: over && !hide ? p.top : inner };
   style.clothDesign = t.weighted(patterned.map(([weight, name]) => [festive ? weight * (festiveDesigns[name] ?? 1) : weight, name]));
@@ -402,7 +335,6 @@ function separatesLook(t, direction, skin) {
   return { style, outfit: "Work clothes", palette: p };
 }
 
-/** A whole armour set over its own clothes, with the cloth, hide and edging taken from the palette. */
 function armourLook(t, direction, skin) {
   const look = t.weighted([[5, "Light fantasy"], [2, "Heavy fantasy"], [2.5, "Light sci-fi"], [.8, "Heavy sci-fi"]]), scifi = /sci-fi/.test(look);
   const p = drawPalette(t, direction, { depth: [[.3, 1], [5, 2], [5, 3]], swap: 0 }, skin), seed = Math.floor(t.draw() * 1000), pieces = {};
@@ -427,14 +359,6 @@ function armourLook(t, direction, skin) {
   return { style: { outfit: "None", armour: { look, seed, pieces }, clothColor: p.top, clothDesign: "Quiet weave" }, outfit: "Work clothes", palette: p };
 }
 
-/**
- * A complete look for the seed. `style` replaces the fields in `lookFields` of a humanStyle, `outfit` is the
- * form's outfit, `paint` is the colour worn face paint takes so it belongs to the clothes, and `marks` are
- * further worn face marks the look adds (a festive look sometimes paints the face).
- */
-// Deal free looks from a block of sixteen. Each slot uses a different interval
-// of the wardrobe distribution, so long runs of the same silhouette are rare.
-// A new block shuffles the slots and each seed still draws its palette independently.
 function wardrobeQuantile(seed) {
   const group = (seed >>> 0) >>> 4;
   const random = randomStream(group ^ 0x3c7fe149);
@@ -454,8 +378,6 @@ export function completeLook(form, seed, direction = "Any") {
   table.push([separatesShare[direction] ?? 0, "separates"], [armourShare[direction] ?? 0, "armour"]);
   const costumes = Object.keys(presets).filter(name => presets[name].attire && fits(name)).map(name => [presets[name].attire, name]);
   const costume = tools(randomStream((seed ^ 0x51a77e3d) >>> 0));
-  // Free draws include short hems and skirts among the common silhouettes.
-  // Directed looks retain the relative mix chosen for that wardrobe.
   let wardrobe;
   const ensembles = Object.keys(presets).filter(name => presets[name].everyday && fits(name)).map(name => [presets[name].everyday, name]);
   const everyday = tools(randomStream((seed ^ 0x2f6b8d13) >>> 0));
@@ -470,11 +392,8 @@ export function completeLook(form, seed, direction = "Any") {
     t.draw();
   } else wardrobe = t.weighted(table);
   let look = wardrobe === "separates" ? separatesLook(t, direction, skin) : wardrobe === "armour" ? armourLook(t, direction, skin) : presetLook(t, wardrobe, direction, skin);
-  // The weathered coat takes the place of an untailored, unarmoured look, drawn and coloured from a stream of its
-  // own, so every other look of a seed, and the share of tailored and armoured ones, stays as it was.
   const field = tools(randomStream((seed ^ 0x6e1a47c3) >>> 0));
   if (field.chance(einarShare[direction] ?? 0) && !look.style.tailor && !look.style.armour) { wardrobe = einarOutfit; look = presetLook(field, wardrobe, direction, skin); }
-  // Only replace an ordinary outfit. An independent seed keeps other styles and accessories stable.
   const street = tools(randomStream((seed ^ 0x3d1a84c7) >>> 0));
   if (presets[wardrobe]?.weight > 0 && !look.style.tailor && !look.style.armour) {
     const chance = { Any: .085, Everyday: .12, Workwear: .16, Outdoors: .12 }[direction] ?? 0;
@@ -484,7 +403,6 @@ export function completeLook(form, seed, direction = "Any") {
       look = presetLook(street, wardrobe, direction, skin);
     }
   }
-  // A scanned top takes the place of a small share of the ordinary outfits that remain, from a stream of its own.
   const scanned = tools(randomStream((seed ^ 0x5ca97e21) >>> 0));
   if (presets[wardrobe]?.weight > 0 && !look.style.tailor && !look.style.armour && scanned.chance(scannedShare[direction] ?? 0)) {
     const worn = Object.keys(scannedClothes).filter(fits);

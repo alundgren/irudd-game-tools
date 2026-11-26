@@ -25,10 +25,10 @@ from scipy.optimize import linear_sum_assignment
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "head-study"))
 sys.path.insert(0, str(HERE.parent / "human-benchmark"))
-from hb_gpu import renderer_name  # noqa: E402
-from hb_mesh import Surface, rigid_fit  # noqa: E402
-from hb_raster import rasterize, shade, view_basis  # noqa: E402
-import identity_grid as grid  # noqa: E402
+from hb_gpu import renderer_name
+from hb_mesh import Surface, rigid_fit
+from hb_raster import rasterize, shade, view_basis
+import identity_grid as grid
 
 MODES = ["base", "reference-fit", "ordinary", "measurements", "transfer", "detail", "full", "plain", "fitted", "dense"]
 LABELS = {"member": "family member", "base": "registered base (no identity)", "reference-fit": "ordinary reference fit",
@@ -69,7 +69,6 @@ def score(work, ids, picks, modes):
     masks, coverage = grid.shared_crops(targets + [v for views in trials.values() for v in views])
     result = {"ids": ids, "unit": "mm after scaling to 92 mm between outer eye corners", "viewsDegrees": [0, 35, -35],
               "saturatedAtMm": 15, "commonCropFraction": coverage, "renderer": renderer_name()}
-    # How far apart the members themselves are: the scale every other number is read against.
     result["members"] = {"matrix": [[round(grid.distance(a, b, masks), 4) for b in targets] for a in targets]}
     for mode, candidates in trials.items():
         matrix = [[round(grid.distance(views, target, masks), 4) for target in targets] for views in candidates]
@@ -137,7 +136,7 @@ def surface_distances(work, ids, picks, modes):
         matrix = []
         for name in names:
             points = read(work, name, smooth)[0][face]
-            turn, shift = rigid_fit(points, base)  # every result starts where the registered base stands
+            turn, shift = rigid_fit(points, base)
             points = points @ turn.T + shift
             matrix.append([round(placed(points, member), 4) for member in members])
         ranks = [1 + sum(x < row[i] for x in row) for i, row in enumerate(matrix)]
@@ -160,7 +159,6 @@ def sheet(work, ids, rows, path, angle=35, tile=(200, 232)):
     draw = ImageDraw.Draw(image)
     for column, i in enumerate(ids):
         member, _ = read(work, f"{i}-member.xyz", family)
-        # Frame every row of a column on the head transferred onto the registered base, so a shift or a size change shows.
         placed = next(m for m in ("transfer", "detail", "measurements") if (work / f"{i}-{m}.xyz").exists())
         anchor, _ = read(work, f"{i}-{placed}.xyz", smooth)
         top = anchor[:, 1].max()
@@ -173,7 +171,6 @@ def sheet(work, ids, rows, path, angle=35, tile=(200, 232)):
                 name = "base.xyz" if mode == "base" else f"{i}-{mode}.xyz"
                 vertices, faces = read(work, name, smooth)
             if mode in ("base", "reference-fit", "ordinary", "plain", "fitted"):
-                # These stand elsewhere: bring the top of the head and the face centre to the same spot.
                 own_top = vertices[:, 1].max()
                 own = vertices[vertices[:, 1] > own_top - 0.17]
                 shift = centre - np.array([own[:, 0].mean(), own_top - 0.115, (own[:, 2].max() + own[:, 2].min()) / 2])

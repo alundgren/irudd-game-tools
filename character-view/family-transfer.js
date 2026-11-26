@@ -1,17 +1,6 @@
 import { Matrix4, Quaternion, Vector3 } from "three";
 
-/* Deformation transfer for a family of meshes that share one topology.
 
-   A family is a neutral template and any number of identities with the same
-   vertices and triangles, such as the people a parametric body model produces.
-   The editable surface has a different topology. It is registered against the
-   neutral once: every editable vertex remembers a triangle of the neutral, its
-   barycentric position there and its offset in that triangle's own frame. The
-   same triangle of an identity then says where that vertex belongs on the
-   identity, tangentially as well as in depth. A closest-point fit to an
-   unrelated scan has no such correspondence, so this is not a scan fitter. */
-
-// Flat bounding-volume tree over triangles, answering with barycentric positions.
 export function familySurface(positions, indices) {
   const faces = indices.length / 3;
   if (!faces || positions.length % 3 || indices.length % 3)
@@ -63,9 +52,6 @@ export function familySurface(positions, indices) {
       dz = Math.max(bounds[b + 2] - z, 0, z - bounds[b + 5]);
     return dx * dx + dy * dy + dz * dz;
   }
-  /* Closest point on a triangle whose normal agrees with `normal` by at least
-     `agree`. Returns null beyond `reach`. `out` receives face, three weights,
-     the point and the distance. */
   function closest(x, y, z, normal, reach = Infinity, agree = -2, out = {}) {
     let best = reach * reach, face = -1, bu = 0, bv = 0, bw = 0, top = 0;
     stack[top++] = 0;
@@ -124,8 +110,6 @@ export function familySurface(positions, indices) {
   return { positions, indices, faces, normals, closest };
 }
 
-/* A triangle's own frame: two edges and its normal scaled to the edge length,
-   so an offset stretches and turns with the triangle (Sumner and Popović 2004). */
 function triangleFrame(positions, indices, face, m) {
   const a = indices[face * 3] * 3, b = indices[face * 3 + 1] * 3, c = indices[face * 3 + 2] * 3;
   for (let d = 0; d < 3; d++) {
@@ -137,7 +121,6 @@ function triangleFrame(positions, indices, face, m) {
   m[6] = nx * scale; m[7] = ny * scale; m[8] = nz * scale;
   return m;
 }
-// Coordinates of `o` in the columns m[0..2], m[3..5], m[6..8].
 function inFrame(m, ox, oy, oz, out, at) {
   const c0 = m[4] * m[8] - m[5] * m[7], c1 = m[5] * m[6] - m[3] * m[8], c2 = m[3] * m[7] - m[4] * m[6];
   const det = m[0] * c0 + m[1] * c1 + m[2] * c2;
@@ -164,13 +147,6 @@ export function vertexNormals(positions, indices, triangles = indices.length / 3
   return normals;
 }
 
-/* Register editable vertices against the family's neutral. Both meshes must
-   already stand in the same place at the same size: fit the editable surface to
-   the neutral first. `vertices` lists the editable vertices to register.
-   A vertex stays unregistered when no neutral triangle with a similar outward
-   direction lies within `reach`, or when that triangle's own nearest editable
-   skin is somewhere else. The second test drops layered surfaces, such as the
-   inside of a lip whose nearest neutral skin is the outside of the mouth. */
 export function registerFamily(neutral, base, { vertices, reach = 0.012, agree = 0.5, slip = 0.0005 } = {}) {
   const surface = neutral.closest ? neutral : familySurface(neutral.positions, neutral.indices);
   const triangles = base.triangles ?? base.indices.length / 3;
@@ -220,11 +196,6 @@ function sameFamily(registration, mesh) {
     throw new Error("This mesh does not have the topology of the registered family.");
 }
 
-/* Where each registered editable vertex belongs on a member of the family, in
-   that member's own coordinates. On the neutral this returns the registered
-   base itself, so an identity equal to the neutral changes nothing. `keep` is
-   the share of each vertex's own offset from the neutral that it retains: at 0
-   every vertex lands on the member's surface. */
 export function wrapFamilyMember(registration, member, keep = 1) {
   sameFamily(registration, member);
   const { face, weights, offset } = registration, p = member.positions, n = face.length;
@@ -239,7 +210,6 @@ export function wrapFamilyMember(registration, member, keep = 1) {
   return out;
 }
 
-// Largest eigenvector of a symmetric 4×4 matrix by Jacobi rotations.
 function dominantEigenvector(a) {
   const v = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]];
   for (let sweep = 0; sweep < 60; sweep++) {
@@ -271,8 +241,6 @@ function dominantEigenvector(a) {
   return v.map((row) => row[best]);
 }
 
-/* Least-squares turn and shift (and, on request, uniform size) carrying the
-   points `from` onto their partners `to` (Horn 1987). */
 export function alignPoints(from, to, { weights, scale = false } = {}) {
   const n = from.length / 3;
   if (n < 3 || to.length !== from.length) throw new Error("Alignment needs at least three matched points.");
@@ -327,9 +295,6 @@ export function transformPoints(points, matrix) {
   return out;
 }
 
-/* One orthonormal frame per vertex: the surface normal and the direction to a
-   fixed neighbour. The same neighbour is used on every surface of this
-   topology, so a vector written in one surface's frames can be rebuilt on another. */
 export function vertexFrames(positions, indices, triangles = indices.length / 3, partner) {
   const count = positions.length / 3;
   if (!partner) {
@@ -354,8 +319,6 @@ export function vertexFrames(positions, indices, triangles = indices.length / 3,
   return { frames, partner };
 }
 
-/* Carry displacements made on one surface to another surface of the same
-   topology: each keeps its direction relative to the skin under it. */
 export function transportDisplacements(vertices, displacements, from, to, size = 1) {
   const out = new Float32Array(displacements.length);
   for (let i = 0; i < vertices.length; i++) {
@@ -368,7 +331,6 @@ export function transportDisplacements(vertices, displacements, from, to, size =
   return out;
 }
 
-// Symmetric positive definite solve, in place on `a`, for several right-hand sides.
 function choleskySolve(a, n, columns) {
   for (let j = 0; j < n; j++) {
     let d = a[j * n + j];
@@ -396,14 +358,6 @@ function choleskySolve(a, n, columns) {
   }
 }
 
-/* Offsets of control anchors that best produce the wanted vertex movements.
-
-   Every editable vertex moves by a fixed blend of four anchors, so the three
-   coordinates solve independently. `rows` are {vertex, weight} with the wanted
-   movement in `wanted` (three numbers per row, metres on the figure). `free`
-   marks the anchors that may change. `pairs` are vertices that should move
-   together, such as touching lips. Returns the change of each anchor in the
-   recipe's own unit (metres on a 1.72 m figure). */
 export function solveControls(controls, rows, wanted, {
   free, scale = 1, damping = 0.02, smoothing = 0.05, pairs = [], pairWeight = 4,
 } = {}) {
@@ -442,7 +396,6 @@ export function solveControls(controls, rows, wanted, {
     for (const [i, w] of share(second)) cells.set(i, (cells.get(i) ?? 0) - w);
     add([...cells], pairWeight * mean, 0, 0, 0);
   }
-  // Neighbouring anchors prefer a common movement where the rows leave them free.
   for (let i = 0; i < n; i++) {
     a[i * n + i] += damping * mean;
     for (const j of neighbours[i]) {
@@ -457,8 +410,6 @@ export function solveControls(controls, rows, wanted, {
   return out;
 }
 
-/* Vertices that touch without being neighbours on the mesh, such as closed
-   lips. Pairs are found on the given surface among `vertices`. */
 export function contactPairs(positions, indices, triangles, vertices, reach) {
   const near = new Map(), key = (x, y, z) => x + "," + y + "," + z, cell = (x) => Math.floor(x / reach);
   const adjacent = new Map();
@@ -475,7 +426,6 @@ export function contactPairs(positions, indices, triangles, vertices, reach) {
     near.get(k).push(v);
   }
   const close = (a, b) => {
-    // Two rings of mesh neighbours are ordinary skin, not contact.
     const ring = adjacent.get(a);
     if (!ring) return true;
     if (ring.has(b)) return false;
@@ -495,8 +445,6 @@ export function contactPairs(positions, indices, triangles, vertices, reach) {
   return pairs;
 }
 
-/* Triangles whose normal turned past perpendicular between two surfaces of
-   one topology at one pose: a fold or a tear. `counted` selects triangles. */
 export function foldedTriangles(before, after, indices, triangles, counted) {
   const folded = [];
   let tested = 0;
@@ -509,7 +457,7 @@ export function foldedTriangles(before, after, indices, triangles, counted) {
       return [uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx];
     };
     const old = cross(before);
-    if (Math.hypot(...old) < 2 * 0.25e-6) continue; // under a quarter of a square millimetre
+    if (Math.hypot(...old) < 2 * 0.25e-6) continue;
     const now = cross(after);
     tested++;
     if (old[0] * now[0] + old[1] * now[1] + old[2] * now[2] <= 0) folded.push(t);

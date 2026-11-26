@@ -115,8 +115,6 @@ export function poseExpression(root, name, strength = 1) {
     }
   });
 }
-// The skin is exported in world coordinates. Transform pose displacements as
-// vectors, and rebuild each normal delta against the transformed rest normal.
 export function worldMorphs(geometry, source) {
   if (!geometry.morphAttributes.position?.length) return;
   const linear = new Matrix3().setFromMatrix4(source.matrixWorld);

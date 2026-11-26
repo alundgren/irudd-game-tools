@@ -1,5 +1,3 @@
-// The browser side of human-style-render.mjs: draws check figures with Three.js on the graphics card.
-// It matches the software renderer's camera and its lights fixed to the camera, and it paints back faces red.
 import * as T from "three";
 
 const canvas = document.createElement("canvas"), small = document.createElement("canvas"), pen = small.getContext("2d", { willReadFrequently: true });
@@ -22,7 +20,6 @@ globalThis.styleRenderer = {
     const gl = renderer.getContext(), info = gl.getExtension("WEBGL_debug_renderer_info");
     return String(info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
   },
-  /** {buffers: [base64], meshes: [{positions, indices, normals, color}]} where the first three index into buffers. */
   async load({ buffers, meshes }) {
     for (const mesh of figure.children) { mesh.geometry.dispose(); if (mesh.material !== inside) mesh.material.dispose(); }
     figure.clear();
@@ -38,7 +35,6 @@ globalThis.styleRenderer = {
     }
     return figure.children.length / 2;
   },
-  /** One view as base64 RGBA rows from the top. */
   draw({ yaw = 0, pitch = 0, center = [0, .9, 0], span = 2, width = 400, height = 800, background = [.93, .93, .92], supersample = 2 }) {
     const wide = span * width / height;
     renderer.setPixelRatio(1);
@@ -46,7 +42,6 @@ globalThis.styleRenderer = {
     renderer.setClearColor(new T.Color().setRGB(...background, T.SRGBColorSpace));
     Object.assign(camera, { left: -wide / 2, right: wide / 2, top: span / 2, bottom: -span / 2, near: .1, far: 40 });
     camera.updateProjectionMatrix();
-    // Yaw 0 looks at the front: +Z faces the camera.
     camera.position.set(center[0] + Math.sin(yaw) * Math.cos(pitch) * 20, center[1] + Math.sin(pitch) * 20, center[2] + Math.cos(yaw) * Math.cos(pitch) * 20);
     camera.lookAt(center[0], center[1], center[2]);
     renderer.render(scene, camera);

@@ -1,5 +1,3 @@
-// Lists what the editor's Export GLB wrote for each study: meshes, skinning, materials and textures.
-//   node scripts/rocketbox-study/inspect-export.mjs [folder with *.glb]
 import { readdirSync, readFileSync } from "node:fs";
 import { local, need } from "./local.mjs";
 

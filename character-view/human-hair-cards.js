@@ -1,7 +1,5 @@
 import * as T from "three";
 
-// One Loop subdivision of a fitted strand sheet. Positions are shared across
-// UV seams, while either side of a texture seam retains its own coordinates.
 export function smoothHairCards(positions, triangles, uvCorners, packedUV) {
   const count = positions.length / 3;
   const edges = new Map(), adjacent = Array.from({length:count}, () => new Set());

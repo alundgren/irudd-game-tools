@@ -1,7 +1,6 @@
 import { build } from "esbuild";
 import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
-// The rig is local reference material. docs/local-references.md shows how to make it.
 if (!existsSync("examples/mhr-reference.glb")) {
   console.error("examples/mhr-reference.glb is not installed. See docs/local-references.md.");
   process.exit(1);

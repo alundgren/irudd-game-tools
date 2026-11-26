@@ -44,7 +44,6 @@ test("a closed lid is the skin beside the eye a little in shade, not the photogr
     const { paint, rgb, rgba, mask } = picture(label), side = paint.side, eyes = lidsOf(label), marked = mask.slice();
     paintCastLids(rgba, marked, side, eyes, paint.tone);
     for (const { texels, along } of eyes) {
-      // The skin beside the eye, as the repaint measures it.
       const xs = Array.from(texels, key => key % side), ys = Array.from(texels, key => Math.floor(key / side)), near = [];
       for (let y = Math.min(...ys) - 10; y <= Math.max(...ys) + 10; y++) for (let x = Math.min(...xs) - 10; x <= Math.max(...xs) + 10; x++)
         if (mask[y * side + x] >= 200 && !texels.includes(y * side + x)) near.push(light(rgb, y * side + x, 3));
@@ -58,12 +57,10 @@ test("a closed lid is the skin beside the eye a little in shade, not the photogr
         assert.ok(rgba[key * 4] > rgba[key * 4 + 1] && rgba[key * 4 + 1] > rgba[key * 4 + 2], label + ": lid texels are skin coloured");
         assert.equal(marked[key], 255, label + ": the lid follows the skin colour");
       }
-      // The edge of the lid keeps the photographed lash line.
       texels.forEach((key, i) => {
         if (along[i] >= lidEdge[1]) for (let k = 0; k < 3; k++) assert.equal(rgba[key * 4 + k], rgb[key * 3 + k], label + ": lash line kept");
       });
     }
-    // Nothing else in the picture or its mask changes.
     const lid = new Set(eyes.flatMap(eye => Array.from(eye.texels)));
     for (let i = 0; i < side * side; i++) {
       if (lid.has(i)) continue;
@@ -74,7 +71,6 @@ test("a closed lid is the skin beside the eye a little in shade, not the photogr
 });
 
 test("a stray point of the blink pose outside the eyes is not painted", () => {
-  // Grey tee's pose also moves one point at the temple by under three millimetres.
   const side = figures["Grey tee"].paint.side;
   for (const { texels } of lidsOf("Grey tee")) for (const key of texels) assert.ok(key % side < .82 * side, "lid texels stay at the eyes");
 });
@@ -88,7 +84,6 @@ test("the drawn cast picture carries the lids with the chosen skin colour and le
   };
   const ownPixels = draw(castSkin(label)), darkPixels = draw("#4a2e1f");
   const { rgb, paint } = picture(label), side = paint.side, eyes = lidsOf(label), lid = new Set(eyes.flatMap(eye => Array.from(eye.texels)));
-  // The iris disc of the eye chart belongs to the eye colour control.
   const iris = i => i % 1024 > 630 && i % 1024 < 670 && i > 455 * 1024 && i < 495 * 1024;
   let changed = 0;
   for (let i = 0; i < side * side; i++)

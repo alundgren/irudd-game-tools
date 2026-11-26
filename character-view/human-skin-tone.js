@@ -1,15 +1,7 @@
-// Local tone for bare body skin. Two sources meet here. The shape of this body: hollows between
-// tendons, knuckles and collarbones sit a little deeper in the skin's own hue. And where skin
-// differs on anybody: knuckle creases, nails, the navel and the folds of a joint, measured from
-// the CC0 MakeHuman skins by scripts/pack-human-skin-tone.py. Hands and feet carry more blood.
-// It is held on the vertices of the one smooth surface that the head and the body are both cut
-// from, so the two sides of the neck join read the same value, and it fades out over the neck
-// before it reaches the painted face.
 
 import { unzlibSync } from "three/addons/libs/fflate.module.js";
 import data from "./human-skin-tone-data.json" with { type: "json" };
 
-// The packed bytes are signed about this value. A file packed any other way must not be read.
 export const toneEncoding = "signed-local-tone";
 if (data.encoding?.name !== toneEncoding || data.encoding.neutral !== 128)
   throw new Error("human-skin-tone-data.json is not packed as " + toneEncoding + ". Run scripts/pack-human-skin-tone.py.");
@@ -25,7 +17,6 @@ const smooth = (v, a, b) => {
 };
 const linear = (v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
 
-// How strongly a region flushes, by the joint that carries it.
 function flushOf(name) {
   if (/_03_/.test(name)) return 1;
   if (/^(index|middle|ring|pinky|thumb)_/.test(name)) return 0.8;
@@ -64,11 +55,6 @@ function relax(values, size, { start, list }, passes) {
   return from;
 }
 
-/**
- * Where the surface is hollow (positive) or stands proud (negative), per vertex, relative to
- * the size of the form around it: a fine scale for knuckles and tendons and a broad one for
- * collarbones, the throat and the hollow of a knee.
- */
 export function skinRelief(surface, normals) {
   const count = surface.positions.length / 3, corners = surface.bodyTriangles * 3;
   const near = neighbours(surface.indices, corners, count);
@@ -86,25 +72,18 @@ export function skinRelief(surface, normals) {
         span += Math.sqrt(x * x + y * y + z * z);
       }
       span /= near.start[v + 1] - near.start[v];
-      // The smoothed neighbourhood sets the scale, so a child and a giant shade alike.
       relief[v] += weight * offset / Math.max(span * Math.sqrt(until), 1e-6);
     }
   }
-  // A finger or an arm is round all over. Keep what differs from the form around it.
   const local = relax(relief, 1, near, 2), around = relax(local, 1, near, 14);
   for (let v = 0; v < count; v++) local[v] -= around[v];
   return local;
 }
 
-/**
- * Linear colour multipliers per vertex, never above one, for a body of this skin colour.
- * Vertices that move wholly with the head keep exactly one.
- */
 export function skinShade(surface, normals, skin) {
   const count = surface.positions.length / 3, shade = new Float32Array(count * 3).fill(1);
   const tone = [skin.r, skin.g, skin.b].map((v) => Math.max(0.004, skin.isColor ? v : linear(v)));
   const most = Math.max(...tone), hue = tone.map((v) => Math.max(-1.1, Math.log(v / most)));
-  // A vivid invented skin shifts no further than ordinary skin does: its weakest channel counts as a third.
   const head = surface.names.indexOf("head"), flush = surface.names.map(flushOf);
   const relief = skinRelief(surface, normals);
   const packed = count === data.count ? measuredTone() : null;
@@ -118,10 +97,8 @@ export function skinShade(surface, normals, skin) {
     const body = 1 - smooth(face, 0.1, 0.9);
     if (body <= 0) continue;
     const hollow = smooth(relief[v], 0.004, 0.05), proud = smooth(-relief[v], 0.006, 0.05);
-    // Skin that is darker or redder than the skin around it on every measured body.
     const darker = packed ? Math.max(0, (128 - packed[v * 2]) / 127 * toneRange - 0.03) : 0;
     const redder = packed ? Math.max(0, (packed[v * 2 + 1] - 128) / 127 * warmRange - 0.02) : 0;
-    // A hollow is deeper and more saturated; blood shows where skin is thin over bone.
     const deep = body * Math.min(0.75, 0.42 * hollow + 2.2 * darker);
     const blood = body * Math.min(2.2, 0.45 * warm + 0.9 * proud * (0.4 + 0.6 * warm) + 7 * redder);
     for (let d = 0; d < 3; d++)

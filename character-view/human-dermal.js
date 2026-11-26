@@ -1,7 +1,5 @@
 import { faceChart } from "./human-face-chart.js";
 
-// Distances in millimetres on the editable face. Each crease fades as its
-// supporting muscle fans out, with a shallow raised lip along one side.
 const clamp = value => Math.min(1, Math.max(0, value));
 function fade(value, low, high) {
   const t = clamp((value - low) / (high - low));
@@ -31,7 +29,6 @@ export function expressionLines(seed) {
         const strength=(1-fade(t,.48,1))*(.66+.24*Math.cos(.14*x-.7*row+phase));
         relief+=strength*groove(y-arc,.65+.12*row);
       }
-      // Vertical furrow either side of the glabella flares towards the brow.
       const path=3.9+.15*(y-13)+.8*Math.sin((y-13)*.15+phase);
       relief+=groove(a-path,.86)*fade(y,12,18)*(1-fade(y,23,32));
     }

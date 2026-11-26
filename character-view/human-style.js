@@ -1,9 +1,4 @@
 import { finishFootwear } from "./human-shoe-surface.js";
-// Hair and clothing for the human surface.
-//   styleHuman(surface, {hair, outfit, hairColor, clothColor}, material) -> THREE.Mesh[] with `ground`, the lowest styled
-//   point, and `hidden`, the source vertex ids of skin that lies under the outfit
-// Every mesh is in world coordinates, carries `humanWeights` for skinning and
-// names the joint it mainly follows in `userData.styleRegion`.
 import * as T from "three";
 import { analyse } from "./human-style-kit.js";
 import { landmarks } from "./human-style-cloth.js";
@@ -18,16 +13,10 @@ export const defaultHumanStyle = { hair: "None", outfit: "None", hairColor: "#45
 const find = (table, name) => Object.keys(table).find(key => key.toLowerCase() === String(name ?? "").trim().toLowerCase());
 const clamp01 = x => Math.min(1, Math.max(0, x));
 
-// Hues from red through orange to yellow read as bare skin on a waistband or strap, so the accent avoids them.
 const skinLike = hue => hue > .94 || hue < .17;
 
-/** The style fields that name one tone of an outfit outright, and the tone each one sets. */
 export const toneFields = { clothSecond: "dark", clothLight: "light", accentColor: "accent", leatherColor: "leather", soleColor: "sole", metalColor: "metal" };
 
-/**
- * Tones for a whole outfit. One cloth colour gives all of them; a style may also name the second cloth,
- * the pale cloth, the accent, the leather, the soles and the metal one by one, and those are used as they are.
- */
 export function palette(style = {}) {
   const tones = derived(style.clothColor ?? defaultHumanStyle.clothColor);
   for (const [field, tone] of Object.entries(toneFields)) if (style[field]) tones[tone] = "#" + new T.Color(style[field]).getHexString();
@@ -59,11 +48,9 @@ export function styleHuman(surface, style = {}, material = color => new T.MeshSt
       if (!part.piece.tri.length) continue;
       worn.push(part.piece);
       const base = material(tones[part.tone] ?? part.tone, part.type ?? "cloth"), mesh = part.piece.mesh(base, part.region, part.name);
-      // Joints a rig may hang this cloth from. The weights of the mesh itself name only bones of the body.
       if (part.piece.clothJoints) mesh.humanWeights.clothJoints = part.piece.clothJoints;
       if (!plain) finishFootwear(mesh, part.piece.shoeUV);
       if (!plain) finishCloth(mesh, outfit, style, m, part.piece.clothGrid);
-      // Cloth that hangs in folds keeps a share of a reduced model's faces, so the folds stay in its outline.
       if (!plain && part.piece.draped) {
         if (mesh.material === base) mesh.material = base.clone();
         mesh.material.userData.foldedCloth = true;
@@ -75,10 +62,8 @@ export function styleHuman(surface, style = {}, material = color => new T.MeshSt
     hidden = concealed(body, worn);
   }
   if (hair) for (const part of hairstyles[hair](body, m, style)) {
-    // Under a helmet only the hair on the head shows; lengths, tails and knots are tucked away.
     if (!part.piece.tri.length || helmet && part.loose) continue;
     meshes.push(part.piece.mesh(material(part.tone ?? style.hairColor ?? defaultHumanStyle.hairColor, part.type ?? "hair"), part.region ?? "head", part.name));
   }
-  // Soles reach slightly below the bare feet; `ground` is the lowest styled point.
   return Object.assign(meshes, { ground, hidden });
 }

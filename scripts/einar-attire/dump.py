@@ -15,7 +15,6 @@ for name, o in objs.items():
     nor = np.zeros(n*3); me.vertices.foreach_get('normal', nor); nor = nor.reshape(-1,3)
     W = np.asarray(o.matrix_world); p = p @ W[:3,:3].T + W[:3,3]; nor = nor @ np.linalg.inv(W[:3,:3])
     flip = np.linalg.det(W[:3,:3]) < 0
-    # to Y-up: (x, z, -y)
     conv = lambda a: np.stack([a[:,0], a[:,2], -a[:,1]], 1)
     t = len(me.loop_triangles)
     tri = np.zeros(t*3, np.int32); me.loop_triangles.foreach_get('vertices', tri); tri = tri.reshape(-1,3)

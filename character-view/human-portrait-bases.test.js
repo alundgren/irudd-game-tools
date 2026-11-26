@@ -3,8 +3,6 @@ import assert from "node:assert/strict";
 import { Vector3 } from "three";
 import { evaluateHuman, portraitAxes, randomHuman, smoothHumanSurface } from "./human-surface.js";
 
-// An index-wise transfer of facial deltas used to turn over the lip and lid
-// triangles on this edited head. Check both the cage and the surface artists see.
 test("blending a portrait on an edited adult preserves the orientation of the facial skin", () => {
   const params = randomHuman(29169);
   const zero = Object.fromEntries(portraitAxes.map(key => [key, 0]));

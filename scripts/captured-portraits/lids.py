@@ -68,7 +68,6 @@ for f in [p / (n + "-registration.npz") for n in FRAMES]:
         center = (src[0] + src[8]) * 0.5
         target -= 0.5 * (target[0] + target[8])
         src -= center
-        # Make the measured opening editable and prevent squints in the scan from shutting the eye.
         for k, limits in enumerate([(0.95, 1.19), (0.77, 1.13)]):
             ratio = np.ptp(target[:, k]) / np.ptp(src[:, k])
             target[:, k] *= np.clip(ratio, *limits) / ratio
@@ -90,8 +89,6 @@ for f in [p / (n + "-registration.npz") for n in FRAMES]:
             + (vec[:, 2] / 0.018) ** 2
         )
         sel = r < 1.25
-        # A thin lid has inner and outer skin less than one millimetre apart. Fit the
-        # opening as a continuous scale, tilt, and arch so both layers move together.
         span = np.maximum(np.ptp(src, axis=0), 0.001)
         ratio = np.clip(np.ptp(target, axis=0) / span, [0.95, 0.77], [1.19, 1.13])
         tilt = np.clip(

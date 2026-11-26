@@ -10,8 +10,6 @@ const pack = (a) =>
   deflateSync(Buffer.from(a.buffer, a.byteOffset, a.byteLength)).toString(
     "base64",
   );
-// The leather crown has an inward-facing lining. Where it lies against a
-// fitted scalp, both layers converge and the lining can show through the shell.
 function exposedCrown(points, triangles) {
   const faces = [];
   for (let i = 0; i < triangles.length; i += 3) {
@@ -24,7 +22,6 @@ function exposedCrown(points, triangles) {
         outward += points[at + axis] * points[at + 3 + axis];
       }
     }
-    // Keep the lining below the ears, where the strap can be seen on both sides.
     if (height / (3 * 10000) < -0.5 || outward >= 0) {
       faces.push(triangles[i], triangles[i + 1], triangles[i + 2]);
     }

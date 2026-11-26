@@ -29,8 +29,6 @@ import { rigs } from "../examples/local-references.js";
 
 const mhr =
   "Momentum Human Rig v1.0.1 © Meta Platforms, Inc. and affiliates, Apache License 2.0. ";
-// Licensed practice rigs. They are private comparison material, so the list offers
-// only those installed beside this workshop. They load by address when chosen.
 export const referenceSources = [
   {
     id: "mhr-rest",
@@ -59,14 +57,12 @@ const regions = {
   arms: "Arms",
   legs: "Legs",
 };
-// Matches the fit's own region rule so the table and a fit step cover the same skin.
 function regionOf(bone) {
   if (bone === "head" || bone.startsWith("neck")) return "head";
   if (/thigh|calf|foot|ball/.test(bone)) return "legs";
   if (/arm|hand|thumb|index|middle|ring|pinky/.test(bone)) return "arms";
   return "trunk";
 }
-// Camera frames as fractions of stature: centre height, height and width.
 const frames = {
   whole: [0.5, 1.1, 0.84],
   head: [0.937, 0.174, 0.142],
@@ -77,7 +73,6 @@ const frames = {
 const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
 const mm = (x) => (x < 99.5 ? x.toFixed(1) : x.toFixed(0));
 const nextFrame = () => new Promise((done) => requestAnimationFrame(done));
-// The unclothed body in its rest pose, as the ordinary model builder draws it.
 function neutral(form) {
   const base = humanForm(form.human, form.origin?.seed ?? 0);
   return {
@@ -98,7 +93,6 @@ function skin(form) {
 export function humanReferenceEditor(getForm, commit, status = () => {}) {
   const $ = (id) => document.getElementById(id);
   let dialog, stage, renderer, camera, orbit, scene, key, refMesh;
-  // The imported model lives here for the session. It is never stored with a form.
   let reference = null,
     aligned = null,
     original = null,
@@ -112,12 +106,9 @@ export function humanReferenceEditor(getForm, commit, status = () => {}) {
     busy = false,
     loads = 0;
   let registration = null, picks = null;
-  // Click-to-match of single features. It keeps its own state apart from the landmarks.
   let feature = null;
-  // Session-only choice of which reference triangles are skin. The reference itself is not changed.
   let masker = null;
   let proportion = null;
-  // Optional head transfer from a same-topology family. It keeps its neutral for the session only.
   let family = null;
   const headOnly = () => $("hfit-kind").value === "head";
   const landmarkNames = ["right outer eye corner", "left outer eye corner", "centre of the chin"];
@@ -203,7 +194,6 @@ export function humanReferenceEditor(getForm, commit, status = () => {}) {
       stage.classList.add("hfit-drop");
     });
     stage.addEventListener("dragleave", () => stage.classList.remove("hfit-drop"));
-    // A file dropped beside the view must not replace the workshop page.
     dialog.addEventListener("dragover", (event) => event.preventDefault());
     dialog.addEventListener("drop", (event) => event.preventDefault());
     stage.addEventListener("drop", (event) => {
@@ -469,7 +459,6 @@ export function humanReferenceEditor(getForm, commit, status = () => {}) {
       try {
         restart();
       } catch (error) {
-        // Keep comparing against the earlier model when the new one cannot be placed.
         reference = previous; registration = previousRegistration;
         restart();
         throw error;
@@ -516,7 +505,6 @@ export function humanReferenceEditor(getForm, commit, status = () => {}) {
       nudge: ["x", "y", "z"].map((a) => (Number($("hfit-nudge-" + a).value) || 0) / 1000),
     };
   }
-  // Moves only pose and stature of the template so the surfaces can be compared at all.
   function prealign(form, pose) {
     const patch = {},
       changes = [],
@@ -576,7 +564,6 @@ export function humanReferenceEditor(getForm, commit, status = () => {}) {
           stature, column: bodyColumn(skin(prepared.form)),
         });
       }
-      // Hidden parts of a head scan are left out of the drawing, the fit and the distances.
       const cut = headOnly() ? masker?.place(reference.raw, placed.positions) : (masker?.clear(), null),
         skinIndices = cut?.shown ?? reference.raw.indices;
       refMesh.geometry.dispose();
@@ -623,7 +610,6 @@ export function humanReferenceEditor(getForm, commit, status = () => {}) {
     old.group.traverse((o) => o.isMesh && o.geometry.dispose());
     delete actors[name];
   }
-  // Signed distance of every skin vertex to the reference, kept as colours and summaries.
   function measure({ skins }) {
     const v = new T.Vector3(),
       lists = Object.fromEntries(Object.keys(regions).map((k) => [k, []]));
@@ -633,11 +619,9 @@ export function humanReferenceEditor(getForm, commit, status = () => {}) {
       if (headOnly() && bone !== "head") continue;
       const p = mesh.geometry.attributes.position,
         colour = new Float32Array(p.count * 3),
-        // The share under hidden parts is stated by area: the face has far more vertices than the cranium.
         areas = aligned.under ? vertexAreas(p.array, mesh.geometry.index?.array) : null;
       for (let i = 0; i < p.count; i++) {
         const d = aligned.distance(v.fromBufferAttribute(p, i).applyMatrix4(mesh.matrixWorld));
-        // Skin that belongs to a hidden part of the reference has nothing to be measured against.
         if (aligned.under?.(v, d)) {
           under += areas[i];
           unmeasured.toArray(colour, i * 3);
@@ -656,7 +640,6 @@ export function humanReferenceEditor(getForm, commit, status = () => {}) {
     result.underMask = under / Math.max(1e-12, under + measured);
     return result;
   }
-  // Rebuilds the fitted body and every reading after the working form changed.
   function show() {
     release("now");
     actors.now = actor(working);
@@ -787,7 +770,6 @@ export function humanReferenceEditor(getForm, commit, status = () => {}) {
       (entry.problem ? " · " + entry.problem : "")
     );
   }
-  // Brings every control, label and reading in line with the current state.
   function refresh() {
     const has = Boolean(aligned),
       before = $("hfit-original").checked;
@@ -881,18 +863,12 @@ export function humanReferenceEditor(getForm, commit, status = () => {}) {
       entry = { region };
     lock(true);
     note("Fitting " + regions[region].toLowerCase() + "…");
-    // Two frames let the message paint before the solver holds the thread.
     await nextFrame();
     await nextFrame();
     let next = working;
-    // Skin under hidden parts of the reference is held, not only left without a target.
     const hidden = aligned.under ? (point) => aligned.under(point, aligned.distance(point)) : null;
-    // A head that carries a fine layer is kept through a fit of anything else. The measurements
-    // still read it, which sets it on the reference's neck; the anchors leave its skin alone, and
-    // afterwards the layer is worked out again on the fitted adult.
     const keeper = working.humanDetail && region !== "head" && !headOnly() ? headKeeper(working) : null;
     const hold = keeper ? (point) => Boolean(keeper.hold(point) || hidden?.(point)) : hidden;
-    // The artist's own eye openings are held as well when asked: lids, eye sliders and eyeballs.
     const keepEyeOpenings = headOnly() && $("hfit-eyes").checked;
     if (keepEyeOpenings) entry.eyesKept = true;
     try {
@@ -1004,7 +980,6 @@ export function humanReferenceEditor(getForm, commit, status = () => {}) {
       const right = wipe ? (i === 0 ? boundary : w) : Math.round(((i + 1) * w) / panes.length);
       const width = right - left;
       if (!width) return;
-      // Both sides of a wipe keep the full projection. Only the scissor box changes.
       renderer.setViewport(wipe ? 0 : left, 0, wipe ? w : width, h);
       renderer.setScissor(left, 0, width, h);
       refMesh.visible = has && (pane === "reference" || (pane === "both" && view === "overlay"));
@@ -1039,7 +1014,6 @@ export function humanReferenceEditor(getForm, commit, status = () => {}) {
       const linked = [...(form.referenceRigs ?? [])].reverse().find(id => rigs.includes(id));
       const source = referenceSources.find(entry => entry.id === linked);
       if (source && source.id !== reference?.id) {
-        // Installed rigs have a known standing pose and metre scale.
         $("hfit-kind").value = "body";
         $("hfit-frame").value = $("hfit-region").value = "whole";
         for (const id of ["units", "up", "turn"])

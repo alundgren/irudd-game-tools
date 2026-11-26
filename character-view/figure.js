@@ -4,10 +4,6 @@ import { eyeDefaults } from "./ocular.js";
 import { restingWrist } from "./resting-wrist.js";
 import { bindParts } from "./rig.js";
 
-// A measured two-arm human built from editable sweeps. Each limb segment
-// starts and ends in a rounded cap at a real joint, so shoulders, elbows and
-// knees stay closed when a clip turns them. The body is bare skin. Everyday
-// clothes are separate child parts with their own cut, shown in Work clothes.
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 const rad = Math.PI / 180;
@@ -19,7 +15,6 @@ const number = (v, a, b, fallback) =>
   Number.isFinite(v) ? clamp(v, a, b) : fallback;
 const pick = (v, options) => (options.includes(v) ? v : options[0]);
 
-// Starting proportions are independent of height, face, grooming and wardrobe.
 export const figureArchetypes = {
   neutral: {
     shoulders: 1,
@@ -61,7 +56,6 @@ export const figureShoes = ["sneakers", "boots", "none"];
 export const figureHair = ["Crop", "Sweep", "Coils", "Bald"];
 export const figureGrooms = ["Locks", "Side part", "Coils", "Braids", "Locs"];
 
-// Every number is clamped, so an artist or agent can send a partial figure.
 export function readFigure(raw = {}) {
   const f = raw && typeof raw === "object" ? raw : {};
   const top = f.top ?? {},
@@ -101,7 +95,6 @@ export function readFigure(raw = {}) {
     face: Number.isInteger(f.face) ? clamp(f.face, 0, 3) : 0,
     hair: pick(f.hair, figureHair),
     hairColor: hex(f.hairColor, "#3a2e28"),
-    // Rooted strands replace the plain hair shell when a groom is given.
     groom:
       f.groom && typeof f.groom === "object"
         ? {
@@ -149,8 +142,6 @@ export function readFigure(raw = {}) {
   };
 }
 
-// Stations are [t, halfWidth, halfDepth, sideOffset, forwardOffset]. Both
-// ends close with a hemisphere whose centre is the joint itself.
 function limbKnots(origin, pivot, direction, length, stations, caps = [1, 1]) {
   const knots = [];
   const point = (distance, w, d, dx = 0, dz = 0) => {
@@ -210,7 +201,6 @@ export function buildFigure(raw = {}) {
     bare: true,
     ...(role === "foot" ? {} : { seamGroup: "figure" }),
   });
-  // Vertical rings are authored in standing space: [y, halfWidth, halfDepth, z].
   const rings = (origin, rows) =>
     rows.map(([y, w, d, z = 0, x = 0]) => [
       x - origin.x,
@@ -279,11 +269,8 @@ export function buildFigure(raw = {}) {
     body("torso"),
   );
 
-  // The procedural skull runs from 1.466 to 1.760 above a 1.420 pivot.
   const headScale = headHeight / 0.294;
   const neckOrigin = new Vector3(0, neckBase, -0.012 * k);
-  // The nape rises behind the jaw. The throat narrows and comes forward
-  // toward the chin while the lower neck flares across the shoulder girdle.
   const neckRows = [
     [neckBase - 0.031 * k, 0.093, 0.073, -0.019],
     [neckBase - 0.006 * k, 0.068, 0.065, -0.016],
@@ -335,8 +322,6 @@ export function buildFigure(raw = {}) {
     const name = side > 0 ? "left " : "right ";
     const spread = f.stance.arms * rad,
       bend = f.stance.elbows * rad;
-    // The joint sits one arm radius inside the shoulder line, so a heavier
-    // arm fills the same shoulder instead of standing proud of it.
     const armRadius = 0.046 * k * m;
     const shoulder = new Vector3(
       side * (sw + 0.024 * k - armRadius),
@@ -375,8 +360,6 @@ export function buildFigure(raw = {}) {
       [0.76, a(0.029), a(0.026)],
       [1, a(0.022), a(0.024)],
     ];
-    // The deltoid and biceps peak at different distances along the arm.
-    // A fuller forearm still tapers onto the comparatively bony wrist.
     for (const station of upperStations) {
       const t = station[0];
       const peak = Math.sin(Math.PI * t);
@@ -407,8 +390,6 @@ export function buildFigure(raw = {}) {
       body("forearm"),
       name + "upper arm",
     );
-    // The palm faces the thigh and turns a little to the rear, as a relaxed
-    // hand does. Local -Y runs along the forearm; local +Z is the palm.
     const handSize = [0.082, 0.182, 0.04].map((v) => v * k * f.hands);
     parts.push({
       id: name + "hand",
@@ -437,12 +418,8 @@ export function buildFigure(raw = {}) {
     if (top.kind !== "none") {
       const heavy = top.kind === "jacket" || top.kind === "hoodie";
       const ease = (0.004 + top.ease * 0.011 + (heavy ? 0.009 : 0)) * k;
-      // The sleeve head is set into the shoulder seam, so it carries less
-      // ease there than along the arm.
       const cloth = (stations, more = 0, seam = true) =>
         stations.map(([t, w, d, dx, dz]) => {
-          // Reduced game meshes need a few millimetres between skin and
-          // cloth, or the shoulder shows through a close sleeve in motion.
           const add = Math.max(
             (ease + more) * (seam ? lerp(0.45, 1, clamp(t / 0.3, 0, 1)) : 1),
             0.0055 * k,
@@ -452,7 +429,6 @@ export function buildFigure(raw = {}) {
       const sleeves =
         top.kind === "tee" && top.sleeves === "long" ? "short" : top.sleeves;
       if (sleeves === "none") {
-        // A sleeveless cut still closes over the shoulder joint.
       } else if (sleeves === "short") {
         const cut = cloth(
           upperStations.filter(([t]) => t <= 0.4),
@@ -537,7 +513,6 @@ export function buildFigure(raw = {}) {
       }
     }
 
-    // Legs
     const hipJoint = new Vector3(
       side * 0.086 * k * lerp(1, f.hips, 0.7),
       hipY,
@@ -569,8 +544,6 @@ export function buildFigure(raw = {}) {
       [0.84, l(0.0275), l(0.032), 0, -0.003 * k],
       [1, l(0.03), l(0.036)],
     ];
-    // Build the lateral quadriceps higher than the medial mass, then narrow
-    // both into the knee. Clothing is cut from the resulting stations below.
     for (const station of thighStations) {
       const t = station[0],
         arc = Math.sin(Math.PI * t);
@@ -602,11 +575,9 @@ export function buildFigure(raw = {}) {
       body("shin"),
       name + "thigh",
     );
-    const toe = side * 0.105; // outward turn in radians
+    const toe = side * 0.105;
     const footPath = (rows) =>
       rows.map(([z, y, w, d, across = 0]) => {
-        // Ball of the foot lies slightly medial to the heel. Keep the toes
-        // and all shoe panels aligned to this same oblique long axis.
         const medial =
           side * (across - 0.012 * clamp((z - 0.055) / 0.125, 0, 1));
         return [
@@ -639,8 +610,6 @@ export function buildFigure(raw = {}) {
       name + "shin",
     );
     {
-      // The toes continue the metatarsal fan. The medial toe is thicker
-      // and the lateral four recede along an oblique line.
       const digits = {
         motionRole: "rigid",
         visibleIn:
@@ -723,8 +692,6 @@ export function buildFigure(raw = {}) {
         { ...garment("leather"), footSection: "sole" },
         name + "foot",
       );
-      // A tongue and four laces over the instep make the upper read as a
-      // shoe. They follow the outward turn of the foot.
       sweep(
         name + "shoe tongue",
         ankle,
@@ -783,9 +750,6 @@ export function buildFigure(raw = {}) {
     const bottom = f.bottom;
     if (bottom.kind !== "none") {
       const ease = (0.009 + bottom.ease * 0.022) * k;
-      // Cloth hangs from the seat in front, so the leg below the seam is
-      // deeper than the thigh. The cap at the hip stays a sphere about the
-      // joint and remains inside the seat until the leg lifts.
       const upper = thighStations.map(([t, w, d, dx = 0, dz = 0], i) => {
         const hang = t < 0.2 ? t / 0.2 : clamp(1 - (t - 0.2) / 0.3, 0, 1);
         return [
@@ -818,7 +782,6 @@ export function buildFigure(raw = {}) {
           garment(),
           name + "thigh",
         );
-        // A trouser leg hangs from the knee and calf. It does not follow the ankle.
         const kneeW = upper.at(-1)[1],
           kneeD = upper.at(-1)[2];
         const hemW = l(0.046) + ease + bottom.ease * 0.02 * k,
@@ -836,7 +799,6 @@ export function buildFigure(raw = {}) {
           [f.shoes.kind === "boots" ? 0.86 : 0.93, hemW, hemD, 0, 0.002 * k],
         ];
         if (bottom.cuffs) {
-          // A turn-up is a short band outside the hem.
           const [t, w, d, , dz] = lowerLeg.at(-1);
           const at = (u) =>
             knee.clone().addScaledVector(shinDir, u * shinLength);
@@ -862,8 +824,6 @@ export function buildFigure(raw = {}) {
         );
       }
       if (bottom.pockets === "cargo") {
-        // A cargo pocket is a flat pouch on the outside of the thigh with a
-        // flap over its mouth. It follows the thigh.
         const shorts = bottom.kind === "shorts",
           from = shorts ? 0.27 : 0.44,
           to = shorts ? 0.5 : 0.72;
@@ -915,21 +875,15 @@ export function buildFigure(raw = {}) {
     }
   }
 
-  // Trunk garments use the same rings as the body with ease added.
   const fitted = (rows, ease, depthEase = ease) =>
     rows.map(([y, w, d, z, x]) => [y, w + ease, d + depthEase, z, x]);
   const beltY = lerp(hipY, waistY, 0.35 + 0.62 * f.bottom.rise);
   if (f.bottom.kind !== "none") {
     const ease = (0.009 + f.bottom.ease * 0.012) * k;
-    // The seat keeps its full width down to the crotch seam and loses depth
-    // on the way. Both legs come forward of it there, so the front closes in
-    // a crease between them instead of a panel.
     const legScale = k * lerp(1, m, 0.85) * lerp(1, f.hips, 0.3) * f.legBuild;
     const legEase = f.bottom.ease * 0.01 * k + 0.003 * k;
     const seamW = 0.086 * k * lerp(1, f.hips, 0.7) + 0.083 * legScale + legEase;
     const seamD = 0.089 * legScale + 0.007 * k + legEase;
-    // The gusset between the legs covers the body and stays behind the front
-    // of both thighs, so it closes the gap without showing as its own panel.
     const gusset = [
       [crotch - 0.046 * k, seamW * 0.1, 0.034 * k, -0.008 * k],
       [crotch - 0.034 * k, seamW * 0.26, 0.058 * k, -0.008 * k],
@@ -998,7 +952,6 @@ export function buildFigure(raw = {}) {
     const ease = (0.008 + top.ease * 0.016 + (heavy ? 0.012 : 0)) * k;
     const worn = f.bottom.kind !== "none";
     const seatEase = worn ? (0.009 + f.bottom.ease * 0.012) * k : 0;
-    // A tucked shirt ends inside the waistband. Any longer hem hangs over it.
     const tucked = worn && !heavy && top.length < 0.12;
     const hem = tucked
       ? beltY - 0.012 * k
@@ -1008,7 +961,6 @@ export function buildFigure(raw = {}) {
     );
     const widest = Math.max(...rows.slice(0, 3).map((r) => r[1])),
       deepest = Math.max(...rows.slice(0, 3).map((r) => r[2]));
-    // Loose cloth falls straight from the chest instead of following the waist.
     const straight = clamp(0.45 + top.ease * 0.6 + (heavy ? 0.2 : 0), 0, 1);
     const draped = rows.map(([y, w, d, z]) => {
       const lower = clamp((chestY - y) / Math.max(0.01, chestY - hem), 0, 1);
@@ -1031,7 +983,6 @@ export function buildFigure(raw = {}) {
         : ease + over * (seatEase + 0.004 * k);
       return [y, w + add, d + add, z];
     });
-    // Close the neckline around the base of the neck.
     const collarRow = shell.at(-1);
     collarRow[1] = 0.066 * k * f.neck + 0.006 * k + ease * 0.3;
     collarRow[2] = 0.068 * k * f.neck + 0.006 * k + ease * 0.3;
@@ -1070,7 +1021,6 @@ export function buildFigure(raw = {}) {
       "body",
     );
     if (top.kind === "shirt" || top.kind === "jacket") {
-      // A raised front placket with buttons gives the cloth a readable front.
       const front = (y) => {
         const upper = shell.findIndex((r) => r[0] >= y),
           a = shell[Math.max(0, upper - 1)],
@@ -1111,8 +1061,6 @@ export function buildFigure(raw = {}) {
       }
     }
   }
-  // The same landmarks follow the skin and its fitted garment. All strokes
-  // are in the receiving part's metric frame, scaled by the figure measurements.
   const paired = (x, y, z, rx, ry, rz, dx, dy, dz) => ({
     at: [x, y - hipY, z],
     reach: [rx, ry, rz],
@@ -1129,8 +1077,6 @@ export function buildFigure(raw = {}) {
     )
       part.seamGroup = "bottom";
     const side = id.startsWith("left ") ? 1 : -1;
-    // The back of a human elbow has a bony point, while the muscle bellies
-    // sit higher than the joint and taper on different sides of the arm.
     if (/ (upper arm|forearm|sleeve|cuff sleeve)$/.test(id) && part.knots) {
       const upper =
         id.endsWith("upper arm") ||
@@ -1212,8 +1158,6 @@ export function buildFigure(raw = {}) {
           -0.005 * k,
           figureArchetypes[f.archetype].pectoral * k,
         ),
-        // The outer edge of the pectoral sweeps up to the arm; the chest
-        // has a shallow lower plane and a softer transition toward the sternum.
         paired(
           0.65 * chestW,
           chestY - 0.03 * k,
@@ -1269,7 +1213,6 @@ export function buildFigure(raw = {}) {
           0,
           0.008 * k,
         ),
-        // A broad costal margin turns into the abdomen on each side.
         paired(
           0.58 * chestW,
           lerp(waistY, chestY, 0.43),
@@ -1281,7 +1224,6 @@ export function buildFigure(raw = {}) {
           0,
           -0.01 * k,
         ),
-        // Leave a suprasternal notch between the two clavicles.
         paired(
           0,
           shoulderY + 0.004 * k,
@@ -1351,7 +1293,6 @@ export function buildFigure(raw = {}) {
       ];
     }
     if (f.top.kind === "tee" && (id === "shirt body" || id === "collar")) {
-      // A crew neckline dips into the hollow between the clavicles.
       part.pulls ??= [];
       part.pulls.push(
         paired(
@@ -1367,8 +1308,6 @@ export function buildFigure(raw = {}) {
         ),
       );
     }
-    // Locate the sculpt on this figure's own elliptical rib and pelvic rings.
-    // A fixed world-space brush misses the skin on deeper or wider bodies.
     if (id === "body" || id === "shirt body") {
       const relief = (across, y, rx, ry, rz, dy, dz, back = false) => {
         const hi = torsoRows.findIndex((row) => row[0] >= y);
@@ -1508,7 +1447,6 @@ export function buildFigure(raw = {}) {
   };
 }
 
-// A real random draw inside ordinary adult ranges.
 export function randomFigure(draw, preferredArchetype = "any") {
   const between = (a, b) => a + (b - a) * draw(),
     choose = (items) => items[Math.floor(draw() * items.length)];
@@ -1562,7 +1500,6 @@ export function randomFigure(draw, preferredArchetype = "any") {
       color: choose(["#d8d4c8", "#4a3a2c", "#2c2f33", "#a8472f"]),
     },
   };
-  // Drawn last, so earlier seeds keep the rest of their figure.
   figure.bottom.pockets = draw() < 0.25 ? "cargo" : "none";
   const archetype = Object.hasOwn(figureArchetypes, preferredArchetype)
     ? preferredArchetype

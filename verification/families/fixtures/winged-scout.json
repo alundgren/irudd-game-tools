@@ -1,0 +1,1526 @@
+{
+  "assets": [],
+  "catalog": [],
+  "extensions": {},
+  "features": {
+    "motion.poses": {
+      "poses": [
+        {
+          "joints": [
+            {
+              "part": "p-right-hand",
+              "station": 0,
+              "turn": [0, 0, 0.16918234906699603, 0.9855847669095608]
+            }
+          ],
+          "name": "Wrist signal"
+        },
+        {
+          "joints": [
+            {
+              "part": "p-left-wing-1",
+              "station": 0,
+              "turn": [0, 0, 0.2133474283007823, 0.9769763942068623]
+            },
+            {
+              "part": "p-right-wing-1",
+              "station": 0,
+              "turn": [0, 0, -0.2133474283007823, 0.9769763942068623]
+            }
+          ],
+          "name": "Bank"
+        }
+      ]
+    }
+  },
+  "format": "irudd.character",
+  "generation": {
+    "base": {
+      "digest": "sha256:2fe958a554c83706b27c4e8d9a8f9d342ac117345abcb3cbaed463de1f881bc6",
+      "slots": [
+        {
+          "color": "#76513e",
+          "label": "pelvis",
+          "parent": null,
+          "position": [0, 0.9172261953353882, 0.00788781139999628],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "pelvis"
+        },
+        {
+          "color": "#76513e",
+          "label": "abdomen",
+          "parent": "pelvis",
+          "position": [0, 0.08322882652282715, -0.034073944203555584],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "spine-01"
+        },
+        {
+          "color": "#76513e",
+          "label": "rib cage",
+          "parent": "spine-01",
+          "position": [0, 0.06693780422210693, 0.010585167445242405],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "spine-02"
+        },
+        {
+          "color": "#76513e",
+          "label": "chest",
+          "parent": "spine-02",
+          "position": [0, 0.06255114078521729, -0.009328226558864117],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "spine-03"
+        },
+        {
+          "color": "#76513e",
+          "label": "left collarbone",
+          "parent": "spine-03",
+          "position": [0.022494720295071602, 0.24458849430084229, 0.04998342506587505],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "clavicle.l"
+        },
+        {
+          "color": "#76513e",
+          "label": "left upper arm",
+          "parent": "clavicle.l",
+          "position": [0.14648937992751598, -0.027679085731506348, -0.006931625306606293],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "upperarm.l"
+        },
+        {
+          "color": "#76513e",
+          "label": "left forearm",
+          "parent": "upperarm.l",
+          "position": [0.05004103481769562, -0.2349909543991089, -0.013951316010206938],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "lowerarm.l"
+        },
+        {
+          "color": "#76513e",
+          "label": "left hand",
+          "parent": "lowerarm.l",
+          "position": [0.050523072481155396, -0.24496614933013916, 0.0992864198051393],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "hand.l"
+        },
+        {
+          "color": "#76513e",
+          "label": "left index 1",
+          "parent": "hand.l",
+          "position": [-0.009023725986480713, -0.11372321844100952, 0.05083847790956497],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "index-01.l"
+        },
+        {
+          "color": "#76513e",
+          "label": "left index 2",
+          "parent": "index-01.l",
+          "position": [-0.011622354388237, -0.027168452739715576, 0.007186025381088257],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "index-02.l"
+        },
+        {
+          "color": "#76513e",
+          "label": "left index 3",
+          "parent": "index-02.l",
+          "position": [-0.019395992159843445, -0.01882272958755493, 0.0028957724571228027],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "index-03.l"
+        },
+        {
+          "color": "#76513e",
+          "label": "left middle 1",
+          "parent": "hand.l",
+          "position": [0.0024320781230926514, -0.1180306077003479, 0.02252776175737381],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "middle-01.l"
+        },
+        {
+          "color": "#76513e",
+          "label": "left middle 2",
+          "parent": "middle-01.l",
+          "position": [-0.01567387580871582, -0.03608900308609009, -0.0018068626523017883],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "middle-02.l"
+        },
+        {
+          "color": "#76513e",
+          "label": "left middle 3",
+          "parent": "middle-02.l",
+          "position": [-0.022690728306770325, -0.02257692813873291, -0.001555129885673523],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "middle-03.l"
+        },
+        {
+          "color": "#76513e",
+          "label": "left pinky 1",
+          "parent": "hand.l",
+          "position": [0.007783383131027222, -0.10844725370407104, -0.024508975446224213],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "pinky-01.l"
+        },
+        {
+          "color": "#76513e",
+          "label": "left pinky 2",
+          "parent": "pinky-01.l",
+          "position": [-0.01068773865699768, -0.02113586664199829, -0.008288256824016571],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "pinky-02.l"
+        },
+        {
+          "color": "#76513e",
+          "label": "left pinky 3",
+          "parent": "pinky-02.l",
+          "position": [-0.014304041862487793, -0.009477019309997559, -0.006087735295295715],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "pinky-03.l"
+        },
+        {
+          "color": "#76513e",
+          "label": "left ring 1",
+          "parent": "hand.l",
+          "position": [0.008178859949111938, -0.11524420976638794, -0.00044427067041397095],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "ring-01.l"
+        },
+        {
+          "color": "#76513e",
+          "label": "left ring 2",
+          "parent": "ring-01.l",
+          "position": [-0.012260079383850098, -0.03161519765853882, -0.007310643792152405],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "ring-02.l"
+        },
+        {
+          "color": "#76513e",
+          "label": "left ring 3",
+          "parent": "ring-02.l",
+          "position": [-0.020923078060150146, -0.01933145523071289, -0.005802743136882782],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "ring-03.l"
+        },
+        {
+          "color": "#76513e",
+          "label": "left thumb 1",
+          "parent": "hand.l",
+          "position": [-0.011105924844741821, -0.03806811571121216, 0.03407817333936691],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "thumb-01.l"
+        },
+        {
+          "color": "#76513e",
+          "label": "left thumb 2",
+          "parent": "thumb-01.l",
+          "position": [-0.02834257483482361, -0.011420488357543945, 0.017677634954452515],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "thumb-02.l"
+        },
+        {
+          "color": "#76513e",
+          "label": "left thumb 3",
+          "parent": "thumb-02.l",
+          "position": [-0.029727384448051453, -0.02688729763031006, 0.014870092272758484],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "thumb-03.l"
+        },
+        {
+          "color": "#76513e",
+          "label": "right collarbone",
+          "parent": "spine-03",
+          "position": [-0.022494720295071602, 0.24458849430084229, 0.04998342506587505],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "clavicle.r"
+        },
+        {
+          "color": "#76513e",
+          "label": "right upper arm",
+          "parent": "clavicle.r",
+          "position": [-0.14648937992751598, -0.027679085731506348, -0.006931625306606293],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "upperarm.r"
+        },
+        {
+          "color": "#76513e",
+          "label": "right forearm",
+          "parent": "upperarm.r",
+          "position": [-0.05004103481769562, -0.2349909543991089, -0.013951316010206938],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "lowerarm.r"
+        },
+        {
+          "color": "#76513e",
+          "label": "right hand",
+          "parent": "lowerarm.r",
+          "position": [-0.050523072481155396, -0.24496614933013916, 0.0992864198051393],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "hand.r"
+        },
+        {
+          "color": "#76513e",
+          "label": "right index 1",
+          "parent": "hand.r",
+          "position": [0.009023725986480713, -0.11372321844100952, 0.05083847790956497],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "index-01.r"
+        },
+        {
+          "color": "#76513e",
+          "label": "right index 2",
+          "parent": "index-01.r",
+          "position": [0.011622354388237, -0.027168452739715576, 0.007186025381088257],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "index-02.r"
+        },
+        {
+          "color": "#76513e",
+          "label": "right index 3",
+          "parent": "index-02.r",
+          "position": [0.019395992159843445, -0.01882272958755493, 0.0028957724571228027],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "index-03.r"
+        },
+        {
+          "color": "#76513e",
+          "label": "right middle 1",
+          "parent": "hand.r",
+          "position": [-0.0024320781230926514, -0.1180306077003479, 0.02252776175737381],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "middle-01.r"
+        },
+        {
+          "color": "#76513e",
+          "label": "right middle 2",
+          "parent": "middle-01.r",
+          "position": [0.01567387580871582, -0.03608900308609009, -0.0018068626523017883],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "middle-02.r"
+        },
+        {
+          "color": "#76513e",
+          "label": "right middle 3",
+          "parent": "middle-02.r",
+          "position": [0.022690728306770325, -0.02257692813873291, -0.001555129885673523],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "middle-03.r"
+        },
+        {
+          "color": "#76513e",
+          "label": "right pinky 1",
+          "parent": "hand.r",
+          "position": [-0.007783383131027222, -0.10844725370407104, -0.024508975446224213],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "pinky-01.r"
+        },
+        {
+          "color": "#76513e",
+          "label": "right pinky 2",
+          "parent": "pinky-01.r",
+          "position": [0.01068773865699768, -0.02113586664199829, -0.008288256824016571],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "pinky-02.r"
+        },
+        {
+          "color": "#76513e",
+          "label": "right pinky 3",
+          "parent": "pinky-02.r",
+          "position": [0.014304041862487793, -0.009477019309997559, -0.006087735295295715],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "pinky-03.r"
+        },
+        {
+          "color": "#76513e",
+          "label": "right ring 1",
+          "parent": "hand.r",
+          "position": [-0.008178859949111938, -0.11524420976638794, -0.00044427067041397095],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "ring-01.r"
+        },
+        {
+          "color": "#76513e",
+          "label": "right ring 2",
+          "parent": "ring-01.r",
+          "position": [0.012260079383850098, -0.03161519765853882, -0.007310643792152405],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "ring-02.r"
+        },
+        {
+          "color": "#76513e",
+          "label": "right ring 3",
+          "parent": "ring-02.r",
+          "position": [0.020923078060150146, -0.01933145523071289, -0.005802743136882782],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "ring-03.r"
+        },
+        {
+          "color": "#76513e",
+          "label": "right thumb 1",
+          "parent": "hand.r",
+          "position": [0.011105924844741821, -0.03806811571121216, 0.03407817333936691],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "thumb-01.r"
+        },
+        {
+          "color": "#76513e",
+          "label": "right thumb 2",
+          "parent": "thumb-01.r",
+          "position": [0.026319414377212524, -0.0093117356300354, 0.021605700254440308],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "thumb-02.r"
+        },
+        {
+          "color": "#76513e",
+          "label": "right thumb 3",
+          "parent": "thumb-02.r",
+          "position": [0.02239196002483368, -0.020354926586151123, 0.030200064182281494],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "thumb-03.r"
+        },
+        {
+          "color": "#76513e",
+          "label": "neck",
+          "parent": "spine-03",
+          "position": [0, 0.315929651260376, 0.03588947653770447],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "neck-01"
+        },
+        {
+          "color": "#76513e",
+          "label": "head",
+          "parent": "neck-01",
+          "position": [0, 0.10133397579193115, 0.033223707228899],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "head"
+        },
+        {
+          "color": "#76513e",
+          "label": "left thigh",
+          "parent": "pelvis",
+          "position": [0.10813834518194199, -0.011560022830963135, -0.009864182211458683],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "thigh.l"
+        },
+        {
+          "color": "#76513e",
+          "label": "left shin",
+          "parent": "thigh.l",
+          "position": [0.03997259587049484, -0.39670783281326294, 0.032162144780159],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "calf.l"
+        },
+        {
+          "color": "#76513e",
+          "label": "left foot",
+          "parent": "calf.l",
+          "position": [0.04247574508190155, -0.44643673300743103, -0.016371156089007854],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "foot.l"
+        },
+        {
+          "color": "#76513e",
+          "label": "left toes",
+          "parent": "foot.l",
+          "position": [0.0037495046854019165, -0.05437985621392727, 0.10930777620524168],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "ball.l"
+        },
+        {
+          "color": "#76513e",
+          "label": "right thigh",
+          "parent": "pelvis",
+          "position": [-0.10813834518194199, -0.011560022830963135, -0.009864182211458683],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "thigh.r"
+        },
+        {
+          "color": "#76513e",
+          "label": "right shin",
+          "parent": "thigh.r",
+          "position": [-0.03997259587049484, -0.39670783281326294, 0.032162144780159],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "calf.r"
+        },
+        {
+          "color": "#76513e",
+          "label": "right foot",
+          "parent": "calf.r",
+          "position": [-0.04247574508190155, -0.44643673300743103, -0.016371156089007854],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "foot.r"
+        },
+        {
+          "color": "#76513e",
+          "label": "right toes",
+          "parent": "foot.r",
+          "position": [-0.0037495046854019165, -0.05437985621392727, 0.10930777620524168],
+          "rotation": [0, 0, 0, 1],
+          "shape": "ellipsoid",
+          "size": [1, 1, 1],
+          "slot": "ball.r"
+        }
+      ]
+    },
+    "generator": "irudd.human-adult",
+    "params": {
+      "human": {
+        "age": 0.24,
+        "armForward": -0.12,
+        "arms": -0.16819801456276942,
+        "belly": -0.051925999268537915,
+        "brow": -0.35,
+        "bust": -0.142,
+        "calves": -0.24789362985281074,
+        "cheekFullness": -0.033460215445943325,
+        "cheeks": 0.447,
+        "chest": 0.069,
+        "chin": 0.030840000000000003,
+        "chinHeight": 0.442,
+        "craniumDepth": 0.17415,
+        "cupidsBow": -0.595,
+        "earFlare": -0.117,
+        "earLength": -0.15614999999999998,
+        "earLevel": -0.29295000000000004,
+        "earSetback": -0.00135,
+        "earTip": 0.11144000000000001,
+        "ears": 0.318,
+        "elbowBend": -0.49,
+        "eyeFold": -0.378,
+        "eyeSize": 0.172,
+        "eyeSpacing": -0.147,
+        "eyeTilt": -0.287,
+        "faceA": 0.212,
+        "faceB": -0.058,
+        "faceHeight": 0.0648,
+        "feet": -0.63,
+        "fingerCurl": 0.3,
+        "forearmLength": 0.354,
+        "forehead": -0.113,
+        "frame": 0.634,
+        "handTwist": 0.05,
+        "hands": 0.624,
+        "headWidth": 0.228,
+        "height": 1.693,
+        "hips": 0.5521261749404418,
+        "jaw": -0.181,
+        "jawProjection": 0.014,
+        "jowlFullness": -0.3702010895553153,
+        "legSpread": 0,
+        "legs": 0.079,
+        "lipFullness": -0.65,
+        "lipParting": 0.12996,
+        "lips": 0.685,
+        "malarHeight": -0.12424220180581795,
+        "mouthCorners": 0.5902775,
+        "mouthLevel": -0.24289999999999998,
+        "mouthProjection": -0.04793900000000001,
+        "muscle": -0.7273516817151495,
+        "neck": -0.536,
+        "neckLength": 0.351,
+        "nose": 0.541,
+        "noseBridge": -0.14,
+        "noseHump": 0.614,
+        "noseLength": -0.783,
+        "noseTipAngle": 0.34515,
+        "noseTipWidth": 0.23490000000000003,
+        "nostrilWidth": -0.025650000000000003,
+        "seat": -0.033,
+        "shinLength": 0.184,
+        "shoulders": -0.7174479204287874,
+        "stance": 0.98,
+        "submentalFullness": -0.3368274607436584,
+        "temples": -0.538,
+        "torsoLength": -0.3685,
+        "underEye": -0.307,
+        "upperArmLength": -0.016,
+        "upperLipHeight": 0.453,
+        "waist": 0.22919998009075268,
+        "weight": -0.3000727634713587,
+        "wristFlex": 0.44
+      },
+      "outfit": "Work clothes",
+      "seed": 8713,
+      "skin": "#76513e",
+      "style": {
+        "clothAccent": "#bcb6a1",
+        "clothColor": "#604e47",
+        "clothDesign": "Outfit swatch",
+        "hair": "Crop",
+        "hairColor": "#55443a",
+        "outfit": "Chore jacket"
+      }
+    },
+    "version": 1
+  },
+  "id": "doc-winged-scout",
+  "label": "winged-scout",
+  "parts": [
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-abdomen",
+      "label": "abdomen",
+      "parent": "p-pelvis",
+      "position": [0, 0.08322882652282715, -0.034073944203555584],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "spine-01"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-chest",
+      "label": "chest",
+      "parent": "p-rib-cage",
+      "position": [0, 0.06255114078521729, -0.009328226558864117],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "spine-03"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-head",
+      "label": "head",
+      "parent": "p-neck",
+      "position": [0, 0.10133397579193115, 0.033223707228899],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "head"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-left-collarbone",
+      "label": "left collarbone",
+      "parent": "p-chest",
+      "position": [0.022494720295071602, 0.24458849430084229, 0.04998342506587505],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "clavicle.l"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-left-foot",
+      "label": "left foot",
+      "parent": "p-left-shin",
+      "position": [0.04247574508190155, -0.44643673300743103, -0.016371156089007854],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "foot.l"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-left-forearm",
+      "label": "left forearm",
+      "parent": "p-left-upper-arm",
+      "position": [0.05004103481769562, -0.2349909543991089, -0.013951316010206938],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "lowerarm.l"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-left-hand",
+      "label": "left hand",
+      "parent": "p-left-forearm",
+      "position": [0.050523072481155396, -0.24496614933013916, 0.0992864198051393],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "hand.l"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-left-index-1",
+      "label": "left index 1",
+      "parent": "p-left-hand",
+      "position": [-0.009023725986480713, -0.11372321844100952, 0.05083847790956497],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "index-01.l"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-left-index-2",
+      "label": "left index 2",
+      "parent": "p-left-index-1",
+      "position": [-0.011622354388237, -0.027168452739715576, 0.007186025381088257],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "index-02.l"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-left-index-3",
+      "label": "left index 3",
+      "parent": "p-left-index-2",
+      "position": [-0.019395992159843445, -0.01882272958755493, 0.0028957724571228027],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "index-03.l"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-left-middle-1",
+      "label": "left middle 1",
+      "parent": "p-left-hand",
+      "position": [0.0024320781230926514, -0.1180306077003479, 0.02252776175737381],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "middle-01.l"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-left-middle-2",
+      "label": "left middle 2",
+      "parent": "p-left-middle-1",
+      "position": [-0.01567387580871582, -0.03608900308609009, -0.0018068626523017883],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "middle-02.l"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-left-middle-3",
+      "label": "left middle 3",
+      "parent": "p-left-middle-2",
+      "position": [-0.022690728306770325, -0.02257692813873291, -0.001555129885673523],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "middle-03.l"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-left-pinky-1",
+      "label": "left pinky 1",
+      "parent": "p-left-hand",
+      "position": [0.007783383131027222, -0.10844725370407104, -0.024508975446224213],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "pinky-01.l"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-left-pinky-2",
+      "label": "left pinky 2",
+      "parent": "p-left-pinky-1",
+      "position": [-0.01068773865699768, -0.02113586664199829, -0.008288256824016571],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "pinky-02.l"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-left-pinky-3",
+      "label": "left pinky 3",
+      "parent": "p-left-pinky-2",
+      "position": [-0.014304041862487793, -0.009477019309997559, -0.006087735295295715],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "pinky-03.l"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-left-ring-1",
+      "label": "left ring 1",
+      "parent": "p-left-hand",
+      "position": [0.008178859949111938, -0.11524420976638794, -0.00044427067041397095],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "ring-01.l"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-left-ring-2",
+      "label": "left ring 2",
+      "parent": "p-left-ring-1",
+      "position": [-0.012260079383850098, -0.03161519765853882, -0.007310643792152405],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "ring-02.l"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-left-ring-3",
+      "label": "left ring 3",
+      "parent": "p-left-ring-2",
+      "position": [-0.020923078060150146, -0.01933145523071289, -0.005802743136882782],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "ring-03.l"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-left-shin",
+      "label": "left shin",
+      "parent": "p-left-thigh",
+      "position": [0.03997259587049484, -0.39670783281326294, 0.032162144780159],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "calf.l"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-left-thigh",
+      "label": "left thigh",
+      "parent": "p-pelvis",
+      "position": [0.10813834518194199, -0.011560022830963135, -0.009864182211458683],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "thigh.l"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-left-thumb-1",
+      "label": "left thumb 1",
+      "parent": "p-left-hand",
+      "position": [-0.011105924844741821, -0.03806811571121216, 0.03407817333936691],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "thumb-01.l"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-left-thumb-2",
+      "label": "left thumb 2",
+      "parent": "p-left-thumb-1",
+      "position": [-0.02834257483482361, -0.011420488357543945, 0.017677634954452515],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "thumb-02.l"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-left-thumb-3",
+      "label": "left thumb 3",
+      "parent": "p-left-thumb-2",
+      "position": [-0.029727384448051453, -0.02688729763031006, 0.014870092272758484],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "thumb-03.l"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-left-toes",
+      "label": "left toes",
+      "parent": "p-left-foot",
+      "position": [0.0037495046854019165, -0.05437985621392727, 0.10930777620524168],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "ball.l"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-left-upper-arm",
+      "label": "left upper arm",
+      "parent": "p-left-collarbone",
+      "position": [0.14648937992751598, -0.027679085731506348, -0.006931625306606293],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "upperarm.l"
+    },
+    {
+      "color": "#59463a",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [1, 1, 1],
+          "order": 52
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "figure.scapula-mount": {
+          "side": 1
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.05335, 0.05335],
+            [0.14419, 0.03022, -0.13818, 0.04415, 0.04415],
+            [0.28589, 0.18559, -0.25004, 0.03385, 0.03385],
+            [0.42641, 0.21392, -0.34511, 0.01545, 0.01545],
+            [0.55167, 0.2536, -0.41445, 0.00515, 0.00515],
+            [0.67421, 0.28414, -0.47651, 0.00184, 0.00184]
+          ]
+        },
+        "motion.role": {
+          "role": "wing"
+        }
+      },
+      "id": "p-left-wing-1",
+      "label": "left wing 1",
+      "parent": "p-chest",
+      "position": [0.08280220910906791, 0.1568669667088709, -0.04229437346689048],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#537b84",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [1, 1, 1],
+          "order": 53
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "figure.wing": {
+          "back": [0, -0.41277, -0.03183],
+          "bend": 0.29,
+          "bone": 0.03679,
+          "count": 9,
+          "dark": "#20292a",
+          "limb": "#59463a",
+          "notch": 0.4,
+          "pale": "#d8c6a1",
+          "pattern": "bars",
+          "point": 0.5,
+          "seed": 211,
+          "side": 1,
+          "span": [0.68508, 0.3044, -0.4797],
+          "structure": "feather"
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-left-wing-1-feathers",
+      "label": "left wing 1 feathers",
+      "parent": "p-left-wing-1",
+      "position": [0, 0, 0],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "box",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-neck",
+      "label": "neck",
+      "parent": "p-chest",
+      "position": [0, 0.315929651260376, 0.03588947653770447],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "neck-01"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-pelvis",
+      "label": "pelvis",
+      "parent": null,
+      "position": [0, 0.9172261953353882, 0.00788781139999628],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "pelvis"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-rib-cage",
+      "label": "rib cage",
+      "parent": "p-abdomen",
+      "position": [0, 0.06693780422210693, 0.010585167445242405],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "spine-02"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-right-collarbone",
+      "label": "right collarbone",
+      "parent": "p-chest",
+      "position": [-0.022494720295071602, 0.24458849430084229, 0.04998342506587505],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "clavicle.r"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-right-foot",
+      "label": "right foot",
+      "parent": "p-right-shin",
+      "position": [-0.04247574508190155, -0.44643673300743103, -0.016371156089007854],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "foot.r"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-right-forearm",
+      "label": "right forearm",
+      "parent": "p-right-upper-arm",
+      "position": [-0.05004103481769562, -0.2349909543991089, -0.013951316010206938],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "lowerarm.r"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-right-hand",
+      "label": "right hand",
+      "parent": "p-right-forearm",
+      "position": [-0.050523072481155396, -0.24496614933013916, 0.0992864198051393],
+      "rotation": [
+        0.03479191320128536, 0.07841130056662136, 0.0027381829526351327, 0.9963100386292226
+      ],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "hand.r"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-right-index-1",
+      "label": "right index 1",
+      "parent": "p-right-hand",
+      "position": [0.009023725986480713, -0.11372321844100952, 0.05083847790956497],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "index-01.r"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-right-index-2",
+      "label": "right index 2",
+      "parent": "p-right-index-1",
+      "position": [0.011622354388237, -0.027168452739715576, 0.007186025381088257],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "index-02.r"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-right-index-3",
+      "label": "right index 3",
+      "parent": "p-right-index-2",
+      "position": [0.019395992159843445, -0.01882272958755493, 0.0028957724571228027],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "index-03.r"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-right-middle-1",
+      "label": "right middle 1",
+      "parent": "p-right-hand",
+      "position": [-0.0024320781230926514, -0.1180306077003479, 0.02252776175737381],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "middle-01.r"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-right-middle-2",
+      "label": "right middle 2",
+      "parent": "p-right-middle-1",
+      "position": [0.01567387580871582, -0.03608900308609009, -0.0018068626523017883],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "middle-02.r"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-right-middle-3",
+      "label": "right middle 3",
+      "parent": "p-right-middle-2",
+      "position": [0.022690728306770325, -0.02257692813873291, -0.001555129885673523],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "middle-03.r"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-right-pinky-1",
+      "label": "right pinky 1",
+      "parent": "p-right-hand",
+      "position": [-0.007783383131027222, -0.10844725370407104, -0.024508975446224213],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "pinky-01.r"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-right-pinky-2",
+      "label": "right pinky 2",
+      "parent": "p-right-pinky-1",
+      "position": [0.01068773865699768, -0.02113586664199829, -0.008288256824016571],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "pinky-02.r"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-right-pinky-3",
+      "label": "right pinky 3",
+      "parent": "p-right-pinky-2",
+      "position": [0.014304041862487793, -0.009477019309997559, -0.006087735295295715],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "pinky-03.r"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-right-ring-1",
+      "label": "right ring 1",
+      "parent": "p-right-hand",
+      "position": [-0.008178859949111938, -0.11524420976638794, -0.00044427067041397095],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "ring-01.r"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-right-ring-2",
+      "label": "right ring 2",
+      "parent": "p-right-ring-1",
+      "position": [0.012260079383850098, -0.03161519765853882, -0.007310643792152405],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "ring-02.r"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-right-ring-3",
+      "label": "right ring 3",
+      "parent": "p-right-ring-2",
+      "position": [0.020923078060150146, -0.01933145523071289, -0.005802743136882782],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "ring-03.r"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-right-shin",
+      "label": "right shin",
+      "parent": "p-right-thigh",
+      "position": [-0.03997259587049484, -0.39670783281326294, 0.032162144780159],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "calf.r"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-right-thigh",
+      "label": "right thigh",
+      "parent": "p-pelvis",
+      "position": [-0.10813834518194199, -0.011560022830963135, -0.009864182211458683],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "thigh.r"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-right-thumb-1",
+      "label": "right thumb 1",
+      "parent": "p-right-hand",
+      "position": [0.011105924844741821, -0.03806811571121216, 0.03407817333936691],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "thumb-01.r"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-right-thumb-2",
+      "label": "right thumb 2",
+      "parent": "p-right-thumb-1",
+      "position": [0.026319414377212524, -0.0093117356300354, 0.021605700254440308],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "thumb-02.r"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-right-thumb-3",
+      "label": "right thumb 3",
+      "parent": "p-right-thumb-2",
+      "position": [0.02239196002483368, -0.020354926586151123, 0.030200064182281494],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "thumb-03.r"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-right-toes",
+      "label": "right toes",
+      "parent": "p-right-foot",
+      "position": [-0.0037495046854019165, -0.05437985621392727, 0.10930777620524168],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "ball.r"
+    },
+    {
+      "color": "#76513e",
+      "features": {},
+      "id": "p-right-upper-arm",
+      "label": "right upper arm",
+      "parent": "p-right-collarbone",
+      "position": [-0.14648937992751598, -0.027679085731506348, -0.006931625306606293],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [1, 1, 1],
+      "slot": "upperarm.r"
+    },
+    {
+      "color": "#59463a",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [1, 1, 1],
+          "order": 54
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "figure.scapula-mount": {
+          "side": -1
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.05335, 0.05335],
+            [-0.14419, 0.03022, -0.13818, 0.04415, 0.04415],
+            [-0.28589, 0.18559, -0.25004, 0.03385, 0.03385],
+            [-0.42641, 0.21392, -0.34511, 0.01545, 0.01545],
+            [-0.55167, 0.2536, -0.41445, 0.00515, 0.00515],
+            [-0.67421, 0.28414, -0.47651, 0.00184, 0.00184]
+          ]
+        },
+        "motion.role": {
+          "role": "wing"
+        }
+      },
+      "id": "p-right-wing-1",
+      "label": "right wing 1",
+      "parent": "p-chest",
+      "position": [-0.08280220910906791, 0.1568669667088709, -0.04229402077834944],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#537b84",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [1, 1, 1],
+          "order": 55
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "figure.wing": {
+          "back": [0, -0.41277, -0.03183],
+          "bend": 0.29,
+          "bone": 0.03679,
+          "count": 9,
+          "dark": "#20292a",
+          "limb": "#59463a",
+          "notch": 0.4,
+          "pale": "#d8c6a1",
+          "pattern": "bars",
+          "point": 0.5,
+          "seed": 211,
+          "side": -1,
+          "span": [-0.68508, 0.3044, -0.4797],
+          "structure": "feather"
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-right-wing-1-feathers",
+      "label": "right wing 1 feathers",
+      "parent": "p-right-wing-1",
+      "position": [0, 0, 0],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "box",
+      "size": [1, 1, 1]
+    }
+  ],
+  "poses": [],
+  "requires": [
+    {
+      "feature": "core.generation",
+      "version": 1
+    },
+    {
+      "feature": "core.parts",
+      "version": 1
+    },
+    {
+      "feature": "figure.assembly",
+      "version": 1
+    },
+    {
+      "feature": "figure.finish",
+      "version": 1
+    },
+    {
+      "feature": "figure.scapula-mount",
+      "version": 1
+    },
+    {
+      "feature": "figure.sweep",
+      "version": 1
+    },
+    {
+      "feature": "figure.wing",
+      "version": 1
+    },
+    {
+      "feature": "motion.poses",
+      "version": 1
+    },
+    {
+      "feature": "motion.role",
+      "version": 1
+    }
+  ],
+  "version": 1
+}

@@ -251,7 +251,7 @@ The fitter's settings were chosen on `mhr-f1` and `mhr-m1` and then left unchang
 
 ## Reproduce
 
-1. Run `npm ci`. Install Python 3.12 with `numpy`, `scipy`, `opencv-python`, `pillow`, `moderngl` and CPU `torch`.
+1. Run `pnpm install --frozen-lockfile`. Install Python 3.12 with `numpy`, `scipy`, `opencv-python`, `pillow`, `moderngl` and CPU `torch`.
 2. Build the targets where `examples/human-targets/` is not installed. Run `node scripts/local-references.mjs --fetch`, which downloads the release archive to `.reference-cache/mhr/assets.zip` and checks SHA-256 `e4f4f205cd87c0fa106577ba1de4fc763e4eb197c924461d2ef7e6944e9d6b94`. Then run `python scripts/human-benchmark/build-targets.py .reference-cache/mhr`. The first build runs the seeded selection and keeps the chosen parameters in the local `target-identities.json`. Later builds reuse that file, and `--select` repeats the selection. The manifest it writes records each target's hash. On the machine that made these results, a repeated selection and a rebuild from the kept parameters both gave the same six files, byte for byte. Another `torch` build may round differently.
 3. Run `python scripts/human-benchmark/test_human_benchmark.py`.
 4. Run `python scripts/human-benchmark/run.py .reference-cache/human-benchmark`. It writes the results to `docs/media/human-benchmark/results.json` and one fitted recipe file per target to `examples/human-targets-fits/`. On 16 cores the six targets take about 20 minutes when run in three processes with `--fits-only --keep-snapshot --targets`. One run without `--fits-only` then adds the wrong-identity matrix and the controls, about 30 minutes more.

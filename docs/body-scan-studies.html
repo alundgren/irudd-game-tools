@@ -470,7 +470,7 @@
           soft-tissue folds.
         </p>
         <p>
-          To reproduce, build the workshop with <code>npm ci</code> and
+          To reproduce, build the workshop with <code>pnpm install --frozen-lockfile</code> and
           <code>npm run build</code>. Install Python packages
           <code>numpy scipy opencv-python requests</code>. Run
           <code>python scripts/body-fidelity.py CACHE --fit</code> to download the
@@ -499,8 +499,6 @@
       </section>
     </main>
     <script>
-      // Comparison pictures are local reference material (local-references.md).
-      // Show a picture, or a block that depends on one, only where its file loads.
       for (const item of document.querySelectorAll("[data-local]")) {
         const probe = new Image();
         probe.onload = () => item.setAttribute("data-local-found", "");

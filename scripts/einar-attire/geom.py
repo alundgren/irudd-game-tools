@@ -24,7 +24,6 @@ def closest_on_tris(q, a, b, c):
     den = np.where(np.abs(va + vb + vc) < 1e-20, 1, va + vb + vc)
     w[:, 1], w[:, 2] = vb / den, vc / den
     w[:, 0] = 1 - w[:, 1] - w[:, 2]
-    # Edge and corner regions, in the order of Ericson's test.
     def put(mask, w0, w1, w2):
         w[mask, 0], w[mask, 1], w[mask, 2] = w0[mask] if hasattr(w0, '__len__') else w0, w1[mask] if hasattr(w1, '__len__') else w1, w2[mask] if hasattr(w2, '__len__') else w2
     safe = lambda x: np.where(np.abs(x) < 1e-20, 1, x)

@@ -23,8 +23,6 @@ export function validWorldMarks(marks) {
   );
 }
 
-// Report the rendered rest geometry in game metres. A child's geometry belongs
-// to its own row, even when it sits inside its parent's scene graph.
 export function spatialGuide(root) {
   root.updateWorldMatrix(true, true);
   const regions = new Map(),

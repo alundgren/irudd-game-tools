@@ -1,6 +1,5 @@
 import { BufferAttribute, BufferGeometry, Triangle, Vector3 } from "three";
 
-// World-space triangles of every visible mesh, with skinning and morph targets applied.
 export function bakeScene(root) {
   root.updateMatrixWorld(true);
   const positions = [],
@@ -59,7 +58,6 @@ const median = (values) => {
   return s.length ? (s[(s.length - 1) >> 1] + s[s.length >> 1]) / 2 : 0;
 };
 
-// Slab centres up a standing body. Medians of these resist arms, bellies and hair.
 const slabs = [0.06, 0.28, 0.53, 0.72, 0.93];
 export function bodyColumn(positions) {
   const all = box(positions),
@@ -73,7 +71,6 @@ export function bodyColumn(positions) {
   });
 }
 
-// Pose readings of an aligned body: floor at its lowest point, facing +Z, metres.
 export function poseReadings(positions) {
   const all = box(positions),
     h = all.size[1],
@@ -109,7 +106,6 @@ export function poseReadings(positions) {
           Math.atan2(2 * (sxy / n - mx * my), sxx / n - mx * mx - (syy / n - my * my)) *
           180) /
         Math.PI;
-    // A near-vertical line below the shoulders is a hanging arm.
     return Math.abs(angle) > 70 && my < 0.72 * h ? Math.abs(angle) : -angle;
   });
   const feet = [-1, 1].map((side) =>
@@ -150,8 +146,6 @@ function facesBack(positions) {
   return ankle.count > 0 && foot.centre[2] < ankle.centre[2];
 }
 
-/* Stands an imported body in the workshop's space: metres, Y up, facing +Z,
-   feet on the floor and its column over `column` (see bodyColumn). */
 export function alignReference(raw, options = {}, template = {}) {
   const { up = "auto", units = "auto", turn = "auto", nudge = [0, 0, 0] } = options;
   const positions = raw.positions.slice(),
@@ -261,7 +255,6 @@ export function referenceGeometry(positions, indices) {
   return g;
 }
 
-// Signed distance to a triangle surface. Positive is outside its front faces.
 export function surfaceIndex(positions, indices) {
   const n = indices.length / 3,
     order = Uint32Array.from({ length: n }, (_, i) => i),
@@ -369,7 +362,6 @@ export function surfaceIndex(positions, indices) {
       } else {
         const a = node + 1,
           b = right[node];
-        // Visit the nearer child first so the farther is usually pruned.
         if (gap(a, p) < gap(b, p)) {
           stack[top++] = b;
           stack[top++] = a;

@@ -1,5 +1,3 @@
-/* The joints a source garment hangs from, in the form human-skirt-drape.js describes them, measured on this figure:
-   two rings of eight, at mid length and at the hem, standing on the garment's own outline. */
 export function castSkirtJoints(s, moved, inSkirt, origin) {
   const joint = (name) => { const i = s.names.indexOf(name) * 3; return [s.joints[i] - origin[0], s.joints[i + 1] - origin[1], s.joints[i + 2] - origin[2]]; };
   const pelvis = joint("pelvis"), k = s.height / 1.75, hip = joint("thigh_l")[1], high = hip + 0.02 * k, low = hip - 0.17 * k, columns = 8;
@@ -10,7 +8,6 @@ export function castSkirtJoints(s, moved, inSkirt, origin) {
     points.push(p); bottom = Math.min(bottom, p[1]);
   }
   const cx = pelvis[0], cz = pelvis[2];
-  // How far out the garment stands at a height and direction: the points nearest in height within the column.
   const radius = (y, a) => {
     let best = [];
     for (const p of points) {
@@ -29,7 +26,6 @@ export function castSkirtJoints(s, moved, inSkirt, origin) {
       joints.push({ name: "Source_" + (level + 1) + "_" + (c + 1), level, column: c, at: [cx + dir[0] * r, y, cz + dir[1] * r], from: [cx + dir[0] * from, low, cz + dir[1] * from], dir, free: r });
     }
   });
-  // The legs under the cloth as rows of balls. Their thickness is a share of the body's size, not measured.
   const legs = [];
   for (const side of ["l", "r"]) for (const [from, to, radii] of [["thigh", "calf", [0.085, 0.082, 0.076, 0.07, 0.064, 0.06]], ["calf", "foot", [0.058, 0.057, 0.053, 0.047, 0.042, 0.038]], ["foot", "ball", [0.045, 0.045]]])
     legs.push({ from: from + "_" + side, to: to + "_" + side, radii: radii.map((r) => r * k) });

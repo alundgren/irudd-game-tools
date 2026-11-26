@@ -1,4 +1,3 @@
-# Blender (background): Rocketbox FBX + colour TGAs -> static GLB in metres, Y up, +Z forward.
 import bpy, sys, os, mathutils
 args = sys.argv[sys.argv.index("--") + 1:]
 src, out, credit = args[0], args[1], args[2]

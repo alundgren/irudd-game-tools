@@ -1,6 +1,6 @@
 """Fit the editable human to every benchmark target and score the results independently.
 
-From the repository root, after `npm ci`:
+From the repository root, after `pnpm install --frozen-lockfile`:
     python scripts/human-benchmark/run.py WORK [--targets mhr-f1,mhr-m1] [--refit]
                                                [--keep-snapshot] [--fits-only]
 
@@ -158,8 +158,6 @@ def main():
     args.work.mkdir(parents=True, exist_ok=True)
     manifest = load_manifest()
     entries = [e for e in manifest["targets"] if not args.targets or e["id"] in args.targets.split(",")]
-    # The generator is copied once, so edits made during a long run cannot mix versions.
-    # WORK/snapshot.txt names the copy in use; older copies are kept.
     pointer = args.work / "snapshot.txt"
     if args.keep_snapshot and pointer.exists():
         folder = args.work / pointer.read_text().strip()
@@ -176,7 +174,6 @@ def main():
         targets[entry["id"]] = Body(vertices, faces, seed=1, vertex_region=regions, region_names=names)
         log("prepared", entry["id"])
 
-    # ---- fits and per-target scores (cached per target and generator version) ----
     for entry in entries:
         tid, target = entry["id"], targets[entry["id"]]
         cache = args.work / f"{tid}-{tag}.pkl"
@@ -207,7 +204,6 @@ def main():
         generator.close()
         return
 
-    # ---- wrong-identity controls -------------------------------------------------
     ids = [e["id"] for e in entries]
     cross_cache = args.work / f"cross-{tag}-{'-'.join(ids)}.pkl"
     if cross_cache.exists() and not args.refit:
@@ -224,7 +220,6 @@ def main():
             log("cross", i, cross["coarse"][i])
         cross_cache.write_bytes(pickle.dumps(cross))
 
-    # ---- controls ------------------------------------------------------------------
     control_cache = args.work / f"controls-{tag}.pkl"
     if control_cache.exists() and not args.refit:
         controls = pickle.loads(control_cache.read_bytes())
@@ -234,7 +229,6 @@ def main():
                     "calibration": calibration(targets[ids[0]])}
         control_cache.write_bytes(pickle.dumps(controls))
 
-    # ---- write results -----------------------------------------------------------
     FITS.mkdir(parents=True, exist_ok=True)
     RESULTS.parent.mkdir(parents=True, exist_ok=True)
     results = {

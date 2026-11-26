@@ -20,16 +20,12 @@ import zipfile
 
 import numpy as np
 
-# control: (lower targets, upper targets). A target is a path under targets/, or
-# (path, gain). A control with one natural direction mirrors it at reduced gain.
 CONTROLS = {
-    # The outline of the face seen from the front.
     "faceTaper": (["head/head-triangular"], ["head/head-invertedtriangular"]),
     "faceRound": (["head/head-rectangular"], ["head/head-round"]),
     "faceSquare": (["head/head-oval"], ["head/head-square"]),
     "faceDiamond": ([("head/head-diamond", -0.5)], [("head/head-diamond", 0.8)]),
     "faceFlesh": (["head/head-fat-decr"], ["head/head-fat-incr"]),
-    # Soft tissue over the skull.
     "nasolabialFold": (["mouth/mouth-laugh-lines-out"], ["mouth/mouth-laugh-lines-in"]),
     "cheekHollow": (
         ["cheek/l-cheek-inner-incr", "cheek/r-cheek-inner-incr"],
@@ -39,12 +35,10 @@ CONTROLS = {
         ["eyes/l-eye-bag-height-decr", "eyes/r-eye-bag-height-decr"],
         ["eyes/l-eye-bag-height-incr", "eyes/r-eye-bag-height-incr"],
     ),
-    # Jaw and chin.
     "jawAngle": (["chin/chin-bones-decr"], ["chin/chin-bones-incr"]),
     "jawDrop": (["chin/chin-jaw-drop-decr"], ["chin/chin-jaw-drop-incr"]),
     "chinCleft": (["chin/chin-cleft-decr"], ["chin/chin-cleft-incr"]),
     "chinPoint": ([("chin/chin-triangle", -0.6)], ["chin/chin-triangle"]),
-    # Nose.
     "noseVolume": (["nose/nose-volume-decr"], ["nose/nose-volume-incr"]),
     "noseCurve": (["nose/nose-curve-concave"], ["nose/nose-curve-convex"]),
     "noseRoot": (["nose/nose-greek-decr"], ["nose/nose-greek-incr"]),
@@ -55,7 +49,6 @@ CONTROLS = {
     "nostrilFlare": (["nose/nose-flaring-decr"], ["nose/nose-flaring-incr"]),
     "noseBase": (["nose/nose-base-down"], ["nose/nose-base-up"]),
     "noseHeight": (["nose/nose-trans-down"], ["nose/nose-trans-up"]),
-    # Eyes and brow.
     "eyeOpening": (
         ["eyes/l-eye-height2-decr", "eyes/r-eye-height2-decr"],
         ["eyes/l-eye-height2-incr", "eyes/r-eye-height2-incr"],
@@ -81,12 +74,9 @@ CONTROLS = {
         ["eyes/l-eye-epicanthus-in", "eyes/r-eye-epicanthus-in"],
     ),
     "browAngle": (["eyebrows/eyebrows-angle-down"], ["eyebrows/eyebrows-angle-up"]),
-    # The source brow target is a shelf at full strength; less than half of it is a heavy ridge.
     "browRidge": (["eyebrows/eyebrows-trans-backward"], [("eyebrows/eyebrows-trans-forward", 0.4)]),
     "foreheadSlope": (["forehead/forehead-trans-backward"], ["forehead/forehead-trans-forward"]),
-    # Mouth.
     "mouthHeight": (["mouth/mouth-scale-vert-decr"], ["mouth/mouth-scale-vert-incr"]),
-    # One side against the other. Lower leans to the right of the figure, upper to its left.
     "jawSkew": (["asym/asym-jaw-1-r"], ["asym/asym-jaw-1-l"]),
     "noseSkew": (["asym/asym-nose-1-r"], ["asym/asym-nose-1-l"]),
     "mouthSkew": (["asym/asym-mouth-1-r"], ["asym/asym-mouth-1-l"]),
@@ -106,7 +96,6 @@ def pack(wheel, destination, only=None):
     def read(name):
         return archive.read(prefix + name)
 
-    # The vertex order of pack-human.py: body, eyes, lashes, garment helpers, then joint centres.
     vertices, groups = [], {}
     for line in read("3dobjs/base.obj").decode().splitlines():
         fields = line.split()

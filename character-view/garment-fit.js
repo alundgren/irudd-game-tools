@@ -6,8 +6,6 @@ const directions = Array.from({ length: angles }, (_, i) => [
   Math.cos((i * 2 * Math.PI) / angles),
   Math.sin((i * 2 * Math.PI) / angles),
 ]);
-// A garment can contain many overlapping panels. Sample the covered body region in
-// its local frame, then ease any penetrating surface vertices outside the body.
 export function fitGarment(
   host,
   garment,
@@ -108,7 +106,6 @@ export function fitGarment(
       )
     ].push(p);
   const sections = rows.map((_, i) => {
-    // Neighboring bands bound sparse tessellation and keep shoulders continuous.
     let samples = rows.slice(Math.max(0, i - 1), Math.min(bins, i + 2)).flat();
     if (!samples.length) {
       let distance = 2;
@@ -152,7 +149,6 @@ export function fitGarment(
   garment.traverse((mesh) => {
     if (!mesh.isMesh) return;
     const fabricRelief = mesh === garment ? relief : null;
-    // Source geometry may also be used by another copy of this component.
     const sourcePositions = mesh.geometry.attributes.position;
     const geometry = mesh.geometry.clone();
     mesh.geometry = geometry;
@@ -224,7 +220,6 @@ export function fitGarment(
                   MathUtils.lerp(a.support[n], b.support[n], between) / dot,
                 );
             }
-            // Ease away from the sewn waist into the room needed over the hips.
             let clearance = 0.007;
             if (waistClearance !== undefined) {
               const m = host.matrixWorld.elements;
@@ -267,8 +262,6 @@ export function fitGarment(
   });
 }
 
-// Ease the side seams together along the length of a fitted pattern. If the
-// wearer's stance needs more room at the knee, retain the hip and hem curves.
 function preserveSkirtOutline(geometry, pattern) {
   const { position, uv } = geometry.attributes,
     half = position.count / 2,

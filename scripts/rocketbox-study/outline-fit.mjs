@@ -1,9 +1,3 @@
-// Suggests body measurements that bring a dressed adult's outline closer to a target's.
-// It changes one measurement at a time and keeps a change when the mean outline overlap over
-// four views improves, with a small cost on extreme values. The outfit stays as the recipe has
-// it, so clothes are part of both outlines. Outlines are drawn on the graphics card when there is
-// one (the script prints which renderer drew them).
-//   node scripts/rocketbox-study/outline-fit.mjs <study> [--rounds 3] [--axes frame,weight,...] [--px 90] [--fresh]
 import * as T from "three";
 import { evaluateHuman, humanRange } from "../../character-view/human-surface.js";
 import { dressedHuman } from "../../character-view/human-wardrobe.js";
@@ -25,7 +19,6 @@ const view = (yaw) => ({ yaw: (yaw * Math.PI) / 180, center: [0, 0.96, 0], span:
 const masks = await openMasks();
 console.log("Outlines drawn by: " + masks.name);
 const glb = readGlb(local + "targets/" + name + ".glb");
-// Cut-out cards (hair, lashes) count as solid here, which slightly overstates the target's hair.
 const targetMeshes = glb.parts.map((p) => ({ positions: p.positions, indices: p.indices, color: [0, 0, 0] })), want = [];
 for (const yaw of yaws) want.push(await masks.mask(targetMeshes, view(yaw)));
 const form = study.make(), material = (color) => new T.MeshStandardMaterial({ color });
@@ -37,7 +30,6 @@ async function score(human) {
   let low = Infinity;
   for (const m of meshes) for (let i = 1; i < m.positions.length; i += 3) low = Math.min(low, m.positions[i]);
   for (const m of meshes) for (let i = 1; i < m.positions.length; i += 3) m.positions[i] -= low;
-  // The adult is placed front to back where its outlines best cover the target's, as the comparison does.
   const frame = view(0), views = [];
   for (const [v, yaw] of yaws.entries()) views.push({ yaw: (yaw * Math.PI) / 180, target: want[v], adult: await masks.mask(meshes, view(yaw)) });
   const placed = bestDepth(views, frame.width, frame.height, px);
@@ -47,7 +39,6 @@ async function score(human) {
 }
 
 let human = { ...form.human };
-// --fresh starts every fitted measurement from neutral instead of from the recipe.
 if (args.includes("--fresh")) for (const key of axes) if (key !== "height") delete human[key];
 let best = await score(human);
 console.log(name, "start", best.overlap.toFixed(4));

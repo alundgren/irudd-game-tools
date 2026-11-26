@@ -1,5 +1,3 @@
-// Source-space masks represent original occlusion even after an arm, coat
-// or head is moved or replaced in the editable graph.
 export function paintSources(form) {
   const regions = new Map();
   for (const p of [

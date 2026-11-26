@@ -19,7 +19,6 @@ test("procedural cloth swatches leave old styles and non-fabric meshes alone", (
   assert.ok(!validAdultStyle({ clothDesign: "unknown" }));
   const form = humanForm({}, 8);
   const dressed = dressHuman(form, 8712);
-  // A complete look chooses a design with the rest of the wardrobe, so every rolled look is woven cloth.
   assert.ok(clothDesigns.includes(dressed.humanStyle.clothDesign) && dressed.humanStyle.clothDesign !== "Plain cloth");
   assert.ok(validAdultStyle(dressed.humanStyle));
   assert.equal(dressed.human, form.human);
@@ -142,7 +141,6 @@ test("cloth families build distinct construction relief and roughness profiles",
 
 test("library fabric surface maps differentiate panels, guard gutters, and skip minimal test stubs", () => {
   assert.ok(hasLibraryFabricProfile("male_elegantsuit01") && !hasLibraryFabricProfile("nonexistent_asset"));
-  // Minimal mock canvas without createImageData (as used by human-looks.test.js) must return null cleanly.
   globalThis.document = {
     createElement: () => ({ getContext: () => ({ drawImage() {}, getImageData: () => ({ data: new Uint8ClampedArray(16) }), putImageData() {} }) }),
   };
@@ -153,17 +151,15 @@ test("library fabric surface maps differentiate panels, guard gutters, and skip 
     delete globalThis.document;
   }
 
-  // Full 2D canvas mock with 32x32 image: top third tie (rule 0), middle third shirt (rule 1),
-  // bottom strip suit wool (rule 2), right column transparent UV gutter.
   const size = 32;
   const srcPixels = new Uint8ClampedArray(size * size * 4);
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const o = (y * size + x) * 4;
-      if (x >= 28) { srcPixels[o + 3] = 0; continue; } // transparent UV gutter
-      if (y < 10) { srcPixels[o] = 6; srcPixels[o + 1] = 6; srcPixels[o + 2] = 18; srcPixels[o + 3] = 255; } // dark tie
-      else if (y < 20) { srcPixels[o] = 220; srcPixels[o + 1] = 220; srcPixels[o + 2] = 220; srcPixels[o + 3] = 255; } // light shirt
-      else { srcPixels[o] = 54; srcPixels[o + 1] = 54; srcPixels[o + 2] = 54; srcPixels[o + 3] = 255; } // suit wool
+      if (x >= 28) { srcPixels[o + 3] = 0; continue; }
+      if (y < 10) { srcPixels[o] = 6; srcPixels[o + 1] = 6; srcPixels[o + 2] = 18; srcPixels[o + 3] = 255; }
+      else if (y < 20) { srcPixels[o] = 220; srcPixels[o + 1] = 220; srcPixels[o + 2] = 220; srcPixels[o + 3] = 255; }
+      else { srcPixels[o] = 54; srcPixels[o + 1] = 54; srcPixels[o + 2] = 54; srcPixels[o + 3] = 255; }
     }
   }
   globalThis.document = {
@@ -186,9 +182,9 @@ test("library fabric surface maps differentiate panels, guard gutters, and skip 
   try {
     const tex = new Texture({ width: size, height: size });
     const dyeRules = [
-      { pick: (_h, s, l) => l < 0.10 && s > 0.2 }, // tie
-      { pick: (_h, _s, l) => l > 0.6 },            // shirt
-      { pick: () => true },                         // suit wool
+      { pick: (_h, s, l) => l < 0.10 && s > 0.2 },
+      { pick: (_h, _s, l) => l > 0.6 },
+      { pick: () => true },
     ];
     const result = buildLibraryFabricMaps("male_elegantsuit01", tex, null, null, null, dyeRules);
     assert.ok(result && result.surface && result.normal);
@@ -202,7 +198,6 @@ test("library fabric surface maps differentiate panels, guard gutters, and skip 
     const tieR = meanRough(1, 9), shirtR = meanRough(11, 19), suitR = meanRough(21, 30);
     assert.ok(tieR < shirtR - 0.15, `silk tie (${tieR.toFixed(2)}) glossier than shirt (${shirtR.toFixed(2)})`);
     assert.ok(shirtR < suitR - 0.15, `cotton shirt (${shirtR.toFixed(2)}) glossier than wool suit (${suitR.toFixed(2)})`);
-    // Transparent UV gutter must stay neutral tangent normal (128, 128, 255), never bleeding invalid vectors.
     const gOff = (15 * size + 30) * 4;
     assert.deepEqual([norm[gOff], norm[gOff + 1], norm[gOff + 2]], [128, 128, 255]);
   } finally {

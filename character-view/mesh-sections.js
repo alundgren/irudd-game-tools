@@ -1,7 +1,5 @@
 import { Vector3 } from "three";
 
-// Cut actual visible triangles, including skinning, in the glTF metre frame.
-// The reference and workshop share a floor, +Y up, +Z forward and X midline.
 export function triangles(root) {
   const faces = [];
   root.updateMatrixWorld(true);

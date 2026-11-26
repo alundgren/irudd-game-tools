@@ -1,8 +1,3 @@
-// Curly and coily hair as clumps: each card carries a painted lock of ringlets or a cluster of coils, and the
-// cards are bedded in the volume the hair fills, leaning out of it so the outline of the head is curls too.
-//   curlMap()                      the picture of the clumps, shared by every curly style
-//   curlCards(cards, context)      fills `cards` for a style whose spec has `curl`
-// The grey channels hold the original lock paintings and their feathered coverage.
 import * as T from "three";
 import { unzlibSync } from "three/addons/libs/fflate.module.js";
 import coilPaint from "./human-coil-undercoat-data.json" with { type: "json" };
@@ -11,14 +6,9 @@ import { add, clamp, cross, dot, hash1, length, mix, noise3, smooth, sub, unit }
 
 const DEG = Math.PI / 180, TAU = Math.PI * 2;
 
-// Four painted locks, in order of decreasing curl diameter.
 export const curlTiles = Array.from({ length: 4 }, (_, i) => [64 * i, 0, 64, 128]);
 
 let artwork = null;
-/**
- * Curl clumps drawn as pixels: `data` is RGBA, rows from the top. A ringlet has its tip up and its root down.
- * The colour is a grey that the hair colour is multiplied by; the alpha is the hair.
- */
 export function curlPixels() {
   if (artwork) return artwork;
   const {width, height} = paintedCurls;
@@ -32,7 +22,6 @@ export function curlPixels() {
 }
 
 let curlTexture = null;
-/** The curl picture as a texture. */
 export function curlMap() {
   if (curlTexture) return curlTexture;
   const { width, height, data } = curlPixels();
@@ -55,14 +44,10 @@ export function curlMap() {
 }
 
 let undercoatTexture;
-/** Dense small curls on the scalp underneath the larger free locks. The lip
- * of the round chart is neutral white so each head keeps its own hairline fade. */
 export function curlUndercoat() {
   if (undercoatTexture) return undercoatTexture;
   const size = 512, data = new Uint8Array(size * size * 4);
   const tones = unzlibSync(Uint8Array.from(atob(coilPaint.tone), c=>c.charCodeAt(0)));
-  // Sample the continuous interior of the coil mass at anatomical scale. Mirror
-  // across square edges to continue the irregular fibres over the circular UVs.
   const mirror = t => 1-Math.abs((t % 2)-1);
   for(let y=0;y<size;y++) for(let x=0;x<size;x++) {
     const i=y*size+x;
@@ -92,18 +77,11 @@ export function curlUndercoat() {
   return undercoatTexture;
 }
 
-/** How far the clumps of a style raise the surface of its volume at a direction, as a share of -1 to 1. */
 export function clumpRelief(q, mm) {
   const scale = 95 / mm;
   return 1.6 * (noise3(q[0] * scale + 11, q[1] * scale, q[2] * scale + 3) - .5) + .8 * (noise3(q[0] * scale * 2.1, q[1] * scale * 2.1 + 5, q[2] * scale * 2.1) - .5);
 }
 
-/**
- * Fill `cards` with the clumps of a curly style.
- *   spec.curl   { kind: "coil" | "ringlet", card: side of a coil card or width of a ringlet in millimetres,
- *                 long: length of a ringlet in millimetres, hang: how far a ringlet turns to hang down, 0 to 1 }
- * `allowed` is the number of triangles the cards may use.
- */
 export function curlCards(cards, { spec, body, wear, ears, f, k, margin, cutAt, seat, volume, hair, tone, allowed }) {
   const mm = k / 1000, P = body.P, curl = spec.curl, hanging = curl.kind === "ringlet", pieces = hanging && curl.long > 50 ? 3 : 2, each = hanging ? 2 * pieces : 2;
   const plan = [];
@@ -115,7 +93,6 @@ export function curlCards(cards, { spec, body, wear, ears, f, k, margin, cutAt, 
     const mid = [(a[0] + b[0] + d[0]) / 3, (a[1] + b[1] + d[1]) / 3, (a[2] + b[2] + d[2]) / 3], at = f.aim(mid), far = margin(at.phi, at.eps);
     if (far < -1) continue;
     const out = volume(at, Math.max(0, far)), grown = mix(.5, 1, smooth(0, spec.rim, far)), side = curl.card * mm * grown;
-    // The surface of a volume is larger than the scalp under it, and steeper where it rises from the hairline.
     const area = length(cross(sub(b, a), sub(d, a))) / 2 * (1 + out / (.09 * k)) ** 2 * Math.hypot(1, (volume(at, Math.max(0, far) + 2) - out) / (.0032 * k));
     const count = area * 3.8 / (side * (hanging ? .75 * curl.long * mm * grown : side) * .6);
     plan.push({ a, b, d, count, t });
@@ -136,20 +113,16 @@ export function curlCards(cards, { spec, body, wear, ears, f, k, margin, cutAt, 
       if (far < 0) continue;
       const here = cutAt(at.q, at.phi, far);
       const ringlet = hanging;
-      // Hair thins towards the hairline round the sides and the back, and grows thickly up to it over the forehead.
       if (rnd(3) > mix(smooth(.25 * here.fade, here.fade + 1.3, far) ** .7, smooth(-.3, 1, far), here.forehead)) continue;
       const scalp = seat(at.q, 0);
-      // Beside an ear two surfaces lie in one direction. A clump grows only where the map is the skin its root is on.
       if (length(sub(scalp.p, root)) > .004 * k) continue;
       const out = volume(at, far), base = seat(at.q, here.under, .92*out), n = base.n;
-      // Clumps are small and close at the hairline and reach their size where the volume has its depth.
       const grown = mix(.45, 1, smooth(0, spec.rim, far)) * mix(.8, 1, here.top), wide = curl.card * mm * grown * (.82 + .36 * rnd(4)) * widen * (ringlet ? .83 : .30);
       const long = ringlet ? curl.long * mm * grown * (.75 + .5 * rnd(5)) * mix(.7, 1, smooth(0, 1, 1 - here.top + .4)) : wide * 2.6;
       let g = sub(down, n.map(x => x * dot(down, n)));
       g = length(g) < .15 ? unit(cross(n, [1, 0, 0])) : unit(g);
       const across = cross(n, g), turn = ringlet ? (rnd(6) - .5) * 1.5 : TAU * rnd(6);
       const lie = unit(add(g.map(x => x * Math.cos(turn)), across, Math.sin(turn)));
-      // A card leans out of the volume, so the outline of the head is the edges of clumps.
       const lean = (ringlet ? mix(6, 20, rnd(7)) : mix(12, 34, rnd(7) ** 1.8)) * DEG * mix(.35, 1, smooth(0, .6 * spec.rim, far));
       const axis = unit(add(lie.map(x => x * Math.cos(lean)), n, Math.sin(lean)));
       const flat = unit(cross(n, axis)), up = cross(axis, flat), roll = (rnd(8) - .5) * (ringlet ? .8 : 1.2);
@@ -158,19 +131,15 @@ export function curlCards(cards, { spec, body, wear, ears, f, k, margin, cutAt, 
       const fine = .45 * (1 - here.forehead) * (1 - smooth(0, here.fade, far));
       const tiles = curlTiles, tile = tiles[ringlet ? Math.floor(rnd(10) * tiles.length) % tiles.length : 2 + Math.floor(rnd(10)*2)%2], flip = rnd(11) < .5;
       const skinning = body.skinOf(scalp.v >= 0 ? scalp.v : body.nearest(root, 8)), first = cards.position.length / 3;
-      // The root of a card is bedded in the volume and its tip stands out of it.
       const start = add(base.p, n, -.44 * long * Math.sin(lean) - .0018 * k), stations = ringlet ? pieces : 1;
-      // The painted side of every card faces out of the volume.
       const turned = dot(cross(span, axis), n) > 0 ? -1 : 1;
       let p = start, run = axis;
       for (let step = 0; step <= stations; step++) {
         const along = step / stations;
         if (step) {
-          // A ringlet turns to hang as it leaves the head.
           if (ringlet && step > 1) run = unit(add(run, down, curl.hang * (.6 + .8 * rnd(12))));
           p = add(p, run, long / stations);
         }
-        // Every card is lit as the volume it lies in, so the mass shades as one round thing and no card glints.
         const face = n;
         for (const sign of [-1, 1]) {
           const flatPoint = add(p, span, sign * wide * .5 * turned);

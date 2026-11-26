@@ -1,6 +1,3 @@
-// The piece-by-piece outfit panel for an adult human, shown under Appearance.
-//   const update = tailorEditor(() => form, commit);  update(form, locked) after every change
-// It edits form.humanStyle.tailor only; an armour set saved by its look and seed is written out as pieces on the first edit. Every edit is one commit, so Undo steps back through them.
 import { defaultTailor, tailorLayer, tailorLimit, tailorPieces } from "./human-tailor.js";
 import { armourLooks, armourSet, armourTailor } from "./human-armour.js";
 
@@ -17,7 +14,6 @@ export function tailorEditor(read, commit, host = document.getElementById("human
   const add = make("button", { type: "button", textContent: "Add piece" });
   const clear = make("button", { type: "button", textContent: "Remove tailored pieces" });
   const adding = make("div", {}, make("label", { className: "field" }, "Add a piece", kind), add, " ", clear);
-  // A whole armour set to start from. It is laid out as ordinary pieces, so each can be changed or removed afterwards.
   const look = make("select", { ariaLabel: "Armour look" }, ...armourLooks.map((name) => new Option(name, name)));
   const wear = make("button", { type: "button", textContent: "Wear armour set" }), again = make("button", { type: "button", textContent: "Another variation" });
   const armour = make("div", {}, make("label", { className: "field" }, "Armour set", look), wear, " ", again);
@@ -30,7 +26,6 @@ export function tailorEditor(read, commit, host = document.getElementById("human
   const layers = () => worn(read().humanStyle);
   function save(next, message) {
     const form = read(), { tailor, armour: set, ...style } = form.humanStyle ?? {};
-    // Tailored pieces are ordinary clothes, so making or changing them shows the dressed figure.
     commit({ ...form, outfit: next.length && form.outfit === "Anatomy" ? "Work clothes" : form.outfit, humanStyle: next.length ? { ...style, tailor: { layers: next } } : style }, message);
   }
   start.onclick = () => { box.open = true; save(defaultTailor(read().humanStyle?.clothColor).layers, "Outfit laid out piece by piece."); };
@@ -65,7 +60,6 @@ export function tailorEditor(read, commit, host = document.getElementById("human
     const move = (to) => {
       const next = all.slice();
       next.splice(to, 0, ...next.splice(index, 1));
-      // Keep the moved piece's panel open under its new number.
       const wasOpen = open.has(index), other = open.has(to);
       for (const [at, state] of [[to, wasOpen], [index, other]]) state ? open.add(at) : open.delete(at);
       save(next, spec.label + (to < index ? " put on earlier." : " put on later."));

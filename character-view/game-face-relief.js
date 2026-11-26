@@ -2,8 +2,6 @@ import { Vector3 } from "three";
 import { raycaster } from "./human-style-kit.js";
 import { rasterTriangles } from "./portrait-plate.js";
 
-// Restore the normals of the full surface to the reduced mesh at the same
-// coordinates on its UV chart. Both surfaces use the same local coordinates.
 export function transferFaceNormals(
   pixels,
   width,
@@ -64,8 +62,6 @@ export function transferFaceNormals(
     source.fromArray(high, k);
     if (source.lengthSq() < 0.8) return;
     mixAttribute(normalAt, normal, a, b, c, u, v, w).normalize();
-    // Opposing surfaces meet at the lids and the mouth. An overlapping island
-    // or a shrunken triangle must not transfer detail from the other side.
     if (source.dot(normalAt) < 0.72) return;
     mixAttribute(point, position, a, b, c, u, v, w);
     if (point.distanceToSquared(scratch.fromArray(high, k + 3)) > 0.004 ** 2)
@@ -109,8 +105,6 @@ export function transferFaceNormals(
         pixels[q + 2] / 127.5 - 1,
       )
       .normalize();
-    // Rotate the existing pore or crease normal by the shortest rotation from
-    // the tangent-space pole to the full surface normal (Rodrigues' formula).
     axis.set(-baked.y, baked.x, 0);
     scratch.crossVectors(axis, detail);
     detail
@@ -123,8 +117,6 @@ export function transferFaceNormals(
   });
 }
 
-// Cosine-weight the visible hemisphere. Mirroring the samples about the
-// sagittal plane keeps a symmetric fold equally sheltered on both sides.
 const faceRays = Array.from({length: 32}, (_, i) => {
   const y = 1 - 2*(i + .5)/32, horizontal = Math.sqrt(1 - y*y);
   const phi = i * Math.PI * (3 - Math.sqrt(5));
@@ -132,9 +124,6 @@ const faceRays = Array.from({length: 32}, (_, i) => {
   return [[x,y,z],[-x,y,z]];
 }).flat();
 
-// The face carries a painted AO map, so its detail cannot use the single
-// contact value stored in the spare UV channel. Bake the visibility of the
-// edited face into the existing map, before the eyelids and ears lose detail.
 export function bakeFaceOcclusion(pixels, width, height, geometry, indices) {
   const { position, normal, uv } = geometry.attributes;
   geometry.computeBoundingBox();

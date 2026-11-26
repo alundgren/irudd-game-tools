@@ -1,13 +1,8 @@
 {
-  "target": {
-    "name": "Sanu-Kish Merchant",
-    "creator": "Karl-EL",
-    "selection": "https://www.spore.com/what/ga_captains",
-    "reference": "https://www.spore.com/static/war/images/community/500297662577.png"
-  },
+  "target": "Private four-armed merchant comparison",
   "first": {
     "seconds": 104.7,
-    "direction": "Make a new species of estuary cargo merchant from this accepted character. Use the editor's drawn lower anatomy and trade good. Build that lower body below the existing arm bearing torso, replacing both old legs and feet as needed. Keep all four arms, hands, digits, their IDs, mounting torso, and the saved Greet and offer pose. The Spore reference illustrates the flowing garment and shrewd shopkeeper silhouette. Make an original practical field coat with a genuine open front and rear split, raised asymmetric collar and two short outer shoulder panels; remove the closed robe that hides the lower body. Make the profile clearly nonhuman with a longer curved snout or swept-back ears. The trade good must be visibly modeled and attached. Keep four distinct hands clear in front, side and three-quarter. Aim for a recognizable unpainted silhouette, warm linen and aged copper details. Each added structural piece must be visible under Work clothes. Preserve real-world scale and the identity of retained parts.",
+    "direction": "Make a new species of estuary cargo merchant from this accepted character. Use the editor's drawn lower anatomy and trade good. Build that lower body below the existing arm bearing torso, replacing both old legs and feet as needed. Keep all four arms, hands, digits, their IDs, mounting torso, and the saved Greet and offer pose. The private reference illustrates the flowing garment and shrewd shopkeeper silhouette. Make an original practical field coat with a genuine open front and rear split, raised asymmetric collar and two short outer shoulder panels; remove the closed robe that hides the lower body. Make the profile clearly nonhuman with a longer curved snout or swept-back ears. The trade good must be visibly modeled and attached. Keep four distinct hands clear in front, side and three-quarter. Aim for a recognizable unpainted silhouette, warm linen and aged copper details. Each added structural piece must be visible under Work clothes. Preserve real-world scale and the identity of retained parts.",
     "draw": {
       "strength": "radical",
       "seed": 3560218268,

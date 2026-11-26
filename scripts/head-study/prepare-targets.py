@@ -37,7 +37,7 @@ def main(cache, names):
         value, placement, scale, degrees = find_placement(head, view, guesses / middle, source["pitch_degrees"])
         placed = placement.apply(view.vertices)
         outside = hs_targets.outside_faces(placed, faces)
-        if source.get("flat_cut"):  # scraps of the cast's inner face that a view caught through the opening
+        if source.get("flat_cut"):
             outside[outside] = hs_targets.largest_piece(faces[outside])
         hidden = int((~outside).sum())
         used, compact = np.unique(faces[outside], return_inverse=True)

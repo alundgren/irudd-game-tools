@@ -1,0 +1,37 @@
+packages:
+  - packages/*
+  - apps/*
+  - verification/protocol
+  - verification/families
+
+catalog:
+  "@ast-grep/cli": 0.51.3
+  "@effect/sql-sqlite-node": 4.1.5
+  "@electron/packager": 20.3.0
+  "@modelcontextprotocol/sdk": 1.32.2
+  "@playwright/test": 1.65.1
+  "@swc/core": 1.16.22
+  "@types/node": 26.6.10
+  "@types/three": 0.187.0
+  dependency-cruiser: 18.9.0
+  effect: 4.1.5
+  electron: 46.0.0-alpha.13
+  esbuild: 0.28.2
+  meshoptimizer: 1.1.1
+  oxlint-tsgolint: 7.0.2007
+  three: 0.187.0
+  typescript: 7.0.2
+  vite-plus: 1.8.0
+  zod: 4.6.7
+
+catalogMode: strict
+savePrefix: ""
+engineStrict: false
+
+minimumReleaseAgeExclude:
+  - "@types/node@26.6.10"
+
+allowBuilds:
+  "@ast-grep/cli": true
+  esbuild: true
+  "@swc/core": false

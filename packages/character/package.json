@@ -1,0 +1,31 @@
+{
+  "name": "@irudd/character",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./human": "./src/human/index.ts",
+    "./human/paint": "./src/human/paint.ts",
+    "./human/dress": "./src/human/dress/index.ts",
+    "./repaint": "./src/paint/repaint.ts",
+    "./art-fit": "./src/paint/art-fit.ts",
+    "./trace-build": "./src/paint/trace-build.ts",
+    "./assets": "./src/assets.ts"
+  },
+  "scripts": {
+    "test": "node --import ../document/test/support/register.ts --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc -p tsconfig.json && tsc -p test/tsconfig.json"
+  },
+  "dependencies": {
+    "@irudd/document": "workspace:*",
+    "effect": "catalog:",
+    "meshoptimizer": "catalog:",
+    "three": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/three": "catalog:"
+  }
+}

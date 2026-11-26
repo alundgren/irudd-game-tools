@@ -16,9 +16,9 @@ from scipy.optimize import lsq_linear
 from hb_mesh import Surface, sample_surface
 from hb_raster import visible_faces
 
-HUBER_M = 0.02          # distances beyond 2 cm pull with constant force
-POINT_TERM = 0.1        # weight of point-to-point next to point-to-plane
-PRIOR = 5e-6            # pull of every axis towards its neutral value
+HUBER_M = 0.02
+POINT_TERM = 0.1
+PRIOR = 5e-6
 REGION_WEIGHT = {"head": 2.0, "hands": 0.25, "feet": 0.5, "forearms": 0.7}
 MACRO = ("height", "frame", "age", "weight", "muscle", "stance", "armForward", "elbowBend", "legSpread", "handTwist")
 STARTS = ({"frame": -0.7}, {"frame": 0.7})
@@ -38,7 +38,7 @@ class TargetView:
         self.surface = Surface(body.vertices, body.faces, self.seen)
         self.points, face, bary = sample_surface(body.vertices, body.faces, samples, seed, self.seen)
         self.normals = self.surface.smooth_normal(face, bary)
-        if body.face_region is None:  # an unlabelled target: every part counts the same
+        if body.face_region is None:
             self.face_weight = np.ones(len(body.faces))
         else:
             weights = np.ones(len(body.region_names))
@@ -46,7 +46,6 @@ class TargetView:
                 weights[body.region_names.index(name)] = w
             self.face_weight = weights[body.face_region]
         self.point_weight = self.face_weight[face]
-        # Vertices on the rim of the seen surface: pairs that land there are sliding off its edge.
         edges = np.sort(np.concatenate([body.faces[self.seen][:, [a, b]] for a, b in ((0, 1), (1, 2), (2, 0))]), axis=1)
         unique, count = np.unique(edges, axis=0, return_counts=True)
         self.rim = np.zeros(len(body.vertices), dtype=bool)
@@ -64,13 +63,11 @@ class CoarseFit:
         self.gen_ids = used[::2]
         self.span = generator.high - generator.low
 
-    # ---- pairing -----------------------------------------------------------
     def _pairs(self, vertices, placement):
         """Residual rows for the current surface: (direction, weights, ids/bary, normals, offsets)."""
         rot, shift = yaw_matrix(placement[3]), placement[:3]
         moved = vertices @ rot.T + shift
         view = self.view
-        # Generator vertices to the seen target surface.
         a = moved[self.gen_ids]
         d_a, q_a, face_a, bary_a = view.surface.closest(a)
         n_a = view.surface.smooth_normal(face_a, bary_a)
@@ -79,7 +76,6 @@ class CoarseFit:
         on_rim = np.einsum("ij,ij->i", bary_a, view.rim[view.body.faces[face_a]].astype(float)) > 0.999
         ok_a = (np.einsum("ij,ij->i", own, n_a) > 0.2) & ~on_rim
         w_a = view.face_weight[face_a] * np.minimum(1.0, HUBER_M / np.maximum(d_a, 1e-9))
-        # Seen target samples to the generator surface.
         d_b, q_b, face_b, bary_b = gen_surface.closest(view.points)
         n_b = gen_surface.smooth_normal(face_b, bary_b)
         ok_b = np.einsum("ij,ij->i", view.normals, n_b) > 0.2
@@ -88,7 +84,6 @@ class CoarseFit:
         def huber(d):
             return np.where(d < HUBER_M, 0.5 * d ** 2, HUBER_M * (d - 0.5 * HUBER_M))
 
-        # Pairs that fall off the rim say nothing about the fit; all others count, compatible or not.
         loss = ((view.face_weight[face_a] * huber(d_a))[~on_rim].sum() / max((~on_rim).sum(), 1)
                 + (view.point_weight * huber(d_b)).mean())
         return {"loss": float(loss), "rot": rot,
@@ -108,7 +103,7 @@ class CoarseFit:
         blocks.append((w[ok], n[ok], offset[ok], local @ rot.T, dlocal))
         residual, design = [], []
         for w, n, offset, rotated, dpoint in blocks:
-            dworld = dpoint @ rot.T                                       # axes
+            dworld = dpoint @ rot.T
             dyaw = np.column_stack([rotated[:, 2], np.zeros(len(rotated)), -rotated[:, 0]])
             motion = np.concatenate([dworld, np.broadcast_to(np.eye(3)[:, None, :], (3, len(n), 3)), dyaw[None]])
             root = np.sqrt(w)
@@ -119,7 +114,6 @@ class CoarseFit:
             design.append((side[None, :, None] * motion).reshape(len(motion), -1))
         return np.concatenate(residual), np.concatenate(design, axis=1).T
 
-    # ---- optimisation --------------------------------------------------------
     def _jacobian(self, u, active, step=0.04):
         recipes = []
         for k in active:

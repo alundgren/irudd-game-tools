@@ -3,8 +3,6 @@ import { deformFace } from "./facial-sculpt.js";
 import { landmarkRelief } from "./portrait-relief.js";
 import atlasUrl from "./faces.atlas.webp";
 
-// The four original diffuse studies share one atlas. UVs sample each portrait
-// from the front and carry its temple colour around the back of the skull.
 const paint = [];
 export async function loadFacePaint() {
   const image = await new T.ImageLoader().loadAsync(atlasUrl);
@@ -47,7 +45,6 @@ export async function loadFacePaint() {
         const v = 0.958 - t * 0.949;
         const off = (y * canvas.width + x) * 4;
         for (let k = 0; k < 3; k++) {
-          // A small forehead patch supplies skin grain around the unpainted rear.
           const rear = sample(
             0.48 + 0.052 * Math.sin(angle * 6),
             0.156 + 0.028 * Math.sin(t * 12),
@@ -72,7 +69,6 @@ export const faces = [
   { skin: "#c9997c", jaw: 0.91, nose: 0.86, brow: 0.94, cheek: 1.03 },
 ];
 const contour = [
-  // chin -> crown: half width, depth in front of and behind the ear.
   [0, 0.006, 0.066, -0.057],
   [0.025, 0.038, 0.084, -0.019],
   [0.085, 0.056, 0.093, 0.034],
@@ -89,11 +85,7 @@ const contour = [
   [1, 0, 0, 0],
 ];
 
-// Interpolate in latitude so the dome rounds into its pole. Shared tangents
-// at the measured sections prevent a stripe in the normals at every row.
 const latitude = (height) => Math.acos(1 - 2 * height);
-// Posterior silhouette of the adult construction at the same latitudes.
-// Low rings stay inside the nape until the occiput rounds out above the ear.
 const adultRear = [
   0.058, 0.019, -0.038, -0.075, -0.088, -0.098, -0.11, -0.119, -0.118, -0.112,
   -0.1, -0.081, -0.06, -0.021,
@@ -160,10 +152,6 @@ function skinTexture(cell, skin) {
   tinted.set(key, texture);
   return texture;
 }
-// Sculpt the projecting helix around a recessed concha. Tilt the top of
-// the pinna toward the back of the skull; mirror the relief on the two ears.
-// The paired neck tendons descend from below the ear toward the sternum.
-// Work on the shared neck so profile and rotation show the same landmarks.
 export function shapeNeck(geometry) {
   const pos = geometry.attributes.position;
   for (let i = 0; i < pos.count; i++) {
@@ -199,7 +187,6 @@ export function earGeometry(side) {
       y = pos.getY(i),
       z = pos.getZ(i);
     const radius = Math.hypot(y, z);
-    // The helix turns inward above the canal and fades into the soft lobe.
     const outer = T.MathUtils.smoothstep(y, -0.76, -0.23);
     const folded =
       T.MathUtils.smoothstep(z, 0.36, 0.85) *
@@ -225,8 +212,6 @@ export function earGeometry(side) {
   return g;
 }
 
-// The editable head and neck overlap below the ears. Give both surfaces
-// the same local tangent through the nape so light crosses the joint smoothly.
 export function shadeNape(face, neck) {
   face.updateWorldMatrix(true, false);
   neck.updateWorldMatrix(true, false);
@@ -294,8 +279,6 @@ export function createFace(
       const sin = Math.sin(angle),
         cos = Math.cos(angle);
       const x = width * sin;
-      // A flatter facial plane ends at the cheekbones. The braincase
-      // continues behind the ears, while the back of the jaw rises to them.
       const mask = Math.exp(-(((t - 0.46) / 0.32) ** 4));
       let z =
         cos > 0
@@ -349,8 +332,6 @@ export function createFace(
           cos;
       }
       if (adultProfile) {
-        // Bring the chin and brow ahead of the ear, then carry the crown
-        // back over the nape. Changes stay continuous around the skull.
         const front = T.MathUtils.smoothstep(cos, -0.48, 0.84);
         const dome = T.MathUtils.smoothstep(t, 0.66, 0.99);
         const chin = 1 - T.MathUtils.smoothstep(t, 0.04, 0.27);

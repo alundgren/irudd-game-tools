@@ -11,7 +11,6 @@ import numpy as np
 from scipy.spatial import cKDTree
 
 
-# ---------------------------------------------------------------- GLB files
 def write_glb(path, vertices, faces, extras=None, copyright_text=None, name="mesh"):
     """Write one indexed triangle mesh as binary glTF 2.0 with byte-quantised smooth normals."""
     v = np.asarray(vertices, dtype="<f4")
@@ -85,7 +84,6 @@ def read_glb(path):
     return vertices, faces, doc["nodes"][0].get("extras", {}), doc["asset"]
 
 
-# ---------------------------------------------------------------- geometry
 def face_normals(vertices, faces):
     a, b, c = (vertices[faces[:, i]] for i in range(3))
     cross = np.cross(b - a, c - a)
@@ -95,7 +93,7 @@ def face_normals(vertices, faces):
 
 def vertex_normals(vertices, faces):
     a, b, c = (vertices[faces[:, i]] for i in range(3))
-    cross = np.cross(b - a, c - a)  # area weighted
+    cross = np.cross(b - a, c - a)
     out = np.zeros_like(vertices, dtype=np.float64)
     for i in range(3):
         np.add.at(out, faces[:, i], cross)
@@ -128,7 +126,6 @@ def closest_on_triangles(p, a, b, c):
         denom = va + vb + vc
         v = np.where(denom != 0, vb / denom, 0.0)
         w = np.where(denom != 0, vc / denom, 0.0)
-        # Region tests in the order of the reference implementation.
         conds = [
             (d1 <= 0) & (d2 <= 0),
             (d3 >= 0) & (d4 <= d3),

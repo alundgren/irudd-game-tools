@@ -25,16 +25,13 @@ test("every facial hair style builds on slight and broad frames, in colour and c
         const group = head(worn(form, name), plain),
           beard = mass(group),
           strands = fibres(group);
-        // Stubble is paint alone. The other styles stand off the skin.
         assert.equal(Boolean(beard), !["None", "Stubble"].includes(name), name);
-        // In colour a moustache is an authored groom and beards use the original lock groom; neither needs loose strands. Clay grows loose strands on its sculpted mass.
         const groom = Boolean(beard?.userData.authoredGroom || beard?.userData.originalBeardGroom);
         assert.equal(groom, Boolean(beard) && !plain, name + " uses a strand groom in colour");
         assert.equal(strands.geometry.index.count > bare, Boolean(beard) && !groom, name + " strands");
         for (const mesh of [beard, strands].filter(Boolean)) {
           for (const value of mesh.geometry.attributes.position.array) assert.ok(Number.isFinite(value));
           assert.equal(Boolean(mesh.geometry.attributes.color), !plain);
-          // The lashes share the strand mesh and also carry the lids' part of a look up or down.
           assert.deepEqual(Object.keys(mesh.morphTargetDictionary).slice(0, 3), ["Blink", "Smile", "BrowLift"]);
         }
       }
@@ -49,7 +46,6 @@ test("a beard sits below the eyes, grows with its style and moves with a smile",
       eyes = group.children.find((mesh) => mesh.userData.eyePiece);
     const box = new T.Box3().setFromBufferAttribute(beard.geometry.attributes.position);
     const eyeBox = new T.Box3().setFromBufferAttribute(eyes.geometry.attributes.position);
-    // Sideburns climb beside the eyes, toward the ear. Between the outer corners nothing reaches the eyes.
     const p = beard.geometry.attributes.position;
     for (let i = 0; i < p.count; i++)
       if (p.getX(i) > eyeBox.min.x && p.getX(i) < eyeBox.max.x) assert.ok(p.getY(i) < eyeBox.min.y, name + " stays below the eyes");
@@ -67,7 +63,6 @@ test("a beard sits below the eyes, grows with its style and moves with a smile",
 });
 
 test("strands are lit as the skin they grow from and face the viewer", () => {
-  // In clay, where a beard grows loose strands on its sculpted mass.
   const strands = fibres(head(worn(adult({ frame: 0.7 }), "Short beard"), true)),
     g = strands.geometry,
     p = g.attributes.position,
@@ -89,7 +84,6 @@ test("strands are lit as the skin they grow from and face the viewer", () => {
     if (b.cross(c).dot(normal) >= 0) front++;
     else back++;
   }
-  // Only the upper lashes are drawn from both sides, so a closed lid still shows them.
   assert.ok(back > 100 && back < 0.35 * front, `${back} back, ${front} front`);
 });
 
@@ -105,7 +99,6 @@ test("growth zones cover the lip, chin and jaw and leave the eyes and forehead b
         assert.ok(value >= 0 && value <= 1);
         total[k] += value;
       });
-      // The face lies on its side in the layout: the brow half is the low end of x.
       if (i < 16) assert.ok(Math.max(...out.slice(0, 2)) < 0.05, "no moustache or chin growth on the upper face");
     }
   assert.ok(total.every((value) => value > 3));
@@ -123,7 +116,6 @@ test("facial hair is a saved style choice that outfits and identity edits keep",
   assert.ok(!validAdultStyle({ facialHair: "Goatee of doom" }));
   const bearded = chooseAdultStyle({ facialHair: "Full beard", hair: "None" }, { outfit: "None" });
   assert.equal(bearded.facialHair, "Full beard");
-  // Seeded complete looks: some broad frames get facial hair, slight frames get none by default.
   const count = (frame) => {
     let grown = 0;
     for (let seed = 1; seed <= 200; seed++) {
@@ -136,7 +128,6 @@ test("facial hair is a saved style choice that outfits and identity edits keep",
   const broad = count(0.9);
   assert.ok(broad > 60 && broad < 140);
   assert.equal(count(-0.9), 0);
-  // The draw comes after the others, so a seed keeps the outfit and hair it gave before.
   const look = dressHuman(form, 8712).humanStyle,
     again = dressHuman(form, 8712).humanStyle;
   assert.deepEqual(look, again);
@@ -173,7 +164,6 @@ test("in colour a moustache is an authored CC0 groom and beards use the original
       assert.equal(beard.userData.authoredGroom, undefined, name + " does not use community Sigmund groom");
       assert.ok(m.map && m.alphaTest > 0 && !m.alphaToCoverage, name + " keeps the fine strands as a clean cutout");
       const triangles = g.index.count / 3;
-      // The rooted short beard spends more on separate hairs than the lock grooms do.
       assert.ok(triangles >= 900 && triangles <= (name === "Short beard" ? 6000 : 3400), `${name}: ${triangles} triangles`);
     } else {
       const spec = authoredFacialHair[name];
@@ -184,10 +174,8 @@ test("in colour a moustache is an authored CC0 groom and beards use the original
       assert.equal(m.map, null);
       assert.equal(m.alphaTest, 0);
     }
-    // Whole cards, kept by the game exporter.
     assert.equal(m.userData.fibreLOD, true, name + " is kept whole in a game model");
     assert.ok(m.side === T.DoubleSide && m.vertexColors && g.attributes.color.count === g.attributes.position.count, name + " material");
-    // The same expressions as the brows and the skin, in the same order, so one set of weights drives them all.
     assert.deepEqual(Object.keys(beard.morphTargetDictionary), ["Blink", "Smile", "BrowLift"]);
     for (const attr of g.morphAttributes.position) assert.equal(attr.count, g.attributes.position.count);
     for (const value of g.attributes.position.array) assert.ok(Number.isFinite(value));
@@ -195,17 +183,14 @@ test("in colour a moustache is an authored CC0 groom and beards use the original
     for (const value of g.attributes.normal.array) assert.ok(Number.isFinite(value));
     assert.equal(mass(head(worn(form, name))).geometry.index.count, g.index.count, name + " is the same every time");
   }
-  // A fuller beard stands further from the face and hangs lower than a short one.
   assert.ok(box(beards["Full beard"]).min.y < box(beards["Short beard"]).min.y - 0.015);
   assert.ok(box(beards["Full beard"]).max.z > box(beards["Short beard"]).max.z + 0.001);
-  // With its strand picture an authored moustache groom is a cutout: the picture's opacity ends each strand.
   const { evaluateHuman, expressionDisplacements } = await import("./human-surface.js");
   const s = evaluateHuman({}),
     names = ["Blink", "Smile", "BrowLift"];
   const cut = authoredFacialMesh("Moustache", s, new Map(Array.from(s.ids, (v, i) => [v, i])), [0, 0, 0], names.map((n) => expressionDisplacements(n, false, s)), names,
     (color) => new T.MeshStandardMaterial({ color }), new T.Color("#44372f"), new T.Texture());
   assert.ok(cut.material.map && cut.material.alphaTest > 0 && cut.material.alphaToCoverage && cut.material.color.getHexString() === "ffffff");
-  // Clay has no picture, so it keeps the sculpted mass. Paint alone has neither.
   assert.equal(mass(head(worn(form, "Short beard"), true)).userData.originalBeardGroom, undefined);
   assert.equal(mass(head(worn(form, "Short beard"), true)).userData.authoredGroom, undefined);
   assert.equal(mass(head(worn(form, "Stubble"))), undefined);

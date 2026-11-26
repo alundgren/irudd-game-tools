@@ -152,7 +152,6 @@ export function recutArmSleeves(form, id, color) {
       radius * r,
       radius * r * 0.98,
     ]);
-    // Overlap the adjacent joint with rounded ends in the rest pose.
     knots.unshift([
       ...end.clone().multiplyScalar(-0.09).toArray(),
       radius * 0.28,
@@ -272,8 +271,6 @@ function bounds(parts, world) {
   }
   return box;
 }
-// Derive sculpt coordinates from the original carrier geometry. Clothing meshes
-// and their visibility can change independently of the wearer's body.
 export function bodyFrame(form) {
   const candidates = form.parts.filter(
     (p) =>
@@ -303,7 +300,6 @@ export function bodyFrame(form) {
       source.filter((p) => p.shape !== "sweep"),
       world,
     );
-  // A horizontal trunk has vertical thickness, even when every knot shares one Y.
   for (const p of source)
     if (p.shape === "sweep") {
       const geom = sweepGeometry(
@@ -627,7 +623,6 @@ export function placeComponent(
   };
 }
 
-/** Match two points in world metres, carrying the entire local hierarchy. */
 export function placeBranch(
   form,
   id,
@@ -684,8 +679,6 @@ export function placeBranch(
   );
   const relative = parentInverse.clone().multiply(transform).multiply(before);
   const pose = fields(relative);
-  // A rotated non-uniform parent can introduce shear. Match the marked point
-  // with the actual TRS that will be saved, including on those hierarchies.
   pose.position = [0, 0, 0];
   const targetLocal = v(point).applyMatrix4(parentInverse);
   pose.position = targetLocal.sub(localPin.applyMatrix4(local(pose))).toArray();
@@ -731,7 +724,6 @@ export function placeBranch(
   return { id: placed.id, form: result };
 }
 
-/** Attach a metric, world-oriented shape at its drawn world pivot. */
 export function attachAt(form, part, parent, pivot) {
   if (!form.parts.some((p) => p.id === parent))
     throw new Error("Choose a visible attachment region.");
@@ -862,8 +854,6 @@ export function fitHand(form, id, color = form.appearance.skin) {
     side = wrist.clone().applyMatrix4(parentFrame).x >= 0 ? 1 : -1;
   const h = p.paint?.height ?? Math.max(0.1, towards.length() * 10);
   const span = MathUtils.clamp(towards.length() * 1.08, 0.076 * h, 0.125 * h);
-  // A painted hand can stop short of the cuff or point across the arm.
-  // Seat the new wrist on the sleeve opening and follow its centreline.
   if (parent?.shape === "sweep" && parent.outfitRole === "forearm") {
     const toParent = parentFrame.clone().invert().multiply(g.world(parent.id));
     const ends = [parent.knots[0], parent.knots.at(-1)].map((k) =>

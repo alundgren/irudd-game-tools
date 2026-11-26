@@ -57,7 +57,6 @@ test("every curly style is one mass of whole clumps a game model can carry, on a
       for (const x of roots.uv) if (!(x >= 0 && x <= 1)) assert.fail("the mass reads outside its picture");
       for (const x of roots.color) if (!(x >= 0 && x <= 1.2)) assert.fail("a colour of the mass is out of range");
       assert.equal(roots.weights.length, p.length / 3 * 4);
-      // The mass faces out of the hair: next to none of its surface is folded over.
       let folded = 0, whole = 0;
       for (let t = 0; t < roots.index.length; t += 3) {
         const [a, b, c] = [0, 1, 2].map((k) => roots.index[t + k] * 3), u = [p[b] - p[a], p[b + 1] - p[a + 1], p[b + 2] - p[a + 2]], v = [p[c] - p[a], p[c + 1] - p[a + 1], p[c + 2] - p[a + 2]];
@@ -66,7 +65,6 @@ test("every curly style is one mass of whole clumps a game model can carry, on a
         if ([a, b, c].every((x) => g[0] * n[x] + g[1] * n[x + 1] + g[2] * n[x + 2] < 0)) folded += area;
       }
       assert.ok(folded < 0.005 * whole, `${label}, ${hair}: ${(100 * folded / whole).toFixed(2)}% of the mass is folded over`);
-      // It covers the scalp to the hairline, stays out of the head and the neck, and leaves the face clear.
       const probe = probeHair(surface, strandGroom(surface, { hair, hairColor: "#44372f" }, material, false, "#96735d", budget));
       assert.ok(probe.scalp.bare <= 0.005, `${label}, ${hair}: ${(100 * probe.scalp.bare).toFixed(2)}% of the scalp is bare`);
       assert.equal(probe.inside.count + probe.inside.below, 0, `${label}, ${hair}: hair inside the head or the neck`);
@@ -88,7 +86,6 @@ test("the picture of the clumps has lit lobes over dark creases, and an edge tha
   const surface = evaluateHuman({});
   for (const hair of ["Afro", "Natural curls"]) {
     const curl = grown(surface, hair).curls, { width, tone, relief } = clumpPixels(curl), row = (y) => { let solid = 0; for (let x = 0; x < width; x++) if (tone[(y * width + x) * 4 + 3] > 128) solid++; return solid / width; };
-    // The middle of the chart is hair with no gaps, lit and shaded, with relief to match.
     let light = 0, dark = 0, high = 0, low = 0, count = 0;
     for (let y = Math.round(0.3 * width); y < 0.8 * width; y++) for (let x = Math.round(0.25 * width); x < 0.75 * width; x++) {
       const at = (y * width + x) * 4;
@@ -97,11 +94,9 @@ test("the picture of the clumps has lit lobes over dark creases, and an edge tha
     }
     assert.ok(light > 0.15 * count && dark > 0.07 * count, `${hair}: lit ${light}, dark ${dark} of ${count}`);
     assert.ok(high > 0.08 * count && low > 0.08 * count, `${hair}: raised ${high}, sunken ${low} of ${count}`);
-    // The strip along the top is the hairline: whole hair at its foot, parted hairs half way, clear at the tips.
     const [, foot] = clumpEdge(0.5, 1), [, tip] = clumpEdge(0.5, 0), mid = (foot + tip) / 2;
     assert.ok(row(Math.floor(foot * width)) > 0.97 && row(Math.floor(tip * width)) < 0.1, `${hair}: the edge runs from hair to none`);
     assert.ok(row(Math.floor(mid * width)) > 0.2 && row(Math.floor(mid * width)) < 0.9, `${hair}: the edge is parted hairs half way`);
-    // The chart of the mass keeps clear of the strip.
     for (const q of [[0, 1, 0], [0, 0, 1], [1, 0, 0], [0, -0.5, -0.866], [0.6, -0.64, 0.48]]) {
       const [u, v] = clumpChart(q);
       assert.ok(u >= 0 && u <= 1 && v > foot + 0.01 && v <= 1, `${q} lies in the chart`);
@@ -118,7 +113,6 @@ test("in clay the raised volume is the hair, and in colour it wears the picture 
     assert.equal(colour.length, 1, `${hair} is one mesh`);
     const mass = colour[0].material;
     assert.ok(colour[0].userData.hairRoots && mass.map?.name === "Hair clumps" && mass.bumpMap?.name === "Hair clump relief" && mass.vertexColors);
-    // The hairline is cut out of the picture, and the exporter keeps every clump as built.
     assert.ok(mass.alphaTest > 0 && mass.side === T.DoubleSide && mass.userData.fibreLOD && mass.userData.hairCards);
   }
 });

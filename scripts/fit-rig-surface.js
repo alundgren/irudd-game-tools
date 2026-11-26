@@ -80,8 +80,6 @@ export async function fitRig(bytes) {
     const t = Math.min(1, i / 6, (levels - 1 - i) / 6);
     const w = t * t * (3 - 2 * t);
     return row.map((r, j) => {
-      // Above the axilla a lateral ray can exit through the upper arm.
-      // Fade that arc back into the native shoulder attachment.
       const side = Math.abs(Math.sin((2 * Math.PI * j) / rays));
       const lateral = Math.max(0, Math.min(1, (side - 0.7) / 0.24));
       const high = Math.max(

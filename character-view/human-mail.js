@@ -9,18 +9,8 @@ import { clothChart } from "./human-cloth-swatch.js";
 
 import { Piece, add, mix, raycaster } from "./human-style-kit.js";
 
-// Real mail is small: a ring every eleven millimetres along a course and a course every five and a half. A whole
-// collar drawn once into a game atlas would leave each ring a texel or two, which shimmers. The standard is
-// therefore built from square cells of two rings by four courses, and every cell shows the same small picture,
-// turned over at each cell line. The picture is the same on both sides of such a line, so the rings run on
-// unbroken, and each keeps tens of texels however small the atlas is.
 export const mailPitch = 0.011, mailCourse = 0.0055, mailCell = [2 * mailPitch, 4 * mailCourse];
 
-/**
- * A mail standard: a short mantle of mail that hangs from a leather band round the base of the neck, open at the
- * throat, and lies over the collarbones, the shoulders and the top of the breastplate. Returns the mail, the
- * leather band with its strap across the opening, and the buckle.
- */
 export function mailStandard(body, m, shells, columns) {
   const k = m.k,
     neck = m.neck,
@@ -44,7 +34,6 @@ export function mailStandard(body, m, shells, columns) {
   ];
   const outer = [],
     rows = 10;
-  // The opening at the throat is widest at the band and closes a third of the way down.
   const opening = v => 0.012 + 0.2 * Math.max(0, 1 - v / 0.36) ** 1.4;
   for (let i = 0; i <= rows; i++) {
     const v = i / rows,
@@ -54,7 +43,6 @@ export function mailStandard(body, m, shells, columns) {
       const a = mix(frontGap, 2 * Math.PI - frontGap, j / columns);
       const x = Math.sin(a),
         z = Math.cos(a);
-      // The band lies at the base of the neck: a little over the joint behind, under it at the throat.
       const throatY=neck[1]+(.02-.036*Math.max(0,z)**2)*k;
       const skinRadius=neckRay([neck[0],throatY,neck[2]],[x,0,z],.18*k);
       const r=(Number.isFinite(skinRadius)?skinRadius:.065*k)+.009*k;
@@ -76,8 +64,6 @@ export function mailStandard(body, m, shells, columns) {
     }
     outer.push(outside);
   }
-  // Each link bridges a small hollow in the layer below. Preserve the largest
-  // clearances over the ridges, including when the plate is simplified.
   for (let pass = 0; pass < 3; pass++) {
     const radius = outer.map((row) =>
       row.map((p) =>
@@ -98,7 +84,6 @@ export function mailStandard(body, m, shells, columns) {
         outer[i][j] = add(outer[i][j], dir, lift);
       }
   }
-  // The measured surface, anywhere on it: v from the band down, t round from one side of the opening to the other.
   const surface = (v, t) => {
     const fi = Math.min(rows - 1e-6, Math.max(0, v * rows)), fj = Math.min(columns - 1e-6, Math.max(0, t * columns)), i = Math.floor(fi), j = Math.floor(fj), p = fi - i, q = fj - j;
     return [0, 1, 2].map(d => mix(mix(outer[i][j][d], outer[i][j + 1][d], q), mix(outer[i + 1][j][d], outer[i + 1][j + 1][d], q), p));
@@ -106,9 +91,6 @@ export function mailStandard(body, m, shells, columns) {
   const far = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
   const skin = body.rigid("spine_03"), mail = new Piece();
   mail.mailUV = [];
-  // Bands of whole cells from the band down. Each band has as many cells round as its own length asks, so the
-  // rings keep their size where the mantle spreads over the shoulders. The last band is a brass border of half a cell.
-  // The mantle is as deep all round as its shallowest place allows, so its hem is even and every cell as tall.
   const fine = 40, run = Array.from({ length: columns + 1 }, (_, j) => {
     const sum = [0];
     for (let i = 0; i < fine; i++) sum.push(sum[i] + far(surface(i / fine, j / columns), surface((i + 1) / fine, j / columns)));
@@ -131,7 +113,6 @@ export function mailStandard(body, m, shells, columns) {
     for (let j = 0; j < 48; j++) round += (far(hung(band, j / 48), hung(band, (j + 1) / 48)) + far(hung(band + 1, j / 48), hung(band + 1, (j + 1) / 48))) / 2;
     const cells = Math.max(6, Math.round(round / (mailCell[0] * k))), base = mail.count;
     for (const row of [0, 1]) for (let j = 0; j <= cells; j++) {
-      // Each band lies a hair over the one above it at their shared line, as a course of rings does.
       const p = hung(band + row, j / cells), out = [0, 1, 2].map(d => p[d] - centre[d]), long = Math.hypot(...out) || 1;
       mail.vertex(add(p, out, (row ? 0 : 0.0006 * k) / long), skin);
       mail.mailUV.push((brass ? 0.5 : 0) + 0.5 * (0.02 + 0.96 * (j % 2)), brass && row ? 0.5 : 0.01 + 0.98 * ((band + row) % 2));
@@ -141,7 +122,6 @@ export function mailStandard(body, m, shells, columns) {
       mail.tri.push(a, b, c, b, d, c);
     }
   }
-  // The leather band the mail hangs from, and its strap across the opening with a buckle.
   const band = new Piece(), buckle = new Piece(), steps = Math.max(12, Math.round(columns * 0.6));
   const line = Array.from({ length: steps + 1 }, (_, j) => surface(0, j / steps)), under = Array.from({ length: steps + 1 }, (_, j) => surface(0.07, j / steps));
   const rings = line.map((p, j) => {
@@ -170,9 +150,6 @@ export function mailStandard(body, m, shells, columns) {
   return { mail, band, buckle };
 }
 
-// The picture of one cell: two rings by four courses of riveted rings, seen flat. Alternate courses are set half a
-// ring along and lie a little lower, as the rings of real mail lean one way and then the other. The picture is
-// its own mirror image at every edge. Returns the height of the wire at a place, 0 in the gaps.
 export function ringCell(u, v) {
   const x = u * 2, y = v * 4;
   let high = 0;
@@ -185,8 +162,6 @@ export function ringCell(u, v) {
   return high;
 }
 
-// Adjacent courses of mail lean in opposite directions. At each crossing
-// choose the wire nearest the viewer, leaving the dark lining in the gaps.
 function link(x, y) {
   const pitch = 0.0144,
     step = 0.0066;
@@ -214,8 +189,6 @@ function link(x, y) {
   return { shade, ridge };
 }
 
-// Unroll each course with its measured circumference. As the standard spreads
-// over the shoulders it gains links instead of stretching the ones at the neck.
 function standardChart(position, columns) {
   const outer = position.count / 2,
     rows = outer / columns,
@@ -256,7 +229,6 @@ function standardChart(position, columns) {
   };
 }
 
-/** The standard: every cell of the mesh shows the one cell picture, in iron or, on the right half, in brass. */
 function finishStandard(mesh, coordinates) {
   const mat = mesh.material.clone(), lining = mat.color.clone(), wire = new Color("#a3a3a0").lerp(lining, 0.14);
   mat.name = "Mail standard";
@@ -264,7 +236,6 @@ function finishStandard(mesh, coordinates) {
   mat.roughness = 0.8;
   mat.metalness = 0.85;
   mesh.geometry.setAttribute("uv", new Float32BufferAttribute(coordinates, 2));
-  // The cell lines carry the picture's mirror lines, so a game model keeps every point of the standard.
   mesh.geometry.setAttribute("lodAnchor", new Uint8BufferAttribute(new Uint8Array(mesh.geometry.attributes.position.count).fill(1), 1));
   if (typeof document !== "undefined") {
     const size = 256, texture = surface => {
@@ -274,7 +245,6 @@ function finishStandard(mesh, coordinates) {
       const dye = lining.clone().convertLinearToSRGB().toArray(), steel = wire.clone().convertLinearToSRGB().toArray(), brass = [0.76, 0.6, 0.36];
       for (let y = 0, p = 0; y < size; y++) for (let x = 0; x < size; x++, p += 4) {
         const half = size / 2, golden = x >= half, u = ((x % half) + 0.5) / half, v = 1 - (y + 0.5) / size;
-        // Four samples to a texel keep the thin wire even at this size.
         let high = 0, cover = 0;
         for (const [ox, oy] of [[-0.25, -0.25], [0.25, -0.25], [-0.25, 0.25], [0.25, 0.25]]) { const h = ringCell(u + ox / half, v + oy / size); high += h / 4; cover += (h > 0) / 4; }
         const metal = golden ? brass : steel;
@@ -301,10 +271,6 @@ function finishStandard(mesh, coordinates) {
   mesh.material = mat;
 }
 
-/**
- * `game` draws the shirt for the small place it has in a game atlas: at a third of the size, each texel the
- * average of nine places, so the courses arrive there even instead of beating against the texels.
- */
 export function finishMail(mesh, landmarks, columns, coordinates = null, game = false) {
   if (coordinates) return finishStandard(mesh, coordinates);
   const mat = mesh.material.clone();
@@ -334,7 +300,6 @@ export function finishMail(mesh, landmarks, columns, coordinates = null, game = 
         const v = chart.v0 + chart.dv * (1 - (y + 0.5) / canvas.height);
         for (let x = 0; x < canvas.width; x++, p += 4) {
           const u = chart.u0 + (chart.du * (x + 0.5)) / canvas.width;
-          // Alternate a brass and iron course along the edge of the standard.
           const course = Math.round((v - 0.01 * chart.dv) / 0.0066);
           const bound = columns && (course === 1 || course === 3);
           if (game) {

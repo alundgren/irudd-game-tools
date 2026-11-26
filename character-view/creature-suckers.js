@@ -1,8 +1,6 @@
 import { BufferGeometry, Color, Float32BufferAttribute, Vector3 } from "three";
 import { sweepRings } from "./surface.js";
 
-// The oral side is transported with the arm, so the cups face out of the curl.
-// Each lip stands proud of its own recessed centre and sits inside the arm at its base.
 export function suckerGeometry(knots, rows, colour, pale, game) {
   const rings = sweepRings(knots);
   const first = rings[0], oral = new Vector3(0, -0.78, 0.62);

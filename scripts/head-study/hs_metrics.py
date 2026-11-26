@@ -12,7 +12,7 @@ that head, so they are not millimetres on the sitter unless the scale is 1.
 import numpy as np
 from scipy.spatial import cKDTree
 
-import _paths  # noqa: F401
+import _paths
 from hb_mesh import Surface, sample_surface
 from hs_generator import REGIONS
 from hs_targets import boundary_vertices
@@ -44,7 +44,6 @@ class Scored:
         _, _, face, bary = reference["surface"].closest(self.points)
         corner = topology.smooth_faces[face]
         self.point_region = topology.smooth_region[corner[np.arange(len(corner)), bary.argmax(1)]]
-        # Generated samples: fixed faces and barycentric weights, so they follow the surface as it changes.
         _, self.gen_face, self.gen_bary = sample_surface(reference_smooth, topology.smooth_faces, SAMPLES, 202)
         corner = topology.smooth_faces[self.gen_face]
         self.gen_region = topology.smooth_region[corner[np.arange(len(corner)), self.gen_bary.argmax(1)]]
@@ -63,15 +62,13 @@ class Scored:
 
     def score(self, smooth):
         g = self.generated(smooth)
-        # Generated surface -> scan. Samples whose closest scan point is on the scan's open edge have no partner.
         points = np.einsum("pk,pkd->pd", self.gen_bary, smooth[self.topology.smooth_faces[self.gen_face]])
         d_gs, closest, face, bary = self.surface.closest(points)
         scan_normal = self.surface.smooth_normal(face, bary)
-        signed = np.einsum("ij,ij->i", points - closest, scan_normal)  # positive: generated lies outside the scan
+        signed = np.einsum("ij,ij->i", points - closest, scan_normal)
         gen_normal = g["surface"].smooth_normal(self.gen_face, self.gen_bary)
         angle = np.degrees(np.arccos(np.clip(np.einsum("ij,ij->i", gen_normal, scan_normal), -1, 1)))
         valid_gs = ~self.open_face[face]
-        # Scan -> generated surface.
         d_sg, _, face, _ = g["surface"].closest(self.points)
         valid_sg = ~g["cut_face"][face]
 
@@ -118,7 +115,7 @@ def section(vertices, faces, axis=0, value=0.0):
         cut = (s[:, i] < 0) != (s[:, j] < 0)
         t = np.where(cut, s[:, i] / np.where(cut, s[:, i] - s[:, j], 1.0), np.nan)
         segments.append(tri[:, i] + t[:, None] * (tri[:, j] - tri[:, i]))
-    points = np.stack(segments, axis=1)  # two of the three are finite
+    points = np.stack(segments, axis=1)
     order = np.argsort(np.isnan(points[:, :, 0]), axis=1, kind="stable")[:, :2]
     return points[np.arange(len(points))[:, None], order]
 

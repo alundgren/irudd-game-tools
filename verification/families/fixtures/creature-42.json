@@ -1,0 +1,1825 @@
+{
+  "assets": [],
+  "catalog": [],
+  "extensions": {},
+  "features": {
+    "character.appearance": {
+      "face": 2,
+      "hair": "Sweep",
+      "hairColor": "#372e2a",
+      "palette": "Clay",
+      "skin": "#956449"
+    },
+    "character.origin": {
+      "generator": 6,
+      "kind": "creature",
+      "seed": 42
+    },
+    "outfit.wardrobe": {
+      "outfit": "Work clothes"
+    }
+  },
+  "format": "irudd.character",
+  "id": "doc-creature-42",
+  "label": "creature-42",
+  "parts": [
+    {
+      "color": "#5d57b7",
+      "features": {
+        "figure.assembly": {
+          "order": 45
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.026, 0.059],
+            [0, 0.07000000000000006, -0.009000000000000008, 0.02, 0.05],
+            [0, 0.2275415582023561, -0.04500000000000004, 0.003, 0.009]
+          ]
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-dorsal-fin-1",
+      "label": "dorsal fin 1",
+      "parent": "p-spine",
+      "position": [0, 0.12039327241729891, 0.12123797186464069],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#74b481",
+      "features": {
+        "figure.assembly": {
+          "order": 46
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.026, 0.059],
+            [0, 0.07000000000000006, -0.009000000000000008, 0.02, 0.05],
+            [0, 0.12099221156910056, -0.044999999999999984, 0.003, 0.009]
+          ]
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-dorsal-fin-2",
+      "label": "dorsal fin 2",
+      "parent": "p-spine",
+      "position": [0, 0.3311908301590344, 0.5253645447467764],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#5d57b7",
+      "features": {
+        "figure.assembly": {
+          "order": 47
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.026, 0.059],
+            [0, 0.07000000000000006, -0.009000000000000008, 0.02, 0.05],
+            [0, 0.1657216375018471, -0.044999999999999984, 0.003, 0.009]
+          ]
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-dorsal-fin-3",
+      "label": "dorsal fin 3",
+      "parent": "p-spine",
+      "position": [0, 0.348080199391845, 0.929491117628912],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#5d57b7",
+      "features": {
+        "figure.assembly": {
+          "order": 41
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-eye-1-0",
+      "label": "eye -1/0",
+      "parent": "p-head",
+      "position": [-0.4035087719298246, 0.2043010752688175, 0.1928571428571426],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.24561403508771934, 0.3010752688172043, 0.20714285714285716]
+    },
+    {
+      "color": "#5d57b7",
+      "features": {
+        "figure.assembly": {
+          "order": 43
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-eye-1-0-2",
+      "label": "eye 1/0",
+      "parent": "p-head",
+      "position": [0.4035087719298246, 0.2043010752688175, 0.1928571428571426],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.24561403508771934, 0.3010752688172043, 0.20714285714285716]
+    },
+    {
+      "color": "#74b481",
+      "features": {
+        "figure.assembly": {
+          "order": 39
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "motion.role": {
+          "role": "head"
+        },
+        "outfit.wear": {
+          "role": "head"
+        }
+      },
+      "id": "p-head",
+      "label": "head",
+      "parent": "p-neck",
+      "position": [0, 0.42657923612817517, 0.5442033957503737],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.26064153184737077, 0.21262861808601302, 0.32008609174238517]
+    },
+    {
+      "color": "#303e28",
+      "features": {
+        "figure.assembly": {
+          "order": 10
+        },
+        "figure.finish": {
+          "surface": "leather"
+        },
+        "motion.role": {
+          "role": "foot"
+        },
+        "outfit.wear": {
+          "role": "foot"
+        }
+      },
+      "id": "p-left-1-foot",
+      "label": "Left 1 foot",
+      "parent": "p-left-1-shin",
+      "position": [-0.0034982342484639606, -0.2883307662945806, 0.041724043046124315],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.15775671664446125, 0.09, 0.1920516550454311]
+    },
+    {
+      "color": "#5a784a",
+      "features": {
+        "figure.assembly": {
+          "order": 9
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.045726584534626455, 0.045726584534626455],
+            [
+              -0.0034982342484639606, -0.1568615370798026, -0.08000000000000007,
+              0.03658126762770116, 0.03200860917423852
+            ],
+            [
+              -0.0034982342484639606, -0.2683307662945806, 0.006724043046124284,
+              0.02743595072077587, 0.03200860917423852
+            ]
+          ]
+        },
+        "motion.role": {
+          "role": "shin"
+        },
+        "outfit.wear": {
+          "role": "shin"
+        }
+      },
+      "id": "p-left-1-shin",
+      "label": "Left 1 shin",
+      "parent": "p-left-1-thigh",
+      "position": [0.18479037159760478, -0.32025897153793037, 0.025000000000000022],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#5a784a",
+      "features": {
+        "figure.assembly": {
+          "order": 8
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.08002152293559629, 0.07316253525540233],
+            [
+              0.19510176658735143, -0.21568461348472862, 0.08999999999999997, 0.061730889121745715,
+              0.05944455989501439
+            ],
+            [
+              0.18479037159760478, -0.32025897153793037, 0.025000000000000022, 0.045726584534626455,
+              0.045726584534626455
+            ]
+          ]
+        },
+        "motion.role": {
+          "role": "thigh"
+        },
+        "outfit.wear": {
+          "role": "thigh"
+        }
+      },
+      "id": "p-left-1-thigh",
+      "label": "Left 1 thigh",
+      "parent": "p-spine",
+      "position": [0.14861139973753598, 0.09113931058483404, 0.21216645076312124],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#74b481",
+      "features": {
+        "figure.assembly": {
+          "order": 11
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.014, 0.013],
+            [-0.017500000000000016, -0.019999999999999997, 0.04999999999999999, 0.012, 0.01],
+            [-0.024500000000000022, -0.026, 0.08500000000000002, 0.002, 0.003]
+          ]
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-left-1-toe-1",
+      "label": "Left 1 toe 1",
+      "parent": "p-left-1-shin",
+      "position": [-0.038498234248463936, -0.2893307662945806, 0.05672404304612427],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#74b481",
+      "features": {
+        "figure.assembly": {
+          "order": 12
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.014, 0.013],
+            [0, -0.019999999999999997, 0.04999999999999999, 0.012, 0.01],
+            [0, -0.026, 0.08500000000000002, 0.002, 0.003]
+          ]
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-left-1-toe-2",
+      "label": "Left 1 toe 2",
+      "parent": "p-left-1-shin",
+      "position": [-0.0034982342484639606, -0.2893307662945806, 0.05672404304612427],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#74b481",
+      "features": {
+        "figure.assembly": {
+          "order": 13
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.014, 0.013],
+            [0.017500000000000016, -0.019999999999999997, 0.04999999999999999, 0.012, 0.01],
+            [0.024500000000000022, -0.026, 0.08500000000000002, 0.002, 0.003]
+          ]
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-left-1-toe-3",
+      "label": "Left 1 toe 3",
+      "parent": "p-left-1-shin",
+      "position": [0.031501765751536015, -0.2893307662945806, 0.05672404304612427],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#303e28",
+      "features": {
+        "figure.assembly": {
+          "order": 22
+        },
+        "figure.finish": {
+          "surface": "leather"
+        },
+        "motion.role": {
+          "role": "foot"
+        },
+        "outfit.wear": {
+          "role": "foot"
+        }
+      },
+      "id": "p-left-2-foot",
+      "label": "Left 2 foot",
+      "parent": "p-left-2-shin",
+      "position": [-0.004586159214237662, -0.3510167190142209, -0.07434669816633688],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.15775671664446125, 0.09, 0.1920516550454311]
+    },
+    {
+      "color": "#5a784a",
+      "features": {
+        "figure.assembly": {
+          "order": 21
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.045726584534626455, 0.045726584534626455],
+            [
+              -0.004586159214237662, -0.18636080894786863, -0.08, 0.03658126762770116,
+              0.03200860917423852
+            ],
+            [
+              -0.004586159214237662, -0.33101671901422086, -0.10934669816633688,
+              0.02743595072077587, 0.03200860917423852
+            ]
+          ]
+        },
+        "motion.role": {
+          "role": "shin"
+        },
+        "outfit.wear": {
+          "role": "shin"
+        }
+      },
+      "id": "p-left-2-shin",
+      "label": "Left 2 shin",
+      "parent": "p-left-2-thigh",
+      "position": [0.19651578511761028, -0.38048665160189843, 0.025],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#5a784a",
+      "features": {
+        "figure.assembly": {
+          "order": 20
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.08002152293559629, 0.07316253525540233],
+            [
+              0.20718982176261483, -0.2562461123033193, 0.09, 0.061730889121745715,
+              0.05944455989501439
+            ],
+            [
+              0.19651578511761028, -0.38048665160189843, 0.025, 0.045726584534626455,
+              0.045726584534626455
+            ]
+          ]
+        },
+        "motion.role": {
+          "role": "thigh"
+        },
+        "outfit.wear": {
+          "role": "thigh"
+        }
+      },
+      "id": "p-left-2-thigh",
+      "label": "Left 2 thigh",
+      "parent": "p-spine",
+      "position": [0.14861139973753598, 0.21405294336844238, 0.7577373241540044],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#74b481",
+      "features": {
+        "figure.assembly": {
+          "order": 23
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.014, 0.013],
+            [-0.01749999999999996, -0.019999999999999997, 0.05, 0.012, 0.01],
+            [-0.024499999999999966, -0.026, 0.085, 0.002, 0.003]
+          ]
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-left-2-toe-1",
+      "label": "Left 2 toe 1",
+      "parent": "p-left-2-shin",
+      "position": [-0.03958615921423769, -0.3520167190142209, -0.05934669816633687],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#74b481",
+      "features": {
+        "figure.assembly": {
+          "order": 24
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.014, 0.013],
+            [0, -0.019999999999999997, 0.05, 0.012, 0.01],
+            [0, -0.026, 0.085, 0.002, 0.003]
+          ]
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-left-2-toe-2",
+      "label": "Left 2 toe 2",
+      "parent": "p-left-2-shin",
+      "position": [-0.004586159214237662, -0.3520167190142209, -0.05934669816633687],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#74b481",
+      "features": {
+        "figure.assembly": {
+          "order": 25
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.014, 0.013],
+            [0.01749999999999996, -0.019999999999999997, 0.05, 0.012, 0.01],
+            [0.024499999999999966, -0.026, 0.085, 0.002, 0.003]
+          ]
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-left-2-toe-3",
+      "label": "Left 2 toe 3",
+      "parent": "p-left-2-shin",
+      "position": [0.03041384078576237, -0.3520167190142209, -0.05934669816633687],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#303e28",
+      "features": {
+        "figure.assembly": {
+          "order": 34
+        },
+        "figure.finish": {
+          "surface": "leather"
+        },
+        "motion.role": {
+          "role": "foot"
+        },
+        "outfit.wear": {
+          "role": "foot"
+        }
+      },
+      "id": "p-left-3-foot",
+      "label": "Left 3 foot",
+      "parent": "p-left-3-shin",
+      "position": [-0.0032017533648061036, -0.2883307662945806, 0.06734736240468919],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.15775671664446125, 0.09, 0.1920516550454311]
+    },
+    {
+      "color": "#5a784a",
+      "features": {
+        "figure.assembly": {
+          "order": 33
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.045726584534626455, 0.045726584534626455],
+            [
+              -0.0032017533648061036, -0.1568615370798026, -0.08000000000000002,
+              0.03658126762770116, 0.03200860917423852
+            ],
+            [
+              -0.0032017533648061036, -0.2683307662945806, 0.03234736240468916, 0.02743595072077587,
+              0.03200860917423852
+            ]
+          ]
+        },
+        "motion.role": {
+          "role": "shin"
+        },
+        "outfit.wear": {
+          "role": "shin"
+        }
+      },
+      "id": "p-left-3-shin",
+      "label": "Left 3 shin",
+      "parent": "p-left-3-thigh",
+      "position": [0.18159496651818044, -0.32025897153793037, 0.025000000000000022],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#5a784a",
+      "features": {
+        "figure.assembly": {
+          "order": 32
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.08002152293559629, 0.07316253525540233],
+            [
+              0.19180753454670776, -0.21568461348472862, 0.08999999999999997, 0.061730889121745715,
+              0.05944455989501439
+            ],
+            [
+              0.18159496651818044, -0.32025897153793037, 0.025000000000000022, 0.045726584534626455,
+              0.045726584534626455
+            ]
+          ]
+        },
+        "motion.role": {
+          "role": "thigh"
+        },
+        "outfit.wear": {
+          "role": "thigh"
+        }
+      },
+      "id": "p-left-3-thigh",
+      "label": "Left 3 thigh",
+      "parent": "p-spine",
+      "position": [0.14861139973753598, 0.09113931058483404, 1.3033081975448875],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#74b481",
+      "features": {
+        "figure.assembly": {
+          "order": 35
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.014, 0.013],
+            [-0.01749999999999996, -0.019999999999999997, 0.04999999999999993, 0.012, 0.01],
+            [-0.024499999999999966, -0.026, 0.08499999999999996, 0.002, 0.003]
+          ]
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-left-3-toe-1",
+      "label": "Left 3 toe 1",
+      "parent": "p-left-3-shin",
+      "position": [-0.038201753364806135, -0.2893307662945806, 0.0823473624046892],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#74b481",
+      "features": {
+        "figure.assembly": {
+          "order": 36
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.014, 0.013],
+            [0, -0.019999999999999997, 0.04999999999999993, 0.012, 0.01],
+            [0, -0.026, 0.08499999999999996, 0.002, 0.003]
+          ]
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-left-3-toe-2",
+      "label": "Left 3 toe 2",
+      "parent": "p-left-3-shin",
+      "position": [-0.0032017533648061036, -0.2893307662945806, 0.0823473624046892],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#74b481",
+      "features": {
+        "figure.assembly": {
+          "order": 37
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.014, 0.013],
+            [0.01749999999999996, -0.019999999999999997, 0.04999999999999993, 0.012, 0.01],
+            [0.024499999999999966, -0.026, 0.08499999999999996, 0.002, 0.003]
+          ]
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-left-3-toe-3",
+      "label": "Left 3 toe 3",
+      "parent": "p-left-3-shin",
+      "position": [0.03179824663519393, -0.2893307662945806, 0.0823473624046892],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#5a784a",
+      "features": {
+        "figure.assembly": {
+          "order": 40
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-muzzle",
+      "label": "muzzle",
+      "parent": "p-head",
+      "position": [0, -0.15053763440860168, 0.37857142857142834],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.6140350877192983, 0.5483870967741935, 0.6714285714285714]
+    },
+    {
+      "color": "#5a784a",
+      "features": {
+        "figure.assembly": {
+          "order": 38
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.13032076592368538, 0.11888911979002878],
+            [0, 0.19718472569241963, 0.23283530126581897, 0.08916683984252158, 0.08002152293559629],
+            [0, 0.42657923612817517, 0.5442033957503737, 0.07087620602867101, 0.08002152293559629]
+          ]
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-neck",
+      "label": "neck",
+      "parent": "p-spine",
+      "position": [0, 0.08501067494294301, 1.3184629440279676],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#182c2a",
+      "features": {
+        "figure.assembly": {
+          "order": 42
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-pupil-1-0",
+      "label": "pupil -1/0",
+      "parent": "p-head",
+      "position": [-0.43803895572751, 0.2043010752688175, 0.27857142857142864],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.08771929824561404, 0.1827956989247312, 0.05]
+    },
+    {
+      "color": "#182c2a",
+      "features": {
+        "figure.assembly": {
+          "order": 44
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-pupil-1-0-2",
+      "label": "pupil 1/0",
+      "parent": "p-head",
+      "position": [0.43803895572751, 0.2043010752688175, 0.27857142857142864],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.08771929824561404, 0.1827956989247312, 0.05]
+    },
+    {
+      "color": "#303e28",
+      "features": {
+        "figure.assembly": {
+          "order": 4
+        },
+        "figure.finish": {
+          "surface": "leather"
+        },
+        "motion.role": {
+          "role": "foot"
+        },
+        "outfit.wear": {
+          "role": "foot"
+        }
+      },
+      "id": "p-right-1-foot",
+      "label": "Right 1 foot",
+      "parent": "p-right-1-shin",
+      "position": [0.0034982342484639606, -0.2883307662945806, 0.041724043046124315],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.15775671664446125, 0.09, 0.1920516550454311]
+    },
+    {
+      "color": "#5a784a",
+      "features": {
+        "figure.assembly": {
+          "order": 3
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.045726584534626455, 0.045726584534626455],
+            [
+              0.0034982342484639606, -0.1568615370798026, -0.08000000000000007, 0.03658126762770116,
+              0.03200860917423852
+            ],
+            [
+              0.0034982342484639606, -0.2683307662945806, 0.006724043046124284, 0.02743595072077587,
+              0.03200860917423852
+            ]
+          ]
+        },
+        "motion.role": {
+          "role": "shin"
+        },
+        "outfit.wear": {
+          "role": "shin"
+        }
+      },
+      "id": "p-right-1-shin",
+      "label": "Right 1 shin",
+      "parent": "p-right-1-thigh",
+      "position": [-0.18479037159760478, -0.32025897153793037, 0.025000000000000022],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#5a784a",
+      "features": {
+        "figure.assembly": {
+          "order": 2
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.08002152293559629, 0.07316253525540233],
+            [
+              -0.19510176658735143, -0.21568461348472862, 0.08999999999999997, 0.061730889121745715,
+              0.05944455989501439
+            ],
+            [
+              -0.18479037159760478, -0.32025897153793037, 0.025000000000000022,
+              0.045726584534626455, 0.045726584534626455
+            ]
+          ]
+        },
+        "motion.role": {
+          "role": "thigh"
+        },
+        "outfit.wear": {
+          "role": "thigh"
+        }
+      },
+      "id": "p-right-1-thigh",
+      "label": "Right 1 thigh",
+      "parent": "p-spine",
+      "position": [-0.14861139973753598, 0.09113931058483404, 0.21216645076312124],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#74b481",
+      "features": {
+        "figure.assembly": {
+          "order": 5
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.014, 0.013],
+            [-0.017500000000000016, -0.019999999999999997, 0.04999999999999999, 0.012, 0.01],
+            [-0.024500000000000022, -0.026, 0.08500000000000002, 0.002, 0.003]
+          ]
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-right-1-toe-1",
+      "label": "Right 1 toe 1",
+      "parent": "p-right-1-shin",
+      "position": [-0.031501765751536015, -0.2893307662945806, 0.05672404304612427],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#74b481",
+      "features": {
+        "figure.assembly": {
+          "order": 6
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.014, 0.013],
+            [0, -0.019999999999999997, 0.04999999999999999, 0.012, 0.01],
+            [0, -0.026, 0.08500000000000002, 0.002, 0.003]
+          ]
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-right-1-toe-2",
+      "label": "Right 1 toe 2",
+      "parent": "p-right-1-shin",
+      "position": [0.0034982342484639606, -0.2893307662945806, 0.05672404304612427],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#74b481",
+      "features": {
+        "figure.assembly": {
+          "order": 7
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.014, 0.013],
+            [0.017500000000000016, -0.019999999999999997, 0.04999999999999999, 0.012, 0.01],
+            [0.024500000000000022, -0.026, 0.08500000000000002, 0.002, 0.003]
+          ]
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-right-1-toe-3",
+      "label": "Right 1 toe 3",
+      "parent": "p-right-1-shin",
+      "position": [0.038498234248463936, -0.2893307662945806, 0.05672404304612427],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#303e28",
+      "features": {
+        "figure.assembly": {
+          "order": 16
+        },
+        "figure.finish": {
+          "surface": "leather"
+        },
+        "motion.role": {
+          "role": "foot"
+        },
+        "outfit.wear": {
+          "role": "foot"
+        }
+      },
+      "id": "p-right-2-foot",
+      "label": "Right 2 foot",
+      "parent": "p-right-2-shin",
+      "position": [0.004586159214237662, -0.3510167190142209, -0.07434669816633688],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.15775671664446125, 0.09, 0.1920516550454311]
+    },
+    {
+      "color": "#5a784a",
+      "features": {
+        "figure.assembly": {
+          "order": 15
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.045726584534626455, 0.045726584534626455],
+            [
+              0.004586159214237662, -0.18636080894786863, -0.08, 0.03658126762770116,
+              0.03200860917423852
+            ],
+            [
+              0.004586159214237662, -0.33101671901422086, -0.10934669816633688, 0.02743595072077587,
+              0.03200860917423852
+            ]
+          ]
+        },
+        "motion.role": {
+          "role": "shin"
+        },
+        "outfit.wear": {
+          "role": "shin"
+        }
+      },
+      "id": "p-right-2-shin",
+      "label": "Right 2 shin",
+      "parent": "p-right-2-thigh",
+      "position": [-0.19651578511761028, -0.38048665160189843, 0.025],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#5a784a",
+      "features": {
+        "figure.assembly": {
+          "order": 14
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.08002152293559629, 0.07316253525540233],
+            [
+              -0.20718982176261483, -0.2562461123033193, 0.09, 0.061730889121745715,
+              0.05944455989501439
+            ],
+            [
+              -0.19651578511761028, -0.38048665160189843, 0.025, 0.045726584534626455,
+              0.045726584534626455
+            ]
+          ]
+        },
+        "motion.role": {
+          "role": "thigh"
+        },
+        "outfit.wear": {
+          "role": "thigh"
+        }
+      },
+      "id": "p-right-2-thigh",
+      "label": "Right 2 thigh",
+      "parent": "p-spine",
+      "position": [-0.14861139973753598, 0.21405294336844238, 0.7577373241540044],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#74b481",
+      "features": {
+        "figure.assembly": {
+          "order": 17
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.014, 0.013],
+            [-0.01749999999999996, -0.019999999999999997, 0.05, 0.012, 0.01],
+            [-0.024499999999999966, -0.026, 0.085, 0.002, 0.003]
+          ]
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-right-2-toe-1",
+      "label": "Right 2 toe 1",
+      "parent": "p-right-2-shin",
+      "position": [-0.03041384078576237, -0.3520167190142209, -0.05934669816633687],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#74b481",
+      "features": {
+        "figure.assembly": {
+          "order": 18
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.014, 0.013],
+            [0, -0.019999999999999997, 0.05, 0.012, 0.01],
+            [0, -0.026, 0.085, 0.002, 0.003]
+          ]
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-right-2-toe-2",
+      "label": "Right 2 toe 2",
+      "parent": "p-right-2-shin",
+      "position": [0.004586159214237662, -0.3520167190142209, -0.05934669816633687],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#74b481",
+      "features": {
+        "figure.assembly": {
+          "order": 19
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.014, 0.013],
+            [0.01749999999999996, -0.019999999999999997, 0.05, 0.012, 0.01],
+            [0.024499999999999966, -0.026, 0.085, 0.002, 0.003]
+          ]
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-right-2-toe-3",
+      "label": "Right 2 toe 3",
+      "parent": "p-right-2-shin",
+      "position": [0.03958615921423769, -0.3520167190142209, -0.05934669816633687],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#303e28",
+      "features": {
+        "figure.assembly": {
+          "order": 28
+        },
+        "figure.finish": {
+          "surface": "leather"
+        },
+        "motion.role": {
+          "role": "foot"
+        },
+        "outfit.wear": {
+          "role": "foot"
+        }
+      },
+      "id": "p-right-3-foot",
+      "label": "Right 3 foot",
+      "parent": "p-right-3-shin",
+      "position": [0.0032017533648061036, -0.2883307662945806, 0.06734736240468919],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.15775671664446125, 0.09, 0.1920516550454311]
+    },
+    {
+      "color": "#5a784a",
+      "features": {
+        "figure.assembly": {
+          "order": 27
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.045726584534626455, 0.045726584534626455],
+            [
+              0.0032017533648061036, -0.1568615370798026, -0.08000000000000002, 0.03658126762770116,
+              0.03200860917423852
+            ],
+            [
+              0.0032017533648061036, -0.2683307662945806, 0.03234736240468916, 0.02743595072077587,
+              0.03200860917423852
+            ]
+          ]
+        },
+        "motion.role": {
+          "role": "shin"
+        },
+        "outfit.wear": {
+          "role": "shin"
+        }
+      },
+      "id": "p-right-3-shin",
+      "label": "Right 3 shin",
+      "parent": "p-right-3-thigh",
+      "position": [-0.18159496651818044, -0.32025897153793037, 0.025000000000000022],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#5a784a",
+      "features": {
+        "figure.assembly": {
+          "order": 26
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.08002152293559629, 0.07316253525540233],
+            [
+              -0.19180753454670776, -0.21568461348472862, 0.08999999999999997, 0.061730889121745715,
+              0.05944455989501439
+            ],
+            [
+              -0.18159496651818044, -0.32025897153793037, 0.025000000000000022,
+              0.045726584534626455, 0.045726584534626455
+            ]
+          ]
+        },
+        "motion.role": {
+          "role": "thigh"
+        },
+        "outfit.wear": {
+          "role": "thigh"
+        }
+      },
+      "id": "p-right-3-thigh",
+      "label": "Right 3 thigh",
+      "parent": "p-spine",
+      "position": [-0.14861139973753598, 0.09113931058483404, 1.3033081975448875],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#74b481",
+      "features": {
+        "figure.assembly": {
+          "order": 29
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.014, 0.013],
+            [-0.01749999999999996, -0.019999999999999997, 0.04999999999999993, 0.012, 0.01],
+            [-0.024499999999999966, -0.026, 0.08499999999999996, 0.002, 0.003]
+          ]
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-right-3-toe-1",
+      "label": "Right 3 toe 1",
+      "parent": "p-right-3-shin",
+      "position": [-0.03179824663519393, -0.2893307662945806, 0.0823473624046892],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#74b481",
+      "features": {
+        "figure.assembly": {
+          "order": 30
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.014, 0.013],
+            [0, -0.019999999999999997, 0.04999999999999993, 0.012, 0.01],
+            [0, -0.026, 0.08499999999999996, 0.002, 0.003]
+          ]
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-right-3-toe-2",
+      "label": "Right 3 toe 2",
+      "parent": "p-right-3-shin",
+      "position": [0.0032017533648061036, -0.2893307662945806, 0.0823473624046892],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#74b481",
+      "features": {
+        "figure.assembly": {
+          "order": 31
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.014, 0.013],
+            [0.01749999999999996, -0.019999999999999997, 0.04999999999999993, 0.012, 0.01],
+            [0.024499999999999966, -0.026, 0.08499999999999996, 0.002, 0.003]
+          ]
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-right-3-toe-3",
+      "label": "Right 3 toe 3",
+      "parent": "p-right-3-shin",
+      "position": [0.038201753364806135, -0.2893307662945806, 0.0823473624046892],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#5a784a",
+      "features": {
+        "figure.assembly": {
+          "order": 0
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.07087620602867101, 0.05953601306408365],
+            [0, 0.08191451507608571, 0.18943433103850116, 0.15784199641333904, 0.1325872769872048],
+            [0, 0.1513582877887656, 0.3788686620770022, 0.1981293614718657, 0.16642866363636719],
+            [0, 0.19775913325190142, 0.5683029931155033, 0.22107601256795853, 0.18570385055708516],
+            [0, 0.21405294336844238, 0.7577373241540044, 0.22863292267313226, 0.1920516550454311],
+            [0, 0.19775913325190142, 0.9471716551925056, 0.22107601256795853, 0.18570385055708516],
+            [0, 0.1513582877887656, 1.1366059862310065, 0.19812936147186574, 0.1664286636363672],
+            [0, 0.08191451507608571, 1.3260403172695077, 0.15784199641333904, 0.1325872769872048],
+            [0, 0, 1.5154746483080088, 0.07087620605017675, 0.05953601308214847]
+          ]
+        },
+        "motion.role": {
+          "role": "torso"
+        },
+        "outfit.wear": {
+          "role": "torso"
+        }
+      },
+      "id": "p-spine",
+      "label": "spine",
+      "parent": null,
+      "position": [0, 0.5624504272476769, -0.7577373241540044],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#5a784a",
+      "features": {
+        "figure.assembly": {
+          "order": 1
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "figure.markings": {
+          "angle": 2,
+          "color": "#60746d",
+          "coverage": 0.3546811425359919,
+          "kind": "Rosettes",
+          "seed": 1173505300,
+          "spacing": 0.3209202124318108
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.08459418138905894, 0.08002152293559629],
+            [0, 0, -0.16351844956183348, 0.06630354757520836, 0.057158230668283065],
+            [
+              0.04471938922132831, -0.030000000000000027, -0.2976766172258183, 0.03886759685443249,
+              0.02743595072077587
+            ],
+            [0.07911891939158086, -0.017441127591393824, -0.3939953017025255, 0.003, 0.004]
+          ]
+        },
+        "motion.role": {
+          "role": "tail"
+        }
+      },
+      "id": "p-tail",
+      "label": "tail",
+      "parent": "p-spine",
+      "position": [0, 0, 0.050000000000000044],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    }
+  ],
+  "poses": [],
+  "requires": [
+    {
+      "feature": "character.appearance",
+      "version": 1
+    },
+    {
+      "feature": "character.origin",
+      "version": 1
+    },
+    {
+      "feature": "core.parts",
+      "version": 1
+    },
+    {
+      "feature": "figure.assembly",
+      "version": 1
+    },
+    {
+      "feature": "figure.finish",
+      "version": 1
+    },
+    {
+      "feature": "figure.markings",
+      "version": 1
+    },
+    {
+      "feature": "figure.sweep",
+      "version": 1
+    },
+    {
+      "feature": "motion.role",
+      "version": 1
+    },
+    {
+      "feature": "outfit.wardrobe",
+      "version": 1
+    },
+    {
+      "feature": "outfit.wear",
+      "version": 1
+    }
+  ],
+  "version": 1
+}

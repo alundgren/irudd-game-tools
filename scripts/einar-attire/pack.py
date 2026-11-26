@@ -9,7 +9,6 @@ from scipy import ndimage
 H = Path(os.environ['EINAR_WORK']).resolve()
 CREDIT = dict(author='Blender Foundation', licence='CC BY 4.0', source='https://studio.blender.org/characters/einar/v1/',
               license='https://creativecommons.org/licenses/by/4.0/', notice='Einar Rig (CC-BY) Blender Foundation | studio.blender.org')
-# garment: (source group, map size, {material: tone})
 GARMENTS = {
     'einar_coat': ('jacket', 1024, [('main', ['einar.jacket.canvas']), ('dark', ['einar.jacket.rim', 'einar.jacket.collar']),
                                     ('accent', ['einar.fabric']), ('leather', ['einar.pants_leather']), ('light', ['einar.sweater'])]),
@@ -17,7 +16,6 @@ GARMENTS = {
     'einar_boots': ('boots', 768, [('leather', ['einar.boots']), ('sole', ['einar.boots_soles'])]),
 }
 METAL = ('metal_rust', 'duct_tape')
-# How much of the authored stains and fading stays under each dye.
 WORN = {'main': .42, 'dark': .42, 'accent': .5, 'light': .35, 'leather': .55, 'sole': .6}
 
 
@@ -51,7 +49,6 @@ def pack_one(name, group, size, tones):
     big = diffuse.shape[0]
     chart = material_chart(z['uv'], z['mat'], big)
     metal_mat = np.isin(chart, [i for i, m in enumerate(mats) if any(k in m for k in METAL)])
-    # A metal has no diffuse colour: its colour is in the mirror reflection.
     lum = lambda c: c @ np.array([.2126, .7152, .0722], np.float32)
     metal = np.where(metal_mat, np.clip(lum(glossy) / np.maximum(lum(glossy) + lum(diffuse), 1e-4), 0, 1), 0)
     colour = np.where(metal_mat[:, :, None], np.clip(diffuse + glossy, 0, 1), diffuse)
@@ -61,7 +58,6 @@ def pack_one(name, group, size, tones):
         mask = np.isin(chart, [mats.index(m) for m in names if m in mats])
         if not mask.any(): raise ValueError(name + ' has no ' + str(names))
         labels[mask] = k
-        # Boot leather is dyed from its lit side, so the dye is the brightest it gets.
         level = np.quantile(light[mask], .9) if group == 'boots' else np.median(light[mask])
         rules.append({'tone': tone, 'level': round(float(level), 4), 'worn': WORN.get(tone, .4)})
     surface = np.dstack([np.clip(ao, .38, 1), np.clip(rough, .2, 1), metal])

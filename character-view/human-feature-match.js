@@ -7,10 +7,8 @@ import {
 } from "./human-surface.js";
 import { brushBody, brushStroke, fitFromVectors } from "./human-brush.js";
 
-// Two clicked points farther apart than this are not the same feature.
 export const farthestPair = 0.05;
 
-// Shares of a triangle's corners at the point of the triangle nearest to `point`.
 function cornerShares(positions, corners, point) {
   const [a, b, c] = corners.map((v) => positions.subarray(v * 3, v * 3 + 3)),
     u = [0, 1, 2].map((d) => b[d] - a[d]),
@@ -32,11 +30,6 @@ const blend = (positions, corners, shares) =>
     corners.reduce((sum, v, k) => sum + shares[k] * positions[v * 3 + d], 0),
   );
 
-/* Brings one clicked spot of the skin of `form` toward `target`, a point on a reference
-   placed in the same rest space. `touch` is the face of the smooth surface under the
-   click and the clicked point. The move is one brush stroke, so it stays local and is
-   held to the brush's own limit. Distances in the result are millimetres measured at
-   the clicked spot of the stored recipe. */
 export function matchFeature(
   form,
   touch,
@@ -64,10 +57,8 @@ export function matchFeature(
     );
   const want = target.map((x, d) => x - from[d]),
     requested = Math.hypot(...want),
-    // The stroke follows a drag no longer than its limit.
     hold = requested > stroke.limit ? stroke.limit / requested : 1,
     aim = want.map((x) => x * hold),
-    // What a saved recipe keeps: tenths of a millimetre for each anchor.
     stored = (vectors) => controlVectors(fitFromVectors(vectors)),
     place = (vectors) =>
       blend(
@@ -78,7 +69,6 @@ export function matchFeature(
   let offset = aim.slice(),
     vectors = body.start,
     moved = [0, 0, 0];
-  // Anchors are coarse, so the clicked skin can trail the stroke: ask again for the shortfall.
   for (let turn = 0; requested > 0 && turn < 4; turn++) {
     const tried = stored(stroke.vectors(offset)),
       now = place(tried).map((x, d) => x - from[d]),
@@ -98,7 +88,6 @@ export function matchFeature(
     changed,
     requestedMm: requested * 1000,
     achievedMm: Math.hypot(...moved) * 1000,
-    // What still separates the two clicked points.
     leftMm: Math.hypot(...want.map((x, d) => x - moved[d])) * 1000,
     limitMm: stroke.limit * 1000,
     areaMm: stroke.used * 1000,
@@ -109,7 +98,6 @@ export function matchFeature(
 }
 
 const one = (x) => x.toFixed(1);
-// One line for the dialog's list of steps and its reading.
 export function featureText({ part, requestedMm, achievedMm, leftMm, held, limitMm }) {
   return (
     "Feature on the " + part + " · asked " + one(requestedMm) + " mm, moved " +
@@ -118,11 +106,6 @@ export function featureText({ part, requestedMm, achievedMm, leftMm, held, limit
   );
 }
 
-/* The gesture in the reference dialog: click a feature on the reference in the left
-   pane, then the same feature on the current editable skin in the right pane.
-   `ready` says whether an aligned reference is on show and nothing else is picking,
-   `figure` returns the current body's { group, skins }, `form` its recipe, and
-   `accept` stores the next recipe as one step of the dialog. */
 export function featureMatcher({
   canvas,
   camera,
@@ -179,7 +162,6 @@ export function featureMatcher({
     last = "";
     delete $("hfit-feature-reading").dataset.result;
   }
-  // Leaves the gesture when the reference, the placement or the view changed under it.
   function cancel() {
     if (!on && !last) return;
     stop();
@@ -196,14 +178,10 @@ export function featureMatcher({
       sideBySide();
     }
     sync();
-    // Other picking tools share the pointer and follow this one's state.
     toggled();
     render();
   };
   $("hfit-feature-reach").oninput = sync;
-  // The dialog calls sync whenever its state changes, which ends the gesture when
-  // landmarks are being placed or the two panes are no longer on show. A step back
-  // also drops a half-made pair and the reading of the step that was undone.
   $("hfit-undo").addEventListener("click", () => {
     wanted = null;
     last = "";
@@ -219,7 +197,6 @@ export function featureMatcher({
   canvas.addEventListener("pointerup", (e) => {
     const start = down;
     down = null;
-    // A drag turns the view; only a click picks.
     if (!on || !start || Math.hypot(e.clientX - start[0], e.clientY - start[1]) > 5) return;
     if (!ready() || !paired()) return cancel();
     const box = canvas.getBoundingClientRect(),
@@ -296,6 +273,5 @@ export function featureMatcher({
     note(last + ". Undo step takes it back; Apply keeps it.");
   });
 
-  // `reset` is for the dialog's own restart, which redraws everything afterwards.
   return { sync, cancel, reset: stop, active: () => on };
 }

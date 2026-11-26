@@ -34,8 +34,6 @@ function bytes(s) {
   }
   return cache.get(s);
 }
-// The image tool can recrop a portrait. Register its top and bottom to the
-// source profile and its silhouette on each scan line to the loft's own width.
 export function depthFromPixels(rgba, w, h) {
   const spans = [];
   for (let y = 0; y < h; y++) {
@@ -101,8 +99,6 @@ export function applyPortraitDepth(geometry, paint) {
     [Infinity, -Infinity, Infinity, -Infinity],
   );
   const [left, right, back, front] = bounds;
-  // One linear camera for the entire face. Normalising brightness independently
-  // on each scan line produces depth jumps where the ears enter the silhouette.
   const fieldAt = (x, y) => {
     const xf =
       MathUtils.clamp((x - left) / (right - left || 1), 0, 1) * (width - 1);

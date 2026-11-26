@@ -1,7 +1,3 @@
-// A capsule of whole outfits with a silhouette of their own: a traveller's mantle over belted layers, a short
-// bomber over high-waisted wide trousers, and a fitted bodice over a full skirt that opens on a second cloth.
-// Each family is cut two ways, so the same wardrobe does not come out as a uniform. All of it is original
-// geometry built from the garments in human-style-cloth.js; nothing here is fitted from another author's mesh.
 import { Piece, mix, smooth } from "./human-style-kit.js";
 import { band, belt, box, button, caster, foldRelief, garment, hood, plate, skirt } from "./human-style-cloth.js";
 import { pod } from "./human-style-gear.js";
@@ -11,7 +7,6 @@ import { mantle } from "./human-mantle.js";
 
 const TAU = Math.PI * 2;
 
-/** A traveller: breeches in tall boots, a long belted tunic with a second belt, and a mantle held by a clasp. */
 function wayfarer(body, m, { hooded }) {
   const parts = [], k = m.k, seam = m.waist - .01 * k;
   const legs = garment(body, m, { waist: m.waistband, leg: 1.6, ease: .009, taper: .25 });
@@ -19,7 +14,6 @@ function wayfarer(body, m, { hooded }) {
   const tunic = garment(body, m, { sleeve: 1.93, hem: seam - .03 * k, ease: .012, fall: .15, tension: 1, span: 2.2, sleeveFall: .2, sleeveEase: .004, passes: 7, neck: { v: .06 } });
   const tails = skirt(body, m, { top: seam + .012 * k, bottom: m.crotch - (hooded ? .2 : .13) * k, ease: .014, flare: .13, fold: .008, folds: 9, shells: [tunic.s, legs.s] });
   parts.push(part(finish(tunic, k, { neck: .016, cuff: .034, rise: .003 }), "main", "spine_03", "Tunic"), part(tails.piece, "main", "pelvis", "Tunic skirt"));
-  // Two belts: a broad one that holds the tunic and a narrow one slung lower with the pouch.
   const leather = new Piece(), metal = new Piece();
   belt(leather, body, m, [tunic.s], seam, { height: .056, thick: .005, buckle: false });
   buckle(metal, body, m, [tunic.s], seam, .056);
@@ -27,8 +21,6 @@ function wayfarer(body, m, { hooded }) {
   const at = env.point(.05 * k + .045 * k, hooded ? -1.1 : 1.1, env.sample(.05 * k, hooded ? -1.1 : 1.1) + .03 * k);
   pod(leather, at, [[.042 * k, 0, -.02 * k * (hooded ? -1 : 1)], [0, .052 * k, 0], [.012 * k, 0, .024 * k]], body.rigid("pelvis"), { power: 3.2 });
   parts.push(part(leather, "leather", "spine_01", "Belts and pouch", "leather"));
-  // A split mantle is short over the arms and falls to the calf in two tails behind; a shoulder cloak is cut
-  // round to the elbow and carries a hood.
   const elbow = body.joint("lowerarm_l")[1];
   const fall = y => m.neck[1] - y;
   const shape = hooded
@@ -37,7 +29,6 @@ function wayfarer(body, m, { hooded }) {
   const cloak = mantle(body, m, [tunic.s, tails.piece], shape);
   if (hooded) hood(cloak.cloth, body, [tunic.s, { pos: cloak.cloth.pos.slice(), tri: cloak.cloth.tri.slice() }], tunic.s, tunic.upper, m, { length: .2, thick: .026, stand: .022, front: .5 });
   parts.push(part(cloak.cloth, "accent", "spine_03", hooded ? "Shoulder cloak" : "Split mantle"), part(cloak.lining, "light", "spine_03", "Mantle lining"));
-  // The closure: two discs on the edges of the mantle and a bar between them, or a pair of toggles on a hooded cloak.
   const skinAt = body.rigid("spine_03");
   for (const v of hooded ? [.1, .3] : [.09]) {
     const a = cloak.at(v, 1, .006 * k), b = cloak.at(v, -1, .006 * k), mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, Math.max(a[2], b[2]) + .004 * k], wide = Math.abs(a[0] - b[0]) / 2;
@@ -49,12 +40,10 @@ function wayfarer(body, m, { hooded }) {
   return parts;
 }
 
-/** A short bomber worn open over a tucked top, and wide trousers that sit at the natural waist and end in a deep cuff. */
 function bomber(body, m, { rolled }) {
   const parts = [], k = m.k, waist = m.waist + .012 * k;
   const legs = garment(body, m, { waist, leg: rolled ? 1.84 : 1.98, ease: .015, legEase: rolled ? .02 : .028, taper: .012, flare: 4, soft: 12, folds: .45 });
   const lower = finish(legs, k, { waist: .046, legs: rolled ? .07 : .055, rise: .0035 }), cast = caster([legs.s]);
-  // Two pressed pleats below the waistband.
   for (const sign of [1, -1]) pocket(lower, cast, body, m, { x: sign * .062 * k, y: m.waist - .09 * k, width: .012, height: .15, flap: false, rise: .004, z: m.pelvis[2] });
   parts.push(part(lower, "dark", "pelvis", rolled ? "Cuffed wide trousers" : "Wide trousers"));
   const tee = garment(body, m, { sleeve: .3, hem: waist - .03 * k, ease: .005, neck: rolled ? { scoop: .04, scoopWidth: .07 } : {} });
@@ -63,11 +52,8 @@ function bomber(body, m, { rolled }) {
   belt(leather, body, m, [legs.s, tee.s], waist - .024 * k, { height: .03, thick: .004, buckle: false });
   buckle(metal, body, m, [legs.s, tee.s], waist - .024 * k, .03);
   parts.push(part(leather, "leather", "pelvis", "Belt", "leather"), part(metal, "metal", "pelvis", "Buckle", "metal"));
-  // The jacket ends above the waistband and stands away from the body, gathered into ribbing at hem, cuff and neck.
   const jacket = garment(body, m, { sleeve: rolled ? 1.22 : 1.93, hem: waist - .012 * k, ease: .03, gap: .012, fall: .05, tension: 1, span: 3, sleeveFall: .06, sleeveEase: .008, passes: 10, neck: { v: rolled ? .2 : .26, height: .012 }, under: [tee.s, legs.s] });
   const shell = new Piece().shell(jacket.s, { thickness: .006 }), ribs = new Piece();
-  // Sew the ribbing to the actual edge of the jacket. A belt fitted independently
-  // can cross the shell at the small of the back on a deep or tilted pelvis.
   const edge = jacket.lower;
   if (edge) {
     const points = edge.map(i => jacket.s.at(i));
@@ -92,10 +78,6 @@ function bomber(body, m, { rolled }) {
   return parts;
 }
 
-/**
- * A fitted bodice with shaped shoulders over a full skirt. The skirt opens down the front on a panel of a second
- * cloth, and its two edges are faced with that cloth: the three are cut from one surface along shared lines.
- */
 function bodiced(body, m, { draped }) {
   const parts = [], k = m.k, seam = m.waist - .02 * k;
   const bodice = garment(body, m, { sleeve: draped ? .46 : .16, hem: seam - .026 * k, ease: .007, fall: .22, below: .16, rise: .5, sleeveEase: draped ? .022 : 0, sleeveFall: draped ? .05 : null,
@@ -103,7 +85,6 @@ function bodiced(body, m, { draped }) {
   const top = finish(bodice, k, { neck: .014, cuff: draped ? .03 : .014, rise: .003 });
   parts.push(part(top, "main", "spine_03", "Bodice", "satin"));
   if (!draped) for (const sign of [1, -1]) {
-    // A stiffened wing standing on each shoulder.
     const cap = plate(body, m, [(s, i) => s.anc[i * 3] * sign > 0 ? .3 - s.f.arm[i] : -1, (s, i) => s.f.arm[i] + .05, (s, i) => s.anc[i * 3 + 1] - (m.shoulder - .075 * k) + 10 * s.f.wArm[i]], { ease: .024, passes: 12, near: body.joint(sign > 0 ? "upperarm_l" : "upperarm_r") });
     const wing = new Piece().shell(cap.s, { thickness: .006 });
     for (const loop of cap.all) band(wing, cap.s, loop, { width: .012 * k, rise: .003 * k });
@@ -111,7 +92,6 @@ function bodiced(body, m, { draped }) {
   }
   const length = draped ? m.ankle + .05 * k : mix(m.knee, m.ankle, .42);
   const lower = skirt(body, m, { top: seam + .015 * k, bottom: length, ease: .014, flare: draped ? .16 : .26, fold: draped ? .022 : .018, folds: draped ? 12 : 10, cols: 84, shells: [bodice.s], yoke: .018, gores: true, drape: draped ? { cloth: "gown", sweep: .21, folds: 10, calm: .2 } : { cloth: "gored" } });
-  // The opening: narrow at the waist and wide at the hem, down the front or turned to one side.
   const centre = draped ? .55 : 0, spread = draped ? .34 : .5, edge = v => .05 + spread * v ** 1.25, face = v => .035 + .11 * v;
   const at = (v, a, lift = 0) => lower.pointAt(.012 + .988 * v, ((a + centre) % TAU + TAU) % TAU, lift * k);
   const left = Math.sign(body.joint("thigh_l")[0]) || 1;
@@ -130,12 +110,10 @@ function bodiced(body, m, { draped }) {
   const spans = [[wrap, v => edge(v) + face(v), v => TAU - edge(v) - face(v), 72], [panel, v => -edge(v), edge, 22], [facings, edge, v => edge(v) + face(v), 6], [facings, v => TAU - edge(v) - face(v), v => TAU - edge(v), 6]];
   for (const [piece, from, to, cols] of spans) {
     sheet(piece, 18, cols, (u, v) => at(v, mix(from(v), to(v), u)), (u, v) => reliefAt(v, mix(from(v), to(v), u)));
-    // The cloth turns back up inside the hem, where a moving leg shows it.
     sheet(piece, 2, cols, (u, v) => at(1 - .03 * v, mix(from(1), to(1), u), -.005 * v));
   }
   if (lower.rig) for (const piece of [wrap, panel, facings]) piece.clothJoints = lower.rig;
   parts.push(part(wrap, draped ? "main" : "dark", "pelvis", draped ? "Draped skirt" : "Gored skirt", "satin"), part(panel, "accent", "pelvis", "Skirt panel", "satin"), part(facings, "light", "pelvis", "Skirt facing", "satin"));
-  // A deep shaped waist: a broad band, laced or buttoned down the front.
   const girdle = new Piece(), studs = new Piece(), tall = draped ? .05 : .085;
   belt(girdle, body, m, [bodice.s, lower.piece], seam + (draped ? 0 : .014 * k), { height: tall, thick: .004, buckle: false });
   const on = caster([{ pos: girdle.pos, tri: girdle.tri }]);
@@ -147,7 +125,6 @@ function bodiced(body, m, { draped }) {
   return parts;
 }
 
-/** The capsule's outfits by name. Each name is a silhouette; two names share a family. */
 export const capsule = {
   "Split mantle": (body, m) => wayfarer(body, m, { hooded: false }),
   "Hooded shoulder cloak": (body, m) => wayfarer(body, m, { hooded: true }),

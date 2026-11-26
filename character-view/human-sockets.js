@@ -1,7 +1,5 @@
 import { Ray, Vector3 } from "three";
 
-// Locate a scapula against the rear surface of the current skin. The spar
-// starts a little inside the back and leaves along its swept shoulder.
 export function scapulaSocket(surface, side) {
   const joint = name => {
     const i = surface.names.indexOf(name) * 3;

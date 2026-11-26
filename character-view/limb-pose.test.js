@@ -45,7 +45,6 @@ test("limbs are found with their kind, side and mirror twin on every body plan",
         assert.ok(limb.twin, name + " " + limb.id + " has no twin");
         assert.equal(limb.twin.twin, limb);
         assert.equal(limb.twin.side, -limb.side);
-        // Every joint of a limb has a matching joint on its twin.
         assert.deepEqual(
           [...limb.joints.keys()].sort(),
           [...limb.twin.joints.keys()].sort(),
@@ -63,7 +62,6 @@ test("a turn on one leg is mirrored on its twin and carried around a radial body
   const hip = joint(rig, "left leg 2 thigh"),
     legs = limbs.filter((l) => l.kind === "leg");
   const rest = new Map(legs.map((l) => [l, tip(l)]));
-  // Lift the selected leg about the axis across its own direction.
   const out = rest.get(hip.limb).clone().sub(hip.limb.hip).setY(0).normalize(),
     across = new Vector3(0, 1, 0).cross(out);
   const was = before(hip);
@@ -85,8 +83,6 @@ test("a turn on one leg is mirrored on its twin and carried around a radial body
   const others = legs.filter((l) => l !== hip.limb && l !== hip.limb.twin);
   for (const leg of others)
     assert.ok(tip(leg).distanceTo(rest.get(leg)) < 1e-9, "a third leg moved");
-  // The same change again for all ten legs: every foot rises alike and moves
-  // out from the body alike, whichever way its leg points.
   const again = before(hip);
   hip.bone.quaternion.premultiply(
     new Quaternion().setFromAxisAngle(across, -0.2),

@@ -1,5 +1,3 @@
-// Artist-editable corrections in standing space. Horizontal scales and offsets
-// (fractions of stature) act equally on the mesh, clothes and joint pivots.
 export const sectionHeights = [
   0.035, 0.11, 0.2, 0.29, 0.38, 0.47, 0.54, 0.61, 0.68, 0.75, 0.81, 0.86, 0.92,
   0.97,
@@ -26,8 +24,6 @@ export function validSectionProfile(p) {
   );
 }
 
-// Interpolate each column with shape-preserving cubic slopes. A slope is zero
-// at a reversal and elsewhere is the harmonic mean of neighbouring slopes.
 export function sectionWarp(profile) {
   const { height, stations } = profile;
   const slopes = stations.map((row, i) =>

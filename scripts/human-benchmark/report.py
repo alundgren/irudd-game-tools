@@ -95,14 +95,13 @@ def main():
     for entry in manifest["targets"]:
         cache = args.work / f"{entry['id']}-{cache_tag(tag)}.pkl"
         if not cache.exists():
-            cache = args.work / f"{entry['id']}-{tag}.pkl"  # earlier fitted geometry
+            cache = args.work / f"{entry['id']}-{tag}.pkl"
         if cache.exists():
             vertices, faces, regions, names = load_target(entry, manifest)
             loaded[entry["id"]] = (entry, vertices, faces, regions, names, pickle.loads(cache.read_bytes()))
     if not loaded:
         raise SystemExit(f"No cached fits for generator {tag} in {args.work}; run run.py first.")
 
-    # ---- the targets on their own -------------------------------------------------
     lineup = []
     for tid, (entry, vertices, faces, *_rest) in loaded.items():
         center, scale = np.array([0.0, 0.98, 0.05]), 300
@@ -143,7 +142,6 @@ def main():
         rows.append([legend(1750)])
         save(stack(rows), f"fit-{tid}.webp")
 
-        # Back views: how well is surface the fit never saw reproduced?
         back = [tile(vertices, faces, 180, center, 250, (290, 510), f"{tid} from behind")]
         for key, label in (("coarseFront", "recipe, front seen"), ("refinedFront", "corrected, front seen"),
                            ("refined", "corrected, all seen")):

@@ -126,12 +126,12 @@ def shade(vertices, faces, basis, center, pixels_per_metre, width, height,
     normals = vertex_normals(np.asarray(vertices, dtype=np.float64), faces) @ basis.T
     n = np.einsum("pk,pkd->pd", bary[hit], normals[faces[ids[hit]]])
     n /= np.maximum(np.linalg.norm(n, axis=1), 1e-12)[:, None]
-    n[n[:, 2] < 0] *= -1  # two-sided
+    n[n[:, 2] < 0] *= -1
     key = np.array([-0.45, 0.55, 0.70])
     fill = np.array([0.65, 0.10, 0.50])
     key, fill = key / np.linalg.norm(key), fill / np.linalg.norm(fill)
     light = 0.30 + 0.62 * np.clip(n @ key, 0, None) + 0.20 * np.clip(n @ fill, 0, None)
-    light *= 0.80 + 0.20 * n[:, 2]  # gentle rim darkening that reads as form
+    light *= 0.80 + 0.20 * n[:, 2]
     if vertex_colors is None:
         color = np.broadcast_to(base_color, (hit.sum(), 3))
     else:

@@ -21,7 +21,6 @@ import { applyOperations } from "./variations.js";
 const worn = (p) => p.id.startsWith("dress ");
 
 test("a deck of consecutive draws deals every family and repeats exactly", () => {
-  // Seeds 9000 to 9029 are one whole deck.
   const plans = Array.from({ length: 30 }, (_, n) => randomCreaturePlan(9000 + n));
   const dealt = {};
   for (const p of plans) dealt[p.family] = (dealt[p.family] ?? 0) + 1;
@@ -82,7 +81,6 @@ test("every ensemble is fitted as ordinary regions and leaves the animal alone",
         assert.ok(p.cage.vertices.length <= 192 && p.cage.faces.length <= 256);
       }
       assert.deepEqual(buildCreature(form.origin.plan), form);
-      // Undressing gives the bare animal back.
       const undressed = applyOperations(form, [{ op: "steerCreature", set: { dress: null } }]);
       assert.deepEqual(undressed.parts.map((p) => p.id), bare.parts.map((p) => p.id));
     }
@@ -120,7 +118,6 @@ test("resting gestures move only what they name", () => {
 });
 
 test("each family walks through all of its kins before one repeats", () => {
-  // Seeds 0 to 3599 are 120 whole family decks.
   const drawn = {};
   for (let seed = 0; seed < 3600; seed++) {
     const { family, kin } = familyOf(seed);
@@ -133,7 +130,6 @@ test("each family walks through all of its kins before one repeats", () => {
     for (let i = 0; i + kins.length <= run.length; i += kins.length)
       assert.deepEqual([...run.slice(i, i + kins.length)].sort(), [...kins].sort(), family + " deck " + i);
   }
-  // One deck of thirty never shows the same animal twice.
   for (let deck = 0; deck < 120; deck++) {
     const seen = new Set();
     for (let n = 0; n < 30; n++) {
@@ -164,7 +160,6 @@ test("grown crests and facial ornament are ordinary regions on the head", () => 
   const faced = validateForm(buildCreature(steerCreaturePlan(base, { head: { crest: "none" }, details: ["nose horn", "brow horns", "beard", "cheek frills"] })));
   for (const id of ["nose horn", "left brow horn", "right brow horn", "beard", "left cheek frill", "right cheek frill"])
     assert.ok(faced.parts.some((p) => p.id === id), id);
-  // A plan saved before these existed reads back without them.
   assert.deepEqual(readCreaturePlan(creaturePresets["Four-legged grazer"]).details.filter((d) => /horn|beard|cheek/.test(d)), []);
 });
 
@@ -173,13 +168,11 @@ test("armour is shaped to the animal instead of stacked in hoops", () => {
   const form = validateForm(buildCreature(plan));
   const piece = (id) => form.parts.find((p) => p.id === "dress " + id);
   const cuirass = piece("cuirass");
-  // The breastplate hangs lower at the front than at the back.
   const ys = cuirass.cage.vertices.map((v) => v[1]), zs = cuirass.cage.vertices.map((v) => v[2]);
   const low = Math.min(...ys);
   assert.ok(zs[ys.indexOf(low)] > 0);
   const greave = piece("left leg 1 greave");
   assert.equal(greave.parent, "left leg 1 shin");
-  // A shin plate is open at the back: it does not surround the leg.
   const span = (axis) => Math.max(...greave.cage.vertices.map((v) => v[axis])) - Math.min(...greave.cage.vertices.map((v) => v[axis]));
   assert.ok(span(2) < 0.8 * span(0));
   const ringed = buildCreature(steerCreaturePlan(randomCreaturePlan(47214), { dress: { kind: "sage", color: "#27408b", trim: "#e8ecf2", layers: 2, cut: 2 } }));
@@ -190,7 +183,6 @@ test("a dressed animal saved before the armour was reshaped keeps its earlier cu
   const old = steerCreaturePlan(creaturePresets["Upright four-armed trader"], { dress: { kind: "warden", color: "#27408b", trim: "#e8ecf2", layers: 3 } });
   assert.equal(old.dress.cut, undefined);
   const form = buildCreature(old);
-  // Greaves as full bands and a yoke collar under the cuirass, as saved.
   const greave = form.parts.find((p) => p.id === "dress left leg 1 greave");
   const span = (axis) => Math.max(...greave.cage.vertices.map((v) => v[axis])) - Math.min(...greave.cage.vertices.map((v) => v[axis]));
   assert.ok(span(2) > 0.8 * span(0));

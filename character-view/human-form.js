@@ -123,8 +123,6 @@ export function tintHumanSkin(form, skin, previousSkin = form.appearance.skin) {
 }
 export const adultColourRanges = ["Mixed", "Natural", "Fantasy"];
 
-// Evening lilac, sea glass, terracotta and storm blue. The dark and light swatches
-// of each palette were picked together to keep the hue legible in the player's lights.
 const fantasyTones = [
   ["#705069", "#b891b1", "green"],
   ["#415f55", "#a4bb9c", "amber"],
@@ -146,20 +144,14 @@ function characterPalette(seed, range) {
   return {skin: "#" + rgb.join(""), eyeColor, earTip: .48+.46*draw()};
 }
 
-/** Draw measurements and personal colours. Wardrobe draws can skip the fitted lip profile. */
 export function drawHumanIdentity(seed, archetype, { fitRestingLips = true, colourRange = "Mixed" } = {}) {
   const gesture = randomStream(seed ^ 0xaef228d3);
   const side = gesture() < .5 ? -1 : 1;
   const params = randomHuman(seed, archetype, { fitRestingLips });
-  // The body is fitted standing square. How this adult carries weight, arms and head is a
-  // posture of the finished rig. One in five also has a free hand lifted in conversation.
   if (gesture() < .2) params[side > 0 ? "leftArmLift" : "rightArmLift"] = .2 + .48*gesture();
-  // Pigmentation gets its own stream so it is independent of wardrobe and frame.
-  // Interpolate in sRGB, the space used by the editor's skin-colour input.
   const draw = randomStream(seed ^ 0x2631894b);
   const tones = [[72, 48, 41], [108, 73, 56], [146, 101, 76],
     [177, 132, 105], [206, 166, 139], [231, 198, 177]];
-  // Skin and skull share one ancestry, loosely: the ranges of the three families overlap widely.
   const { faceA = 0, faceB = 0 } = params;
   const at = skinLightness([Math.exp(2.6 * faceA), Math.exp(2.6 * faceB), 1], draw()) * (tones.length - 1) * 0.9999;
   const i = Math.floor(at);
@@ -171,7 +163,6 @@ export function drawHumanIdentity(seed, archetype, { fitRestingLips = true, colo
   const palette = characterPalette(seed, colourRange);
   if (palette) params.earTip = palette.earTip;
   const skin = palette?.skin ?? "#" + rgb.map(v => v.toString(16).padStart(2, "0")).join("");
-  // Freckles, spots, a beauty mark or a scar, from a stream of their own.
   const faceMarks = drawIdentityMarks(seed, { skin, age: params.age });
   const personal = randomStream(seed ^ 0xb53042af);
   const humanStyle = {};
@@ -203,14 +194,12 @@ export function generatedHuman(seed, archetype, colourRange = "Mixed") {
       humanStyle.castPigment = Math.round((.65 * humanStyle.castShape + .35 * vary()) * 100) / 100;
     }
   }
-  // A complexion belongs to the person. Later wardrobe draws leave the choice in place.
   const artist = randomStream(seed ^ 0x620ddbf1);
   const finishes = human.age < .42 ? ["Portrait Rose", "Portrait Honey", "Portrait Fair", "Portrait Umber"] : ["Portrait Ruddy", "Portrait Sunworn"];
   let complexion = human.age < .68 && artist() < .29 ? finishes[Math.floor(artist()*finishes.length)] : null;
   const capture = drawCapturedPortrait(human, randomStream(seed ^ 0x61e3be17));
   if (capture) {
     for (const axis of [...portraitAxes, ...castShapeAxes]) human[axis] = 0;
-    // Keep the individual's soft tissue and rest expression over the measured foundation.
     for (const axis of humanIdentityAxes) human[axis] *= .55;
     human[capture.axis] = capture.amount;
     complexion = capture.complexion;
@@ -221,7 +210,6 @@ export function generatedHuman(seed, archetype, colourRange = "Mixed") {
   if (cast) tinted.humanStyle.castSkin = eyeColor ? appearance.skin : drawCastSkin(cast, appearance.skin, seed);
   return tinted;
 }
-/** Move from this saved identity toward an editor draw, on only the named axes. */
 export function rerollHuman(form, axes, seed, amount = 1) {
   if (!Array.isArray(axes) || !axes.length || !axes.every(key => humanAxes.includes(key)))
     throw new Error("Choose the adult measurements to reroll.");
@@ -258,7 +246,6 @@ export function changeHuman(form, patch) {
   const oldSurface=evaluateHuman(form.human),newSurface=evaluateHuman(next);
   const humanFit=transportHumanFit(form.humanFit,oldSurface,newSurface);
   const oldParts=makeParts(oldSurface,form.appearance.skin);
-  // The fine layer is stored in the skin's own frames, so it needs no transport here.
   const fitted = humanFit || form.humanDetail ? evaluateHuman(next, humanFit, form.humanDetail) : newSurface;
   const newParts=makeParts(fitted,form.appearance.skin);
   return {
@@ -270,7 +257,6 @@ export function changeHuman(form, patch) {
     ) : form.parts).map((p) => {
       if (p.shape !== "human region" || p.humanSource) return p;
       const index = oldParts.findIndex((row) => row.humanBone === p.humanBone);
-      // Preserve authored translations and branches when body measurements change.
       const old = oldParts[index],
         fresh = newParts[index];
       return {

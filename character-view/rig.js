@@ -5,9 +5,6 @@ function orientation(rotation) {
     new Euler(...rotation.map((n) => n * rad)),
   );
 }
-// Author fit data in standing world space, then bind to the parent. Calling
-// this on neutral transforms preserves the visible geometry. A stored child
-// subsequently follows its parent when the user edits the attachment.
 export function bindParts(form, links, { metric = false } = {}) {
   const parts = metric
     ? form.parts.map((p) => ({ ...p, frameSize: [...p.size] }))

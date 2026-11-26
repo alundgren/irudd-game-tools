@@ -31,8 +31,6 @@ test("in colour the strands are a plain cutout that casts no shadow, over roots 
 });
 
 test("new fitted cuts stay in their drawn haircut family and every saved cut remains selectable", () => {
-  // Each seed wears one of the fitted grooms listed for the cut it drew. The cut itself and the grooms a draw
-  // wore before stay styles to choose by hand.
   const cuts = [
     [8710, "Bob", "Blunt bob"], [8711, "Crown braid"], [8713, "Rounded bob", "Blunt bob"],
     [8714, "Ponytail", "Low ponytail"], [8715, "Long", "Long centre part"],
@@ -49,7 +47,6 @@ test("new fitted cuts stay in their drawn haircut family and every saved cut rem
 });
 
 test("a new look that draws the swept crop wears a fitted short cut or the tapered crop, and nothing else about it changes", () => {
-  // These seeds drew the swept crop. Their colours, fringe, facial hair and eyewear are the ones they always drew.
   for (const [seed, hairColor, fringe, facialHair, eyewear] of [[8607, "#cfbfa8", "Parted", "None", "None"], [8672, "#995f47", "Swept right", "None", "None"], [8674, "#504041", "Parted", "None", "Round wire"]]) {
     const style = dressHuman(generatedHuman(seed), seed ^ 0x1e18ae83).humanStyle;
     assert.ok(hairWornFor("Swept crop").includes(style.hair), `seed ${seed} wears ${style.hair}`);
@@ -64,7 +61,6 @@ test("a new look that draws the swept crop wears a fitted short cut or the taper
     if (hair === "Tapered crop") tapered++;
   }
   assert.ok(tapered >= 1, `${tapered} of 100 looks wear the tapered crop`);
-  // A look that names the swept crop keeps it: by hand, from a saved file, and through later style changes.
   assert.ok(adultStyles.hair.includes("Swept crop") && validAdultStyle({ hair: "Swept crop", fringe: "Swept left" }));
   assert.equal(chooseAdultStyle({ hair: "Swept crop", hairColor: "#302725" }, { outfit: "Parka" }).hair, "Swept crop");
 });
@@ -83,10 +79,8 @@ test("a groom covers the scalp, clears the ears and the face, and follows unusua
       const all = probeHair(surface, meshes), cards = probeHair(surface, meshes.filter(mesh => mesh.userData.strandGroom));
       assert.ok(worst(all.eyes) === 0 && worst(all.face) <= 0.01, `${label}: hides ${Math.round(100 * worst(all.eyes))}% of an eye, ${Math.round(100 * worst(all.face))}% of the face`);
       assert.ok(all.scalp.bare <= 0.002, `${label}: ${(100 * all.scalp.bare).toFixed(1)}% of the scalp is bare`);
-      // The whole figure is the test surface, so a card through an ear or the neck counts.
       assert.equal(cards.inside.count + cards.inside.below, 0, `${label}: ${cards.inside.count} card points are inside the head, ${cards.inside.below} in the neck`);
       assert.ok(triangles(meshes) <= 14000, `${label}: ${triangles(meshes)} triangles`);
-      // No strand leaves the scalp for another surface: every card edge is as short as a strand segment.
       const strands = meshes.find(mesh => mesh.userData.strandGroom).geometry, at = strands.attributes.position, index = strands.index.array;
       let longest = 0;
       for (let i = 0; i < index.length; i += 3) for (const [a, b] of [[0, 1], [1, 2], [2, 0]]) longest = Math.max(longest, Math.hypot(at.getX(index[i + a]) - at.getX(index[i + b]), at.getY(index[i + a]) - at.getY(index[i + b]), at.getZ(index[i + a]) - at.getZ(index[i + b])));
@@ -96,7 +90,6 @@ test("a groom covers the scalp, clears the ears and the face, and follows unusua
 });
 
 test("the root layer is a real layer that stays on the head", () => {
-  // No root of the root layer may sit on an ear, on any head. Every vertex of that layer lies on the skin it was lifted from.
   for (const [name, human] of Object.entries(heads)) {
     const surface = evaluateHuman(human), { roots } = groomGeometry(surface, { hair: "Tapered crop" });
     const probe = probeHair(surface, strandGroom(surface, { hair: "Tapered crop" }, material, true).filter(mesh => mesh.userData.hairRoots));

@@ -18,7 +18,6 @@ import {
   validHumanDetail,
 } from "./human-family-transfer.js";
 
-// A closed ball of triangles. Two different counts give two unrelated topologies.
 function ball(radius, rings, spokes, shape = (x, y, z) => [x, y, z]) {
   const positions = [0, radius, 0], indices = [];
   for (let r = 1; r < rings; r++)
@@ -49,16 +48,13 @@ test("a registered surface follows a family member through its own triangles", (
   assert.ok(registration.vertex.length > 0.95 * base.positions.length / 3);
   const rows = (positions) => Float32Array.from(Array.from(registration.vertex).flatMap((v) => Array.from(positions.subarray(v * 3, v * 3 + 3))));
 
-  // The neutral itself changes nothing.
   assert.ok(farthest(wrapFamilyMember(registration, neutral), rows(base.positions)) < 1e-6);
 
-  // A member that is the neutral turned, moved and resized carries the base with it.
   const matrix = new Matrix4().compose(new Vector3(0.3, -0.1, 0.2),
     new Quaternion().setFromAxisAngle(new Vector3(1, 2, 3).normalize(), 0.7), new Vector3(1.2, 1.2, 1.2));
   const moved = { positions: transformPoints(neutral.positions, matrix), indices: neutral.indices };
   assert.ok(farthest(wrapFamilyMember(registration, moved), transformPoints(rows(base.positions), matrix)) < 1e-5);
 
-  // Without its own offset every vertex lands on the member's surface: a ball squashed to 80 % in height.
   const squashed = ball(0.1, 24, 32, (x, y, z) => [x, 0.8 * y, z]);
   const landed = wrapFamilyMember(registration, squashed, 0);
   for (let i = 0; i < landed.length; i += 3) {
@@ -70,7 +66,6 @@ test("a registered surface follows a family member through its own triangles", (
 });
 
 test("layered skin that faces another surface stays unregistered", () => {
-  // A small ball inside the family's ball has no counterpart on it.
   const neutral = ball(0.1, 24, 32), outer = ball(0.1015, 13, 17), inner = ball(0.094, 13, 17);
   const count = outer.positions.length / 3;
   const positions = new Float32Array(count * 6);
@@ -93,7 +88,6 @@ test("alignment recovers a turn, a move and a size", () => {
 });
 
 test("folds and touching skin are found without a list of vertices", () => {
-  // A strip of four squares. Pulling one corner across its neighbour turns triangles over.
   const flat = new Float32Array([0, 0, 0, 1, 0, 0, 2, 0, 0, 3, 0, 0, 4, 0, 0, 0, 1, 0, 1, 1, 0, 2, 1, 0, 3, 1, 0, 4, 1, 0]);
   const indices = new Uint32Array([0, 1, 5, 1, 6, 5, 1, 2, 6, 2, 7, 6, 2, 3, 7, 3, 8, 7, 3, 4, 8, 4, 9, 8]);
   assert.equal(foldedTriangles(flat, flat, indices, 8).folded.length, 0);
@@ -101,17 +95,12 @@ test("folds and touching skin are found without a list of vertices", () => {
   pulled[2 * 3] = 3.5;
   assert.ok(foldedTriangles(flat, pulled, indices, 8).folded.length > 0);
 
-  // Bend the strip so its two ends nearly meet: they touch without being neighbours.
   const bent = flat.slice();
   for (const v of [4, 9]) { bent[v * 3] = 0.05; bent[v * 3 + 2] = 0.05; }
   const pairs = contactPairs(bent, indices, 8, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], 0.2);
   assert.deepEqual(pairs.map(([a, b]) => [Math.min(a, b), Math.max(a, b)]).sort((a, b) => a[0] - b[0]), [[0, 4], [5, 9]]);
 });
 
-/* A family made from the editable adult itself: its rendered surface has
-   another topology than the cage that is edited, and a second recipe gives a
-   member whose difference from the neutral is known. Nothing here is fitted to
-   outside reference material. */
 const smooth = (human) => {
   const s = smoothHumanSurface(evaluateHuman(human));
   return { positions: s.positions, indices: s.indices };
@@ -122,13 +111,11 @@ test("a head from a family reaches the editable adult and leaves the body alone"
   const registration = registerHumanFamily(base, smooth(base.human));
   assert.ok(registration.report.coverage.head.registered > 0.6 * registration.report.coverage.head.vertices);
 
-  // In a relative transfer the neutral is nobody: nothing is asked of the adult.
   const nobody = transferHumanIdentity(registration, smooth(base.human), { controls: false, detail: true, keepOffset: 1 });
   assert.ok(nobody.metrics.start.maxMm < 0.02);
   assert.ok(nobody.metrics.detail.maxMm < 0.05);
   assert.equal(nobody.metrics.outsideRegionMaxMm, 0);
 
-  // A member with another head. Only head measurements differ, so the body is the same person.
   const keys = regionMeasurements(base.human, "head");
   assert.ok(keys.length >= 4);
   const person = { height: 1.72 };
@@ -138,8 +125,6 @@ test("a head from a family reaches the editable adult and leaves the body alone"
   assert.ok(coarse.metrics.afterMeasurements.meanMm < 0.35 * coarse.metrics.start.meanMm,
     JSON.stringify([coarse.metrics.start, coarse.metrics.afterMeasurements]));
   assert.equal(coarse.detail, undefined);
-  // The ordinary measurements themselves come back, not only a nearby surface:
-  // every one in the right direction and most of them at most of their size.
   const share = Object.entries(person).filter(([key]) => key !== "height").map(([key, value]) => coarse.form.human[key] / value);
   assert.ok(share.every((x) => x > 0), JSON.stringify(share));
   assert.ok(share.sort((x, y) => x - y)[share.length >> 1] > 0.7, JSON.stringify(share));
@@ -153,7 +138,6 @@ test("a head from a family reaches the editable adult and leaves the body alone"
   assert.ok(fine.metrics.contacts.afterMaxMm < fine.metrics.contacts.beforeMaxMm + 1.2);
   for (const eye of fine.metrics.eyes) assert.ok(eye.ballStretchMm < 1.5);
 
-  // The layer is a separate, optional step: at no strength the measured adult is unchanged.
   const measured = evaluateHuman(fine.form.human, fine.form.humanFit);
   assert.ok(farthest(applyHumanDetail(measured, fine.detail, 0).positions, measured.positions) === 0);
   assert.ok(farthest(applyHumanDetail(measured, fine.detail).positions, fine.surface.positions) < 1e-6);

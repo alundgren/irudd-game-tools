@@ -10,7 +10,6 @@ import {
 } from "three";
 import { inferRole } from "./skin.js";
 
-// These fields share the same axial joints as the animated sweep beneath them.
 export function hasPlatedAxis(part) {
   return (
     part?.shape === "sweep" &&
@@ -57,8 +56,6 @@ function ownMeshes(root) {
   walk(root);
   return result;
 }
-// Bounds are in world metres. Partition long carriers so fitting a small root
-// only visits triangles that could improve the nearest surface point.
 export function surfaceIndex(root) {
   const faces = [];
   for (const mesh of ownMeshes(root)) {
@@ -281,8 +278,6 @@ function atCarrier(hit, carrier) {
   }
   return ranks;
 }
-// Textile piping, a fin ray or a raised stripe should follow the carrier along
-// its full path. Translate each cross-section together to retain its thickness.
 function seatStrip(mesh, carrier, join, nearest) {
   const g = mesh.geometry,
     pos = g.attributes.position,
@@ -359,7 +354,6 @@ function seatBranch(mesh, carrier, part, nearest, retainMount = false) {
         .addScaledVector(hit.normal, -part.surfaceJoin.depth)
         .sub(at);
     if (retainMount) {
-      // Keep the seated patch and its carrier triangles during mesh reduction.
       pinVertex(mesh, i);
       for (const vertex of hit.face.indices) pinVertex(hit.face.mesh, vertex);
     }
@@ -478,7 +472,6 @@ export function fitSurfaceJoins(
     else if (part.surfaceJoin.end === "along")
       seatStrip(mesh, carrier, part.surfaceJoin, nearest);
     else {
-      // Retain both sides of the joint through game mesh reduction.
       const pinPlateSocket =
         retainMount && part.plateSite && hasPlatedAxis(byId.get(part.parent));
       seatBranch(mesh, carrier, part, nearest, pinPlateSocket);

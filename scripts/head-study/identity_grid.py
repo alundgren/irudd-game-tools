@@ -12,7 +12,7 @@ from pathlib import Path
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 
-import _paths  # make the shared benchmark renderer available
+import _paths
 from hb_raster import rasterize, view_basis
 from surface_relief import depth_detail
 
@@ -47,8 +47,6 @@ def captures(path):
 
 
 def shared_crops(views):
-    # The ellipse covers brow, nose, cheeks, lips and chin, cropping the scalp,
-    # ears and shoulders. A small global depth shift may come from landmark placement.
     yy,xx = np.indices(views[0][0].shape)
     mask = ((xx-95.5)/71)**2 + ((yy-104.5)/95)**2 < 1
     masks = [mask & np.logical_and.reduce([np.isfinite(c) for c in angle]) for angle in zip(*views)]

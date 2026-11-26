@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'unsafe-inline'; img-src blob: data:; connect-src blob: data:; worker-src blob:"
+    />
+    <title>GLB Player</title>
+  </head>
+  <body>
+    <main class="app">
+      <div id="stage" class="stage" aria-label="Model view"></div>
+      <aside class="side">
+        <h1>GLB Player</h1>
+        <p class="hint">Opens binary glTF files offline. Drop a file on the view or choose one.</p>
+        <label class="open"
+          >Open GLB<input id="file" type="file" accept=".glb,model/gltf-binary"
+        /></label>
+        <div id="controls"></div>
+      </aside>
+    </main>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

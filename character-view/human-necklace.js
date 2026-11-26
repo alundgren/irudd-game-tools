@@ -14,7 +14,6 @@ function bead(piece, at, rx, ry, rz, skin, facets = 10) {
   piece.loft(rings, skin, {capStart:true, capEnd:true});
 }
 
-// A convex shell with ribs radiating from the hinge. The edge turns at each scallop.
 function fan(piece, at, k, skin) {
   const shell = outset => Array.from({length:5}, (_, i) => Array.from({length:27}, (_, j) => {
     const a = (j/26-.5)*2.38, r = (.004 + .038*i/4)*k;
@@ -26,8 +25,6 @@ function fan(piece, at, k, skin) {
   piece.slab(shell(.003),shell(0),skin);
 }
 
-/** A necklace rests on the fitted surface of the clothes and the skin beneath.
- * Its back crosses the nape, the sides ride the collarbones and the front hangs lower. */
 export function fittedNecklace(surface, style, clothes, material, plain = false) {
   const cut = style.necklace;
   if (!cut || cut === "None" || !necklaceStyles.includes(cut)) return [];
@@ -48,7 +45,6 @@ export function fittedNecklace(surface, style, clothes, material, plain = false)
   function pointAt(a, frontDrop) {
     const dx = Math.sin(a), dz = Math.cos(a);
     const y = cy + k*(.018 - .018*Math.max(0,-dz) - frontDrop*Math.max(0,dz)**1.35);
-    // A slight downward slope brings the chain over the shoulders at the sides.
     const outer = .29*k, rise = (.22+.49*dx*dx)*outer;
     const from = [cx+dx*outer, y+rise, cz+dz*outer];
     const dir = new Vector3(-dx, -rise/outer, -dz).normalize();
@@ -78,7 +74,6 @@ export function fittedNecklace(surface, style, clothes, material, plain = false)
   if (!pearls) {
     const at = path[0].clone(), skin = skins[0];
     if (ornate) {
-      // A fluted scallop setting and a pearl at the hinge.
       fan(chain,at,k,skin);
       bead(stones,at.clone().add(new Vector3(0,-.032*k,.006*k)),.006*k,.007*k,.005*k,skin);
     } else {

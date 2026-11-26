@@ -1,6 +1,3 @@
-// Draws a study's adult and its outfit for a close look, with inside faces in red. It draws on the graphics card
-// when there is one and prints which renderer drew.
-//   node scripts/rocketbox-study/tailor-check.mjs <study id> out.png [--views 0,45,90,180] [--frame body|torso|legs|head]
 import * as T from "three";
 import { evaluateHuman } from "../../character-view/human-surface.js";
 import { styleHuman } from "../../character-view/human-style.js";
@@ -19,7 +16,6 @@ const rgb = (hex) => { const c = new T.Color(hex).convertLinearToSRGB(); return 
 const material = (color) => new T.MeshStandardMaterial({ color });
 const started = performance.now();
 const style = form.humanStyle ?? {};
-// --layers 0,2 keeps only those tailor layers, to look at one piece at a time.
 if (style.tailor && option("layers", "")) style.tailor = { layers: option("layers").split(",").map((i) => style.tailor.layers[+i]) };
 const meshes = [...(style.tailor ? tailorHuman(surface, style.tailor, material) : []), ...styleHuman(surface, { ...style, outfit: style.tailor ? "None" : style.outfit }, material)];
 console.log(meshes.length + " meshes in " + (performance.now() - started).toFixed(0) + " ms", meshes.map((m) => m.name).join(", "));

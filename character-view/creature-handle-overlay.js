@@ -25,13 +25,6 @@ import {
   viewOf,
 } from "./creature-handles.js";
 
-// Handles drawn over the creature. A round handle slides a limb group along
-// the spine and a diamond changes the thickness of the trunk at its station.
-// They sit above the canvas, so a drag that starts anywhere else still orbits.
-// While a handle is held, the creature follows the pointer on every frame:
-// `preview` warps the meshes that are on screen, and once the pointer rests
-// it builds them again exactly. Letting go stores one change; Escape drops
-// the drag.
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const fixed = (points) =>
   points.map(([x, y]) => x.toFixed(1) + "," + y.toFixed(1)).join(" ");
@@ -75,7 +68,6 @@ export function creatureHandleOverlay(
     const box = stage.getBoundingClientRect();
     return [e.clientX - box.left, e.clientY - box.top];
   };
-  // The dragged handle keeps the side of the body it was picked up on.
   function handlesOf(shown) {
     const found = creatureHandles(shown, viewOf(camera));
     for (const h of found.handles) {
@@ -189,11 +181,6 @@ export function creatureHandleOverlay(
     draw(drag?.plan ?? plan);
   }
 
-  // Show the plan under the pointer. `preview` answers whether the picture
-  // it drew is the exact build. A warp costs a few milliseconds, so it runs
-  // on every frame, and the exact build follows once the pointer has rested.
-  // A change a warp cannot show is built exactly at once, and waits for the
-  // pointer to rest only where that build takes more than a few frames.
   function push() {
     frame = null;
     clearTimeout(timer);
@@ -218,10 +205,6 @@ export function creatureHandleOverlay(
       rest();
     }
   }
-  // The exact build freezes the picture while it runs, so it waits until the
-  // pointer has been still for about half the time the build takes. Every
-  // movement of the pointer starts the wait again, also one too small to
-  // change the plan.
   function rest() {
     if (!drag?.form || drag.exact || slow || drag.shown !== drag.plan) return;
     clearTimeout(timer);
@@ -381,7 +364,6 @@ export function creatureHandleOverlay(
       held.exact && held.shown === held.plan ? held.form : null,
     );
   }
-  // Arrow keys step a focused handle. Each press is one change.
   function keys(e, el) {
     const step = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[
       e.key
@@ -415,8 +397,6 @@ export function creatureHandleOverlay(
       else if (hot === key && !drag) hot = null;
       if (!drag && !overlay.hidden && plan) draw(plan);
     };
-    // A handle reached with the keyboard stays lit; one reached with the
-    // pointer is lit only while the pointer is over it.
     const keyed = () => el.matches(":focus-visible");
     el.onpointerenter = () => light(true);
     el.onpointerleave = () => light(keyed());
@@ -424,7 +404,6 @@ export function creatureHandleOverlay(
     el.onblur = () => light(false);
     el.onkeydown = (e) => keys(e, el);
     el.oncontextmenu = (e) => e.preventDefault();
-    // The wheel still zooms the view with the pointer over a handle.
     el.onwheel = (e) => {
       e.preventDefault();
       stage.querySelector("canvas")?.dispatchEvent(new WheelEvent("wheel", e));

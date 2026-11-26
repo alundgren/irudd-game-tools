@@ -16,7 +16,6 @@ export function visibleBounds(object) {
   object.traverseVisible((node) => includeVertices(box, node, point));
   return box;
 }
-// Measure the actual head surface and exclude separately attached hair, hoods and crests.
 export function measureFigure(figure, form) {
   const box = visibleBounds(figure);
   if (box.isEmpty()) return { box, overall: 0, head: null };

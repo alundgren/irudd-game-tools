@@ -110,8 +110,6 @@ export function generateWorkshopForm(
       form.origin = { ...form.origin, seed };
       return form;
     }
-    // Older human seeds used this draw for their outfit before drawing the
-    // face and build. Keep those choices reproducible in the anatomy view.
     draw();
     face.sculpt = {
       ...face.sculpt,

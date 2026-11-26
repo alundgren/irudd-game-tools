@@ -14,7 +14,6 @@ parser.add_argument("output", type=Path)
 parser.add_argument("--beard-output", type=Path, help="Also register the clipped beard and stubble coverage from Male_Adult_05")
 args = parser.parse_args()
 dest = args.output
-# Native face marks in a 512-square upright chart. Donor marks in its 500-square UV chart.
 from rocketbox_face_chart import landmarks as pair
 
 w, h = 541, 591
@@ -24,7 +23,6 @@ v = (xx + 0.5) / w * 512
 edge = lambda z: np.clip(z, 0, 1) ** 2 * (3 - 2 * np.clip(z, 0, 1))
 dist = lambda x, y, rx, ry: np.hypot((u - x) / rx, (v - y) / ry)
 mask = edge((1 - dist(256, 274, 160, 217)) / 0.22)
-# Erase source brows/eyes within the feature itself; keep their surrounding bone/skin colour.
 for x, y, rx, ry in [
     (190, 215, 28, 10),
     (322, 215, 28, 10),
@@ -87,17 +85,12 @@ for model, style in [
         rgb[((dist(190, 258, 23, 19) < 1) | (dist(322, 258, 23, 19) < 1))], axis=0
     )
     ratio = np.log(rgb / base)
-    # Retain fine asymmetries while taking out broad left-to-right illumination in the source colour.
-    # Mirror on the native horizontal axis (the first stored texture axis points left).
     coarse = cv2.GaussianBlur(ratio, (0, 0), 22)
     ratio -= 0.45 * (coarse - coarse[::-1])
     strength = mask.copy()
-    # Hairline boundaries on the donor end behind the forehead.
     strength *= edge((v - 111) / 54)
-    # Donor temples meet painted hair as the face narrows towards the brow.
     side = np.abs(u - 256)
     strength *= 1 - edge((side - 68) / 37) * (1 - edge((v - 166) / 68))
-    # Suppress donor beard shadow on the shaved jaw and deep smile/nostril shadows.
     faceL = ratio @ np.array([0.26, 0.57, 0.17])
     broad = cv2.GaussianBlur(faceL, (0, 0), 12)
     luma = 0.45 * broad + 0.64 * (faceL - broad)
@@ -143,7 +136,6 @@ for model, style in [
 dest.write_text(json.dumps(out, separators=(",", ":")))
 
 if args.beard_output:
-    # Follow the cheek and jaw outline in the donor chart and leave both lips clear.
     cheek = [(143,157),(155,157),(160,175),(173,191),(186,201),(204,206),(214,201),(219,190),(229,182),(242,181),(250,183)]
     jaw = [(143,194),(149,219),(161,241),(180,253),(212,267),(239,278),(250,284)]
     outline = cheek + [(500-x,y) for x,y in cheek[-2::-1]] + [(500-x,y) for x,y in jaw] + jaw[-2::-1]
@@ -153,7 +145,6 @@ if args.beard_output:
     cv2.fillPoly(shape,[np.int32(np.rint(np.array(outline)*1024/500))],255)
     coverage = cv2.GaussianBlur(shape.astype("f")/255,(0,0),4)
     coverage *= 1 - np.exp(-(((x-250)/30)**4 + ((y-203)/8)**4))
-    # Isolate light whiskers by chroma and dark whiskers by local luminance.
     red, green, blue = rgb.transpose(2,0,1)
     lum = .26*red + .58*green + .16*blue
     detail = lum - cv2.GaussianBlur(lum,(0,0),3)

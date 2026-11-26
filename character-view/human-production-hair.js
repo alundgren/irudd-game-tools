@@ -30,9 +30,6 @@ function cutFor(name) {
   return decoded.get(name);
 }
 
-// Scalp and free strands occupy separate halves of the chart. At the scalp's edge
-// the dyed source strands grade into the wearer's skin. A pale dye needs less of
-// the dark donor photograph's highlight range than a dark dye.
 function hairMap(source, hair, skin, plain) {
   const root = new T.Color(skin),
     dye = new T.Color(hair),
@@ -124,8 +121,6 @@ export function productionHair(surface, style, material, plain, skin) {
     bones[4 * i] = head;
     weights[4 * i] = 1;
   }
-  // The front already carries a cut fringe. Retain its original fall away
-  // from the eyes, and apply the full comb only to points at the eye opening.
   const original = position.slice();
   combFringe(position, frame, style.fringe);
   for (let i = 0; i < count; i++) {
@@ -135,8 +130,6 @@ export function productionHair(surface, style, material, plain, skin) {
     const share = .23 + .77 * nearEye;
     for (let k = 0; k < 3; k++) position[offset + k] = T.MathUtils.lerp(point[k], position[offset + k], share);
   }
-  // Orient both sides of the original ribbons consistently with the fitted
-  // hair volume. A reversed outer card otherwise catches the opposite light.
   const indices = source.indices.slice(),
     a = new T.Vector3(),
     b = new T.Vector3(),

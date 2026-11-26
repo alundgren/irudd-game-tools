@@ -57,8 +57,6 @@ export function validPoses(poses) {
   });
 }
 
-// Skeleton array indices and exported node names depend on the current outfit.
-// Address each joint through the persistent region ID and its place in that region.
 export function bindPoseJoints(skeleton) {
   const bindings = new Map();
   for (const bone of skeleton.bones) {

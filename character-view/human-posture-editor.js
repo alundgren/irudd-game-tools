@@ -1,4 +1,3 @@
-// Artist controls for how an adult stands and walks.
 import {
   drawPosture,
   mirrorPosture,
@@ -26,7 +25,6 @@ function button(id, title) {
   return b;
 }
 
-/** Add the posture controls to the adult panel. Returns the function that shows a form in them. */
 export function postureEditor(panel, before, read, commit) {
   const details = document.createElement("details");
   details.id = "human-posture";
@@ -59,7 +57,6 @@ export function postureEditor(panel, before, read, commit) {
     const [lo, hi] = postureRanges[key];
     return Math.round((lo + (Number(slider.value) / 100) * (hi - lo)) * 100) / 100;
   };
-  // A posture edit is judged on the standing figure, so the preview turns to it.
   function show(next, message) {
     commit(next, message);
     const motion = document.getElementById("motion");
@@ -80,7 +77,6 @@ export function postureEditor(panel, before, read, commit) {
       delete next.posture;
       return show(next, "Standing posture removed. The adult rests in the fitting pose.");
     }
-    // A new way of standing keeps the leg that carried the weight.
     show({ ...form, posture: posturePreset(style.value, value(form.posture, "weight") < 0) }, style.value + " posture applied.");
   };
   axis.onchange = () => {

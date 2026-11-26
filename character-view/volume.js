@@ -62,8 +62,6 @@ function build(h) {
   }));
   function field(row, ix, iz) {
     if (!h.membrane) return section(row.x, row.z, ix, iz);
-    // Keep one unbroken membrane. Per-row depth fits turn a scalloped
-    // boundary into horizontal shelves wherever a notch opens or closes.
     const x = min[0] + ix * step[0],
       z = min[2] + iz * step[2];
     const front = spans[0] >= spans[2];
@@ -135,8 +133,6 @@ function build(h) {
       .normalize()
       .toArray(normals, 3 * i);
   }
-  // One UV projection per triangle permits independent side and back paint
-  // and a real untextured opening through the mesh.
   for (let i = 0; i < mc.count; i += 3) {
     sum.set(0, 0, 0);
     for (let j = 0; j < 3; j++) sum.add(n.fromArray(normals, (i + j) * 3));

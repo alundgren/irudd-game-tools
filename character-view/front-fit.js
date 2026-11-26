@@ -20,7 +20,6 @@ const vector = (v, length, limit) =>
   Array.isArray(v) &&
   v.length === length &&
   v.every((n) => Number.isFinite(n) && Math.abs(n) <= limit);
-// Orthonormal frame of an upright camera orbiting a head centred at the origin.
 export function portraitAxes(yaw = 0, pitch = 0) {
   const y = MathUtils.degToRad(yaw),
     p = MathUtils.degToRad(pitch);
@@ -81,8 +80,6 @@ export function validFrontFit(pass) {
     )
   );
 }
-// A planar similarity registers the two pictures using the first two fixed
-// landmarks. The photograph can have any crop, magnification or in-plane tilt.
 export function registerFrontPairs(pairs, radius = 0.3, view) {
   if (pairs.length < 3)
     throw new Error("Mark two alignment pairs and at least one feature.");
@@ -123,12 +120,8 @@ export function registerFrontPairs(pairs, radius = 0.3, view) {
     );
   return pass;
 }
-// Fit a local 2D similarity at each projected vertex (moving least squares,
-// Schaefer, McPhail & Warren, 2006). Broad shifts can then narrow a whole
-// jaw without creating an indentation just under each selected point.
 function frontalWarp(pass) {
   const pins = [...pass.pins];
-  // Free boundary controls keep a sparse mouth/jaw fit from resizing the crown.
   for (const [x, y] of [
     [0, 0.49],
     [-0.32, 0.47],
@@ -188,15 +181,10 @@ function frontalWarp(pass) {
         pass.radius * 0.65,
         pass.radius * 1.8,
       );
-    // Side contours carry their nearby rear surface with them. The middle of
-    // the occiput stays behind the editing area.
     const depth = MathUtils.smoothstep(z + 0.55 * Math.abs(x), -0.52, -0.16);
     return [dx * local * depth * pass.amount, dy * local * depth * pass.amount];
   };
 }
-// A depth correction is a scalar field over the anatomical front plane.
-// Moving every point in the same column monotonically keeps a large nose
-// correction from folding the far eyelid or the underside of the nose.
 function depthWarp(pass, { right, up, out }, rear) {
   const sensitivity = right.z ** 2 + up.z ** 2;
   const pins = pass.pins.map(({ at: [u, v, w], shift: [du, dv] }) => {
@@ -323,9 +311,6 @@ export function carryFaceEdits(
   move,
   moveSurface = move,
 ) {
-  // A spectacle rim, an ear and its attached hair occupy different local frames.
-  // Carry nearby vertices through the same field as the face; the part records
-  // and the independently editable attachments remain intact.
   owner.updateWorldMatrix(true, true);
   const fromWorld = mesh.matrixWorld.clone().invert();
   const rigid = new Set();
@@ -387,8 +372,6 @@ export function carryFaceEdits(
       g.computeBoundingSphere();
     }
   });
-  // Eye patches and each keyed position live in the face's local coordinates.
-  // Warp both endpoints before reconstructing the relative gaze or blink.
   for (const eye of mesh.children.filter((c) => c.userData.eyePiece)) {
     const eg = eye.geometry,
       ep = eg.attributes.position,

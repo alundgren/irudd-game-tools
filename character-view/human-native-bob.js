@@ -1,18 +1,8 @@
-// The native bob family: MargaretToigo's four CC0 bobs worn as the one coherent volume their author modelled.
-//   nativeBob(groom)      whether a packed groom belongs to the family
-//   settleNativeBob(...)  the fit: the author's own shell carried to this head as a whole, eased to its shape
-// A bob is a closed curtain of hair standing centimetres off the head. The library ties each point of a groom
-// to a skin triangle and rebuilds it from there. On a body that is not the author's, neighbouring points land
-// on differently turned triangles, and a smooth shell comes out rippled by several millimetres on every head,
-// the resting one included. Here the shell is the author's mesh itself (human-native-bob-data.json, packed by
-// .reference-cache/native-bobs14/pack-points.py from the same OBJ files as the groom). It is scaled to the
-// skull as a whole, and only the smooth part of what the skin fit adds is kept, spread along the shell.
 import { unzlibSync } from "three/addons/libs/fflate.module.js";
 import shells from "./human-native-bob-data.json" with { type: "json" };
 
 export const nativeBobs = new Set(Object.keys(shells));
 export const nativeBob = (groom) => nativeBobs.has(groom);
-/** The strand picture and relief of each bob, as the library holds them (`texture`, `normal`). */
 export const nativeBobMaps = Object.fromEntries(Object.entries(shells).filter(([, shell]) => shell.texture).map(([groom, { texture, normal }]) => [groom, { texture, normal }]));
 const decoded = new Map();
 function authored(groom) {
@@ -52,8 +42,6 @@ function relax(values, beside, rounds, stride = 3) {
   return from;
 }
 
-// Each ear of a body: its side, the landmark at the top of its rim, how far out it stands and the box (height,
-// depth) its flap fills. Read from the skin around the rim landmark, so a protruding ear is covered as it is.
 function ears(body, k) {
   const { ids } = body.surface, out = [];
   for (const id of [5413, 12012]) {
@@ -72,20 +60,10 @@ function ears(body, k) {
   }
   return out;
 }
-/**
- * Fit a bob shell to a head.
- *   groom       the packed groom, one of nativeBobs
- *   p           positions from the library's fit to the skin, one per shell point (changed in place, returned)
- *   onSkull     1 for a point tied to the skull, 0 for one tied to neck or shoulders
- *   corners     the shell's triangles (three point indices each)
- *   frame       the head frame of this body (`surfaceFrame`); keeps the shell out of a fuller scalp
- *   body        the analysed body (`surfaceBody`); keeps the shell outside the ears
- */
 export function settleNativeBob(groom, p, onSkull, corners, frame, body) {
   const shell = authored(groom), count = p.length / 3, gain = [1, 1, 1], shift = [0, 0, 0];
   if (shell.length !== p.length) throw new Error(groom + " does not match its authored shell");
   for (let d = 0; d < 3; d++) {
-    // Least squares of the skin fit against the author's shell along each axis, over the points on the skull.
     let n = 0, sx = 0, sy = 0, sxx = 0, sxy = 0;
     for (let i = 0; i < count; i++) if (onSkull[i]) { const x = shell[i * 3 + d], y = p[i * 3 + d]; n++; sx += x; sy += y; sxx += x * x; sxy += x * y; }
     const spread = n * sxx - sx * sx;
@@ -93,16 +71,11 @@ export function settleNativeBob(groom, p, onSkull, corners, frame, body) {
     gain[d] = Math.min(1.5, Math.max(.6, (n * sxy - sx * sy) / spread));
     shift[d] = (sy - gain[d] * sx) / n;
   }
-  // What the whole-skull fit leaves over: the local shape of this head, and the ripple. Points tied below the
-  // skull hang from the shell above them, so they carry none of their own. Easing along the shell keeps the
-  // first and drops the second.
   const beside = neighbours(corners, count), left = new Float32Array(count * 3);
   for (let i = 0; i < count; i++) if (onSkull[i]) for (let d = 0; d < 3; d++) left[i * 3 + d] = p[i * 3 + d] - (shell[i * 3 + d] * gain[d] + shift[d]);
   const eased = relax(left, beside, ROUNDS);
   for (let i = 0; i < count; i++) for (let d = 0; d < 3; d++) p[i * 3 + d] = shell[i * 3 + d] * gain[d] + shift[d] + eased[i * 3 + d];
   if (frame) {
-    // Air over the skin where this head is fuller than the author's, more along the arm of a pair of glasses,
-    // and the whole shell kept outside the ears and the hook of an arm behind them. The push is spread along the shell, so it leaves no dent.
     const k = frame.k, push = new Float32Array(count * 3), flaps = body ? ears(body, k) : [];
     let any = false;
     for (let i = 0; i < count; i++) {

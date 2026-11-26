@@ -1,7 +1,3 @@
-// Step 3: pack scan hair shells for the runtime module.
-//   node scripts/scan-hair/pack.mjs "Style name=SCAN-NAME:triangles" ...
-// Reads work/SCAN-points.f32, -tri.u32, -rgba.u8, -meta.json (extract.py). Simplifies each shell, puts its points
-// in the native head frame (centre and radii), recomputes the crown chart and writes character-view/human-scan-hair-data.json.
 import fs from 'node:fs';
 import { zlibSync } from 'three/addons/libs/fflate.module.js';
 import { MeshoptSimplifier } from 'three/addons/libs/meshopt_simplifier.module.js';
@@ -14,7 +10,7 @@ const b64 = (bytes) => Buffer.from(zlibSync(new Uint8Array(bytes.buffer, bytes.b
 const credits = JSON.parse(fs.readFileSync(new URL('./credits.json', import.meta.url), 'utf8'));
 const out = {};
 for (const arg of process.argv.slice(2)) {
-  const [style, rest] = arg.split('='), [scan, budget, fall] = rest.split(':');   // a third part, `long`, leaves hair that falls beside the face where it hangs
+  const [style, rest] = arg.split('='), [scan, budget, fall] = rest.split(':');
   const read = (suffix, Type) => { const b = fs.readFileSync(new URL(scan + suffix, work)); return new Type(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)); };
   const inland = read('-inland.f32', Float32Array), points = read('-points.f32', Float32Array), tri = read('-tri.u32', Uint32Array), rgba = read('-rgba.u8', Uint8Array), meta = JSON.parse(fs.readFileSync(new URL(scan + '-meta.json', work), 'utf8'));
   const target = Math.min(tri.length, 3 * Number(budget ?? 5000));
@@ -23,13 +19,10 @@ for (const arg of process.argv.slice(2)) {
   const q = new Int16Array(used.length * 6), heights = [];
   used.forEach((v, i) => {
     const p = [points[v * 3], points[v * 3 + 1], points[v * 3 + 2]];
-    // Hair standing forward of the forehead hides its own underside from the crown chart, so over the face it
-    // is laid close; from the hairline up and round the sides the scanned relief is kept whole.
     {
       const at = skull.over(p), smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
       const face = (1 - smooth(0.9, 1.35, Math.abs(at.phi))) * (1 - smooth(0.42, 0.8, at.eps)), cap = 0.004 + (1 - face) * 0.06;
       if (fall !== 'long' && at.h > cap) for (let k = 0; k < 3; k++) p[k] -= at.u[k] * (at.h - cap) * face;
-      // Hair rises from its roots: at the hairline the shell lies on the skin, and a centimetre in it is free.
       const rooted = skull.over(p), temple = smooth(0.8, 1.2, Math.abs(rooted.phi)) * (1 - smooth(1.9, 2.3, Math.abs(rooted.phi))) * (1 - smooth(0.3, 0.7, rooted.eps)), most = 0.0012 + (0.0009 - 0.0005 * temple) * inland[v];
       if (rooted.h > most) for (let k = 0; k < 3; k++) p[k] -= rooted.u[k] * (rooted.h - most);
     }
@@ -37,16 +30,13 @@ for (const arg of process.argv.slice(2)) {
     const r = p.map((x, k) => x - frame.centre[k]), len = Math.hypot(...r), theta = Math.acos(r[1] / len) * 180 / Math.PI, az = Math.atan2(r[0], r[2]);
     q[i * 6 + 3] = Math.round((0.5 + 0.5 * theta / meta.theta * Math.sin(az)) * 4000);
     q[i * 6 + 4] = Math.round((0.5 - 0.5 * theta / meta.theta * Math.cos(az)) * 4000);
-    // The height the hair stands above the skull here, in hundredths of a millimetre: the wearer's head keeps it.
     q[i * 6 + 5] = Math.round(skull.over(p).h * 1e5);
     heights.push(skull.over(p).h * 1000);
   });
   heights.sort((a, b) => a - b);
   const pick = (f) => heights[Math.floor(f * (heights.length - 1))].toFixed(1);
   console.log(style, scan, 'vertices', used.length, 'triangles', kept.length / 3, 'height over native skull mm: min', pick(0), '10%', pick(.1), 'median', pick(.5), '90%', pick(.9), 'max', pick(1));
-  // How far the lighter strands of this hair stand above its middle tone: the ninth decile of light over the middle.
   const lin = (c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; }, light = (r, g, b) => 0.2126 * r + 0.7152 * g + 0.0722 * b, ratios = [];
-  // The middle tone of the hair as packed: the median of each channel over the texels that are surely hair.
   const tone = [0, 1, 2].map((k) => { const all = []; for (let i = 0; i < rgba.length; i += 4) if (rgba[i + 3] > 153) all.push(lin(rgba[i + k])); all.sort((a, b) => a - b); return Number(all[all.length >> 1].toFixed(5)); });
   const middle = light(...tone);
   for (let i = 0; i < rgba.length; i += 4) if (rgba[i + 3] > 153) ratios.push(light(lin(rgba[i]), lin(rgba[i + 1]), lin(rgba[i + 2])) / middle);

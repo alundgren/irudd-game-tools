@@ -43,7 +43,6 @@ def run(editor, forms, out, player=None):
             page.screenshot(path=str(out / f"{name}-editor.png"))
             report[name] = {"opened": status, "exports": {}}
             for detail in details:
-                # The control may sit in a tab that is not showing, so it is set directly.
                 page.evaluate("(v) => { const s = document.querySelector('#export-detail'); s.value = v; s.dispatchEvent(new Event('change', { bubbles: true })); }", detail)
                 with page.expect_download(timeout=240000) as got:
                     page.evaluate("() => document.querySelector('#glb').click()")
@@ -52,7 +51,6 @@ def run(editor, forms, out, player=None):
                 page.wait_for_function("() => !document.querySelector('#glb').disabled", timeout=240000)
                 report[name]["exports"][detail or "full"] = {"file": file.name, "bytes": file.stat().st_size, "status": page.evaluate("() => document.querySelector('#status')?.textContent ?? ''")}
                 print(name, detail, file.stat().st_size, flush=True)
-            # The tailored outfit panel: change one piece, choose a preset over it, and undo both.
             panel = page.evaluate("""async () => {
               const wait = () => new Promise((r) => setTimeout(r, 900)), status = () => document.querySelector('#status').textContent;
               const pieces = () => [...document.querySelectorAll('#human-tailor details summary')].map((s) => s.textContent);
@@ -78,7 +76,6 @@ def run(editor, forms, out, player=None):
                 page.set_input_files("#file", str(glb))
                 page.wait_for_timeout(3500)
                 page.screenshot(path=str(out / (glb.stem + "-played.png")))
-                # From behind, then part-way through the first movement clip, where layers that cross would show.
                 page.evaluate("([id, value]) => { const s = document.querySelector(id); s.value = value; s.dispatchEvent(new Event('change', { bubbles: true })); }", ["#camera-angle", "back"])
                 page.wait_for_timeout(600)
                 page.screenshot(path=str(out / (glb.stem + "-played-back.png")))

@@ -135,8 +135,6 @@ function readFace(mesh, probe) {
     );
   };
 }
-// Sample the two pupil centres while the source artwork is available. Save the
-// measured offsets in the recipe so clay and textured geometry agree.
 export function fitEyeSettings(mesh) {
   const settings = { ...eyeDefaults };
   const { h, half, cx, cy, probe } = frame(mesh),
@@ -301,7 +299,6 @@ export function attachEyes(mesh, settings, uniform = null) {
     const shift = settings.offsets?.[side] ?? [0, 0],
       ex = cx + 0.425 * half * settings.spacing * sign + shift[0] * h,
       ey = cy + (shift[1] + settings.lift) * h;
-    // The curved ocular surface stays just ahead of the source eye paint.
     const eyeDepth = (x, y) => {
       const hit = probe(x, y);
       if (!hit) return null;
@@ -341,9 +338,6 @@ export function attachEyes(mesh, settings, uniform = null) {
         const xy = (u, t) =>
           at(ex + width * u, MathUtils.lerp(lower(u), upper(u), t));
         if (preservePaint) {
-          // Move the original painted iris by deforming a patch bounded by the
-          // measured lid opening. The canthi stay fixed and no second pupil can
-          // emerge from under an eyelid when horizontal and vertical gaze combine.
           const scale = settings.iris - 1;
           const fittedU = u + scale * u * (1 - Math.abs(u)),
             fittedT = t + scale * (t - 0.5) * (1 - Math.abs(2 * t - 1));
@@ -374,8 +368,6 @@ export function attachEyes(mesh, settings, uniform = null) {
           quad(eye, a, a + 1, a + cols + 2, a + cols + 1);
         }
       }
-    // Join the cut eye opening to the original textured face with upper and
-    // lower skin patches. The peripheral samples retain the source complexion.
     for (const direction of [1, -1]) {
       const start = lids.p.length / 3,
         rings = 8;
@@ -420,8 +412,6 @@ export function attachEyes(mesh, settings, uniform = null) {
         }
     }
     if (preservePaint) continue;
-    // A separate radial iris moves over the ocular surface and behind the
-    // opaque lids. All four gaze directions are ordinary glTF morph targets.
     const radial = [0, 0.27, 0.34, 0.38, 0.51, 0.68, 0.84, 0.93, 1],
       segments = 64,
       startI = irises.p.length / 3;

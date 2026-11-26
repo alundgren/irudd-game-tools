@@ -157,8 +157,6 @@ function centres(s, regions) {
   const rows = part.knots?.map((p) =>
     object.localToWorld(new T.Vector3(...p.slice(0, 3))),
   );
-  // Segmented arms already have authored shoulder, elbow and wrist pivots.
-  // Following those pivots also works when a forearm points up or across the body.
   const distalRole =
     role === "upper arm"
       ? "forearm"
@@ -178,8 +176,6 @@ function centres(s, regions) {
       return [origin, origin.clone().lerp(tip, 0.5), tip];
     }
   }
-  // A thigh drawn upward from its socket, as on a spider, still starts at
-  // that socket when the next segment hangs from its far end.
   if (
     (role === "thigh" || role === "shin") &&
     rows?.length > 1 &&
@@ -264,8 +260,6 @@ function centres(s, regions) {
 }
 function weights(point, points) {
   if (points.length === 1) return [0, 0, 1, 0];
-  // Find the closest point on the joint polyline, then blend on either side
-  // of each bend. This also works for a spine lying along the ground plane.
   let where = 0,
     best = Infinity;
   for (let j = 0; j < points.length - 1; j++) {
@@ -303,8 +297,6 @@ function weights(point, points) {
   const t = T.MathUtils.smoothstep(where, 1.81, 2);
   return [1, 2, 1 - t, t];
 }
-// The seat folds across three bones. Both trouser legs and the body must use
-// the same continuous weights here, including vertices along the inseam.
 function hipBindings(regions, index) {
   const bindings = new Map();
   for (const torso of regions.values()) {
@@ -331,7 +323,6 @@ function hipBindings(regions, index) {
       if (height <= -1.5 || height >= 0.9) return false;
       const across = local.dot(axis) / span;
       const leg = 1 - T.MathUtils.smoothstep(height, -1.5, 0.9);
-      // Away from the crotch, the inner thigh follows its own leg fully.
       const centreWidth =
         0.52 * T.MathUtils.smoothstep(height, -1.5, -0.65) + 0.008;
       const side = T.MathUtils.smoothstep(across, -centreWidth, centreWidth);
@@ -410,7 +401,6 @@ export function skinCharacter(form, model, { coverage = false } = {}) {
     s.skirtCage = addSkirtCage(s, bones, index);
     if (s.skirtCage) skirtCages.push(s.skirtCage);
   }
-  // Long cloth on an adult hangs from a few joints of its own.
   const drapes = addDrapeJoints(regions, bones, index);
   const tails = addTailJoints(regions, bones, index);
   actor.updateMatrixWorld(true);
@@ -437,7 +427,6 @@ export function skinCharacter(form, model, { coverage = false } = {}) {
       const ids = new Uint16Array(pos.count * 4),
         blend = new Float32Array(pos.count * 4);
       const bindHip = source.blendOwners && hips.get(s.part.id);
-      // The surface of a wing bends with the joints of the arm that carries it.
       const arm = s.part.shape === "wing" ? regions.get(s.part.parent) : null;
       const carried = arm?.role === "wing" && arm.points.length > 1 ? arm : s;
       const authored = source.humanWeights;
@@ -486,8 +475,6 @@ export function skinCharacter(form, model, { coverage = false } = {}) {
           1,
         ),
       );
-      // Diagnostic exports distinguish the native body and its clothes even
-      // when several pieces share a skeleton region or the same material.
       if (coverage) {
         const role = coverageId(source);
         geometry.setAttribute("_coverage", new T.Uint8BufferAttribute(new Uint8Array(pos.count).fill(role), 1));
@@ -543,7 +530,6 @@ export function skinCharacter(form, model, { coverage = false } = {}) {
               1,
             ),
           );
-    // Untextured procedural garments can share a skin with UV-mapped body parts.
     if (geometries.some(g => g.attributes.uv))
       for (const g of geometries)
         if (!g.attributes.uv)
@@ -588,8 +574,6 @@ export function skinCharacter(form, model, { coverage = false } = {}) {
   const poses = authoredClips(bindings, form.poses);
   const action = dispatchActionClip(bindings,form);
   if(action) clips.push(action);
-  // An adult with a posture rests in it: the joints turn after every garment, the hair and the
-  // eyes are bound, so they follow. Saved joint poses stay as they were authored, from the fitting pose.
   const posed = form.posture && skinned ? postureRig(regions, root, skeleton, skinned, wornHandProp(form)) : null;
   if (posed) {
     drapes.stance(posed);

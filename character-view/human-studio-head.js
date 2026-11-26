@@ -1,20 +1,3 @@
-// A face family made by a studio artist, worn on the editable adult: the artist's own head surface with its
-// matching eyes, brows, lashes, hair and colour maps.
-//
-//   studioHeadStyles     the choices of humanStyle.faceFamily
-//   studioHeadCredits    choice -> { credit, source, license, changes }
-//   wearsStudioHead      whether a form wears one
-//   studioHead           the meshes of the head for one adult, in the head's frame
-//
-// Rain: Rain Rig (CC) Blender Foundation | studio.blender.org, CC BY 4.0,
-// https://studio.blender.org/characters/rain/v3/. Packed by scripts/pack-human-studio-head.py.
-//
-// The artist's head keeps its own vertices, faces and texture coordinates. Each of its vertices is a control
-// point that knows which point of the native default adult's skin it corresponds to (nose to nose, jaw to
-// jaw). On an edited adult the head is first carried with the native head as a whole, then every control
-// point is moved by what the native skin did at its own point. So age, weight, jaw, cheek, nose and every
-// other head control reshape the artist's head by the amount they reshape the native one. Toward its lower
-// edge the head lies on the native skin and is sewn to the native neck vertex for vertex.
 import * as T from "three";
 import { unzlibSync } from "three/addons/libs/fflate.module.js";
 import data from "./human-studio-head-data.json" with { type: "json" };
@@ -26,19 +9,14 @@ export const studioHeadStyles = ["None", "Studio Rain"];
 export const studioHeadCredits = {
   "Studio Rain": { credit: data.credit, source: data.source, license: data.license, changes: data.changes },
 };
-/* Style choices the family draws itself. They stay saved, and show again when the face family is "None". */
 export const studioHeadCarries = ["hair", "fringe", "facePlanes", "browStyle", "facialHair", "makeup", "eyewear", "earrings", "hat", "hatColor"];
-/* The artist's hairstyle as an ordinary hairstyle, for any adult. */
 export const studioHairStyles = ["Ribbon ponytail"];
-/* Whose hair a face family wears: the hair made for it, or the adult's chosen hairstyle ("None" is a bare head). */
 export const studioFamilyHair = ["Family", "Chosen"];
 const choosesHair = (form) => form?.humanStyle?.faceFamilyHair === "Chosen";
-/* The style fields a worn family holds. With a chosen hairstyle the hair, fringe, hat, eyewear and earrings are the adult's own. */
 export const studioHeadHolds = (form) => !wearsStudioHead(form) ? [] : choosesHair(form) ? ["facePlanes", "browStyle", "facialHair", "makeup"] : studioHeadCarries;
 export const studioHeadNoteFor = (form) => choosesHair(form)
   ? "This face family brings its own head, eyes, brows and lashes, and wears the chosen hairstyle, hat, eyewear and earrings fitted to it. Facial plane shading, eyebrows, facial hair, makeup, complexion and face marks are kept in the save but not drawn. Choose Face family: None to return to the native face."
   : studioHeadNote;
-/* The credit a look owes for studio art it wears, as the head or as the hairstyle alone. */
 export function studioCreditFor(look) {
   const head = wearsStudioHead(look), hair = studioHairStyles.includes(look?.humanStyle?.hair) && (!head || choosesHair(look));
   if (!head && !hair) return null;
@@ -46,8 +24,6 @@ export function studioCreditFor(look) {
   return { ...entry, name: head ? "Studio Rain" : look.humanStyle.hair, changes: head ? entry.changes : "Hair fitted to an editable adult's head; colour map resized and re-tinted." };
 }
 export const studioHeadNote = "This face family brings its own head, eyes, brows, lashes and hair. Hairstyle, fringe, eyebrows, facial hair, makeup, eyewear, earrings, hat, complexion and face marks are kept in the save but not drawn. Skin, hair and eye colour, the head controls and expressions still apply. Choose None to return to the native face.";
-/* A ready person for each family: the build and colouring the artist drew the head for, with the head controls at
-   rest so the authored face shows as made. Everything stays editable afterwards. */
 export const studioHeadPresets = {
   "Studio Rain": {
     human: { age: 0.08, frame: -0.35, weight: -0.3, muscle: 0.1, neck: -0.2, jaw: 0, nose: 0, noseBridge: 0, cheeks: 0, lips: 0, chin: 0, jawProjection: 0, chinHeight: 0, forehead: 0, temples: 0, noseLength: 0, noseTipWidth: 0 },
@@ -70,7 +46,6 @@ function read(path, Type) {
   return decoded.get(path);
 }
 
-// Triangles of the smooth surface that move mostly with one of `bones`, as corner offsets.
 function cornersOf(s, bones) {
   const totals = new Float32Array(s.names.length), out = [];
   for (let c = 0; c < s.bodyTriangles * 3; c += 3) {
@@ -117,8 +92,6 @@ function closestOnTriangle(p, a, b, c, out) {
   return x * x + y * y + z * z;
 }
 
-/* Tie each control point to the triangle of the native default skin under it. The packed point lay on that
-   skin when it was packed; finding it again here keeps the tie right when the native skin is refined. */
 let bound = null;
 function binding() {
   if (bound) return bound;
@@ -151,7 +124,6 @@ function binding() {
       for (let x = home[0] - ring; x <= home[0] + ring; x++)
         for (let y = home[1] - ring; y <= home[1] + ring; y++)
           for (let z = home[2] - ring; z <= home[2] + ring; z++) {
-            // Only the shell this ring adds.
             if (Math.max(Math.abs(x - home[0]), Math.abs(y - home[1]), Math.abs(z - home[2])) !== ring && ring > 1) continue;
             const list = grid.get(key(x, y, z));
             if (!list) continue;
@@ -168,7 +140,6 @@ function binding() {
     for (let d = 0; d < 3; d++)
       rest[i * 3 + d] = shares[i * 3] * P[vertices[i * 3] * 3 + d] + shares[i * 3 + 1] * P[vertices[i * 3 + 1] * 3 + d] + shares[i * 3 + 2] * P[vertices[i * 3 + 2] * 3 + d];
   }
-  // Control points that share an edge, for evening out what the native skin hands over.
   const triangles = read("triangles", Uint16Array), beside = Array.from({ length: count }, () => new Set());
   for (let t = 0; t < triangles.length; t += 3) for (let j = 0; j < 3; j++) {
     beside[triangles[t + j]].add(triangles[t + (j + 1) % 3]);
@@ -178,7 +149,6 @@ function binding() {
   return bound;
 }
 
-// The rotation, scale and shift that best carry the points `from` onto `to`, each counted by `weight`.
 function carry(from, to, weight) {
   const a = [0, 0, 0], b = [0, 0, 0];
   let total = 0;
@@ -199,7 +169,6 @@ function carry(from, to, weight) {
       for (let c = 0; c < 3; c++) m[r * 3 + c] += w * x * (to[i * 3 + c] - b[c]);
     }
   }
-  // Horn's closed form: the rotation is the strongest eigenvector of a symmetric 4 x 4 matrix.
   const [sxx, sxy, sxz, syx, syy, syz, szx, szy, szz] = m;
   const n = [
     [sxx + syy + szz, syz - szy, szx - sxz, sxy - syx],
@@ -230,10 +199,6 @@ function carry(from, to, weight) {
   };
 }
 
-/* Where every control point is on this adult.
-     carried   the control points taken along with the native head as a whole
-     moved     the same after the native skin's own change at each point
-     native    the point of this adult's skin each control point corresponds to */
 function controlPoints(s) {
   const { vertices, shares, rest, beside, vertexCount } = binding();
   if (s.positions.length / 3 !== vertexCount) throw new Error("The studio head was tied to a different native surface.");
@@ -255,8 +220,6 @@ function controlPoints(s) {
       change[i * 3 + d] = native[i * 3 + d] - v[d] - fit.shift[d];
     }
   }
-  // Neighbouring control points can meet the native skin on either side of a fold. Even their changes out,
-  // except where the head lies on the native skin and has to follow it exactly.
   const moved = new Float32Array(count * 3), lips = read("lips", Uint8Array);
   for (let i = 0; i < count; i++) {
     const near = beside[i], keep = Math.max(0.5, settle[i] / 255), share = 1 - 0.5 * lips[i] / 255;
@@ -270,7 +233,6 @@ function controlPoints(s) {
   return { fit, carried, moved, native, settle, vertices, shares };
 }
 
-// Smooth normals of the control points for the triangles drawn.
 function controlNormals(points, triangles) {
   const out = new Float32Array(points.length);
   for (let t = 0; t < triangles.length; t += 3) {
@@ -287,8 +249,6 @@ function controlNormals(points, triangles) {
   return out;
 }
 
-// The open edge of the native head where it meets the neck: a closed loop of surface vertices, in the
-// winding of the head's own triangles.
 function nativeNeckLoop(s, corners) {
   const edges = new Set(), count = s.positions.length / 3;
   for (let c = 0; c < corners.length; c += 3)
@@ -315,7 +275,6 @@ function nativeNeckLoop(s, corners) {
   return best;
 }
 
-// Signed area of a loop seen from above, to tell which way round it runs.
 function turning(loop, point) {
   let area = 0;
   for (let i = 0; i < loop.length; i++) {
@@ -326,14 +285,11 @@ function turning(loop, point) {
 }
 
 const pixelCache = new Map();
-/* The main colour of a named native iris, read from the native iris picture halfway out. */
 function irisColour(name) {
   const size = 32, pixels = irisPixels(name, 0, size), at = (Math.floor(size / 2) * size + Math.round(size * (0.5 + 0.26))) * 4;
   return [pixels[at], pixels[at + 1], pixels[at + 2]];
 }
 
-/* A packed colour map with every pixel multiplied, in linear light, by `gain`. With `iris`, the coloured part of
-   the picture (the artist's iris) takes that colour and keeps the artist's light and dark. */
 function tinted(name, gain, iris, dye) {
   const key = name + "/" + gain.map((v) => v.toFixed(4)).join(",") + (iris ? "/" + iris.join(",") : "") + (dye ? "/dye" + dye.map((v) => v.toFixed(4)).join(",") : "");
   if (pixelCache.has(key)) {
@@ -363,7 +319,6 @@ function tinted(name, gain, iris, dye) {
     const r = rgb[i * 3], g = rgb[i * 3 + 1], b = rgb[i * 3 + 2], most = Math.max(r, g, b), least = Math.min(r, g, b);
     const share = T.MathUtils.smoothstep(most ? (most - least) / most : 0, 0.12, 0.3);
     if (!share) continue;
-    // Brightness follows the artist's painting; colour comes from the adult's iris.
     const light = Math.min(1.9, (0.299 * r + 0.587 * g + 0.114 * b) / (0.299 * paintedIris[0] + 0.587 * paintedIris[1] + 0.114 * paintedIris[2]));
     for (let k = 0; k < 3; k++) rgba[i * 4 + k] += share * (Math.min(255, iris[k] * light) - rgba[i * 4 + k]);
   }
@@ -388,8 +343,6 @@ function tinted(name, gain, iris, dye) {
   pixelCache.set(key, texture);
   return texture;
 }
-/* The painted hair in a dye: the dye's own colour, lit and shaded as the artist painted. Native hair draws a
-   little deeper than the colour it is given, by its strand shading, and this matches that depth. */
 const dyedHair = (colour) => tinted("hair", [1, 1, 1], null, [colour.r * 0.78, colour.g * 0.78, colour.b * 0.78]);
 const gainTo = (colour, tone, most = 8) => [colour.r, colour.g, colour.b].map((v, k) => Math.min(most, Math.max(0.02, v / tone[k])));
 
@@ -399,26 +352,12 @@ function headOnly(count, bone) {
   return { boneIndices, weights };
 }
 
-/**
- * The meshes of a studio head for one adult, placed in the head's own frame.
- *   form       the adult; reads humanStyle.faceFamily, humanStyle.hairColor and appearance
- *   surface    the adult's smooth surface (after refineFaceForm)
- *   corners    the corners of the native head's triangles in that surface, three per triangle
- *   normals    the surface's vertex normals
- *   origin     the head joint
- *   material   colour -> material, as the rest of the adult is built with
- *   plain      true for the clay view: no colour maps
- *   colour     the skin colour of the head part
- *   shade      per-vertex colour multipliers of the native skin, or null
- *   roughness  the roughness of the body's skin
- */
 export function studioHead({ form, surface: s, corners, normals, origin, material, plain, colour, shade, roughness, worn = [] }) {
   const points = controlPoints(s), { fit, moved, settle } = points, count = data.count, headBone = s.names.indexOf("head");
   const source = read("skin/source", Uint16Array), uvs = read("skin/uv", Float32Array), index = read("skin/index", Uint16Array);
   const smooth = read("skin/smooth", Uint16Array), packedNeck = read("skin/neck", Uint16Array);
   const scale = fit.scale, v = [0, 0, 0];
 
-  // Normals at rest and under each expression, joined to the native skin's where the head lies on it.
   const nativeNormal = new Float32Array(count * 3);
   for (let i = 0; i < count; i++) {
     if (!settle[i]) continue;
@@ -452,7 +391,6 @@ export function studioHead({ form, surface: s, corners, normals, origin, materia
     return lean;
   });
 
-  // The native skin's weights where the head lies on it, so the join bends with the neck.
   const skinCount = source.length, loop = nativeNeckLoop(s, corners), total = skinCount + loop.length;
   const position = new Float32Array(total * 3), normal = new Float32Array(total * 3), uv = new Float32Array(total * 2), tint = new Float32Array(total * 3).fill(1);
   const anchors = new Uint8Array(total), boneIndices = new Uint16Array(total * 4), weights = new Float32Array(total * 4);
@@ -471,7 +409,6 @@ export function studioHead({ form, surface: s, corners, normals, origin, materia
     const strongest = [...pool].sort((a, b) => b[1] - a[1]).slice(0, 4), sum = strongest.reduce((n, entry) => n + entry[1], 0);
     strongest.forEach(([bone, value], j) => { boneIndices[i * 4 + j] = bone; weights[i * 4 + j] = value / sum; });
   }
-  // The native neck's own edge, vertex for vertex, and a strip sewing the head's edge to it.
   const neck = [], firstOf = new Map();
   source.forEach((c, i) => { if (!firstOf.has(c)) firstOf.set(c, i); });
   for (const c of packedNeck) neck.push(firstOf.get(c));
@@ -495,12 +432,10 @@ export function studioHead({ form, surface: s, corners, normals, origin, materia
   for (let i = 0, j = 0; i < neck.length || j < lower.length;) {
     const a = neck[i % neck.length], b = lower[(start + j) % lower.length];
     const nextA = neck[(i + 1) % neck.length], nextB = lower[(start + j + 1) % lower.length];
-    // Advance along whichever edge leaves the shorter new seam, without running ahead of the other loop.
     const ahead = (i + 1) / neck.length - (j + 1) / lower.length;
     const stepUpper = j >= lower.length || (i < neck.length && (ahead < -0.04 || (ahead < 0.04 && apart(nextA, b) <= apart(a, nextB))));
     if (stepUpper) { sewn.push(nextA, a, b); i++; } else {
       sewn.push(b, nextB, a);
-      // The texture is plain skin here, so a native vertex borrows the coordinates of the head vertex above it.
       j++;
     }
   }
@@ -549,7 +484,6 @@ export function studioHead({ form, surface: s, corners, normals, origin, materia
   head.updateMorphTargets();
   const meshes = [head];
 
-  // What the skin did at each control point, for the pieces tied to it.
   const change = new Float32Array(count * 3);
   for (let i = 0; i < change.length; i++) change[i] = moved[i] - points.carried[i];
   function placed(name) {
@@ -603,7 +537,6 @@ export function studioHead({ form, surface: s, corners, normals, origin, materia
     return mesh;
   };
 
-  // Eyes. Each ball follows its own lids: where their middle went and how much wider they now stand.
   {
     const g = pieceGeometry(["eyes"]), p = g.attributes.position, side = read("pieces/eyes/side", Int8Array), box = data.paint.eyes.box;
     const centres = {}, shade = new Float32Array(p.count * 3), coords = g.attributes.uv;
@@ -622,11 +555,9 @@ export function studioHead({ form, surface: s, corners, normals, origin, materia
       centres[sign] = new T.Vector3(...to);
       for (let i = 0; i < p.count; i++) {
         if (side[i] !== sign) continue;
-        // Undo the tie to single skin points: a ball stays a ball.
         fit.turn(packed[i * 3], packed[i * 3 + 1], packed[i * 3 + 2], v);
         const rest = v.map((value, d) => value + fit.shift[d] - origin[d]);
         p.setXYZ(i, to[0] + grow * (rest[0] - from[0]), to[1] + grow * (rest[1] - from[1]), to[2] + grow * (rest[2] - from[2]));
-        // The white darkens toward the corners, as it does under lids.
         const out = new T.Vector3(rest[0] - from[0], rest[1] - from[1], rest[2] - from[2]).normalize();
         const facing = out.dot(axis), value = 0.5 + 0.5 * T.MathUtils.smoothstep(facing, 0.35, 0.93);
         shade[i * 3] = value; shade[i * 3 + 1] = value * (0.94 + 0.06 * value); shade[i * 3 + 2] = value * (0.9 + 0.1 * value);
@@ -651,7 +582,6 @@ export function studioHead({ form, surface: s, corners, normals, origin, materia
       a.name = b.name = name;
       return [a, b];
     });
-    // Closed lids lie where the open eye's surface is. The balls draw back a little under them.
     const drawn = new Float32Array(p.count * 3), still = new Float32Array(p.count * 3);
     for (let i = 0; i < p.count; i++) {
       const centre = centres[side[i]];
@@ -668,7 +598,6 @@ export function studioHead({ form, surface: s, corners, normals, origin, materia
     eyes.castShadow = false;
   }
 
-  // Brows and lashes, in the artist's painted colour. Brows take the hair colour with the hair.
   {
     const hairGain = gainTo(hairColour, data.paint.hair.tone).map((g) => Math.sqrt(g));
     const g = pieceGeometry(["brows", "lashes"], { coloured: true, moving: true });
@@ -683,7 +612,6 @@ export function studioHead({ form, surface: s, corners, normals, origin, materia
     fibres.castShadow = false;
   }
 
-  // Hair, tinted from the artist's own colour to the adult's. A chosen hairstyle is the adult's own, fitted on.
   const chosen = choosesHair(form), ownHair = !chosen || studioHairStyles.includes(form.humanStyle?.hair);
   if (chosen) {
     const fitted = ontoStudioHead(worn.filter((mesh) => !mesh.userData.studioHair), points);
@@ -708,12 +636,9 @@ export function studioHead({ form, surface: s, corners, normals, origin, materia
   return meshes;
 }
 
-/* What the studio head does to the space round the native head: each tied point of the native skin goes to its
-   studio control point. Worn pieces made for the native head are carried by the changes nearest them. */
 function ontoStudioHead(meshes, points) {
   if (!meshes.length) return [];
   const count = data.count, { native, moved, settle } = points, cell = 0.018, reach = 2, spread = 0.013;
-  // The artist's skin is drawn in from the tied point by the size of the head; follow the drawn skin.
   const grid = new Map(), key = (x, y, z) => (x + 512) * 1048576 + (y + 512) * 1024 + (z + 512);
   const delta = new Float32Array(count * 3);
   for (let i = 0; i < count; i++) {
@@ -739,7 +664,6 @@ function ontoStudioHead(meshes, points) {
         }
       }
       if (total < 1e-9) {
-        // Far from the head: take the change of the nearest tied point.
         let best = Infinity, at = 0;
         for (let i = 0; i < count; i++) {
           const far = (native[i * 3] - x) ** 2 + (native[i * 3 + 1] - y) ** 2 + (native[i * 3 + 2] - z) ** 2;
@@ -755,8 +679,6 @@ function ontoStudioHead(meshes, points) {
   });
 }
 
-/* The artist's hairstyle on a native head: every hair point goes with the studio scalp it was made on to where
-   that scalp is tied on this adult's skin. Returned as worn head pieces, in the adult's own space. */
 export function studioHairFor(cage, style, material, plain) {
   if (!studioHairStyles.includes(style.hair)) return [];
   const s = refineFaceForm(smoothHumanSurface(cage)), { native } = controlPoints(s), { beside } = binding();
@@ -798,7 +720,6 @@ export function studioHairFor(cage, style, material, plain) {
   const m = material("#" + hairColour.getHexString(), "hair").clone();
   if (!plain) { m.color.set("#ffffff"); m.map = dyedHair(hairColour); m.roughness = 0.52; m.metalness = 0; }
   m.userData = { ...m.userData, studioHair: true };
-  // A hat sits where the tail is tied, so under one the hair is worn pulled back without it.
   const hatted = Boolean(style.hat) && style.hat !== "None";
   const hair = new T.Mesh(build(hatted ? ["hair_main"] : ["hair_main", "hair_ponytail", "hair_strand"], false), m);
   hair.userData.sculptedHair = true;

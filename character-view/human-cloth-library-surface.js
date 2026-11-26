@@ -22,42 +22,32 @@ function noise2(x, y) {
   return a + (b - a) * ux + (c - a + (a - b - c + d) * ux) * uy;
 }
 
-// Per-garment panel-to-fabric construction assignments for authored system library clothes
-// that lack baked ORM surface maps. Preserves 100% of artists' diffuse paint & fold normals.
-// Panel index matches `panels[i] - 1` (when panel-charted) or `dyes[name]` rule index (fallback).
 const LIBRARY_FABRICS = {
   male_elegantsuit01: {
-    // dyes: 0=accent (tie), 1=light (dress shirt), 2=main (suit jacket/trousers)
     byRule: ["silk_tie", "poplin", "wool_twill"],
     fallback: "wool_twill",
   },
   female_elegantsuit01: {
-    // dyes: 0=blouse, 1=skirt/jacket
     byRule: ["blouse_silk", "wool_twill"],
     fallback: "wool_twill",
   },
   male_casualsuit01: {
-    // panels: 0=overshirt, 1=denim jeans, 2=accent
     byRule: ["flannel", "denim", "poplin"],
     fallback: "leather",
   },
   male_casualsuit03: {
-    // panels: 0=striped shirt, 1=denim jeans, 2=accent
     byRule: ["poplin", "denim", "poplin"],
     fallback: "leather",
   },
   male_casualsuit05: {
-    // dyes: 0=jeans, 1=tee/accent, 2=dark/denim, 3=field jacket
     byRule: ["denim", "jersey", "denim", "canvas"],
     fallback: "leather",
   },
   male_worksuit01: {
-    // dyes: 0=white tee, 1=workwear overalls
     byRule: ["jersey", "canvas"],
     fallback: "leather",
   },
   female_sportsuit01: {
-    // panels: 0=track top, 1=leggings, 2=accent stripe
     byRule: ["pique", "stretch_knit", "stretch_knit"],
     fallback: "stretch_knit",
   },
@@ -66,15 +56,12 @@ const LIBRARY_FABRICS = {
   shoes05: { byRule: ["pique"], fallback: "rubber" },
 };
 
-// Evaluate procedural directional construction height [0..1] and PBR roughness [0..1] in UV space.
-// Spatial frequencies are chosen so weave wales span 3-6 texels inside the final 24K/1024 shared atlas.
 function sampleFabric(kind, u, v, out) {
   let h = 0.5;
   let r = 0.8;
   let ao = 1.0;
 
   if (kind === "denim") {
-    // Steep 3x1 diagonal twill wales + warp slub variation + dry-to-burnished denim roughness.
     const diag = (u * 0.78 + v * 0.62) * 104;
     const f = diag - Math.floor(diag);
     const wale = Math.sin(f * Math.PI * 2);
@@ -84,7 +71,6 @@ function sampleFabric(kind, u, v, out) {
     r = clamp(0.84 - 0.09 * wale - 0.08 * wear + 0.05 * Math.abs(slub), 0.66, 0.94);
     ao = 0.91 + 0.09 * (0.5 + 0.5 * wale);
   } else if (kind === "wool_twill") {
-    // Fine worsted wool diagonal twill + dry matte felted light response.
     const diag = (u * 0.72 + v * 0.69) * 160;
     const wale = Math.sin(diag * Math.PI * 2);
     const felted = noise2(u * 82, v * 82) - 0.5;
@@ -92,7 +78,6 @@ function sampleFabric(kind, u, v, out) {
     r = clamp(0.86 - 0.05 * wale + 0.06 * Math.abs(felted), 0.76, 0.95);
     ao = 0.93 + 0.07 * (0.5 + 0.5 * wale);
   } else if (kind === "flannel") {
-    // Soft brushed diagonal twill flannel with cozy matte pile.
     const diag = (u * 0.7 + v * 0.7) * 76;
     const wale = Math.sin(diag * Math.PI * 2);
     const nap = noise2(u * 54, v * 54) - 0.5;
@@ -100,7 +85,6 @@ function sampleFabric(kind, u, v, out) {
     r = clamp(0.90 - 0.04 * wale + 0.05 * nap, 0.80, 0.96);
     ao = 0.93 + 0.07 * (0.5 + 0.5 * wale);
   } else if (kind === "canvas") {
-    // Heavy 2x2 basketweave duck outerwear.
     const bx = u * 72,
       by = v * 72;
     const ix = Math.floor(bx),
@@ -114,7 +98,6 @@ function sampleFabric(kind, u, v, out) {
     r = clamp(0.88 - 0.12 * rib + 0.06 * slub, 0.72, 0.95);
     ao = 0.88 + 0.12 * rib;
   } else if (kind === "poplin") {
-    // Crisp garment-weight woven cotton / linen with orthogonal plain weave + slub threads.
     const wx = Math.sin(u * 108 * Math.PI * 2);
     const wy = Math.sin(v * 108 * Math.PI * 2);
     const slubH = (noise2(u * 18, v * 110) - 0.5) * 0.32;
@@ -124,7 +107,6 @@ function sampleFabric(kind, u, v, out) {
     r = clamp(0.60 - 0.07 * weave, 0.48, 0.72);
     ao = 0.95 + 0.05 * clamp(0.5 + weave, 0, 1);
   } else if (kind === "blouse_silk") {
-    // Crisp satin-cotton / silk blouse with lustrous light response.
     const diag = (u * 0.6 + v * 0.8) * 104;
     const wave = Math.sin(diag * Math.PI * 2);
     const sheen = noise2(u * 14, v * 14) - 0.5;
@@ -132,13 +114,11 @@ function sampleFabric(kind, u, v, out) {
     r = clamp(0.46 - 0.07 * wave + 0.06 * sheen, 0.36, 0.58);
     ao = 0.96 + 0.04 * (0.5 + 0.5 * wave);
   } else if (kind === "silk_tie") {
-    // Repp-ribbed lustrous silk necktie (high specular contrast beside wool suit).
     const rib = Math.sin((u * 0.75 + v * 0.66) * 74 * Math.PI * 2);
     h = clamp(0.5 + 0.32 * rib, 0.12, 0.90);
     r = clamp(0.28 - 0.07 * rib, 0.18, 0.38);
     ao = 0.93 + 0.07 * (0.5 + 0.5 * rib);
   } else if (kind === "jersey") {
-    // Fine vertical cotton jersey knit wales + soft matte response.
     const wale = Math.sin(u * 92 * Math.PI * 2);
     const course = Math.sin((v * 74 + Math.abs(((u * 92) % 1 + 1) % 1 - 0.5) * 0.7) * Math.PI * 2);
     const knit = 0.62 * wale + 0.38 * course;
@@ -146,7 +126,6 @@ function sampleFabric(kind, u, v, out) {
     r = clamp(0.84 - 0.06 * knit, 0.74, 0.92);
     ao = 0.93 + 0.07 * (0.5 + 0.5 * knit);
   } else if (kind === "pique") {
-    // Breathable athletic pique / micro-mesh knit.
     const gx = Math.cos(u * 88 * Math.PI * 2);
     const gy = Math.cos(v * 88 * Math.PI * 2);
     const cell = gx * gy;
@@ -154,14 +133,12 @@ function sampleFabric(kind, u, v, out) {
     r = clamp(0.68 - 0.09 * cell, 0.54, 0.80);
     ao = 0.90 + 0.10 * (0.5 + 0.5 * cell);
   } else if (kind === "stretch_knit") {
-    // Sleek athletic stretch leggings with subtle vertical knit lustre.
     const rib = Math.sin(u * 98 * Math.PI * 2);
     const sheen = noise2(u * 12, v * 12) - 0.5;
     h = clamp(0.5 + 0.18 * rib, 0.24, 0.78);
     r = clamp(0.45 - 0.06 * rib + 0.05 * sheen, 0.34, 0.56);
     ao = 0.96 + 0.04 * (0.5 + 0.5 * rib);
   } else if (kind === "leather") {
-    // Full-grain pebbled oiled leather with satin specular highlights.
     const n1 = noise2(u * 56, v * 56);
     const n2 = noise2(u * 112 + n1 * 1.4, v * 112 - n1 * 1.1);
     const fold = noise2(u * 14, v * 14);
@@ -170,7 +147,6 @@ function sampleFabric(kind, u, v, out) {
     r = clamp(0.46 - 0.12 * grain - 0.05 * fold, 0.30, 0.56);
     ao = 0.92 + 0.08 * grain;
   } else {
-    // Matte rubber sole.
     const grit = noise2(u * 75, v * 75) - 0.5;
     h = clamp(0.5 + 0.16 * grit, 0.28, 0.72);
     r = clamp(0.84 + 0.06 * grit, 0.76, 0.92);
@@ -188,11 +164,6 @@ export function hasLibraryFabricProfile(name) {
   return Object.hasOwn(LIBRARY_FABRICS, name);
 }
 
-/**
- * Synthesize cached ORM (AO + per-panel fabric roughness) and UDN-blended directional
- * weave normal maps for an authored system library garment without overwriting its
- * painted diffuse texture or existing sculpted fold normals.
- */
 export function buildLibraryFabricMaps(name, sourceTex, existingNormalTex, existingAoTex, panels, dyeRules) {
   if (!hasLibraryFabricProfile(name) || !sourceTex?.image || typeof document === "undefined") {
     return null;
@@ -281,7 +252,6 @@ export function buildLibraryFabricMaps(name, sourceTex, existingNormalTex, exist
   }
   ormCtx.putImageData(ormImg, 0, 0);
 
-  // Derive directional fabric weave normal and UDN-blend onto existing baked fold normal map.
   const normCanvas = document.createElement("canvas");
   normCanvas.width = w;
   normCanvas.height = h;
@@ -317,7 +287,6 @@ export function buildLibraryFabricMaps(name, sourceTex, existingNormalTex, exist
         by = (baseNormData[o + 1] / 127.5 - 1) * 0.85;
         bz = Math.max(0.15, baseNormData[o + 2] / 127.5 - 1);
       }
-      // UDN blend preserves broad authored garment folds while adding crisp fabric weave.
       const nx = bx + wx;
       const ny = by + wy;
       const nz = bz;

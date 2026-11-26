@@ -50,7 +50,6 @@ test("costumes are fitted and skinned on a slight and a broad adult and stand on
           assert.ok(Math.abs(skin.weights[i * 4] + skin.weights[i * 4 + 1] + skin.weights[i * 4 + 2] + skin.weights[i * 4 + 3] - 1) < 1e-4);
           assert.ok(Number.isFinite(position.getX(i) + position.getY(i) + position.getZ(i)));
         }
-        // Only the trunk of the costume is measured: arms hang wider than any cloth.
         if (/spine|pelvis/.test(mesh.userData.styleRegion)) box.union(new T.Box3().setFromBufferAttribute(position));
       }
       const all = new T.Box3();
@@ -87,7 +86,6 @@ test("each costume charts the texels its dyes reach and paints its own surface",
     for (const map of ["texture", "normal", "surface"]) assert.ok(record[map].startsWith("data:image/webp;base64,"), name + " " + map);
     assert.ok(!("rest" in record) && !("cover" in record));
   }
-  // The mail keeps its steel: part of the tunic is in no dye.
   const tunic = bytes(attireAssets.viking_tunic.panels);
   assert.ok(tunic.filter(label => label === 0).length > tunic.length * 0.2);
   const steel = wearSurface(new T.MeshStandardMaterial({ roughness: 0.8 }), new T.Texture());
@@ -108,7 +106,6 @@ test("an adventure look often draws a costume, any look sometimes, and other dir
     assert.equal(style.outfit, look.wardrobe);
     assert.ok(validAdultStyle(form.humanStyle));
     validateForm(form);
-    // Cloth, second cloth and leather are all named, so the costume is dyed rather than tinted.
     for (const field of ["clothColor", "clothSecond", "leatherColor", "soleColor"]) assert.match(style[field], /^#[0-9a-f]{6}$/);
     if (seen.size === 1 || seed % 7 === 0) {
       const human = evaluateHuman(form.human, form.humanFit), worn = dressedHuman(human, form, material, true);

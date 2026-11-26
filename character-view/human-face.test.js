@@ -36,7 +36,6 @@ test("lashes grow from the lid margin and follow a blink", () => {
   const position = hair.geometry.attributes.position,
     blink = hair.geometry.morphAttributes.position[0],
     lift = hair.geometry.morphAttributes.position[2];
-  // The balls the eyes turn on: both at one height, their fronts ahead of their centres.
   const [ball] = eyes.eyeFits;
   const eyeLine = ball.centre.y,
     eyeHeight = 2 * ball.ball;
@@ -52,7 +51,6 @@ test("lashes grow from the lid margin and follow a blink", () => {
       if (lift.getY(i) > 0.0005) lifted++;
       continue;
     }
-    // Every lash stays within a lash length of the eye opening and in front of the ball's centre.
     assert.ok(Math.abs(y - eyeLine) < 0.5 * eyeHeight);
     assert.ok(position.getZ(i) > ball.centre.z);
     if (y > eyeLine + 0.03 * eyeHeight) {

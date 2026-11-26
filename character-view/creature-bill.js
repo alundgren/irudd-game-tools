@@ -3,8 +3,6 @@ import { CanvasTexture, MathUtils, SRGBColorSpace } from "three";
 const maps = new Map();
 const { smoothstep } = MathUtils;
 
-// Beak cages have seven cross-sections from cere to tip and two cap centres.
-// Mirror across the ridge and the underside so each flank carries one nostril.
 export function billChart(part, head) {
   if (!head || !["bill", "beak"].includes(head.snout) || part.shape !== "cage") return null;
   const lower = /^lower beak(?: [0-9]+)?$/.test(part.id);
@@ -36,8 +34,6 @@ function paintBill({lower, broad, nostrils}) {
   const rgb = paint.createImageData(width,height), pbr = relief.createImageData(width,height);
   for (let row=0; row<height; row++) for (let col=0; col<width; col++) {
     const u=(col+.5)/width, flank=(row+.5)/height;
-    // Soft wax at the foot of the upper bill gives way to a harder sheath.
-    // The shell darkens near the hooked tip and is worn lighter along its cutting edge.
     const cere = lower ? 0 : 1-smoothstep(u + .06*Math.cos(flank*5),.25,.39);
     const tip = smoothstep(u, broad ? .81 : .66, .98);
     const seamAt = lower ? .32 : .66;

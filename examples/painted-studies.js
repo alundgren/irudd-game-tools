@@ -39,8 +39,6 @@ function tracedForm(atlas, height) {
   }
   return { add, pair, finish: () => bindParts(form, links) };
 }
-// Four-arm anatomy for a long-snouted biped. The upper arms project
-// behind the lower pair in profile. The swept tail exits through the coat split.
 function trader() {
   const { add, pair, finish } = tracedForm("trader", 1.81);
   add("coat and thorax", [
@@ -434,8 +432,6 @@ function human(atlas, height, gown) {
   let form = finish();
   const originalPaint = paintSources(form);
   const body = form.parts.find((p) => p.id === torso);
-  // Fit a skull and neck to the standing height. The body sheet still
-  // supplies the clothing, but its hair silhouette no longer defines the jaw.
   const skullHeight = height / (gown ? 7.15 : 7.65);
   const scale = skullHeight / 0.294;
   const crownAbovePivot = 1.76 - 1.42;
@@ -631,43 +627,43 @@ export const paintedStudies = [
   {
     id: "painted-trader",
     title: "Reed trader · painted volume",
-    game: "Spore",
+    game: "Creature study",
     make: trader,
   },
   {
     id: "painted-surveyor",
     title: "Dock foreman · painted volume",
-    game: "Dragon’s Dogma 2",
+    game: "Portrait study",
     make: () => scanHuman("surveyor", 1.52, "#bd8b71", "Ochre"),
   },
   {
     id: "painted-courier",
     title: "Relay scout · painted volume",
-    game: "The Sims 4",
+    game: "Wardrobe study",
     make: () => scanHuman("courier", 1.77, "#b6977d", "Polar"),
   },
   {
     id: "painted-porter",
     title: "Plateback · painted volume",
-    game: "Spore",
+    game: "Creature study",
     make: porter,
   },
   {
     id: "painted-ranger",
     title: "Coast cartographer · anatomy",
-    game: "Dragon’s Dogma 2",
+    game: "Portrait study",
     make: cartographer,
   },
   {
     id: "traced-coast-body",
     title: "Coast cartographer · earlier traced body",
-    game: "Dragon’s Dogma 2",
+    game: "Portrait study",
     make: () => human("cartographer", 1.88, false),
   },
   {
     id: "painted-elder",
     title: "Opera conductor · painted volume",
-    game: "The Sims 4",
+    game: "Wardrobe study",
     make: () => human("conductor", 1.71, true),
   },
 ];

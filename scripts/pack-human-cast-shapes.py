@@ -25,8 +25,6 @@ NAMES = {
     "Male_Adult_14": "castM14",
     "Male_Adult_16": "castM16",
 }
-# Where each donor's skin ends in the native chart, read off charts.jpg: the first row of clear forehead on the
-# midline and the half-width of clear skin at the temples. The stock heads model hair as a raised step.
 SKIN = {
     "Male_Adult_03": (104, 148),
     "Male_Adult_04": (108, 122),
@@ -39,7 +37,7 @@ PITCH = 0.006
 FACET = 0.5
 LIMIT = 0.016
 LIPS = 0.0065
-GAIN = 1.25  # the similarity fit and the blur both take likeness away; give some back
+GAIN = 1.25
 step = lambda z: np.clip(z, 0, 1) ** 2 * (3 - 2 * np.clip(z, 0, 1))
 
 
@@ -72,7 +70,6 @@ class Reference:
         self.chart = ch[self.face]
         u, v = self.chart.T
         oval = np.hypot((u - 256) / 168, (v - 280) / 215)
-        # 1 over the face, 0 at the hairline, before the ears and under the jaw.
         self.mask = step((1 - oval) / 0.20) * step((v - 104) / 44)
         e = np.unique(
             np.sort(
@@ -87,7 +84,6 @@ class Reference:
         local[self.face] = np.arange(len(self.face))
         self.edges = local[e][(local[e] >= 0).all(1)]
         self.eyes = [self.cage[g].mean(0) for g in native.meta["eyeGroups"]]
-        # Sample the field from the head's smooth skin only.
         self.sample = np.flatnonzero(
             np.isin(np.arange(len(self.s)), np.unique(self.idx))
             & (self.s[:, 1] > self.joint[1] - 0.17)
@@ -98,7 +94,6 @@ def measure(ref, donor, warp):
     """Displacement of the reference's face vertices (smooth surface) that makes this donor's face."""
     q, ok = donor.at(warp(ref.chart))
     p = ref.s[ref.face]
-    # Where neighbours on the adult land far apart on the donor, the chart has left the donor's face island.
     a, b = ref.edges.T
     stretch = np.linalg.norm(q[a] - q[b], axis=1) / (
         np.linalg.norm(p[a] - p[b], axis=1) + 1e-9
@@ -117,14 +112,10 @@ def measure(ref, donor, warp):
         * cut
     )
     w = mask * ok
-    # Lean on the rim of the face: the skull under it stays the adult's own.
     rim = w * (1 - mask) * 4 + w
     s, R, t = umeyama(q, p, rim + 1e-9)
     fit = s * q @ R.T + t
     d = (fit - p) * w[:, None]
-    # Blur each place by the size of the donor's triangles there: millimetres at the nose and lips, a
-    # centimetre on cheek and forehead, where a stock head is a few flat planes. A point that a broad average
-    # cannot explain within a few millimetres (a nostril interior, a slipped lip line) leans on its neighbours.
     tree = cKDTree(p)
     dist, near = tree.query(p, k=420, distance_upper_bound=0.024)
     near = np.minimum(near, len(p) - 1)
@@ -136,21 +127,18 @@ def measure(ref, donor, warp):
         )
 
     sigma = np.clip(FACET * s * donor.size, 0.0015, 0.008)
-    # The lips travel with the mouth and keep their own fullness and line: no fine change across them.
     lips = 1 - step((np.hypot((u - 256) / 50, (v - 350) / 32) - 0.8) / 0.5)
     sigma = np.maximum(sigma, LIPS * lips)
     sigma = blur(sigma[:, None], np.ones(len(p)), np.full(len(p), 0.004))[:, 0]
     broad = blur(d, np.ones(len(p)), np.full(len(p), 0.007))
     keep = 1 - 0.9 * step((np.linalg.norm(d - broad, axis=1) - 0.003) / 0.003)
     d = blur(d, keep, sigma)
-    # The eye and its lids move as one rigid piece, carried by the bone around the socket.
     for e in ref.eyes:
         r = np.linalg.norm(p - e, axis=1)
         ring = (r > 0.017) & (r < 0.030) & (w > 0.5)
         k = 1 - step((r - 0.015) / 0.012)
         d = d * (1 - k[:, None]) + k[:, None] * d[ring].mean(0) * mask[:, None]
     d *= GAIN
-    # No point moves further than LIMIT; long moves ease towards it.
     size = np.linalg.norm(d, axis=1, keepdims=True) + 1e-12
     d *= LIMIT * np.tanh(size / LIMIT) / size
     return d, dict(
@@ -175,8 +163,6 @@ def lattice(ref, d, origin, shape):
     edge = np.minimum(edge, np.array(shape)[:, None, None, None] - 1 - edge).min(0)
     att *= np.clip(edge.ravel() / 2, 0, 1)
     field = gaussian_filter(field, (0.5, 0.5, 0.5, 0)) * att.reshape(*shape, 1)
-    # Through each socket the field is one translation, so the whole eyeball, its lids and the helpers
-    # behind them travel together however deep they sit.
     for e in ref.eyes:
         move = d[np.argsort(np.linalg.norm(ref.s[ref.face] - e, axis=1))[:40]].mean(0)
         k = (1 - step((np.linalg.norm(grid - e, axis=1) - 0.019) / 0.012)).reshape(
@@ -198,13 +184,11 @@ class Donor:
             d["tri"][head],
             d["uv"][head],
         )
-        # Triangle index under every texel of the 500 chart, drawn at 4x.
         S = 2000
         ids = np.full((S, S), -1, np.int32)
         for t, c in enumerate(self.uv):
             cv2.fillConvexPoly(ids, np.round(c * S).astype(np.int32), int(t))
         self.ids, self.S = ids, S
-        # Vertex normals, shared across texture seams by position: the stock heads are a few thousand flat triangles.
         _, weld = np.unique(np.round(self.xyz, 5), axis=0, return_inverse=True)
         weld = weld.ravel()
         fn = np.cross(
@@ -263,7 +247,6 @@ def main(directory, out):
         marks[:, :2], marks[:, 2:], kernel="thin_plate_spline", smoothing=0.32
     )
     refs = {"Female": Reference(-0.9), "Male": Reference(0.9)}
-    # One box for both sexes, relative to the head joint.
     lo = (
         np.min([(r.s[r.face][r.mask > 0] - r.joint).min(0) for r in refs.values()], 0)
         - 3 * PITCH
@@ -280,9 +263,6 @@ def main(directory, out):
     measured = {
         name: measure(refs["Male"], Donor(directory, name), warp) for name in NAMES
     }
-    # What every donor of a sex shares is the library's house style against the native adult (narrow temples,
-    # a short heavy lower face), not a person. Keep only part of it, so each foundation is mostly what sets
-    # its donor apart. Real exports of v9 read hard and masculine on women with all of it kept.
     common = np.mean([measured[name][0] for name in NAMES], 0)
     for name, key in NAMES.items():
         ref = refs["Male"]

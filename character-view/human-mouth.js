@@ -6,11 +6,6 @@ const smooth=(v,a,b)=>{const t=Math.min(1,Math.max(0,(v-a)/(b-a)));return t*t*(3
 const mix=(a,b,t)=>a+(b-a)*t;
 const found=new WeakMap();
 
-/**
- * Which vertices of the head skin are the lining of the mouth: 1 for each. The lining is its
- * own island of the skin layout, so it is every vertex joined by triangles to the ones stored
- * for it. Call this while the head still has the texture coordinates of the skin layout.
- */
 export function mouthLining(geometry){
   if(found.has(geometry))return found.get(geometry);
   const uv=geometry.attributes.uv,index=geometry.index.array,count=uv.count;
@@ -31,21 +26,12 @@ export function mouthLining(geometry){
   return flags;
 }
 
-// Crown widths and heights in millimetres from the middle outward: two incisors, the canine
-// and two premolars. Lower crowns are kept short so they stay inside the lip and chin.
 const upperTeeth=[[8.6,10],[6.8,8.8],[7.6,9.8],[7,7.8],[6.8,7.2]];
 const lowerTeeth=[[5.4,7],[6,7],[6.8,7.4],[7,6.4],[7,6]];
 
-/**
- * The inside of the mouth. The lining of the head skin becomes a shallow pocket that hangs
- * from the lips and moves with them, and two short rows of teeth stand inside it. Returns
- * the teeth, which are not skin. Closed lips hide both rows; an expression that parts the
- * lips slides the rows into the opening, the upper row showing most.
- */
 export function mouthInterior(skin,form,material,plain){
   const g=skin.geometry,p=g.attributes.position,index=g.index.array,moves=g.morphAttributes.position??[];
   const lining=mouthLining(g),mm=(form.human.height??1.72)/1.72/1000;
-  // The seam is where the lining meets the lips: the two share positions there.
   const key=i=>Math.round(p.getX(i)*2e5)+"/"+Math.round(p.getY(i)*2e5)+"/"+Math.round(p.getZ(i)*2e5);
   const lips=new Set(),seam=[],inner=[];
   let any=false;
@@ -53,7 +39,6 @@ export function mouthInterior(skin,form,material,plain){
   if(!any)return null;
   for(let i=0;i<p.count;i++)if(lining[i])(lips.has(key(i))?seam:inner).push(i);
   if(seam.length<12)return null;
-  // The line of the closed lips, by distance from the middle of the face.
   let corner=0,widest=0,tallest=0;
   for(const i of seam)corner=Math.max(corner,Math.abs(p.getX(i)));
   const bins=Math.max(4,Math.round(corner/(3*mm))),sum=Array.from({length:bins+1},()=>[0,0,0]);
@@ -73,8 +58,6 @@ export function mouthInterior(skin,form,material,plain){
   for(const i of inner){
     widest=Math.max(widest,Math.abs(p.getX(i)));tallest=Math.max(tallest,Math.abs(heightOf(i)));
   }
-  // Squeeze the deep cavity into a pocket: it keeps its shape at the lips, then narrows,
-  // flattens and stops about a centimetre in. Every step grows with depth, so nothing folds.
   const narrow=Math.min(1,(corner-1.5*mm)/Math.max(widest,1e-6)),flat=Math.min(1,8*mm/Math.max(tallest,1e-6));
   const settle=5*mm,deep=new Float32Array(p.count),high=new Float32Array(p.count),across=new Float32Array(p.count);
   for(const i of seam){high[i]=heightOf(i);across[i]=p.getX(i);}
@@ -86,7 +69,6 @@ export function mouthInterior(skin,form,material,plain){
     across[i]=x;
     p.setXYZ(i,x,line(x,0)+high[i],line(x,1)-deep[i]);
   }
-  // The pocket rides with the lips: its roof with the upper lip, its floor with the lower.
   for(const move of moves){
     const from=seam.map(i=>[move.getX(i),move.getY(i),move.getZ(i)]);
     for(const i of inner){
@@ -99,7 +81,6 @@ export function mouthInterior(skin,form,material,plain){
     }
     move.needsUpdate=true;
   }
-  // Light the pocket by its own shape, and let the paint darken toward the back.
   const normal=g.attributes.normal,added=new Float32Array(p.count*3);
   const a=new T.Vector3(),b=new T.Vector3(),c=new T.Vector3();
   for(let t=0;t<index.length;t+=3){
@@ -114,8 +95,6 @@ export function mouthInterior(skin,form,material,plain){
     if(!lining[i])continue;
     const length=Math.hypot(added[i*3],added[i*3+1],added[i*3+2]);
     if(length>1e-14){
-      // No light reaches the pocket past the lips. A file has no shadow there, so its normals
-      // turn to face into the head as it deepens and no lamp in front can light or glint on it.
       const hide=smooth(deep[i],.6*mm,3.5*mm),x=added[i*3]/length*(1-hide),y=added[i*3+1]/length*(1-hide),z=added[i*3+2]/length*(1-hide)-hide,size=Math.hypot(x,y,z)||1;
       normal.setXYZ(i,x/size,y/size,z/size);
     }
@@ -128,7 +107,6 @@ export function mouthInterior(skin,form,material,plain){
   if(colour)colour.needsUpdate=true;
   g.computeBoundingBox();g.computeBoundingSphere();
 
-  // The teeth stand on an arch that clears the lips at rest and in every expression.
   const scale=corner/(24.5*mm)*mm,points=[];
   for(const i of seam){
     points.push([Math.abs(p.getX(i)),p.getZ(i)]);
@@ -138,13 +116,10 @@ export function mouthInterior(skin,form,material,plain){
   for(const [x,z] of points)if(x<.25*corner)front=Math.min(front,z-2.6*scale);
   for(const [x,z] of points)if(x>.3*corner)bend=Math.max(bend,(front-(z-2.6*scale))/(x*x));
   const arch=x=>front-bend*x*x;
-  // Where the lips part in the middle of the mouth, at rest and in each expression.
   const middle=seam.filter(i=>Math.abs(p.getX(i))<.2*corner),mean=(ids,of)=>ids.reduce((total,i)=>total+of(i),0)/Math.max(1,ids.length);
   const above=middle.filter(i=>high[i]>0),below=middle.filter(i=>high[i]<=0);
   const upperLip=mean(above,i=>p.getY(i)),lowerLip=mean(below,i=>p.getY(i));
   const edges=[upperLip+1.8*scale,lowerLip-1.8*scale];
-  // Each lip's own line across the mouth, as an offset from the middle: the rows follow it,
-  // so lips that curve or sit apart at the sides still cover them.
   const lipLine=[above,below].map((_,which)=>{
     const total=Array.from({length:bins+1},()=>[0,0]);
     for(const i of seam){
@@ -166,7 +141,6 @@ export function mouthInterior(skin,form,material,plain){
   const position=[],colours=[],triangles=[],row=[];
   const rows=(teeth,up,back,lean,enamel)=>{
     for(const side of [1,-1]){
-      // Stations along the arch: the edges of each crown and two points on its face.
       const stations=[];
       let x=0;
       teeth.forEach(([width,height],tooth)=>{
@@ -178,7 +152,6 @@ export function mouthInterior(skin,form,material,plain){
       const reach=x,start=position.length/3,levels=7;
       for(const {x:along,u,height,tooth} of stations){
         const edge=u===0||u===1,slope=2*bend*along,unit=Math.hypot(1,slope);
-        // Crowns bulge between the gaps, round off at their corners and scallop the gum.
         const round=(edge?(tooth===2?.7:.3):0)*scale+(tooth===1?.4*scale:0);
         const neck=height-(edge?1.9*scale:0),bulge=edge?-.9*scale:0;
         const shade=1-.7*(along/reach)**1.3;
@@ -196,8 +169,6 @@ export function mouthInterior(skin,form,material,plain){
           position.push(side*(along+push*slope/unit),edges[up>0?0:1]+lipLine[up>0?0:1](along)+up*rise,arch(along)+push/unit);
           row.push(up>0?0:1);
           const tone=kind==="gum"?[.5,.26,.27]:enamel;
-          // The gap between two crowns is in shadow, deepest toward the gum, and the biting
-          // edge is a little grey. Without these a row of teeth reads as one band.
           const gap=edge&&kind==="enamel"?(rise>.5*height?.42:rise>.2*height?.6:.8):1,tip=kind==="enamel"&&rise<.2*height?.93:1;
           colours.push(...tone.map((value,k)=>value*light*shade*gap*(k===2?tip:1)));
         }
@@ -229,7 +200,6 @@ export function mouthInterior(skin,form,material,plain){
   }
   const m=material("#ffffff").clone();
   if(!plain){m.vertexColors=true;m.roughness=.5;}
-  // Every triangle of the teeth is kept in a game export: there are few and each one shows.
   m.userData={...m.userData,fibreLOD:true};
   const mesh=new T.Mesh(geometry,m);
   mesh.name="teeth";mesh.receiveShadow=true;mesh.updateMorphTargets();

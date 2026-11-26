@@ -1,4 +1,3 @@
-// The native default head frame, for the packer.
 import fs from 'node:fs';
 import { evaluateHuman } from '../../character-view/human-surface.js';
 import { surfaceFrame } from '../../character-view/human-fringe.js';

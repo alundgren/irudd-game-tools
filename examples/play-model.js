@@ -6,7 +6,6 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 
-// A separate consumer. This scene only knows glTF and metres.
 const $ = (id) => document.getElementById(id);
 const renderer = new T.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -19,8 +18,6 @@ const scene = new T.Scene(),
   camera = new T.PerspectiveCamera(34, 1, 0.01, 250);
 const orbit = new OrbitControls(camera, renderer.domElement);
 orbit.enableDamping = true;
-// A broad reflection is visible in glass, polished leather and metal. The
-// directional key keeps diffuse planes legible on both sides of a portrait.
 const room = new RoomEnvironment();
 const reflections = new T.PMREMGenerator(renderer);
 scene.environment = reflections.fromScene(room, 0.04).texture;
@@ -189,16 +186,12 @@ function gaze() {
     Number($("look-y").value) / 100,
   );
 }
-// An exported clip animates every morph weight of a mesh together, so its blink also writes
-// the gaze weights. While a look control is off centre the user's gaze is put back after each
-// sample. At centre the weights are the clip's, so authored eye movement plays untouched.
 let held = false;
 function holdGaze() {
   if (held) gaze();
 }
 function releaseGaze() {
   held = false;
-  // Stopping hands the weights back; playing from the same time makes the clip write them again.
   const time = action?.time;
   action?.stop();
   setGaze(model, 0, 0);
@@ -213,7 +206,6 @@ $("look-x").oninput = $("look-y").oninput = () => {
     held = true;
     gaze();
   } else if (held && !locked) releaseGaze();
-  // A release during the motion check waits for the check to put its clip back.
   requestFrame();
 };
 $("expression").onchange = () => { expression($("expression").value); requestFrame(); };
@@ -224,7 +216,6 @@ function pose() {
     point = new T.Vector3();
   for (const m of meshes) {
     m.skeleton?.update();
-    // Bounds use every baked vertex, including the current skin deformation.
     const values = new Float32Array(m.geometry.attributes.position.count * 3);
     for (let i = 0; i < values.length / 3; i++) {
       m.getVertexPosition(i, point).applyMatrix4(m.matrixWorld);
@@ -238,7 +229,6 @@ function pose() {
 function selectClip() {
   mixer.stopAllAction();
   action = null;
-  // The clip starts from weights without the user's gaze, so a later release finds them clean.
   if (held) setGaze(model, 0, 0);
   const clip = clips.find((c) => c.name === $("clip").value);
   if (clip) action = mixer.clipAction(clip).reset().play();
@@ -535,7 +525,6 @@ function drawFrame(t) {
     $("time").value = action.time / action.getClip().duration;
   }
   previous = playing ? t : null;
-  // Damping emits camera change events until the orbit settles.
   orbit.update();
   renderer.render(scene, camera);
   if (playing) requestFrame();

@@ -1,12 +1,8 @@
 import { BufferAttribute, BufferGeometry, Mesh, MeshStandardMaterial, Raycaster, Vector2, Vector3 } from "three";
 
-/* Which triangles of an imported reference count as skin. A mask is a list of hide
-   steps over triangle numbers, kept for the session beside the reference. The
-   reference's own positions and indices are never changed, and nothing is saved. */
 export function createMask(triangles) {
   return { hidden: new Uint8Array(triangles), steps: [], count: 0 };
 }
-// At least this many triangles stay on show, or the reference could not be fitted at all.
 const fewest = 12;
 
 function hide(mask, indices, wanted, centre) {
@@ -24,7 +20,6 @@ function hide(mask, indices, wanted, centre) {
   mask.count += found.length;
   return found.length;
 }
-// The middle of each triangle of placed positions.
 function middles(positions, indices) {
   const c = [0, 0, 0];
   return (f) => {
@@ -37,7 +32,6 @@ function middles(positions, indices) {
     return c;
   };
 }
-// Hides the visible triangles whose middle lies within `radius` of `point`.
 export function hidePatch(mask, positions, indices, point, radius) {
   const r = radius * radius;
   return hide(
@@ -47,7 +41,6 @@ export function hidePatch(mask, positions, indices, point, radius) {
     middles(positions, indices),
   );
 }
-// Hides the visible triangles whose middle lies beyond `point` along `direction`.
 export function hideBeyond(mask, positions, indices, point, direction) {
   const level = point[0] * direction[0] + point[1] * direction[1] + point[2] * direction[2];
   return hide(
@@ -57,7 +50,6 @@ export function hideBeyond(mask, positions, indices, point, direction) {
     middles(positions, indices),
   );
 }
-// Takes back the last hide step. Returns how many triangles are on show again.
 export function undoMask(mask) {
   const last = mask.steps.pop();
   if (!last) return 0;
@@ -72,8 +64,6 @@ export function clearMask(mask) {
   mask.count = 0;
   return shown;
 }
-/* New index lists for the triangles on show and the hidden ones. `kept` names, for
-   every triangle on show, its number in the reference. */
 export function maskedIndices(mask, indices) {
   const n = mask.hidden.length,
     shown = new Uint32Array((n - mask.count) * 3),
@@ -89,7 +79,6 @@ export function maskedIndices(mask, indices) {
   }
   return { shown, hidden, kept };
 }
-// How much of the reference is hidden, by count and by surface area.
 export function maskSummary(mask, positions, indices) {
   const a = new Vector3(),
     b = new Vector3(),
@@ -111,15 +100,9 @@ export function maskSummary(mask, positions, indices) {
     steps: mask.steps.length,
   };
 }
-/* Whether a point of the editable skin belongs to a hidden part: it lies nearer to
-   the hidden triangles than to those on show. `hidden` is a distance function over
-   the hidden triangles; the test takes the point and its distance to what is on show. */
 export const underMask = (hidden) => (point, shown) =>
   Math.abs(hidden(point)) < Math.abs(shown);
 
-/* The surface each vertex stands for: a third of every triangle it belongs to. Used to
-   state shares of skin by area, because a face is modelled far more densely than a
-   cranium and a count of vertices would understate what a hidden cap covers. */
 export function vertexAreas(positions, indices = null) {
   const areas = new Float32Array(positions.length / 3),
     corners = indices ? indices.length : positions.length / 3,
@@ -150,10 +133,6 @@ export function maskText({ triangles, hiddenTriangles, hiddenArea }) {
   );
 }
 
-/* The tool in the reference dialog. A click on the reference in the left pane hides
-   a patch, or everything above or below the click as the view shows it. `raw` returns
-   the loaded reference, `mesh` the drawn one, and `changed` re-places the reference
-   and starts the fit over, returning how many fit steps that cleared. */
 export function referenceMasker({
   canvas,
   camera,
@@ -172,7 +151,6 @@ export function referenceMasker({
     masks = new WeakMap(),
     ray = new Raycaster(),
     up = new Vector3(),
-    // Hidden parts stay faintly on show while the tool is in use.
     ghost = new Mesh(
       new BufferGeometry(),
       new MeshStandardMaterial({
@@ -219,7 +197,6 @@ export function referenceMasker({
     $("hfit-mask-size-field").hidden = kind !== "patch";
     $("hfit-mask-size-reading").textContent = $("hfit-mask-size").value + " mm";
     $("hfit-mask-undo").disabled = $("hfit-mask-clear").disabled = !ok || !state;
-    // The pointer is shared with the other picking tools, so only undo what this one set.
     if (on) canvas.style.cursor = "crosshair";
     else if (pointing) canvas.style.cursor = "";
     pointing = on;
@@ -233,7 +210,6 @@ export function referenceMasker({
           ? "Click hair, a beard, closed eyelids or clothing on the reference in the left pane to hide a patch."
           : "Click the reference in the left pane. Everything " + kind + " that point, as this view shows it, is hidden.");
   }
-  // After a change the dialog places the reference again, which redraws everything.
   function apply(message) {
     const cleared = changed();
     note(
@@ -273,7 +249,6 @@ export function referenceMasker({
   canvas.addEventListener("pointerup", (e) => {
     const start = down;
     down = null;
-    // A drag turns the view; only a click hides.
     if (!on || !start || Math.hypot(e.clientX - start[0], e.clientY - start[1]) > 5) return;
     const now = current();
     if (!now || !ready() || !paired()) {
@@ -319,8 +294,6 @@ export function referenceMasker({
     stop() {
       on = false;
     },
-    /* Called when the reference has been placed. Returns the triangles to draw and
-       fit, and the hidden ones, or null when nothing is hidden. */
     place(reference, positions) {
       const mask = maskOf(reference);
       placed = { reference, positions, mask, summary: null };
@@ -333,13 +306,11 @@ export function referenceMasker({
       ghost.geometry.computeVertexNormals();
       return lists;
     },
-    // No reference is placed, or it is one this tool does not apply to.
     clear() {
       placed = null;
       ghost.geometry.dispose();
       ghost.geometry = new BufferGeometry();
     },
-    // Draws the hidden parts only beside the reference, and only while hiding.
     pane(isReference) {
       ghost.visible = on && isReference && Boolean(current()?.mask.count);
     },

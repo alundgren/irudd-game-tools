@@ -1,9 +1,3 @@
-// Scalp hair cut from 3D scans of real people: the scanned hair surface with its own photograph, worn on the
-// editable adult's head. The hairline is the photographed one, cut out by the scan's own matte, and the picture
-// keeps the light, shade and colour variation of the real hair under any dye.
-//
-// Scans: HSRD-100, DigitalRealityLab / HumanScanRepository, CC BY 4.0. docs/licenses/hsrd-100-cc-by-4.0.md
-// Packed by scripts/pack-human-scan-hair (see docs/human-scan-hair.md).
 import * as T from "three";
 import { unzlibSync } from "three/addons/libs/fflate.module.js";
 import data from "./human-scan-hair-data.json" with { type: "json" };
@@ -12,7 +6,6 @@ import { hatHead } from "./human-hats.js";
 
 export const scanHairStyles = Object.keys(data.cuts);
 export const scanHairCredit = { credit: data.credit, source: data.source, license: data.license, revision: data.revision, changes: data.changes };
-/* The scan a style was cut from, for the credit an export owes. */
 export const scanHairSource = (style) => data.cuts[style?.hair]?.pose ?? null;
 
 const decoded = new Map();
@@ -32,18 +25,11 @@ const toLinear = Float32Array.from({ length: 256 }, (_, i) => { const c = i / 25
 const toSRGB = (v) => 255 * (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055);
 const maps = new Map();
 
-/* The photograph in a dye. Every pixel keeps its ratio to the scan's own middle hair colour, channel by channel,
-   so strands lighter, darker, warmer or cooler than the middle stay so. A dark dye spreads the ratios a little,
-   as dark hair shows its lights more. Towards the photographed hairline the
-   hair thins into the wearer's skin, and the matte cuts the outline. */
 function hairMap(name, hair, skin, plain) {
   const key = [name, hair, skin, plain].join("/");
   if (maps.has(key)) { const kept = maps.get(key); maps.delete(key); maps.set(key, kept); return kept; }
   const { texture, tone, spread, side } = cutFor(name), dye = new T.Color(hair), root = new T.Color(skin);
-  // Very dark hair photographs with strands many times its middle tone; in a lighter dye they would glare, so the
-  // range is drawn in until its lighter strands stand at most four fifths above the middle.
   const depth = Math.min(1, Math.log(1.8) / Math.log(Math.max(spread ?? 1.8, 1.01))) * (1 + 0.35 * (1 - T.MathUtils.smoothstep(0.2126 * dye.r + 0.7152 * dye.g + 0.0722 * dye.b, 0.03, 0.25))),
-    // A dye names the lightest the hair shows, as it does for every other cut; its middle tone lies under that.
     lightness = 0.2126 * dye.r + 0.7152 * dye.g + 0.0722 * dye.b, body = T.MathUtils.lerp(0.55, 0.72, T.MathUtils.smoothstep(lightness, 0.1, 0.4)), dyes = [dye.r * body, dye.g * body, dye.b * body], roots = [root.r, root.g, root.b], rgba = new Uint8ClampedArray(side * side * 4);
   for (let i = 0; i < side * side; i++) {
     const cover = texture[i * 4 + 3] / 255, thin = 1 - T.MathUtils.smoothstep(cover, 0.42, 0.8);
@@ -69,16 +55,12 @@ function hairMap(name, hair, skin, plain) {
   return map;
 }
 
-/* The worn pieces of a scan hairstyle on this head, in the adult's own space. */
 export function scanHair(surface, style, material, plain, skin) {
   if (!Object.hasOwn(data.cuts, style.hair)) return [];
   const source = cutFor(style.hair), frame = surfaceFrame(surface), skull = hatHead(frame);
   const q = source.points, count = q.length / 6, position = new Float32Array(count * 3), uv = new Float32Array(count * 2);
   const bones = new Uint8Array(count * 4), weights = new Float32Array(count * 4), head = surfaceBody(surface).rigid("head")[0][0];
   for (let i = 0; i < count; i++) {
-    // The shell keeps its place in the head's own proportions. Hair near its roots keeps the height it had above
-    // the scanned skull, so the hairline lies on this head's skin whatever its width; the free relief further up
-    // keeps its shape, lifted clear of the skin where this head is the larger.
     const p = frame.centre.map((x, k) => x + (frame.radii[k] * q[6 * i + k]) / 4000), at = skull.over(p);
     const stood = (q[6 * i + 5] / 1e5) * frame.k, rooted = 1 - T.MathUtils.smoothstep(stood, 0.004 * frame.k, 0.016 * frame.k);
     const height = Math.max(at.h + (stood - at.h) * rooted, 0.0016 * frame.k);

@@ -1,7 +1,5 @@
 import { Matrix4, Vector3 } from "three";
 
-// Bin the actual triangles in head-local XY. At overlapping surfaces a piece
-// of hardware must clear the foremost intersection.
 function depthSampler(geometry) {
   geometry.computeBoundingBox();
   const { min, max } = geometry.boundingBox,
@@ -117,8 +115,6 @@ export function clearFaceHardware(face, pieces) {
     if (!Number.isFinite(lift) || Math.abs(lift) < 1e-7) continue;
     for (const { m, toFace, branch } of meshes) {
       const { rear: minZ, front } = branch;
-      // The rigid front translates as one piece. Taper along supporting
-      // strips so their rear ends keep contact with the head.
       m.geometry = m.geometry.clone();
       const g = m.geometry,
         pos = g.attributes.position,

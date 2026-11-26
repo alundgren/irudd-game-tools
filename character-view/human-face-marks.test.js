@@ -36,13 +36,11 @@ function paint(marks, skin = fair, extra = {}) {
     bump = new Uint8ClampedArray(map.length).fill(255);
   return { map, rough, bump, ...paintFaceMarks({ map, rough, bump }, marks, { skin, brow: "eyebrow001", ...extra }) };
 }
-// Pixels of the paint that differ from untouched paint whose bare value is `bare`.
 function touched(map, bare = [255, 255, 255]) {
   const out = [];
   for (let p = 0, i = 0; p < map.length; p += 4, i++) if (map[p] !== bare[0] || map[p + 1] !== bare[1] || map[p + 2] !== bare[2]) out.push(i);
   return out;
 }
-// A chart value at a pixel of the paint, read between stored pixels as the painter reads it.
 function reader(field) {
   return (i) => {
     const fx = Math.min(W - 1.001, Math.max(0, ((i % FW) + 0.5) / D - 0.5)),
@@ -65,7 +63,6 @@ test("the chart measures the face in millimetres with the wearer's left on +x", 
   assert.ok(Math.abs(eyes[0].outer[0]) > Math.abs(eyes[0].inner[0]) && Math.abs(eyes[1].outer[0]) > Math.abs(eyes[1].inner[0]));
   assert.ok(noseTip[1] < -20 && mouth.centre[1] < noseTip[1] - 15 && mouth.top > mouth.bottom && mouth.corner > 15);
   assert.ok(brows[0].length >= 5 && brows[0].every(([x, y]) => x > 0 && y > 4) && brows[1].every(([x]) => x < 0));
-  // Lips and both eye openings are charted, and no paint may reach the border or the mouth lining.
   const count = (f, test) => f.reduce((n, v) => n + (test(v) ? 1 : 0), 0);
   assert.ok(count(c.lip, (v) => v > 0.5) > 2000 && count(c.eye, (v) => v < 0) > 100 && count(c.wet, (v) => v > 0.5) > 300);
   const [patchX, patchY, half] = data.mouth.patch;
@@ -105,7 +102,6 @@ test("a mark is the same for the same seed and steady when its strength changes"
     assert.deepEqual(a, b, kind);
     assert.notDeepEqual(a, other, kind);
   }
-  // Stronger freckles add spots between the ones already there.
   const light = new Set(touched(paint([faceMark("Freckles", 31, { strength: 0.35 })]).map)),
     heavy = new Set(touched(paint([faceMark("Freckles", 31, { strength: 0.8 })]).map));
   assert.ok(heavy.size > light.size * 1.6);
@@ -127,19 +123,15 @@ test("left and right are the wearer's own, and a middle mark keeps to the chosen
 });
 
 test("tone is free of the skin: bright paint shows on dark skin and bare skin stays exact", () => {
-  // Natural marks only darken, so the head keeps its colour and untouched paint stays white.
   const freckled = paint([faceMark("Freckles", 3)], deep);
   assert.deepEqual(freckled.base, deep);
-  // Chalk white across the eyes of a dark face.
   const mark = faceMark("Paint band", 0, { tone: "#ece6d8", strength: 1 }),
     { map, base, rough } = paint([mark], deep),
     c = faceChart();
   assert.ok(base.every((v, k) => v > deep[k] * 3), "the base colour is raised");
-  // A pixel of bare forehead: paint times base is the skin colour again, to rounding.
   const bare = ((H - 30) * D * FW + 60 * D) * 4,
     cheek = [map[bare], map[bare + 1], map[bare + 2]];
   for (let k = 0; k < 3; k++) assert.ok(Math.abs(decode(cheek[k]) * base[k] - deep[k]) < 1e-6 * deep[k] + 1e-9, "channel " + k);
-  // Under the band, between the eyes, the paint reaches its tone.
   let at = -1,
     best = Infinity;
   for (let i = 0; i < W * H; i++) {
@@ -149,14 +141,11 @@ test("tone is free of the skin: bright paint shows on dark skin and bare skin st
   const p = ((Math.floor(at / W) * D + 1) * FW + (at % W) * D + 1) * 4,
     shown = [0, 1, 2].map((k) => decode(map[p + k]) * base[k]),
     wanted = [0.84, 0.79, 0.69];
-  // Brushed paint is a little thinner in places, and never brighter than its tone.
   for (let k = 0; k < 3; k++) assert.ok(shown[k] > 0.8 * wanted[k] && shown[k] < wanted[k] + 0.02, "channel " + k + " shows " + shown[k]);
   assert.ok(rough[p + 1] < 240, "paint is a little smoother or rougher than skin");
-  // The same paint is the same colour on fair skin.
   const light = paint([mark], fair),
     seen = [0, 1, 2].map((k) => decode(light.map[p + k]) * light.base[k]);
   for (let k = 0; k < 3; k++) assert.ok(Math.abs(seen[k] - shown[k]) < 0.05, "channel " + k + " shows " + seen[k] + " on fair skin");
-  // A natural tone follows the skin and a chosen one does not.
   assert.notEqual(faceMarkToneHex(faceMark("Freckles", 1), "#d5ac94"), faceMarkToneHex(faceMark("Freckles", 1), "#654235"));
   assert.equal(faceMarkToneHex(faceMark("Freckles", 1, { tone: "#3366ff" }), "#654235"), "#3366ff");
 });
@@ -165,7 +154,6 @@ test("a scar changes the relief and gloss of the skin, and facial hair keeps pig
   const scar = paint([faceMark("Scar", 9, { place: "Cheek" })]);
   assert.ok(scar.changed.has("bump") && scar.changed.has("rough"));
   assert.ok(touched(scar.bump).length > 50);
-  // Pigment where a beard is painted, on the chin, is mostly hidden by it.
   const c = faceChart(),
     y = reader(c.y),
     mark = [faceMark("Freckles", 4, { place: "Whole face", strength: 0.9 })],
@@ -197,7 +185,6 @@ test("marks are validated, change kind in place and stay within the limit", () =
   assert.equal(validFaceMarks(Array.from({ length: faceMarkLimit + 1 }, () => good)), false);
   assert.equal(validFaceMarks({}), false);
   assert.throws(() => faceMark("Tattoo"), /Unknown face mark/);
-  // Changing kind keeps strength, size, tone and seed, and drops what the new kind lacks.
   const liner = changeFaceMarkKind(good, "Eyeliner");
   assert.ok(validFaceMarks([liner]));
   assert.deepEqual([liner.strength, liner.seed, liner.tone, liner.place, liner.turn, liner.across], [good.strength, 4, "#aa8877", "Lash line", undefined, undefined]);
@@ -213,7 +200,6 @@ test("a form carries face marks through validation, an assistant edit and a new 
   assert.deepEqual(set.faceMarks, [form.faceMarks[0], paintMark]);
   validateForm(set);
   assert.equal(applyOperations(set, [{ op: "setForm", set: { faceMarks: null } }], {}, true, [], 5).faceMarks, undefined);
-  // A new outfit keeps what belongs to the person and replaces what is worn.
   for (let seed = 8700; seed < 8760; seed++) {
     const look = dressHuman(form, seed),
       marks = look.faceMarks ?? [];
@@ -221,7 +207,6 @@ test("a form carries face marks through validation, an assistant edit and a new 
     assert.deepEqual(marks.filter((mark) => !faceMarkKind(mark.kind).worn), [form.faceMarks[0]]);
     assert.ok(!marks.includes(form.faceMarks[1]));
     assert.deepEqual(dressHuman(form, seed), look);
-    // The rest of the look does not depend on the marks.
     const { faceMarks, ...plain } = form;
     assert.deepEqual(dressHuman(plain, seed).humanStyle, look.humanStyle);
   }
@@ -270,12 +255,9 @@ test("a scar through the brow parts its hairs, and other marks leave the brow as
     const left = browParting({ ...bare, faceMarks: [faceMark("Scar", 4)] }, name),
       both = browParting({ ...bare, faceMarks: [faceMark("Scar", 4, { side: "Both" })] }, name),
       count = (flags) => flags.reduce((sum, v) => sum + v, 0);
-    // One flag for each stored stroke, and a narrow gap on each scarred side.
     assert.equal(left.length, browRoots(name).length / 2);
     assert.ok(count(left) >= 2 && count(left) < left.length / 12, name + " parts " + count(left));
-    // The two brows are not exact mirrors of each other.
     assert.ok(count(both) > 1.5 * count(left) && count(both) < 2.5 * count(left), name + " parts " + count(both) + " on both sides");
-    // The parted hairs are on the wearer's left, where the scar is.
     const roots = browRoots(name);
     for (let k = 0; k < left.length; k++) if (left[k]) assert.ok(chartPoint(roots[k * 2], roots[k * 2 + 1])[0] > 20);
   }
@@ -291,7 +273,6 @@ test("a head builds with marks in colour and clay, and a material without face p
       group = humanRegions(form, () => material, plain)(part);
     assert.ok(group.children.some((mesh) => mesh.userData.faceSurface));
   }
-  // Without a document there is no face paint to mark: the material comes back as it was.
   const before = material.color.getHex();
   assert.equal(markFace(material, form), material);
   assert.equal(markFace(material, { ...form, faceMarks: undefined }), material);
@@ -309,10 +290,8 @@ test("paintFaceMarks preserves exact bare skin and natural mark tones when start
   }
   const rough = new Uint8ClampedArray(map.length).fill(240);
   const bump = new Uint8ClampedArray(map.length).fill(255);
-  // Natural freckles fit inside startBase without raising it further and keep bare skin exact.
   const freckled = paintFaceMarks({ map: map.slice(), rough: rough.slice(), bump: bump.slice() }, [faceMark("Freckles", 3)], { skin: deep, base: startBase, brow: "eyebrow001" });
   assert.deepEqual(freckled.base, startBase);
-  // Bright chalk paint on dark skin raises base further and still preserves exact bare skin at border.
   const chalk = paintFaceMarks({ map, rough, bump }, [faceMark("Paint band", 0, { tone: "#ece6d8", strength: 1 })], { skin: deep, base: startBase, brow: "eyebrow001" });
   assert.ok(chalk.base.every((v, k) => v > startBase[k] * 2));
   const bare = ((H - 30) * D * FW + 60 * D) * 4;

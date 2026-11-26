@@ -1,8 +1,5 @@
 import { Euler, MathUtils, Matrix4, Vector3 } from "three";
 
-// Local -Y follows the forearm, +Z is the palm. The thumb in handGeometry
-// lies on local -X for grip.side=1. With +X on the character's left, a
-// thumb-forward resting hand therefore uses grip.side=-side.
 export function restingWrist(direction, medial) {
   const up = direction.clone().normalize().negate();
   const palm = medial.clone().addScaledVector(up, -medial.dot(up));

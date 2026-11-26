@@ -1,4 +1,3 @@
-// Drawn-back hair as rooted locks: what the low ponytail wears over its painted scalp.
 import test from "node:test";
 import assert from "node:assert/strict";
 import * as T from "three";
@@ -31,7 +30,6 @@ test("the strand picture is a cutout with relief and sheen, drawn for a full mod
       assert.ok(clear >= 4, "its gutter is clear");
       assert.ok(tilted > wide * .2, "its strands are in relief");
       assert.ok(sheen.size > 8, "its strands shine along their crowns");
-      // Roots are ragged: the row where the hair leaves the skin is thinner than the row half way along.
       let rooted = 0;
       for (let x = left; x < left + wide; x++) if (color[((top + tall - 8) * size + x) * 4 + 3] > 127) rooted++;
       assert.ok(rooted < covered, "a lock starts as separate strands");
@@ -49,10 +47,8 @@ test("rooted locks cover the drawn-back scalp on small and large heads, stand ov
     const triangles = groom.cards.index.length / 3;
     assert.ok(budget ? triangles > 1200 && triangles <= 2400 : triangles > 5000 && triangles <= 9000, `${label}: ${triangles} lock triangles`);
     assert.ok(budget ? groom.roots.index.length / 3 < 1200 : true, `${label}: the painted layer of a game model is not subdivided`);
-    // Over the top and over the forehead the locks stand off the head, above the painted layer.
     for (const [where, test] of [["top", d => d[1] > .06 * f.k && Math.abs(d[0]) < .03 * f.k], ["front", d => d[2] > .045 * f.k && d[1] > .055 * f.k], ["side", d => Math.abs(d[0]) > .05 * f.k && d[1] > .03 * f.k]])
       assert.ok(reach(groom.cards, f, test) > reach(groom.roots, f, test) + .0015, `${label}: locks stand over the painted layer at the ${where}`);
-    // Nothing hangs over the brow.
     const eye = Math.max(...f.eyes.map(e => e.centre[1]));
     let low = Infinity;
     for (let i = 0; i < groom.cards.position.length; i += 3) if (groom.cards.position[i + 2] > f.centre[2] + .07 * f.k && Math.abs(groom.cards.position[i]) < .04 * f.k) low = Math.min(low, groom.cards.position[i + 1]);
@@ -73,7 +69,6 @@ test("the parting, the helmet and the colour change the locks, and other tied st
   assert.equal(back.cards.index.length, parted.cards.index.length);
   assert.notDeepEqual(back.cards.position.slice(-3000), parted.cards.position.slice(-3000));
   assert.notDeepEqual(parted.cards.position.slice(-3000), left.cards.position.slice(-3000));
-  // Under a helmet the locks are gone and the painted scalp is what the style always wore.
   const tucked = groomGeometry(surface, style, { tucked: true });
   assert.ok(!tucked.rooted && tucked.cards.index.length === 0);
   assert.ok(!groomGeometry(surface, { hair: "Ponytail" }).rooted);

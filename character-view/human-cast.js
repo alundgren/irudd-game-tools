@@ -28,8 +28,6 @@ function spread(values, source, size) {
   return out;
 }
 
-// Gather the editable body's displacement into spatial handles. Coincident points on
-// separate eyelids, teeth, and cloth panels then receive the same local deformation.
 function shapeFigure(figure, surface) {
   const field = figure.field;
   const starts = unpack(field, "starts", field.wide ? Uint32Array : Uint16Array);
@@ -112,7 +110,6 @@ function paintedSkin(paint, colour, blend, pigment, eyeColour, lids) {
     }
     rgba[i * 4 + 3] = 255;
   }
-  // The upper lids are skin: repaint them before the skin is tinted, so they take the chosen colour too.
   if (lids) paintCastLids(rgba, mask, paint.side, lids, paint.tone);
   for (let i = 0; i < mask.length; i++) {
     if (!mask[i]) continue;
@@ -121,8 +118,6 @@ function paintedSkin(paint, colour, blend, pigment, eyeColour, lids) {
       rgba[i * 4 + k] = orig + mask[i] / 255 * (lut[k][orig] - orig);
     }
   }
-  // The Rocketbox facial chart maps both irises to this photographed disc.
-  // Keep the pupil, catchlights, outer dark ring and white of the eye from the artist.
   const target = irisBaseTone(eyeColour);
   if (target) {
     const cx = .263 * half, cy = .929 * half, rx = .020 * half, ry = .019 * half;
@@ -175,7 +170,6 @@ function hairCards(figure, moved, rest, surface, origin, material, plain) {
   return mesh;
 }
 
-// A fitted outfit can occupy the lower-right quarter with its borrowed trousers.
 function leavesHairQuarterFree(uv, indices) {
   for (let cursor = 0; cursor < indices.length; cursor += 3) {
     const a = 2 * indices[cursor], b = 2 * indices[cursor + 1], c = 2 * indices[cursor + 2];

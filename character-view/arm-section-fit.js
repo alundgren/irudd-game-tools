@@ -1,8 +1,5 @@
 import { Vector3 } from "three";
 
-// A torso section may expand at the waist and contract at the elbow.
-// Transport the arm centreline between its fitted joint positions. The
-// smooth spatial falloff is shared by adjacent skin regions and sleeves.
 export function preserveArmAxes(fit, chains, height) {
   const step = height / 256;
   const radius = 0.068 * height;
@@ -14,8 +11,6 @@ export function preserveArmAxes(fit, chains, height) {
       const [shoulder, elbow, wrist] = chain;
       const span = shoulder.y - wrist.y;
       if (span > 4 * step) {
-        // Carry the prescribed elbow bend through the shoulder/wrist move.
-        // Sampling the waist level directly can turn a relaxed elbow sideways.
         const t = Math.max(0, Math.min(1, (shoulder.y - elbow.y) / span));
         const displacement = fitted[0]
           .clone()

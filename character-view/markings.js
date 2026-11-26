@@ -77,14 +77,12 @@ export function markingField(m) {
       return ease(wave, cutoff - 0.17, cutoff + 0.17);
     }
     if (m.kind === "Marbled") {
-      // A continuous folded band curves and doubles back over the flank.
       const drift = 0.67 * Math.sin(1.8 * z + 1.2 * x + phase)
         + 0.26 * Math.sin(2.7 * y - 1.3 * z + 0.7 * phase);
       const vein = Math.abs(Math.sin(Math.PI * (0.65 * y + 0.3 * x + drift)));
       const width = Math.sin(0.5 * Math.PI * m.coverage);
       return 1 - ease(vein, width - 0.08, width + 0.08);
     }
-    // Jittered 3D cells give neighbouring limbs the same field on their seam.
     const ix = Math.floor(x),
       iy = Math.floor(y),
       iz = Math.floor(z);
@@ -105,8 +103,6 @@ export function markingField(m) {
           } else if (squared < second) second = squared;
         }
     if (m.kind === "Reticulated") {
-      // The boundary between two pigment patches is where their nearest
-      // centres are equidistant. This creates a continuous branching network.
       const gap = Math.sqrt(second) - Math.sqrt(distance);
       const width = 0.018 + 0.40 * m.coverage;
       return 1 - ease(gap, width * 0.7, width * 1.3);
@@ -133,8 +129,6 @@ export function paintMarkings(mesh, m) {
     !mesh.userData.faceSurface &&
     !geo.morphAttributes.position
   ) {
-    // Bisect large triangles on their existing planes. Physical coordinates
-    // keep narrow markings sharp even when the local axes have unequal scales.
     const world = geo.clone().applyMatrix4(mesh.matrixWorld);
     const split = new TessellateModifier(m.spacing * 0.19, iterations).modify(
       world,
@@ -184,8 +178,6 @@ export function whiteVertexColors(geometry) {
     );
 }
 
-// A welded patch owns whole triangles, but an individual boundary vertex
-// can belong to both limbs. Use the same weights for pigment as for skinning.
 export function paintJoinedCoat(mesh, parts, limbTints) {
   const owners = mesh.blendOwners;
   const layer=mark=>mark&&({sample:markingField(mark),color:new Color(mark.color)});

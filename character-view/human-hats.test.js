@@ -13,7 +13,6 @@ import { validateForm } from "./recipe.js";
 const material = () => new T.MeshStandardMaterial();
 const hats = hatStyles.slice(1);
 const room = (style, f) => (["None", "Buzz cut"].includes(style.hair) ? .0032 : .006) * f.k;
-// A small head, a large one and two between, with short, long, tied and curled hair.
 const people = [53300, 53302, 53306, 53308].map(seed => { const base = generatedHuman(seed); return { seed, form: { ...base, ...dressHuman(base, seed, "Any") } }; });
 
 test("a hat is a listed, saved and validated style choice with its own colour", () => {
@@ -43,7 +42,6 @@ test("every hat stands clear of the scalp and the ears on small and large heads,
         const o = f.over([p.getX(i), p.getY(i), p.getZ(i)]);
         assert.ok(Number.isFinite(o.h) && o.h < (hat === "Flying cap and goggles" && o.eps < -.35 ? .18 : .09), `${hat} on ${seed}: a point lies ${o.h} m off the head`);
         lowest = Math.min(lowest, o.h);
-        // Well above the band only the crown remains, and it clears the room left for hair.
         if (mesh.name === hat && o.eps > .75) {
           crown++;
           assert.ok(o.h > gap * .98, `${hat} on ${seed}: crown ${o.h} under ${gap}`);
@@ -53,7 +51,6 @@ test("every hat stands clear of the scalp and the ears on small and large heads,
     }
     assert.ok(lowest > -.0045, `${hat} on ${seed} sinks ${lowest} m into the head`);
     if (hat === "Flying cap and goggles") {
-      // Only the exterior faces of the fitted crown should be visible against the skull.
       assert.ok(crown >= 30 && outward === crown, "the flying cap has one outward-facing crown");
     } else {
       assert.ok(crown > 80 && outward > crown * .97, hat + " faces outward");
@@ -90,7 +87,6 @@ test("hair under a crown is pressed beneath it, hair below the band keeps its le
         assert.ok(Math.abs(now.low - bare[i].low) < .004, `${hat} on ${seed}: ${mesh.name} keeps its length`);
       });
     }
-    // Taking the hat off again gives the hair as it grew.
     wear("None").map(measure).forEach((now, i) => assert.ok(Math.abs(now.high - bare[i].high) < 1e-6));
   }
 });

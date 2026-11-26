@@ -5,8 +5,6 @@ export const faceMarkings = ["None", "Eye stripe", "Facial disc", "Cheek flashes
 const { smoothstep } = MathUtils;
 const edge = (distance, width, feather = .055) => 1 - smoothstep(distance, width-feather, width+feather);
 
-/** Paint the head in its local skull coordinates, so the two sides agree and the pattern follows
- * each head of a branched neck. The existing hide remains visible between markings. */
 export function faceCoat(part, object, plan) {
   const style = plan?.skin.faceMarking;
   if (!style || style === "None" || !/^head(?: [0-9]+)?$/.test(part.id) || !object) return null;
@@ -24,7 +22,6 @@ export function faceCoat(part, object, plan) {
     const angle = Math.abs(Math.atan2(x,z));
     const height = Math.atan2(y,Math.hypot(x,z));
     const a = angle-azimuth, h = height-elevation;
-    // Break up the edge in short, paired strokes, like hairs rooted along one contour.
     const fringe = .015*Math.sin(39*angle + 9*height) + .010*Math.sin(67*angle - 6*height);
     let dark = 0, light = 0, bright = 0;
     if (style === "Eye stripe") {
@@ -64,7 +61,6 @@ export function faceCoat(part, object, plan) {
   };
 }
 
-/** DOM-free exports use the same pattern sampled on the cage's subdivided skin. */
 export function paintFaceCoatVertices(mesh, part, plan) {
   if (part.paint || part.hull || part.surface !== plan.skin.surface) return;
   const coat = faceCoat(part, mesh, plan);

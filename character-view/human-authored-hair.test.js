@@ -32,12 +32,10 @@ test("every hair name a look can hold resolves to a packed groom, and each autho
     assert.ok(adultStyles.hair.includes(name) && validAdultStyle({ hair: name }), name + " saves and opens");
     assert.ok(cardsOf(wear(evaluateHuman({}), name, false)), `${name} (${groom}) builds`);
   }
-  // Names saved by earlier looks are still worn, whichever packing holds their groom.
   for (const name of ["Blunt bob", "Low ponytail", "Long centre part", "Side-swept pixie", "Swept crop", "Rounded bob", "Crown braid", "Natural curls"])
     assert.ok(libraryHair[name], name);
   for (const [name, groom] of Object.entries(authoredHair)) {
     assert.equal(libraryHair[name], groom);
-    // Authored grooms are chosen by hand or through hairWornFor; a draw's place in the list never moves.
     assert.ok(Object.hasOwn(additionalHair, name), name + " is left out of the draw list");
   }
   for (const [name, record] of Object.entries(authoredAssets)) {
@@ -71,11 +69,8 @@ test("the roots under an authored groom end at its own hairline", () => {
   for (const human of [heads.resting, heads.heavy]) {
     const surface = evaluateHuman(human), whole = area(hairRoots(surfaceBody(surface)).mesh(material(), "head", "Hair roots").geometry);
     const of = (name) => area(rootsOf(wear(surface, name)).geometry);
-    // The roots follow the groom's own hairline, a little inside or outside the cap every style once wore.
     for (const name of ["Tied bun", "Layered short", "Low ponytail"]) assert.ok(of(name) < 1.15 * whole && of(name) > 0.6 * whole && Math.abs(of(name) - whole) > 0.01 * whole, `${name}: ${(of(name) / whole).toFixed(2)} of the cap`);
-    // A receding cut leaves the temples and the front of the crown bare.
     assert.ok(of("Receding short") < 0.92 * of("Layered short"), `receding ${(of("Receding short") / of("Layered short")).toFixed(2)} of layered`);
-    // The roots lie under the cards: nowhere do they stand further forward than the hair itself.
     for (const name of ["Tied bun", "Receding short"]) {
       const meshes = wear(surface, name), cards = new T.Box3().setFromBufferAttribute(cardsOf(meshes).geometry.attributes.position), roots = new T.Box3().setFromBufferAttribute(rootsOf(meshes).geometry.attributes.position);
       assert.ok(roots.max.z < cards.max.z + 0.012, `${name} roots stay behind its hairline`);
@@ -84,7 +79,6 @@ test("the roots under an authored groom end at its own hairline", () => {
 });
 
 test("hair that stands off the head keeps its combed shape on a heavy neck and shoulders", () => {
-  // The same cards on the resting body and on a heavy one: the hem of a bob is held, not swung by the skin under it.
   for (const name of ["Sleek bob", "Angled bob", "Curled-under bob", "Fringed bob"]) {
     const rest = cardsOf(wear(evaluateHuman(heads.resting), name)).geometry, heavy = cardsOf(wear(evaluateHuman(heads.heavy), name)).geometry;
     assert.equal(rest.index.count, heavy.index.count);
@@ -102,7 +96,6 @@ test("hair that stands off the head keeps its combed shape on a heavy neck and s
       }
     assert.ok(edges > 200 && bent / edges < 0.04, `${name}: ${bent} of ${edges} hem edges changed length`);
   }
-  // A vertex tied to the skull that stands well off it takes the skull's own stretch; one on the skin stays fitted.
   const anchorRest = new Float32Array([0, 1.7, 0, 0.1, 1.7, 0, -0.1, 1.6, 0.05, 0, 1.6, -0.1, 0.05, 1.65, 0.1, -0.05, 1.75, 0, 0.02, 1.62, 0.02, 0, 1.7, 0.1, 0.03, 1.66, 0, 0, 1.7, 0]);
   const anchor = anchorRest.map((x, i) => (i % 3 === 0 ? x * 1.1 : i % 3 === 1 ? x + 0.02 : x));
   const offsets = new Float32Array(30), onSkull = new Uint8Array(10).fill(1);
@@ -125,11 +118,9 @@ test("ordinary draws wear authored grooms for the cuts that have one, the same e
   }
   const authored = [...worn].filter(([name]) => assets(name)).reduce((sum, [, n]) => sum + n, 0);
   assert.ok(authored >= 0.3 * 300, `${authored} of 300 draws wear a groom packed with its credit`);
-  // Several different cuts, so ordinary people do not share one head of hair.
   for (const name of ["Layered short", "Tied bun", "Low ponytail", "Long centre part"]) assert.ok((worn.get(name) ?? 0) >= 5, `${name}: ${worn.get(name) ?? 0}`);
   assert.ok(["Sleek bob", "Fringed bob", "Angled bob", "Curled-under bob"].filter((name) => worn.get(name)).length >= 3);
   assert.ok((worn.get("Receding short") ?? 0) >= 1, "some older draws are receding");
-  // No procedural bun, bob, ponytail or long shell is drawn any more.
   for (const name of ["Bun", "Ponytail", "Long"]) assert.equal(worn.get(name), undefined, name);
   for (const drawn of ["Bob", "Bun", "Ponytail", "Long", "Wavy", "Crop", "Side part", "Swept back", "Swept crop"]) for (const name of hairWornFor(drawn)) assert.ok(adultStyles.hair.includes(name), name);
   function assets(name) { return Boolean(authoredAssets[libraryHair[name]]); }

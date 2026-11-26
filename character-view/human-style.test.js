@@ -38,7 +38,6 @@ test("the default style adds nothing and unknown names are ignored", () => {
 });
 
 test("every hairstyle builds skinned meshes on the head", () => {
-  // Every style on one figure, and a few on a very different one.
   for (const [surface, names] of [[slim, humanStyles.hair.slice(1)], [heavy, ["Crop", "Afro", "Long"]]]) for (const hair of names) {
     const meshes = styleHuman(surface, { hair });
     assert.ok(meshes.length > 0, hair);
@@ -74,7 +73,6 @@ test("everyday cloth creases, tights stay smooth, and creases can be turned off"
   const body = analyse(heavy), m = landmarks(body), jeans = { waist: m.waistband, taper: .07, ease: .008 };
   const folded = garment(body, m, jeans).s, smooth = garment(body, m, { ...jeans, folds: 0 }).s;
   assert.ok(folded.count > smooth.count * 1.5, "creased cloth is cut finer where it folds");
-  // The two legs are creased by separate draws, so the folds on one are not the mirror image of the other's.
   const relief = (s, sign) => { let sum = 0; for (let i = 0; i < s.count; i++) if (s.anc[i * 3] * sign > .03 && s.f.leg[i] > .8) sum += Math.hypot(s.pos[i * 3] - s.anc[i * 3], s.pos[i * 3 + 1] - s.anc[i * 3 + 1], s.pos[i * 3 + 2] - s.anc[i * 3 + 2]); return sum; };
   assert.ok(Math.abs(relief(folded, 1) - relief(folded, -1)) > 1e-4, "left and right legs fold differently");
   for (let i = 0; i < folded.count; i++) {

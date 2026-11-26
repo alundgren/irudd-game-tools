@@ -66,7 +66,6 @@ def main():
         surfaces = generator.evaluate([saved["human"]] * 3, [None, saved["humanFit"], reply["fit"]])
         row = {}
         for index, kind in enumerate(("coarse", "refined", "refinedNow")):
-            # Same sample seeds as run.py uses for the first two candidates.
             metrics, detail = compare(Body(surfaces[index], generator.faces, seed=102 + min(index, 1)), target)
             row[kind] = brief(metrics)
             if index == 0:

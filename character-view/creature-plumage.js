@@ -4,12 +4,10 @@ import { randomStream } from "./random.js";
 const { clamp, lerp } = MathUtils;
 const stations = [0, 0.12, 0.33, 0.56, 0.76, 0.92, 1];
 const vanes = [0.14, 0.64, 0.93, 1, 0.72, 0.35, 0.035];
-// A flattened, closed cross-section with the quill on the visible side.
 const section = [[-1, 0], [-0.42, 0.46], [0, 1], [0.42, 0.4], [1, 0], [0, -0.4]];
 const across = new Vector3(1, 0, 0);
 const pigment = (skin, amount) => "#" + new Color(skin.base).lerp(new Color(skin.accent), amount).getHexString();
 
-/** Coordinates follow each vane through subdivision and manual edits to its cage. */
 export function featherChart(part) {
   if (!part.contourFeather || part.cage?.vertices?.length !== stations.length * section.length) return null;
   return stations.flatMap(t => section.map(([side]) => [(side + 1) / 2, t]));
@@ -24,8 +22,6 @@ function surface(spine, t, angle, lift) {
     .addScaledVector(frame.dorsal, depth * Math.cos(angle)).addScaledVector(normal, lift);
 }
 
-/** Draw overlapping rows of covert feathers over the shoulder and flank. Each
- * vane tracks the curved trunk all the way to its free tip. */
 export function plumageMantle(form, plan, spine, carrier, room) {
   const { back, scale, skin } = plan, draw = randomStream(back.seed);
   if (room < 3) return form;
@@ -84,11 +80,7 @@ export function plumageMantle(form, plan, spine, carrier, room) {
   return { ...form, parts };
 }
 
-/** The shaft, subterminal band and pale outer vane belong to the plumage;
- * these colours are also available in the ordinary single-material GLB. */
 export function finishContourFeather(mesh, part, material) {
-  // One neutral feather tile serves the whole mantle. The natural growth direction, shaft
-  // and barbs remain attached to the vane even if its control cage is bent or narrowed.
   if (!material.map && typeof document !== "undefined") {
     const canvas = document.createElement("canvas");
     const w = 128, h = 256;

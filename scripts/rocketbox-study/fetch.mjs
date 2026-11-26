@@ -1,9 +1,3 @@
-// Fetches the two Rocketbox avatars used as practice targets, and their licence, from one pinned
-// commit of https://github.com/microsoft/Microsoft-Rocketbox into .reference-cache/rocketbox.
-// Only the eight needed files are downloaded (about 85 MB); each is checked against its git blob
-// id at that commit. Files already present and correct are kept. Run from the repository root:
-//   node scripts/rocketbox-study/fetch.mjs
-// It ends by writing manifest.json and printing the conversion commands.
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -13,7 +7,6 @@ import { local, revision, targets } from "./local.mjs";
 const raw = "https://raw.githubusercontent.com/microsoft/Microsoft-Rocketbox/" + revision + "/";
 const page = "https://github.com/microsoft/Microsoft-Rocketbox/blob/" + revision + "/";
 const licenceBlob = "9bcfb3ece5301a55d3a41bbd00a029ab27d61d13";
-// Git blob ids at the pinned commit.
 const blobs = {
   "Assets/Avatars/Adults/Female_Adult_04/Export/Female_Adult_04.fbx": "cf5a84ba111473c662e1ad77ae6c68d840e4ec71",
   "Assets/Avatars/Adults/Female_Adult_04/Textures/f004_body_color.tga": "d087c788a3d06ddff161f7d726e5964d10ab5679",

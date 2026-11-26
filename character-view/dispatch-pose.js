@@ -60,8 +60,6 @@ export function handHandle(hand) {
   };
 }
 
-// Reparent the original signed and capped tube; its existing children keep
-// their metric attachment frames. Only the cylindrical grip is new geometry.
 export function placeInHand(form, hand, tube, sourceGrip, axis, radial) {
   const fingers = handHandle(hand),
     source = orientation(axis, radial),
@@ -126,8 +124,6 @@ function dispatchArmPose(form, hand, present) {
       .clone()
       .addScaledVector(aim.normalize(), reach * (present ? 0.97 : 0.52)),
   );
-  // The palm's X axis crosses the handle. Its signed direction gives the
-  // recipient the red seal, and the broad side of the case faces the viewer.
   const cap = present
     ? new Vector3(side * 0.35, 0.08, 0.94)
     : new Vector3(side * 0.14, 0.78, -0.57);
@@ -163,8 +159,6 @@ function dispatchArmPose(form, hand, present) {
   };
 }
 
-// The ordinary carry is an authored bind shape, so generic Walk and Reach
-// retain the grip even when a player does not schedule the presentation.
 function bindCarry(form, pose) {
   const frames = restFrames(form.parts);
   const rotations = pose.joints.map((row) => {
@@ -195,8 +189,6 @@ function bindCarry(form, pose) {
   }
 }
 
-// Preserve user-created poses while the procedural action appears, changes
-// carriers or disappears. An edit to the generated presentation also survives.
 export function mergeDispatchPoses(previous, current, next) {
   const old = previous.poses?.find((p) => p.name === dispatchPoseName),
     fresh = next.poses?.find((p) => p.name === dispatchPoseName);
@@ -211,8 +203,6 @@ export function mergeDispatchPoses(previous, current, next) {
   return poses.length ? poses : undefined;
 }
 
-// An ordinary glTF clip performs the presentation and returns to carry.
-// Its one-second authored endpoint remains independently editable as a pose.
 export function hasDispatchAction(form) {
   return (
     form.poses?.some((p) => p.name === dispatchPoseName && p.joints.length) &&

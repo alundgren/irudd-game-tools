@@ -30,7 +30,6 @@ export function creditedCaptures(form) {
     .map(axis => captures[axis].source);
 }
 
-// Match a draw's age and frame loosely. Every eligible skin colour still comes from the artist's palette.
 const subjects = [
   ["scan0023", .72, .78], ["scan0028", -.76, .12], ["scan0102", -.64, .18],
   ["scan0040", .63, .58], ["scan0042", .82, .14], ["scan0112", -.66, .76], ["scan0015", -.58, .22],

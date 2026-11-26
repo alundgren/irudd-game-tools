@@ -1,6 +1,3 @@
-// Garments of one cast member worn by another: the same person, face and hair in another member's top and bottom.
-// Each supported combination was fitted to the receiver beforehand (human-cast-wardrobe-data.json); here the fitted
-// figure is put in the form castMeshes reads, and its picture is put together from art the cast already carries.
 import { unzlibSync } from "three/addons/libs/fflate.module.js";
 import figures from "./human-cast-data.json" with { type: "json" };
 import wardrobe from "./human-cast-wardrobe-data.json" with { type: "json" };
@@ -23,13 +20,10 @@ const slots = ["top", "bottom"], fields = { top: "castTop", bottom: "castBottom"
 const own = label => wardrobe.receivers[label]?.own;
 const codeOf = (slot, name) => Object.keys(pieces).find(code => pieces[code][slot] === name);
 
-/** The style fields an outfit is saved in: the name of a top and of a bottom. Absent means the person's own. */
 export const castOutfitFields = Object.values(fields);
 
-/** Every piece by slot: { top: { name: subject }, bottom: { name: subject } }. */
 export const castPieces = Object.fromEntries(slots.map(slot => [slot, Object.fromEntries(Object.values(pieces).map(p => [p[slot], p.subject]))]));
 
-/** The outfits a cast member can wear, own first: [{ castTop, castBottom }]. None for a member with no fitted outfits. */
 export function castOutfits(label) {
   const mine = own(label);
   if (!mine) return [];
@@ -37,14 +31,12 @@ export function castOutfits(label) {
   return [named(mine + "/" + mine), ...Object.keys(wardrobe.receivers[label].variants).map(named)];
 }
 
-/** The tops a member can wear, and the bottoms that go with a top. Own piece first. */
 export const castTops = label => [...new Set(castOutfits(label).map(o => o.castTop))];
 export const castBottoms = (label, top) => {
   const all = castOutfits(label), wanted = top ?? all[0]?.castTop;
   return all.filter(o => o.castTop === wanted).map(o => o.castBottom);
 };
 
-// The fitted combination a style asks for, or null for the person's own clothes.
 function chosen(label, style) {
   const mine = own(label);
   if (!mine || !style) return null;
@@ -53,7 +45,6 @@ function chosen(label, style) {
   return Object.hasOwn(wardrobe.receivers[label].variants, key) ? { key, top, bottom } : null;
 }
 
-/** What is wrong with a style's outfit for this member: [] when it can be worn as saved. */
 export function castOutfitProblems(label, style = {}) {
   const problems = [];
   for (const slot of slots) {
@@ -68,21 +59,18 @@ export function castOutfitProblems(label, style = {}) {
   return problems;
 }
 
-/** The outfit as worn: { castTop, castBottom } by name, the person's own when the style asks for nothing fitted. */
 export function wornCastOutfit(label, style) {
   const mine = own(label), pick = chosen(label, style);
   if (!mine) return null;
   return { castTop: pieces[pick?.top ?? mine].top, castBottom: pieces[pick?.bottom ?? mine].bottom, own: !pick };
 }
 
-/** Sources of the borrowed pieces, for the credit: avatar paths besides the member's own. */
 export function castOutfitSubjects(label, style) {
   const pick = chosen(label, style);
   if (!pick) return [];
   return [...new Set([pick.top, pick.bottom].filter(code => code !== own(label)).map(code => pieces[code].subject))];
 }
 
-/** An outfit for a seed: the same seed gives the same outfit. `keep` is the share that stay in their own clothes. */
 export function drawCastOutfit(label, seed, keep = .4) {
   const all = castOutfits(label);
   if (all.length < 2) return {};
@@ -92,7 +80,6 @@ export function drawCastOutfit(label, seed, keep = .4) {
   return { castTop, castBottom };
 }
 
-// Rows of whole numbers that stood for shares of one.
 function shares(values, size) {
   const out = new Float32Array(values.length);
   for (let i = 0; i < values.length; i += size) {
@@ -107,13 +94,8 @@ const toLinear = v => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4;
 const toSrgb = v => v <= .0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - .055;
 const hex = tone => "#" + tone.map(v => Math.round(toSrgb(v) * 255).toString(16).padStart(2, "0")).join("");
 
-/** The colour of a member's photographed face skin. A form with this skin colour shows the picture as photographed. */
 export const castSkin = label => Object.hasOwn(figures, label) ? hex(figures[label].paint.tone) : null;
 
-/**
- * A skin colour for a drawn cast member, from the seed alone. Most keep the photographed skin; the rest take the
- * form's drawn colour, held within the range where the photographed lips, ears and brows still belong to the face.
- */
 export function drawCastSkin(label, skin, seed, keep = .6) {
   const original = castSkin(label);
   if (!original || typeof skin !== "string" || !/^#[0-9a-f]{6}$/i.test(skin)) return original;
@@ -122,15 +104,12 @@ export function drawCastSkin(label, skin, seed, keep = .6) {
   const light = c => .2126 * c[0] + .7152 * c[1] + .0722 * c[2];
   if (light(wanted) === 0) return hex(tone.map(v => .4 * v));
   const ratio = light(wanted) / light(tone), held = Math.min(1.45, Math.max(.4, ratio)) / ratio;
-  // No redder or yellower than half as far again from the photograph as its own balance of colour.
   return hex(wanted.map((value, k) => {
     const v = Math.max(value, 1e-6), balance = v / light(wanted) / (tone[k] / light(tone));
     return Math.min(1, v * held * Math.min(1.5, Math.max(1 / 1.5, balance)) / balance);
   }));
 }
 
-// The skin a garment's art was photographed with, and its art: the body half of its own member's picture, or the copy
-// the wardrobe carries.
 function bodyArt(code, side) {
   const half = side / 2, piece = pieces[code], pixels = new Uint8Array(half * side * 3), mask = new Uint8Array(half * side);
   if (piece.figure) {
@@ -146,7 +125,6 @@ function bodyArt(code, side) {
   return { pixels, mask, tone: wardrobe.skin?.[piece.figure ?? code]?.body };
 }
 
-// A borrowed garment's bare skin (hands, arms, legs, the neck in a collar) in the receiver's own skin colour.
 function reskin(art, target) {
   if (!art.tone || !target) return art;
   const lut = art.tone.map((from, k) => Uint8Array.from({ length: 256 }, (_, i) => Math.round(255 * toSrgb(Math.min(1, toLinear(i / 255) * target[k] / from)))));
@@ -156,12 +134,9 @@ function reskin(art, target) {
   return { ...art, pixels };
 }
 
-// The picture: the top's art in the left half, the receiver's head above right, the bottom's art (half as tall) below
-// right. The skin mask is put together the same way, so the skin colour control reaches the borrowed skin too.
 function painted(label, receiver, pick) {
   const side = receiver.side, half = side / 2;
   const pixels = unpack(receiver, "pixels", Uint8Array).slice(), mask = unpack(receiver, "mask", Uint8Array).slice();
-  // The receiver's own body skin where the picture has any; else the face's.
   const target = wardrobe.skin?.[label]?.body ?? receiver.tone, mine = own(label);
   const art = code => code === mine ? bodyArt(code, side) : reskin(bodyArt(code, side), target);
   const top = art(pick.top);
@@ -179,7 +154,6 @@ function painted(label, receiver, pick) {
   return { side, tone: receiver.tone, pixels, mask };
 }
 
-// The receiver's authored face shape on the fitted figure: its head points are the receiver's own.
 function carried(values, like) {
   const out = new Float32Array(like.length * 3);
   for (let i = 0; i < like.length; i++) if (like[i] !== 65535) for (let d = 0; d < 3; d++) out[i * 3 + d] = values[like[i] * 3 + d];
@@ -188,10 +162,6 @@ function carried(values, like) {
 
 const made = new Map();
 
-/**
- * The figure castMeshes draws for a member in the outfit a style names. `figure` is the member's own packed figure;
- * it is returned as it is when the style names no fitted outfit, so forms saved before outfits read as they did.
- */
 export function castOutfit(figure, label, style) {
   const pick = chosen(label, style);
   if (!pick) return figure;
@@ -214,7 +184,6 @@ export function castOutfit(figure, label, style) {
     poses: Object.fromEntries(Object.keys(packed.poses).map(name => [name, unpack(packed.poses, name, Float32Array)])),
     paint: painted(label, figure.paint, pick),
   };
-  // Each handle's weights are shares of one.
   const starts = fitted.field.starts, raw = unpack(field, "weights", Uint16Array), weights = fitted.field.weights = new Float32Array(raw.length);
   for (let h = 0; h < starts.length - 1; h++) {
     let sum = 0;

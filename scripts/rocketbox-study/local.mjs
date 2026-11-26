@@ -1,6 +1,3 @@
-// The Rocketbox practice material is local: source models, converted targets, the recipes made
-// to match them and every comparison image live in the ignored .reference-cache/rocketbox folder.
-// Scripts in this folder ask for it here, and stop with one line when it is absent.
 import { existsSync } from "node:fs";
 
 export const local = ".reference-cache/rocketbox/";
@@ -17,7 +14,6 @@ export function need(...files) {
     process.exit(1);
   }
 }
-/** The local recipes: [{id, title, source, stages: {name: () => form}, make}]. */
 export async function loadStudies() {
   need("studies.js");
   return (await import("../../.reference-cache/rocketbox/studies.js")).rocketboxStudies;

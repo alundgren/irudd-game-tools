@@ -1,12 +1,7 @@
-// The lengths of a strand groom: hair that has left the scalp, as layers of strand cards over a dark
-// sheet of the same hair. Hanging lengths, tails, knots and plaits all come as grids of points from
-// `hairLengths` in human-style-hair.js; this file only turns a grid into cards.
-//   lengthCards(cards, shapes, { tiles, solid, hair, k, centre, game }) appends to the arrays of `cards`
 import { add, clamp, cross, dot, hash1, length, mix, noise3, smooth, sub, unit } from "./human-style-kit.js";
 
 const TAU = Math.PI * 2;
 
-/** A grid of points to read at any place: `at(i, j)` with fractional rows `i` and lanes `j`. */
 function reader(points, { wrap = false, loop = false } = {}) {
   const rows = points.length, lanes = points[0].length, lastRow = loop ? rows : rows - 1, lastLane = wrap ? lanes : lanes - 1;
   const row = i => loop ? ((i % rows) + rows) % rows : clamp(i, 0, rows - 1), lane = j => wrap ? ((j % lanes) + lanes) % lanes : clamp(j, 0, lanes - 1);
@@ -18,14 +13,6 @@ function reader(points, { wrap = false, loop = false } = {}) {
   return { rows, lanes, lastRow, lastLane, at };
 }
 
-/**
- * Append the cards of every length in `shapes` to `cards`.
- *   tiles    long strand tiles [left, top, wide, tall] of the 256 pixel strand picture
- *   solid    the tile of unbroken combed hair, for the sheet under the cards
- *   hair     {r, g, b} in linear light
- *   k        the scale of this adult; `centre` the middle of the cranium
- *   game     true to build the smaller set a game model carries
- */
 export function lengthCards(cards, shapes, { tiles, solid, hair, k, centre, game }) {
   let seed = 0;
   const uv = (tile, x, t) => [(tile[0] + 2 + (tile[2] - 4) * x) / 256, 1 - (tile[1] + 1.5 + (tile[3] - 3) * (1 - t)) / 256];
@@ -36,15 +23,6 @@ export function lengthCards(cards, shapes, { tiles, solid, hair, k, centre, game
     return cards.position.length / 3 - 1;
   };
 
-  /**
-   * One grid: rows run from the root to the ends, lanes across.
-   *   wrap     lanes close on themselves, as round a tail
-   *   loop     rows close on themselves, as hair wound round a knot
-   *   middle   i => the point the grid faces away from at row i
-   *   wide     the width of a card in metres
-   *   layers   how many of the three layers of cards to build over the sheet
-   *   under    how far the sheet lies under the grid; `ends` leaves that share of the length to the cards alone
-   */
   const grow = (points, skin, { wrap = false, loop = false, middle, wide, layers = 3, under = .003 * k, ends = .14, wave = 0, cap = false, sheet = true, darkest = .68, blunt = false, fine = false }) => {
     const g = reader(points, { wrap, loop }), weigh = typeof skin === "function" ? skin : () => skin, id = ++seed;
     const outward = (i, j) => {
@@ -55,7 +33,6 @@ export function lengthCards(cards, shapes, { tiles, solid, hair, k, centre, game
       n = unit(n);
       return dot(n, away) < 0 ? n.map(x => -x) : n;
     };
-    // Where each lane ends: lanes shorter than the longest repeat their last point.
     const reach = Array.from({ length: g.lanes }, (_, j) => {
       if (loop) return g.rows;
       let i = g.rows - 1;
@@ -63,16 +40,13 @@ export function lengthCards(cards, shapes, { tiles, solid, hair, k, centre, game
       return i;
     });
     const endOf = j => { const a = ((Math.floor(j) % g.lanes) + g.lanes) % g.lanes, b = wrap ? (a + 1) % g.lanes : Math.min(g.lanes - 1, a + 1); return mix(reach[a], reach[b], j - Math.floor(j)); };
-    // How wide a lane is half way down, to size cards in lanes.
     let span = 0;
     const half = Math.floor(g.rows * .45);
     for (let j = 0; j < g.lastLane; j++) span += length(sub(points[half][(j + 1) % g.lanes], points[half][j]));
     const lane = span / g.lastLane || 1e-4;
-    // Light and dark locks keep their tone down the whole length.
     const lock = j => clamp((noise3(j * lane / (.011 * k) + id * 7.3, id * 3.1, .5) - .5) * 3.2, -1, 1);
 
     if (sheet) {
-      // The sheet: the same hair in shadow, unbroken, so nothing shows between the cards but more hair.
       const stepI = Math.max(1, Math.round(g.lastRow / (fine ? (game ? 78 : 108) : game ? 11 : 20))), stepJ = Math.max(1, Math.round(g.lastLane / (game ? (wrap ? 9 : 22) : 40)));
       const last = loop ? g.rows : Math.max(stepI, Math.round((g.rows - 1) * (1 - ends))), is = [], js = [];
       for (let i = 0; i < last; i += stepI) is.push(i);
@@ -94,7 +68,6 @@ export function lengthCards(cards, shapes, { tiles, solid, hair, k, centre, game
       }
     }
 
-    // The cards. Each layer lies further out, ends at another length and is lit a little more.
     const widths = wide / lane, total = g.lastLane;
     const more = wave ? 2 : 0;
     const LAYERS = [
@@ -111,7 +84,6 @@ export function lengthCards(cards, shapes, { tiles, solid, hair, k, centre, game
         const tile = tiles[Math.floor(rnd(5) * tiles.length) % tiles.length], flip = rnd(6) < .5, lean = (rnd(7) - .5) * .0035 * k;
         const shade = layer.tone * (1 + .1 * lock(j0)) * (1 + .08 * (rnd(8) - .5)), swing = wave * widths * .6, phase = TAU * (.25 * rnd(9) + lock(j0));
         const full = loop ? g.rows * mix(.55, .9, rnd(10)) : endOf(j0), begin = loop ? g.rows * rnd(11) : 0, steps = layer.steps, first = cards.position.length / 3;
-        // The picture: unbroken strands repeated down the length, then the tips.
         const picture = Array.from({ length: steps + 1 }, (_, s) => { const left = steps - s; return left === 0 ? 1 : left === 1 ? .86 : left === 2 ? .68 : left % 2 ? .5 : .16; });
         let before = null;
         for (let s = 0; s <= steps; s++) {
@@ -120,7 +92,6 @@ export function lengthCards(cards, shapes, { tiles, solid, hair, k, centre, game
           const here = [];
           for (const sign of [-1, 1]) {
             let p = add(g.at(i, j + sign * narrow), n, out + sign * lean);
-            // Tips hang a little past the end of the grid, so the outline is strands and not the last row of points.
             if (s === steps && layer.past && before) p = add(p, unit(sub(p, before[here.length])), layer.past * k * (.5 + rnd(12 + sign)));
             here.push(p);
             push(p, n, shade * mix(.8, 1.06, smooth(0, .8, s / steps)), uv(tile, (sign < 0) !== flip ? .04 : .96, picture[s]), weigh(p));
@@ -137,7 +108,6 @@ export function lengthCards(cards, shapes, { tiles, solid, hair, k, centre, game
     const hubs = rings.map(ring => ring.reduce((s, p) => add(s, p), [0, 0, 0]).map(x => x / ring.length)), skin = rigid ? shapes.rigid : tuft ? shapes.skin(rings[0][0]) : shapes.skin;
     const hub = i => hubs[Math.round(clamp(i, 0, hubs.length - 1))];
     if (wound) {
-      // A knot is hair wound round and round: its sheet is the knot, its cards run round it.
       grow(rings, skin, { wrap: true, middle: hub, wide: 1, layers: 0, under: 0, ends: 0, cap: "end", darkest: .7 });
       const turned = rings[0].map((_, j) => rings.map(ring => ring[j])), all = hubs.reduce((s, p) => add(s, p), [0, 0, 0]).map(x => x / hubs.length);
       grow(turned, skin, { loop: true, middle: () => all, wide: .011 * k, layers: 2, sheet: false });

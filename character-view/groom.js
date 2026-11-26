@@ -61,8 +61,6 @@ function buffer() {
     },
   };
 }
-// The cap follows the actual head bounds. Locks run over the crown, leave the
-// hairline, then fall freely or gather at a common point behind the scalp.
 function headClearance(box, geometry, transform, rx, rz, cz, hug = 0) {
   if (!geometry) return (v) => v;
   const rows = 36,
@@ -114,8 +112,6 @@ function headClearance(box, geometry, transform, rx, rz, cz, hug = 0) {
     const low = mix(read(j, k), read(j, k + 1), fk - k),
       high = mix(read(j + 1, k), read(j + 1, k + 1), fk - k);
     const minRadius = mix(low, high, fy - j) + pad;
-    // A cropped cut also comes in to the skull where the cap stands off it,
-    // which keeps the fringe from overhanging the forehead.
     const near = smooth(Math.min(1, (rows - 1 - fy) / 3));
     if (r < minRadius || (hug > 0 && minRadius - pad > 0.2)) {
       const target = mix(r, minRadius, r < minRadius ? near : near * hug);
@@ -149,8 +145,6 @@ export function groomGeometry(box, options, geometry, transform) {
     cz,
     options.nape ?? 0,
   );
-  // A cropped cut carries the hairline down the back of the skull and a
-  // little way over the temples. Without it the hair ends above the ears.
   const nape = options.nape ?? 0;
   function edge(a) {
     const front = (1 + Math.cos(a)) / 2;

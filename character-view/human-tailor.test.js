@@ -65,7 +65,6 @@ test("every piece builds skinned meshes on a slim and a heavy adult", () => {
 });
 
 test("a later layer lies outside the layers under it", () => {
-  // Shirt under a snug gathered jacket: at shared skin points the jacket is never the nearer one.
   const under = tailorLayer("top", { sleeve: 0.1, ease: 6 }), over = tailorLayer("top", { sleeve: 1.9, ease: 8, stiff: 0.6, gather: 1 });
   const [shirt] = tailorHuman(heavy, { layers: [under] }, material), both = tailorHuman(heavy, { layers: [under, over] }, material);
   const jacket = both.find((m) => m.name === "Jacket");
@@ -86,12 +85,10 @@ test("a tailored outfit shows in ordinary clothes and is kept through other edit
   validateForm(form);
   const names = (f) => dressedHuman(evaluateHuman(f.human, f.humanFit), f, material, true).map((m) => m.name);
   assert.ok(names(form).includes("Belt") && !names(form).includes("Jacket"), "tailored pieces replace the preset");
-  // Body, skin and hair changes keep the tailoring.
   assert.deepEqual(changeHuman(form, { weight: 0.5 }).humanStyle.tailor, style.tailor);
   assert.deepEqual(tintHumanSkin(form, "#8a5a44").humanStyle.tailor, style.tailor);
   assert.deepEqual(chooseAdultStyle(style, { hair: "Bun" }).tailor, style.tailor);
   assert.deepEqual(chooseAdultStyle(style, { clothColor: "#603d4b" }).tailor, style.tailor);
-  // The base shape and the suit preview hide the pieces without discarding them.
   for (const outfit of ["Anatomy", "Base layer", "Pressure suit"]) {
     const shown = { ...form, outfit };
     assert.ok(!names(shown).includes("Belt"), outfit + " hides tailored pieces");
@@ -103,23 +100,18 @@ test("choosing or rolling a preset outfit shows that outfit instead of earlier t
   const start = humanForm({}, 7), style = { outfit: "Explorer", hair: "Crop", hairColor: "#44372f", clothColor: "#466068", tailor: defaultTailor() };
   const form = { ...start, outfit: "Work clothes", humanStyle: style };
   const names = (f) => dressedHuman(evaluateHuman(f.human, f.humanFit), f, material, true).map((m) => m.name);
-  // The clothing select.
   const chosen = { ...form, humanStyle: chooseAdultStyle(form.humanStyle, { outfit: "Chore jacket" }) };
   assert.equal(chosen.humanStyle.tailor, undefined);
   assert.equal(chosen.humanStyle.outfit, "Chore jacket");
   assert.ok(!names(chosen).includes("Belt"), "the tailored belt is gone");
   assert.notDeepEqual(names(chosen), names(form));
-  // Roll a look.
   for (const seed of [1, 2, 3, 4]) {
     const rolled = dressHuman(form, seed);
-    // A rolled look may bring tailored pieces of its own, never the ones worn before.
     assert.notDeepEqual(rolled.humanStyle.tailor, style.tailor, "a rolled look is not hidden by old pieces");
     assert.ok(rolled.humanStyle.tailor === undefined || validTailor(rolled.humanStyle.tailor));
     validateForm(rolled);
   }
-  // Undo restores the earlier form object, which still holds the pieces.
   assert.deepEqual(form.humanStyle.tailor, style.tailor);
-  // Handing over tailoring together with an outfit name keeps it.
   assert.deepEqual(chooseAdultStyle({ outfit: "Explorer" }, { outfit: "None", tailor: style.tailor }).tailor, style.tailor);
 });
 
@@ -131,7 +123,6 @@ test("skin and cloth that lie well inside another piece are left out", () => {
   const unused = (mesh) => mesh.geometry.attributes.position.count - new Set(mesh.geometry.index.array).size;
   assert.equal(unused(both.find((m) => m.name === "Jacket")), 0, "the outer layer is whole");
   assert.ok(unused(both[0]) > 0);
-  // Covered skin is named by source vertex, as library clothing names it. Open edges keep their skin.
   const source = new Map(Array.from(slim.ids, (id, v) => [id, v])), heights = [...alone.hidden].map((id) => slim.positions[source.get(id) * 3 + 1]);
   assert.ok(alone.hidden.size > 500 && both.hidden.size >= alone.hidden.size);
   let neck = -Infinity, hand = 0;
@@ -139,7 +130,6 @@ test("skin and cloth that lie well inside another piece are left out", () => {
   assert.ok(Math.max(...heights) < neck + 0.02, "the neck above the opening stays");
   for (const id of alone.hidden) { const v = source.get(id); for (let n = 0; n < 4; n++) if (slim.names[slim.boneIndices[v * 4 + n]].startsWith("hand") && slim.weights[v * 4 + n] > 0.5) hand++; }
   assert.equal(hand, 0, "bare hands stay");
-  // The editor's skin builder reads the same list from a dressed adult, and nothing is hidden in the base shape.
   const form = { ...humanForm({}, 7), outfit: "Work clothes", humanStyle: { outfit: "Explorer", hair: "Crop", tailor: { layers: [shirt] } } };
   const dressed = (f) => dressedHuman(evaluateHuman(f.human, f.humanFit), f, material, true).hidden;
   assert.ok(dressed(form).size > 500);
@@ -164,8 +154,6 @@ test("a folded shirt collar tucks under a high stand and stays visible in an ope
     tailorHuman(slim, {layers:[shirt,outer]}, material)[0].geometry.attributes.position.count;
   const closed = tailorLayer("top",{neck:"high", collar:"stand", sleeve:1.9, ease:12, stiff:.62});
   const opened = {...closed, neck:"v", depth:130};
-  // Both shirts have separately cut neck openings. Compare the collar geometry
-  // of the same shirt across the two openings of its outer jacket.
   assert.ok(shirtVertices(folded,opened) > shirtVertices(folded,closed));
   assert.equal(shirtVertices(plain,opened),shirtVertices(plain,closed));
 });

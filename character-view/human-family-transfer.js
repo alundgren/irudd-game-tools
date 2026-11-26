@@ -27,22 +27,11 @@ import {
   wrapFamilyMember,
 } from "./family-transfer.js";
 
-// The fine layer itself lives with the adult's surface. Named here too for callers of the transfer.
 export { applyHumanDetail, validHumanDetail } from "./human-surface.js";
 
-/* Identity transfer onto the editable adult from a family of meshes with one
-   shared topology: a neutral template and people made from it.
-
-   This is opt-in and separate from the reference fit. A reference fit finds the
-   nearest surface along the skin's normal, which suits an unrelated scan and
-   recovers little of what distinguishes two people. Here the neutral is
-   registered against the editable adult once. Afterwards each member of the
-   family says where every editable vertex belongs, so the mouth corner follows
-   the mouth corner. It needs the family's neutral and cannot be used on a scan
-   that does not share that topology. */
 
 export const familyRegions = ["whole", "head", "trunk", "arms", "legs"];
-const longest = 0.0649; // metres per anchor on a 1.72 m figure, as a recipe stores it
+const longest = 0.0649;
 
 function partRegion(name) {
   if (name === "head" || name.startsWith("neck")) return "head";
@@ -52,9 +41,6 @@ function partRegion(name) {
 }
 const boneOf = (surface, v) => surface.names[surface.boneIndices[v * 4]];
 const inRegion = (surface, region) => (v) => region === "whole" || partRegion(boneOf(surface, v)) === region;
-/* How much of a vertex belongs to the region by its skin weights. A head is
-   carried by the skull alone: the neck joins a trunk that this transfer leaves
-   untouched, so it blends between the two. */
 const regionShare = (surface, region) => (v) => {
   if (region === "whole") return 1;
   let share = 0;
@@ -69,17 +55,6 @@ function bodyMesh(surface) {
   return { positions: surface.positions, indices: surface.indices, triangles: surface.bodyTriangles };
 }
 
-/* Register the family's neutral against an editable adult that has already been
-   fitted to it and stands in the same place. Do this once per family. The
-   result holds only numbers: which neutral triangle each editable vertex
-   belongs to. It is derived from the neutral, so it is local reference
-   material when the neutral is.
-
-   A relative transfer adds each person's difference from the neutral to this
-   base, so whatever separates the base from the neutral shows on everyone.
-   `refine` passes pull the base onto the neutral first, measurements and then
-   control anchors, each pass against its own fresh correspondences. They are
-   off by default: nearest-point passes can slide a feature along the skin. */
 export function registerHumanFamily(form, neutral, { reach = 0.012, agree = 0.5, refine = 0, damping = 0.02, smoothing = 0.05 } = {}) {
   if (!form?.human) throw new Error("Fit an editable adult to the family's neutral first.");
   const family = neutral.closest ? neutral : familySurface(neutral.positions, neutral.indices);
@@ -162,8 +137,6 @@ function distances(a, b) {
 }
 const sameRecipe = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
-/* Ordinary measurements that reshape this region and leave the rest of the
-   figure where it was. Found by trying each one, so new axes need no list here. */
 export function regionMeasurements(human, region) {
   const base = evaluateHuman(human), scale = base.height / 1.72, member = inRegion(base, region), keys = [];
   for (const key of humanFitAxes) {
@@ -199,9 +172,6 @@ function solveDense(a, b, n) {
   return m.map((row, i) => (Math.abs(row[i]) < 1e-18 ? 0 : row[n] / row[i]));
 }
 
-/* Fit ordinary measurements to corresponded targets. Every row knows the
-   point its vertex should reach, so the residual is a full 3D vector and the
-   solve is far better conditioned than a nearest-surface fit. */
 function fitMeasurements(human, evaluate, rows, weights, target, placement, keys, { passes = 6, prior = 0.004 } = {}) {
   const params = { ...human };
   const read = (surface) => gather(surface.positions, rows);
@@ -234,7 +204,6 @@ function fitMeasurements(human, evaluate, rows, weights, target, placement, keys
     for (let j = 0; j < n; j++) mean += a[j][j] / n;
     for (let j = 0; j < n; j++) {
       const [, , initial] = humanRange(keys[j]);
-      // Keep an axis the rows barely constrain near where it started.
       a[j][j] += prior * mean + 0.02 * a[j][j];
       b[j] -= prior * mean * ((params[keys[j]] ?? initial) - (human[keys[j]] ?? initial));
     }
@@ -258,10 +227,6 @@ function fitMeasurements(human, evaluate, rows, weights, target, placement, keys
   return params;
 }
 
-/* The editable adult has open lids around separate eyeballs. A family mesh may
-   model the eye quite differently, so the skin close to each eyeball is not
-   laid onto the family's surface. `free` is 0 on the ball and its lids, 1 from
-   6 mm of clearance outwards, and `eye` names the nearest eyeball. */
 function eyeGuard(surface) {
   const count = surface.positions.length / 3, scale = surface.height / 1.72, p = surface.positions;
   const free = new Float32Array(count).fill(1), eye = new Int8Array(count).fill(-1), balls = [];
@@ -282,7 +247,6 @@ function eyeGuard(surface) {
 }
 
 let rings;
-// Neighbours of every cage vertex. The topology is the same for every adult.
 function cageRings(surface) {
   if (rings) return rings;
   const sets = Array.from({ length: surface.positions.length / 3 }, () => new Set());
@@ -294,17 +258,12 @@ function cageRings(surface) {
   return (rings = sets.map((set) => Uint32Array.from(set)));
 }
 
-/* The fine correction: what measurements and control anchors leave over, for
-   single vertices of the head. It is the adult's own `humanDetail` layer, see
-   human-surface.js. Topology, texture coordinates and skin weights stay those
-   of the adult. Returns the movement of every vertex in metres. */
 function detailLengths(detail, scale) {
   return detail ? detail.vertices.map((_, i) => 0.00001 * scale * Math.hypot(detail.offsets[i * 3], detail.offsets[i * 3 + 1], detail.offsets[i * 3 + 2])) : [];
 }
 function fineCorrection(surface, rows, goal, weights, member, contacts = [], guard, strain = 0.5) {
   const count = surface.positions.length / 3, near = cageRings(surface), p = surface.positions;
-  const offsets = new Float32Array(count * 3), state = new Uint8Array(count); // 1 known, 2 to fill
-  // Each eye moves as one piece with the skin of its orbit.
+  const offsets = new Float32Array(count * 3), state = new Uint8Array(count);
   const orbit = (guard?.balls ?? []).map(({ c, radius }) => {
     const mean = [0, 0, 0];
     let total = 0;
@@ -321,7 +280,6 @@ function fineCorrection(surface, rows, goal, weights, member, contacts = [], gua
     state[v] = 1;
     for (let d = 0; d < 3; d++) offsets[v * 3 + d] = weights[i] * guarded(v, d, goal[i * 3 + d] - p[v * 3 + d]);
   });
-  // Unregistered skin on the ball follows the eye, not its neighbours.
   if (guard)
     for (let v = 0; v < surface.bodyVertices; v++)
       if (!state[v] && member(v) && guard.eye[v] >= 0 && guard.free[v] < 0.5) {
@@ -331,9 +289,8 @@ function fineCorrection(surface, rows, goal, weights, member, contacts = [], gua
   const open = [];
   for (let v = 0; v < surface.bodyVertices; v++)
     if (!state[v]) {
-      if (member(v)) { state[v] = 2; open.push(v); } else state[v] = 1; // skin outside the region stays where it is
+      if (member(v)) { state[v] = 2; open.push(v); } else state[v] = 1;
     }
-  // Skin without a partner in the family follows its neighbours smoothly.
   for (let sweep = 0; sweep < 300; sweep++)
     for (const v of open) {
       const ring = near[v];
@@ -342,8 +299,6 @@ function fineCorrection(surface, rows, goal, weights, member, contacts = [], gua
       for (const u of ring) { x += offsets[u * 3]; y += offsets[u * 3 + 1]; z += offsets[u * 3 + 2]; }
       offsets[v * 3] = x / ring.length; offsets[v * 3 + 1] = y / ring.length; offsets[v * 3 + 2] = z / ring.length;
     }
-  // Loose pieces with no known neighbour anywhere, and helper vertices such as
-  // eyeballs, take the movement of the nearest registered skin.
   const reached = Uint8Array.from(state, (s) => (s === 1 ? 1 : 0)), queue = Array.from(rows);
   while (queue.length) {
     const v = queue.pop();
@@ -367,7 +322,6 @@ function fineCorrection(surface, rows, goal, weights, member, contacts = [], gua
   for (const v of open) if (!reached[v]) offsets.set(nearest(v), v * 3);
   const grouped = new Set();
   (surface.eyeGroups ?? []).forEach((group, e) => {
-    // An eyeball moves as one piece with the lids around it.
     let mean = orbit[e];
     if (!mean) {
       mean = [0, 0, 0];
@@ -377,7 +331,6 @@ function fineCorrection(surface, rows, goal, weights, member, contacts = [], gua
     for (const v of group) { offsets.set(mean, v * 3); grouped.add(v); }
   });
   for (let v = surface.bodyVertices; v < count; v++) if (!grouped.has(v) && member(v)) offsets.set(nearest(v), v * 3);
-  // Skin that touched keeps its distance: closed lips stay closed and a lid keeps its thickness.
   const hold = () => {
     for (let pass = 0; pass < 20 && contacts.length; pass++)
       for (const [a, b, length] of contacts) {
@@ -388,12 +341,6 @@ function fineCorrection(surface, rows, goal, weights, member, contacts = [], gua
         for (let k = 0; k < 3; k++) { offsets[a * 3 + k] += move * d[k]; offsets[b * 3 + k] -= move * d[k]; }
       }
   };
-  /* Neighbours move nearly together: no edge of the cage may change by more
-     than `strain` of its own length. Where edges are a millimetre long, at a
-     mouth corner or a lid, a goal that differs by half a millimetre between
-     two vertices puckers the skin without turning any triangle over. Those
-     vertices take part of their neighbours' movement until the edge complies,
-     so fine skin moves as one piece and gives up a little distance instead. */
   const stats = { strainedVertices: 0, worstStrain: 0 };
   const relax = () => {
     for (let pass = 0; pass < 80; pass++) {
@@ -430,9 +377,6 @@ function fineCorrection(surface, rows, goal, weights, member, contacts = [], gua
   return { offsets, stats };
 }
 
-/* Finds skin that a change turned over, compared with `reference`, on the cage
-   and on the smoothed surface that is drawn. `turned` returns the cage vertices
-   that shape the turned triangles. */
 function foldGuard(reference, member) {
   const smoothBefore = smoothHumanSurface(reference), { offsets, refs, factors } = humanSmoothSources();
   const count = smoothBefore.positions.length / 3, inside = new Uint8Array(count);
@@ -465,8 +409,6 @@ function foldGuard(reference, member) {
   };
 }
 
-/* Each eyeball should stay a ball and stay behind its lids. Reads how far the
-   ball left its own shape, and how the clearance of the skin around it changed. */
 export function eyeIntegrity(before, after) {
   const scale = before.height / 1.72, out = [];
   for (const group of before.eyeGroups ?? []) {
@@ -494,10 +436,6 @@ export function eyeIntegrity(before, after) {
   return out;
 }
 
-/* The fine layer that takes `coarse` to its goals, with the limits every such layer keeps. It
-   must not turn over the skin under it, on the cage or on the smoothed surface that is drawn.
-   Ordinary measurements may turn a small triangle, a lid fold for one, and are trusted: the
-   layer is held against the surface they give. */
 function buildLayer(coarse, rows, goal, weights, member, held, guard, strain) {
   const { offsets: moves, stats } = fineCorrection(coarse, rows, goal, weights, member, held, guard, strain);
   let detail, surface;
@@ -517,15 +455,6 @@ function buildLayer(coarse, rows, goal, weights, member, held, guard, strain) {
   return { detail, surface, stats };
 }
 
-/* Keep a head that carries a fine layer where it is while the adult under it changes.
-
-   `was` is the character before, layer included. `next` is the same character with other
-   measurements or control anchors, for example after its body was fitted to a reference. The
-   head of `was` is the goal, vertex for vertex, since both are the same cage: it is brought to
-   the new stature and set on the new head joint, and a new layer is worked out for `next`
-   with the limits of a transfer. Lips and lids stay together, no edge is strained, nothing
-   turns over, and the neck blends into the body as it now is. Returns the layer and what was
-   measured; without a layer on `was` there is nothing to keep. */
 export function keepHumanHead(was, next, { detailStrain = 0.5 } = {}) {
   if (!was?.humanDetail) return { metrics: null };
   const old = evaluateHuman(was.human, was.humanFit, was.humanDetail);
@@ -545,7 +474,6 @@ export function keepHumanHead(was, next, { detailStrain = 0.5 } = {}) {
   const held = contactPairs(old.positions, old.indices, old.bodyTriangles, inside, (0.0022 * old.height) / 1.72).map(([a, b]) => [a, b,
     size * Math.hypot(old.positions[a * 3] - old.positions[b * 3], old.positions[a * 3 + 1] - old.positions[b * 3 + 1], old.positions[a * 3 + 2] - old.positions[b * 3 + 2])]);
   const away = (surface) => spread(distances(gather(gather(surface.positions, rows), firm), gather(goal, firm)));
-  // Where the head would stand if the old layer simply rode on the changed adult.
   const carried = away(applyHumanDetail(coarse, was.humanDetail));
   const made = buildLayer(coarse, rows, goal, weights, member, held, eyeGuard(coarse), detailStrain);
   const turned = foldGuard(coarse, member).folds(made.surface), lengths = detailLengths(made.detail, scale);
@@ -558,21 +486,6 @@ export function keepHumanHead(was, next, { detailStrain = 0.5 } = {}) {
   };
 }
 
-/* Carry one member of a registered family onto the editable adult.
-
-   `identity` is {positions, indices} with the family's topology, in any place
-   and size. `form` is the adult to change and defaults to the registered base.
-   Only `region` changes: its measurements, then the control anchors on it,
-   then on request the fine correction. Options: `measurements`, `controls`
-   and `detail` switch the three stages. `keepOffset` is how much of the
-   adult's own departure from the neutral survives: 1 adds the member's
-   difference from the neutral to the adult (a relative transfer), 0 lands the
-   adult on the member's surface. `size` keeps the source's size ("source") or
-   the adult's own ("native"). `keepContacts` holds touching skin such as
-   closed lips together. `guardEyes` keeps each eyeball and its lids one piece
-   that moves with the orbit instead of laying the lids onto the family's eye.
-   `detailStrain` is the most the fine correction may change any edge of the
-   cage, as a share of its length; 0 switches that limit off. */
 export function transferHumanIdentity(registration, identity, {
   region = "head", form, measurements = true, controls: useControls = true, detail: useDetail = false,
   size = "source", keepContacts = true, guardEyes = true, damping = 0.02, smoothing = 0.05, keepOffset = 0, detailStrain = 0.5,
@@ -585,7 +498,6 @@ export function transferHumanIdentity(registration, identity, {
   const before = evaluateHuman(start.human, start.humanFit), scale = before.height / 1.72;
   const member = inRegion(before, region), share = regionShare(before, region);
 
-  // Registered vertices of this region, and the subset that places it.
   const picks = [];
   for (let i = 0; i < registration.vertex.length; i++) {
     const v = registration.vertex[i];
@@ -593,7 +505,6 @@ export function transferHumanIdentity(registration, identity, {
   }
   if (picks.length < 30) throw new Error("Too little of this region is registered against the family.");
   const rows = Uint32Array.from(picks, (i) => registration.vertex[i]);
-  // Skin on the eyeballs does not steer the measurements or the anchors.
   const lids = guardEyes ? eyeGuard(before).free : null;
   const weights = Float32Array.from(rows, (v) => share(v) * (lids ? lids[v] : 1));
   const placement = [], core = [];
@@ -608,7 +519,6 @@ export function transferHumanIdentity(registration, identity, {
   const fitted = alignPoints(gather(source, placement), gather(registered, placement), { scale: size === "native" });
   const placed = transformPoints(source, fitted.matrix);
 
-  // The identity as movements of the registered base, carried to this adult.
   let target;
   if (sameRecipe(start, base) || keepOffset !== 1) target = placed;
   else {
@@ -627,17 +537,12 @@ export function transferHumanIdentity(registration, identity, {
     replace ? transformPoints(target, alignPoints(gather(target, replace), gather(gather(surface.positions, rows), replace)).matrix) : target;
   const metrics = { region, registered: rows.length, sourceScale: fitted.scale, start: residual(before, settle(before)) };
 
-  // Ordinary measurements first: they stay editable and need no stored offsets.
   let human = start.human, fit = start.humanFit;
   const rest = evaluateHuman(start.human);
-  // Control anchors pull skin beyond the region too. A regional transfer therefore leaves them as they
-  // are, so that pull stays exactly what it was; only a whole-figure transfer turns them with the skin.
   const carry = (p) => (region === "whole" ? transportHumanFit(start.humanFit, rest, evaluateHuman(p)) : start.humanFit);
   const evaluate = (p) => evaluateHuman(p, fit ? carry(p) : undefined);
   if (measurements) {
     const keys = regionMeasurements(start.human, region);
-    // An absolute head transfer may relax a measured face already in the form.
-    // Relative transfers retain that face as the basis for the member's changes.
     if (region === "head" && keepOffset === 0) {
       keys.push(...capturedAxes.filter(axis => start.human[axis] > 0));
     }
@@ -653,7 +558,6 @@ export function transferHumanIdentity(registration, identity, {
     const plain = evaluateHuman(human);
     const free = Uint8Array.from(controls.ids, (v) => (member(v) ? 1 : 0));
     const list = Array.from(rows, (vertex, i) => ({ vertex, weight: weights[i] }));
-    // Skin outside the region that these anchors also move should stay put.
     const outside = [];
     for (let v = 0; v < plain.bodyVertices; v++) {
       if (member(v)) continue;
@@ -692,8 +596,6 @@ export function transferHumanIdentity(registration, identity, {
       goal = settle(surface);
     }
     metrics.contactPairs = pairs.length;
-    // Where a thin rim turned over, withdraw the new movement of the anchors
-    // that drive it and leave the rest of the transfer alone.
     const counted = (t) => [0, 1, 2].every((k) => member(surface.indices[t * 3 + k]));
     for (let pass = 0; pass < 12; pass++) {
       const { folded } = foldedTriangles(shaped.positions, surface.positions, surface.indices, surface.bodyTriangles, counted);
@@ -724,7 +626,6 @@ export function transferHumanIdentity(registration, identity, {
     metrics.afterControls = residual(surface, goal);
   }
 
-  // The explicit fine correction: what measurements and anchors left over, per vertex.
   let detail;
   if (useDetail) {
     const coarse = surface;
@@ -741,11 +642,9 @@ export function transferHumanIdentity(registration, identity, {
     ({ detail, surface } = made);
     metrics.afterDetail = residual(surface, goal);
     const lengths = detailLengths(detail, scale);
-    // Movements cut short at the layer's limit: the head differs from the adult by more than a fine layer holds.
     metrics.detail = { vertices: detail?.vertices.length ?? 0, ...spread(lengths), limited: lengths.filter((x) => x >= 0.00001 * scale * (humanDetailLimit - 1)).length };
   }
 
-  // Integrity of the result against the adult it started from, at one pose.
   const turned = foldGuard(shaped, member).folds(surface);
   metrics.folds = turned.cage.length;
   metrics.drawnFolds = turned.drawn.length;
@@ -764,8 +663,6 @@ export function transferHumanIdentity(registration, identity, {
       drift = Math.max(drift, Math.hypot(surface.positions[v * 3] - shaped.positions[v * 3],
         surface.positions[v * 3 + 1] - shaped.positions[v * 3 + 1], surface.positions[v * 3 + 2] - shaped.positions[v * 3 + 2]));
   metrics.outsideRegionMaxMm = 1000 * drift;
-  // Against the adult it started from. Head measurements are ordinary sliders: they carry a
-  // little skin at the base of the neck and keep the stature, which rescales the figure slightly.
   let neck = 0, body = 0;
   if (surface.height === before.height)
     for (let v = 0; v < surface.bodyVertices; v++) {
@@ -781,7 +678,6 @@ export function transferHumanIdentity(registration, identity, {
     form: { human, ...(fit ? { humanFit: fit } : {}) },
     ...(detail ? { detail } : {}),
     metrics,
-    // Corresponded goals in the final adult's coordinates, for diagnostics.
     rows,
     target: goal,
     surface,

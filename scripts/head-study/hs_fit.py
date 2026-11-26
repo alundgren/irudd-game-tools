@@ -16,20 +16,17 @@ import numpy as np
 from scipy.optimize import lsq_linear
 from scipy.spatial import cKDTree
 
-import _paths  # noqa: F401
+import _paths
 from hb_mesh import Surface, sample_surface, vertex_normals
 from hs_generator import REGIONS
 from hs_targets import boundary_vertices
 
-HUBER_M = 0.004         # distances beyond 4 mm pull with constant force
-REACH_M = 0.03          # pairs further apart than this are not pairs
-POINT_TERM = 0.1        # weight of point-to-point next to point-to-plane
-PRIOR = 0.02            # pull of every axis towards its neutral value, in mm^2 per unit^2
+HUBER_M = 0.004
+REACH_M = 0.03
+POINT_TERM = 0.1
+PRIOR = 0.02
 REGION_WEIGHT = {"ears": 0.5, "eyes": 0.6, "neck": 0.25}
 STARTS = ({"frame": -0.6}, {"frame": 0.6})
-# Narrower search ranges than the editor allows. randomHuman keeps earTip within 0.79 * 0.28
-# for people; beyond that the ear becomes a pointed fantasy ear, which a fit would otherwise
-# use to reach a tall human ear.
 FIT_LIMIT = {"earTip": 0.22}
 
 
@@ -84,7 +81,7 @@ class ScanView:
         self.surface = Surface(self.vertices, self.faces, anchor_spacing=0.006)
         edge = np.zeros(len(self.vertices), dtype=bool)
         edge[boundary_vertices(self.faces)] = True
-        self.open_face = edge[self.faces].any(1)  # touches the scan's open edge
+        self.open_face = edge[self.faces].any(1)
         self.points, face, bary = sample_surface(self.vertices, self.faces, samples, seed, face_mask)
         self.normals = self.surface.smooth_normal(face, bary)
 
@@ -106,7 +103,7 @@ class Head:
 
 
 def region_weights(not_skin=()):
-    weight = np.array([REGION_WEIGHT.get(name, 1.0) for name in REGIONS] + [0.0])  # last entry: unlabelled
+    weight = np.array([REGION_WEIGHT.get(name, 1.0) for name in REGIONS] + [0.0])
     for name in not_skin:
         weight[REGIONS.index(name)] = 0.0
     return weight
@@ -122,7 +119,6 @@ def pairs(head, view, placement, reach=REACH_M):
     p = head.vertices[head.ids]
     d, c, face, bary = view.surface.closest(placement.inverse(p))
     normal = placement.turn(view.surface.smooth_normal(face, bary))
-    # A generated vertex whose closest scan point is on the scan's open edge has no scan surface to answer to.
     weight = head.vertex_weight[head.ids] * ~view.open_face[face]
     ok = (weight > 0) & (d * placement.scale < reach) & (np.einsum("ij,ij->i", normal, head.normals[head.ids]) > 0.2)
     forward = {"moving": p, "partner": placement.apply(c), "scan": c, "normal": normal, "ok": ok, "weight": weight}
@@ -131,7 +127,6 @@ def pairs(head, view, placement, reach=REACH_M):
     d, g, face, bary = head.surface.closest(s)
     normal = head.surface.smooth_normal(face, bary)
     corner = head.faces[face]
-    # Scan surface beyond the neck cut (shoulders, chest) is not the head's business.
     weight = np.einsum("ij,ij->i", bary, head.vertex_weight[corner]) * ~head.cut_face[face]
     ok = (weight > 0) & (d < reach) & (np.einsum("ij,ij->i", normal, placement.turn(view.normals)) > 0.2)
     backward = {"moving": g, "partner": s, "scan": view.points, "normal": normal, "ok": ok, "weight": weight,
@@ -159,7 +154,6 @@ def settle(head, view, placement, rounds=6, reach=REACH_M, with_scale=True):
         forward, backward = pairs(head, view, placement, reach)
         source = np.vstack([forward["scan"][forward["ok"]], backward["scan"][backward["ok"]]])
         target = np.vstack([forward["moving"][forward["ok"]], backward["moving"][backward["ok"]]])
-        # Each direction carries half the weight however many pairs it found.
         weight = np.concatenate([side["weight"][side["ok"]] / max(side["weight"][side["ok"]].sum(), 1e-12)
                                  for side in (forward, backward)])
         if (weight > 0).sum() < 50:
@@ -208,7 +202,7 @@ def _jacobian(generator, axes, base, x, ids, blink, step=0.05):
             recipes.append(_recipe(generator, axes, base, trial))
     surfaces = generator.evaluate(recipes, blink=blink)[:, ids]
     columns = [(surfaces[2 * k + 1] - surfaces[2 * k]) / spans[k] for k in range(len(x))]
-    return np.stack(columns, axis=2), low, high  # [vertex, xyz, axis]
+    return np.stack(columns, axis=2), low, high
 
 
 def fit_recipe(generator, topology, view, placement, base=None, blink=1.0, not_skin=(), rounds=14, log=print):
@@ -244,14 +238,14 @@ def _fit_from(generator, topology, view, placement, start, blink, weight, rounds
         rows, rhs = [], []
         for side, moving in ((forward, jac), (backward, None)):
             ok = side["ok"]
-            if moving is None:  # a scan sample pulls the three cage vertices of its closest face
+            if moving is None:
                 moving = np.einsum("pk,pkda->pda", side["bary"], jac[row_of[side["corner"]]])
             residual = side["partner"] - side["moving"]
             w = side["weight"] * ok
             w = w / max(w.sum(), 1e-12)
             plane = np.einsum("pd,pd->p", side["normal"], residual)
             huber = np.minimum(1.0, HUBER_M / np.maximum(np.abs(plane), 1e-9))
-            scale = 1000 * np.sqrt(w * huber)  # millimetres, so the prior and damping below have a fixed meaning
+            scale = 1000 * np.sqrt(w * huber)
             rows.append(np.einsum("pd,pda->pa", side["normal"], moving) * scale[:, None])
             rhs.append(plane * scale)
             scale = 1000 * np.sqrt(w * huber * POINT_TERM)

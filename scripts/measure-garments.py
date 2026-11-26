@@ -73,7 +73,7 @@ class WorkshopMesh:
             target = channel["target"]
             path = target["path"]
             if path == "weights":
-                continue  # The garment mesh has no facial expression targets.
+                continue
             sampler = clip["samplers"][channel["sampler"]]
             if sampler.get("interpolation", "LINEAR") != "LINEAR":
                 raise ValueError("This audit supports the workshop's linearly keyed animation clips.")
@@ -163,8 +163,6 @@ def measure(filename, garments, samples):
     def region(node):
         return node.get("extras", {}).get("region", node["name"]).lower()
     fabric = {name: mesh.influence(lambda n: region(n) == name.lower()) for name in garments}
-    # Some cloth vertices also follow arm joints. Their original garment joint
-    # retains an influence, so they stay out of the set of wearer triangles.
     garment_membership = np.maximum.reduce(list(fabric.values()))
     arm_membership = mesh.influence(lambda n: bool(re.search(r"arm|hand|palm|finger|thumb", region(n))))
     triangles = mesh.triangles

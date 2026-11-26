@@ -4,8 +4,6 @@ const grain=new ImprovedNoise();
 import {evaluateHuman} from "./human-surface.js";
 import {randomStream} from "./random.js";
 
-// Sample the scalp of the canonical mesh once. Triangle coordinates carry the
-// cut and the individual locks to the same scalp landmarks on every adult.
 const TAU=Math.PI*2;
 const clamp=x=>Math.max(0,Math.min(1,x));
 const smooth=t=>{t=clamp(t);return t*t*(3-2*t);};
@@ -17,8 +15,6 @@ function scalpTriangles(){
   let area=0;
   function margin(p){
     const a=Math.atan2(p.x/.077,(p.z-.051)/.10),front=Math.cos(a);
-    // The forehead has a shallow widow's peak. The hairline rises above
-    // the ear, then descends behind it towards the nape.
     const forehead=1.644+.014*Math.sin(a)**2-.004*Math.exp(-((a/.16)**2));
     const rear=1.548+.058*(1+front);
     let line=T.MathUtils.lerp(rear,forehead,smooth((front+.12)/.77));
@@ -63,7 +59,6 @@ export function coilGroom(surface,style,material,plain,skinColor,gameBudget=0){
       smooth((m+.0005)/.022)*(1+.055*Math.sin(98*p.x/scale+47*front)*Math.cos(67*p.y/scale));
   }
   const smoothNormals=new Map(),shellVertices=new Map();
-  // Clip the root shell at the actual hairline, including cut triangles.
   for(const t of triangles){
     const polygon=[];
     for(let k=0;k<3;k++){
@@ -92,8 +87,6 @@ export function coilGroom(surface,style,material,plain,skinColor,gameBudget=0){
     }
     for(let k=1;k<polygon.length-1;k++)shellTriangle(polygon[0],polygon[k],polygon[k+1],2);
   }
-  // A lock is a tapered elliptical tube with an open spiral above the root
-  // shell. Vary phase, length and lay to break a uniform rows-of-dots pattern.
   const up=new T.Vector3(0,1,0),sideDir=new T.Vector3(1,0,0);
   const steps=gameBudget?7:12,sides=gameBudget?3:4;
   const locks=gameBudget?Math.min(spec.locks,Math.floor(gameBudget*.55/(steps*sides*2))):spec.locks;

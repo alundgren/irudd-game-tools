@@ -447,7 +447,6 @@ function switchTab(name) {
     panel.hidden = panel.dataset.panel !== name;
   markTool?.sync();
   markTool?.draw();
-  // The creature handles belong to the sculpt panel.
   creatureDrag?.place();
 }
 function focusFace() {
@@ -880,8 +879,6 @@ function bindControls() {
   $("#graft-mode").onchange = () => {
     $("#graft-fit-field").hidden = $("#graft-mode").value === "pattern";
   };
-  // Measure the geometry that will actually leave and enter the scene, including
-  // attached necks, hair and hardware on a whole-branch replacement.
   function graftBounds(source, id, relative) {
     const model = createCharacter(source, false, true);
     try {
@@ -1923,7 +1920,6 @@ async function refineProposal() {
       : "");
   if (busy || !parent || !direction) return;
   try {
-    // The accepted form stays available for comparison through every round.
     showCurrent = false;
     update();
     const base = candidateForm(),
@@ -2703,8 +2699,6 @@ function setup() {
     }
     openReference();
   };
-  // Handles on the creature itself. They rest while another tool owns the
-  // pointer, while a clip or a pose plays and outside the sculpt panel.
   creatureDrag = creatureHandleOverlay(stage, camera, {
     read: () => form,
     idle: () =>
@@ -2716,8 +2710,6 @@ function setup() {
       !placement?.active &&
       !playback?.active &&
       !$('[data-panel="sculpt"]').hidden,
-    // A held handle warps the meshes on screen, which takes a few
-    // milliseconds, and asks for the exact build when the pointer rests.
     preview: (next, exact) => {
       if (!exact && liveWarp.show(figure, displayedForm, next)) {
         render();

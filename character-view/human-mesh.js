@@ -30,8 +30,6 @@ function geometry(surface, corners, normals, origin, tinted, shade, joined, char
     weights = [],
     vertexIds = [],
     anchors = [];
-  // Triangles crossing the inside-arm seam lie wholly in the blank margin.
-  // Split only their chart coordinates so interpolation cannot mirror the design.
   let seam = false;
   const coordinates = chart ? new Map() : null;
   const inkUV = v => {
@@ -66,7 +64,6 @@ function geometry(surface, corners, normals, origin, tinted, shade, joined, char
           tex * 4,
           tex * 4 + 4,
         );
-        // The registered skin already carries the vermilion colour of its donor.
         const lip = lipZone * (paintedLips ? 0.22 : 1);
         const [r, g, b] = shade ? shade.subarray(v * 3, v * 3 + 3) : [1, 1, 1];
         colors.push(
@@ -90,7 +87,6 @@ function geometry(surface, corners, normals, origin, tinted, shade, joined, char
   g.setAttribute("normal", new T.Float32BufferAttribute(normal, 3));
   g.setAttribute("uv", new T.Float32BufferAttribute(uv, 2));
   if (tinted) g.setAttribute("color", new T.Float32BufferAttribute(colors, 3));
-  // The head and the body are reduced apart for a game. Both keep the points they share.
   if (joined) g.setAttribute("lodAnchor", new T.Uint8BufferAttribute(anchors, 1));
   g.setIndex(indices);
   return {
@@ -139,12 +135,9 @@ export function humanRegions(form, material, plain, styleMeshes, game = false) {
       if (totals[i] > totals[best]) best = i;
     bins[best].push(c, c + 1, c + 2);
   }
-  // Points on the cut between the head and the neck, which are separate meshes in a game file.
   const headBin = s.names.indexOf("head"), joined = new Uint8Array(s.positions.length / 3), onHead = new Uint8Array(joined.length);
   for (const c of bins[headBin] ?? []) onHead[s.indices[c]] = 1;
   bins.forEach((bin, k) => { if (k !== headBin) for (const c of bin) if (onHead[s.indices[c]]) joined[s.indices[c]] = 1; });
-  // Pin the visible eyelid margin loops (opening, outer thickness bevel) and upper supratarsal
-  // crease fold so 24K game decimation cannot flatten lid depth or reveal the eye during Blink.
   const { lidAnchors } = faceAnatomyFields();
   for (let v = 0; v < joined.length; v++) if (lidAnchors[v]) joined[v] = 1;
   const bodySkins = new Map(), inkedSkins = new Map(), shades = new Map();
@@ -200,7 +193,6 @@ export function humanRegions(form, material, plain, styleMeshes, game = false) {
       if (part.humanBone === "head" && !plain) shadeFaceForm(piece.geometry, piece.vertexIds);
       const mesh = new T.Mesh(piece.geometry, skin);
       mesh.humanWeights = piece.humanWeights;
-      // Anatomical skin, for the sculpt brush: smooth-surface corners and vertices, rest origin.
       mesh.humanSkin = { faces: bins[k], vertices: piece.vertexIds, origin };
       if (!plain) skin.vertexColors = true;
       if (part.humanBone === "head") {
@@ -233,7 +225,6 @@ export function humanRegions(form, material, plain, styleMeshes, game = false) {
       humanFace(group, { ...cage, positions }, origin, material, plain, form, game);
       if (!plain && part.nativePortrait)
         applyNativePortrait(group.children.find(mesh => mesh.userData.faceSurface), portraitImage(part.nativePortrait));
-      // The lids travel with a look up or down.
       followGaze(group, s.height / 1.72);
     }
     for (const source of styled.filter(
@@ -250,7 +241,6 @@ export function humanRegions(form, material, plain, styleMeshes, game = false) {
   };
 }
 
-// Resolve source joint names in this branch, including duplicated arms or legs.
 export function humanBinding(owner, regions, index, names) {
   function path(region) {
     const chain = [];

@@ -85,7 +85,6 @@ test("painted eye keeps both gaze directions inside its opening when edited", ()
   assert.equal(face.getObjectByName("Sclera"), undefined);
   const x = g.morphAttributes.position[eye.morphTargetDictionary.LookRight];
   const y = g.morphAttributes.position[eye.morphTargetDictionary.LookUp];
-  // The first and last vertex of the opening are fixed at the canthi.
   assert.ok(Math.abs(x.getX(0)) < 1e-7 && Math.abs(y.getY(0)) < 1e-7);
   assert.ok(x.array.every(Number.isFinite) && y.array.every(Number.isFinite));
   assert.ok(x.array.some((v) => v < -0.001) && y.array.some((v) => v > 0.001));

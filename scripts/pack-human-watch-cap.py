@@ -32,8 +32,6 @@ def bake_in_blender(textures, p):
     sub.render_levels = 1
     bpy.context.view_layer.objects.active = copy
     copy.select_set(True)
-    # The original garment shares an atlas with the entire costume. Repack only
-    # the cap UV islands so the brim gets usable thread detail in the game atlas.
     source_uv = copy.data.uv_layers["UVMap"]
     bake_uv = copy.data.uv_layers.new(name="CapBake")
     for i in range(len(source_uv.data)):
@@ -48,8 +46,6 @@ def bake_in_blender(textures, p):
     bpy.ops.object.mode_set(mode="OBJECT")
     new.render.engine = "CYCLES"
     new.cycles.samples = 1
-    # Bake just this material. The original yarn graph includes textile orientation,
-    # grime, faded bands, wrinkles and a separate normal texture.
     nt = m.node_tree
     bs = next(n for n in nt.nodes if n.type == "BSDF_PRINCIPLED")
     out = next(
@@ -112,7 +108,6 @@ def pack(p, target):
     from PIL import Image
 
     mesh = np.load(p / "cap-smooth.npz")
-    # The source eye line and skull bounds, in the same frame used by hatHead.
     eye, top = 1.675, 1.8003457
     front, back = 0.14351408, -0.06387595
     centre = np.array([0, eye + 0.22 * (top - eye), (front + back) / 2])
@@ -132,7 +127,6 @@ def pack(p, target):
             )
 
     base = texture("knit-albedo.png").astype(float)
-    # Keep the maker's pattern and wear relative to the wool colour chosen in the editor.
     base = np.clip(
         (base + 1) * 194 / (np.median(base[base.mean(2) > 4], axis=0) + 1), 0, 255
     ).astype("uint8")

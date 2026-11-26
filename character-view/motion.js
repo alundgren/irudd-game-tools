@@ -42,7 +42,6 @@ function legChains(regions) {
       upper,
       lower,
       spatial,
-      // A raised knee folds the leg, so stride from the hip-to-foot span.
       span: spatial ? hip.distanceTo(ankle) : upper + lower,
       a: s.bones[0],
       b: shin ? shin.bones[0] : s.bones[1],
@@ -61,8 +60,6 @@ function legChains(regions) {
     });
   return result;
 }
-// Solve a sagittal two-link chain at each key. On stance the sole stays at
-// its standing floor height. On swing it follows a lifted forward arc.
 function placeFoot(leg, dz, lift, drop, write) {
   const { hip, knee, ankle, upper, lower } = leg;
   const z = ankle.z - hip.z + dz,
@@ -102,9 +99,6 @@ function placeFoot(leg, dz, lift, drop, write) {
   write(leg.b, b, 0, 0);
   write(leg.c, -a - b, 0, 0);
 }
-// Arms that share one flank can sweep about the line through their shoulder
-// sockets. Both shoulders stay seated and the swing alone preserves spacing
-// between the two limbs. Elbows can still bend independently.
 function pairShoulderAxes(arms, elbowMap, regions) {
   const pairs = [];
   for (let i = 0; i < arms.length; i++) {
@@ -134,7 +128,6 @@ function pairShoulderAxes(arms, elbowMap, regions) {
     const axis = b.points[0].clone().sub(a.points[0]).normalize();
     const arm = elbowMap.get(a).hand.points[0].clone().sub(a.points[0]);
     if (new Vector3().crossVectors(axis, arm).z < 0) axis.negate();
-    // A hanging wrist directly on this axis would hardly move.
     if (
       [a, b].some((s) => {
         const offset = elbowMap.get(s).hand.points[0].clone().sub(s.points[0]);
@@ -142,8 +135,6 @@ function pairShoulderAxes(arms, elbowMap, regions) {
       })
     )
       continue;
-    // Make room for the sleeve before sweeping the pair. The upper limb
-    // passes the lower socket and needs a wider lane than the lower limb.
     const higher = a.points[0].y >= b.points[0].y ? a : b;
     const hangsDown =
       elbowMap.get(higher).hand.points[0].y <= higher.points[0].y;
@@ -173,8 +164,6 @@ export function buildClips(root, regions) {
   const legs = legChains(regions),
     bounds = new Box3().makeEmpty();
   for (const region of regions.values()) bounds.union(region.bounds);
-  // Without grasping arms, a creature reaches toward a sample with its head.
-  // Rotate only the first head/neck joint of each chain.
   const hasArms = [...regions.values()].some(
     (s) => s.role === "upper arm" || s.fingers?.size,
   );
@@ -211,14 +200,10 @@ export function buildClips(root, regions) {
   }
   const armMovement = new Map();
   const arms = [...regions.values()].filter((s) => s.role === "upper arm");
-  // Give additional pairs independent work. A hand carrying a separate object
-  // stays close to its rest pose while a free arm performs the reach.
   const hangs = (arm) =>
     elbows.has(arm) &&
     arm.points.at(-1).clone().sub(arm.points[0]).normalize().y < -0.78;
   if (arms.length === 2 && arms.every(hangs)) {
-    // A person reaching for something leads with one hand. The elbow stays
-    // below the shoulder and the other arm follows part of the way.
     for (const arm of arms)
       armMovement.set(arm, {
         reach: arm.points[0].x < 0 ? 1 : 0.42,
@@ -227,9 +212,6 @@ export function buildClips(root, regions) {
         natural: true,
       });
   }
-  // Heavy props can be supported by several hands. Keep their authored
-  // shoulder-to-fingertip pose as the torso moves. Saved joint poses still
-  // use the artist's own tracks.
   const heldHands = new Set();
   for (const region of regions.values()) {
     if (region.role !== "hand") continue;
@@ -252,7 +234,6 @@ export function buildClips(root, regions) {
       const hand = [...regions.values()].find(
         (s) => s.part.parent === (forearm ?? arm).part.id && s.role === "hand",
       );
-      // Older single-sweep arms already have a middle bone for the elbow.
       if (!elbows.has(arm) && hand && arm.bones.length >= 3) {
         elbows.set(arm, {
           hand,
@@ -375,8 +356,6 @@ export function buildClips(root, regions) {
           s.bones.length === 3 &&
           (name === "Walk" || name === "Crouch")
         ) {
-          // Keep the hem above its rest floor while the hips lower. Splitting
-          // displacement across two joints gathers fabric toward the waist.
           const correction = Math.max(
             0,
             -drop - Math.max(0, s.bounds.min.y - 0.012),
@@ -472,9 +451,6 @@ export function buildClips(root, regions) {
           else if (name === "Crouch")
             add(s.bones[0], -0.32 * wave, 0, side * 0.09 * wave);
         } else if (name === "Walk" && neckMotion.has(s)) {
-          // With each footfall a short-necked animal nods, while a long neck
-          // carries the skull forward. The head joint counter-rotates to keep
-          // the gaze steadier than the neck, including across the loop seam.
           const { reach, skull } = neckMotion.get(s);
           const footfall = Math.sin(2*t*tau - .45);
           const pitch = (.075 + .12*reach)*footfall;

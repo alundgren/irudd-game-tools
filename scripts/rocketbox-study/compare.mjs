@@ -1,18 +1,3 @@
-// Outline measurements of a Rocketbox target against the editable adult made to match it.
-// Both are drawn by one orthographic camera, so they share a metric scale and a floor.
-//   node scripts/rocketbox-study/compare.mjs [study] [--stage final] [--out .reference-cache/rocketbox/outline-metrics]
-// Writes readings.json (overlap per view, widths by height, tops, the renderer that drew the
-// masks), an outline-difference sheet per study, and placement.json for the comparison page.
-// Masks are drawn on the graphics card when there is one.
-// The official overlap figures are the ones capture.py reads from the comparison page; these
-// agree with them closely and need no built page.
-//
-//   node scripts/rocketbox-study/compare.mjs [study] --look torso [--angles 0,90,180] [--mode colour,clay] [--px 420]
-// A close working sheet of both figures while tuning a recipe. It measures the placement, rebuilds
-// the comparison page with the current recipes and has capture.py draw the sheet from that page,
-// so the target's textures and the adult's materials are drawn by Three.js on the graphics card.
-// When no hardware renderer is available, the sheet comes from the CPU rasterizer instead
-// and the script says so. Everything written shows the reference and stays local.
 import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import * as T from "three";
@@ -38,7 +23,6 @@ console.log("Masks drawn by: " + masks.name);
 
 function target(id) {
   const name = id.replace("rocketbox-", ""), glb = readGlb(local + name + ".glb");
-  // Textures are only needed where the CPU draws: for its previews, and to cut hair cards out of CPU masks.
   const textured = !masks.hardware;
   if (textured) need("targets/" + name + "." + glb.parts[0].material + ".rgba");
   return glb.parts.map((p) => ({
@@ -46,14 +30,12 @@ function target(id) {
     ...(textured ? { texture: { data: readFileSync(local + name + "." + p.material + ".rgba"), size: 1024 } } : {}),
   }));
 }
-/** A target part's colour texture for the CPU preview, read only when that path is taken. */
 function texture(name, index) {
   const material = readGlb(local + name + ".glb").parts[index].material;
   need("targets/" + name + "." + material + ".rgba");
   return { data: readFileSync(local + name + "." + material + ".rgba"), size: 1024 };
 }
 const view = (angle, px = 200) => ({ yaw: (angle * Math.PI) / 180, center: [0, 0.96, 0], span: 2.06, width: Math.round(1.5 * px), height: Math.round(2.06 * px) });
-/** The adult as the workshop builds it: smooth skin plus every dressed piece, standing on its soles and placed front to back where its outlines best cover the target's. */
 async function adult(form, placed) {
   const cage = evaluateHuman(form.human, form.humanFit), skin = smoothHumanSurface(cage);
   const material = (color) => new T.MeshStandardMaterial({ color });
@@ -66,11 +48,9 @@ async function adult(form, placed) {
   const views = [];
   for (const angle of [0, 45, 90, 135]) views.push({ yaw: view(angle, 100).yaw, target: await masks.mask(placed, view(angle, 100)), adult: await masks.mask(meshes, view(angle, 100)) });
   const { shift } = bestDepth(views, 150, 206, 100);
-  // A fresh list, so the mask renderer does not reuse the figure it drew before the move.
   const moved = meshes.map((m) => { const positions = m.positions.slice(); for (let i = 2; i < positions.length; i += 3) positions[i] += shift; return { ...m, positions }; });
   return Object.assign(moved, { lift: -low, shift });
 }
-// Centre height, visible height and pane width in metres.
 const frames = { whole: [0.96, 2.06, 1.5], torso: [1.2, 0.95, 0.9], head: [1.63, 0.42, 0.4], legs: [0.5, 1.08, 0.9] };
 function preview(a, b, { angle, frame = "whole", mode = "colour", px = 300 }) {
   const [y, span, wide] = frames[frame], shot = { yaw: (angle * Math.PI) / 180, center: [0, y, 0], span, width: Math.round(wide * px), height: Math.round(span * px), mode };
@@ -116,12 +96,10 @@ for (const study of rocketboxStudies) {
   }
   const ious = Object.values(rows).map((r) => r.iou), mean = +(ious.reduce((x, y) => x + y, 0) / ious.length).toFixed(3);
   readings[tag] = { masksDrawnBy: masks.name, hairCardsCountAsSolid: masks.hardware, stature: form.human.height, soleLiftM: +b.lift.toFixed(3), depthShiftM: +b.shift.toFixed(3), meanOverlap: mean, views: rows };
-  // Blue: only the original covers the pixel. Orange: only the adult. Grey: both.
   writePng(out + "/" + tag + "-outline.png", grid(diffs, 4));
   console.log(tag, "outline overlap", Object.entries(rows).map(([k, r]) => k + "° " + r.iou).join(", "), "mean", mean, "tops", rows[0].targetTopM, rows[0].adultTopM, "depth shift", readings[tag].depthShiftM);
 }
 await masks.close();
-// The comparison page places each adult with the same shift, read from this file when it is built.
 const placement = ".reference-cache/rocketbox/placement.json";
 let placed = {};
 try { placed = JSON.parse(readFileSync(placement, "utf8")); } catch {}

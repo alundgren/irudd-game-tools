@@ -36,8 +36,6 @@ export async function readSession() {
 }
 export function saveSession(state) {
   const current = ++sequence;
-  // Small forms are synchronous, including previously saved workshop sessions.
-  // Large artworks stay in IndexedDB, where an entire document is committed atomically.
   try {
     const forms = [
       state.form,

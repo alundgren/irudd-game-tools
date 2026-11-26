@@ -16,7 +16,6 @@ def hardware_renderer():
     except ImportError as exc:
         raise RuntimeError("Install the benchmark renderer with python -m pip install moderngl.") from exc
 
-    # The platform default uses WGL on Windows. EGL also supports headless Linux.
     reasons = []
     for options in ({}, {"backend": "egl"}):
         try:
@@ -49,7 +48,7 @@ def renderer_name():
 def cache_tag(source_hash):
     renderer = hardware_renderer()
     if renderer is None:
-        return source_hash[:12]  # compatible with earlier NumPy-only caches
+        return source_hash[:12]
     signature = renderer_name() + renderer.ctx.info["GL_VERSION"]
     driver = hashlib.sha256(signature.encode()).hexdigest()[:10]
     return f"{source_hash[:12]}-gl-{driver}"
@@ -121,7 +120,6 @@ class Rasterizer:
         program["depthRange"].value = ((z.min() + z.max()) / 2, 1.99 / extent)
         program["xyScale"].value = (2 * pixels_per_metre / width, 2 * pixels_per_metre / height)
         ctx = self.ctx
-        # Hold each allocation only until readback, even if a later allocation fails.
         with ExitStack() as resources:
             def own(resource):
                 resources.callback(resource.release)

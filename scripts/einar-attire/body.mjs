@@ -1,4 +1,3 @@
-// The neutral adult the garments are fitted on: node scripts/einar-attire/body.mjs OUT.json
 import fs from "node:fs";
 import { evaluateHuman, humanRestPositions } from "../../character-view/human-surface.js";
 

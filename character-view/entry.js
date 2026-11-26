@@ -1,12 +1,9 @@
 import template from "../examples/rig-study.html";
 import { mhrFit, rigs } from "../examples/local-references.js";
 
-// The rig comparison needs the private reference rig and its fit. Without them
-// the workshop opens as usual and its menu entry is left out.
 const installed = Boolean(mhrFit) && rigs.includes("mhr-rest");
 if (!installed)
   document.querySelector('a[href="#compare-mhr"]')?.closest("p")?.remove();
-// A hash entry also works with workshop servers installed before the study.
 const comparison = () => installed && location.hash === "#compare-mhr";
 const openedComparison = comparison();
 window.addEventListener("hashchange", () => {

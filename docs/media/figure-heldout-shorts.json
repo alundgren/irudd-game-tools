@@ -971,7 +971,7 @@
  "imageTool": "No image-generation tool was available to the implementing agent in this run, so no new face or cloth artwork was painted. Faces are the four built-in faces or existing original painted heads.",
  "judgement": "Visual assessment by the implementing agent only. No blinded or independent human rating was collected.",
  "benchmarkTransfer": {
-  "target": "Faith Connors by Vesbesit, The Sims 4, https://www.pcgamer.com/the-most-fabulous-fan-made-sims/",
+  "target": "Private athletic outfit comparison",
   "note": "One proposal for the body and head. Cargo pockets were added to the request after the option was written, so the committed runner is the second version. The head is the existing original painted runner head. Knee patches, arm wraps and printed cloth from the painted trace are not reproduced.",
   "summary": "Lean runner in a sleeveless black top, pale cuffed cargo trousers and red trainers, with the existing painted runner's head.",
   "operations": [

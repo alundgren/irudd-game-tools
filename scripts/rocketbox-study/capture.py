@@ -19,7 +19,7 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[2]
 ORBIT = [0, 45, 90, 135, 180, 225, 270, 315]
-STAGE = (1200, 800)  # two 600 px panes
+STAGE = (1200, 800)
 RENDERER = """() => { const gl = document.createElement("canvas").getContext("webgl2"); if (!gl) return "";
   const info = gl.getExtension("WEBGL_debug_renderer_info"); return info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER); }"""
 
@@ -68,15 +68,14 @@ def silhouette_readings(page, study, stage):
     rows = {}
     tiles = []
     for angle in ORBIT:
-        # Without the ruler: it is the same in both panes, so counting it would raise every overlap a little.
         image, info = grab(page, study=study, stage=stage, mode="Silhouette", frame="whole", angle=angle, ruler=False)
         a, b = (figure_mask(x) for x in halves(image))
         union = np.count_nonzero(a | b)
         px = image.height / info["metres"]
         both = np.zeros((*a.shape, 3), np.uint8) + 255
         both[a & b] = (70, 80, 76)
-        both[a & ~b] = (60, 120, 190)   # only the Rocketbox original
-        both[b & ~a] = (205, 90, 50)    # only the editable adult
+        both[a & ~b] = (60, 120, 190)
+        both[b & ~a] = (205, 90, 50)
         tiles.append(Image.fromarray(both))
         ys = np.where(a.any(1) | b.any(1))[0]
         widths = []
@@ -99,7 +98,6 @@ def capture(page_path, out, stage, quick, require_hardware=False, look=None, onl
     out.mkdir(parents=True, exist_ok=True)
     readings = {}
     with sync_playwright() as pw:
-        # Chrome picks the platform's own hardware renderer. Nothing here names a backend or a card.
         browser = pw.chromium.launch(channel="chrome")
         page = browser.new_page(viewport={"width": 1280, "height": 1100})
         gpu = page.evaluate(RENDERER)
@@ -122,7 +120,6 @@ def capture(page_path, out, stage, quick, require_hardware=False, look=None, onl
             if only and not study.endswith(only):
                 continue
             if look:
-                # A close working sheet while tuning: one framing, a few angles, nothing measured.
                 for mode in look["modes"]:
                     tiles = [crop_pair(grab(page, study=study, stage=which, mode=mode, frame=look["frame"], angle=a)[0], 0.96 if look["frame"] == "whole" else 0.9) for a in look["angles"]]
                     file = out / (f"{tag}-look-{look['frame']}" + ("" if mode == "Colour" else "-" + mode.lower()) + ".png")

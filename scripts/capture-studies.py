@@ -99,7 +99,6 @@ def capture():
             click(page,"#scale-lock")
             click(page,'[data-angle="Front"]')
             full=shot(page)
-            # All subjects use the same fixed world camera, crop, baseline and pixels/metre.
             width,height=full.size
             rect=(width//2-180,round(.10*height),width//2+180,round(.91*height))
             lineup.append(full.crop(rect).resize((216,round((rect[3]-rect[1])*.6)),Image.Resampling.LANCZOS))

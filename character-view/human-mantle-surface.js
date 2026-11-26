@@ -3,8 +3,6 @@ import { CanvasTexture, Color, Float32BufferAttribute, MathUtils, SRGBColorSpace
 const tau = 2 * Math.PI;
 const { smoothstep } = MathUtils;
 
-/** A woven guard at the hem of a travelling mantle. The warp follows the
- * hanging cloth, so the border turns round the back and rises with the short side. */
 export function finishMantle(mesh, coordinates, layer) {
   if (!coordinates) return;
   mesh.geometry.setAttribute("uv", new Float32BufferAttribute(coordinates, 2));
@@ -29,7 +27,6 @@ export function finishMantle(mesh, coordinates, layer) {
     const nap = .53 * Math.sin(1.42*x + Math.sin(.21*y)) + .47 * Math.cos(1.17*y + .33*x);
     const edge = Math.min(u, 1-u);
     const hem = 1-v;
-    // The wide cloth guard has two bound edges and a fine lozenge braid.
     const guard = smoothstep(hem,.020,.028) * (1-smoothstep(hem,.124,.132));
     const rail = Math.max(1-smoothstep(Math.abs(hem-.031), .002, .006),
                           1-smoothstep(Math.abs(hem-.120), .002, .006));

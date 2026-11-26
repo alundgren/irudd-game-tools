@@ -33,7 +33,6 @@ export function coatSwatch(family) {
         c.quadraticCurveTo(x + w * 0.46, y + h * 0.63, x + w * 0.56, y);
         c.closePath();
         c.fill();
-        // Only the trailing lap catches light; closed dark borders look like cracks.
         c.strokeStyle = grey(feather ? v - 16 : v - 23);
         c.lineWidth = feather ? 0.8 : 1.35;
         c.beginPath();

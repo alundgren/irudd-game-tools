@@ -1,4 +1,3 @@
-// Markup and styles of the reference fitting dialog. The editor adds both to the page on first use.
 export const style = `
 #hfit-room {
   width: min(1240px, 97vw);

@@ -16,11 +16,8 @@ function sourceMap(subject, region) {
   return decoded.get(key);
 }
 
-// Matches the colour atlas made by the wardrobe. The head occupies the top right,
-// and a borrowed bottom can use the lower right at half its original height.
 export function applyCastSurface(material, label, style, picture) {
   const head = catalog.people[label].subject;
-  // Photographed figures can supply their own artwork without supplementary maps.
   if (!Object.hasOwn(maps.subjects, head)) return;
   const outfit = wornCastOutfit(label, style);
   const top = outfit ? castPieces.top[outfit.castTop] : head;
@@ -42,7 +39,6 @@ export function applyCastSurface(material, label, style, picture) {
         normals[dst] = 128 + scale * nx;
         normals[dst + 1] = 128 + scale * ny;
         normals[dst + 2] = 128 + scale;
-        // Adapt source specular intensity to dielectric roughness.
         const intensity = (src[a + 2] + src[b + 2]) / 255;
         roughness[dst + 1] = 255 * Math.max(.24, .90 - .90 * Math.sqrt(intensity));
       }

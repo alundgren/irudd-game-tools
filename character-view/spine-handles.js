@@ -1,7 +1,6 @@
 import { Vector3, Matrix4, MathUtils } from "three";
 import { reshapeSpine } from "./spine-edit.js";
 
-// Place stations in screen space so a point inside an opaque body can be grabbed.
 export function spineHandles(
   stage,
   camera,

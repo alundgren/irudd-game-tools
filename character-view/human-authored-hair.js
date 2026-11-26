@@ -1,9 +1,3 @@
-// Hair and facial hair combed by MakeHuman community artists, from packs indexed as CC0. See docs/human-grooms.md for the individual file headers.
-//   authoredHair      hair style name -> packed groom
-//   authoredAssets    the packed grooms, in the form human-library.js fits, trims and tints
-//   authoredCredits   style name -> { groom, author, licence, source, pack }
-// Packed by scripts/pack-human-grooms.py from the official `hair01` and `bodyparts05` asset packs. The hair is
-// worn through human-library.js like the system library hair; the facial hair through human-face-hair.js.
 import * as T from "three";
 import { addBeardWhiskers } from "./human-beard-whiskers.js";
 import { unzlibSync } from "three/addons/libs/fflate.module.js";
@@ -20,29 +14,15 @@ export const authoredHair = {
   "Curled-under bob": "bob_curled",
   "Tied bun": "bun_tied",
 };
-// Facial hair styles worn as authored cards: the groom, how many triangles a game model spends on it, and for
-// a deeper beard how far the middle of the groom stands out from the face and hangs below the chin (metres on a
-// 1.72 m adult). The border of the groom stays on the skin.
 export const authoredFacialHair = {
   Moustache: { groom: "moustache_viking", triangles: 1000 },
 };
 export const authoredCredits = Object.fromEntries([...Object.entries(authoredHair), ...Object.entries(authoredFacialHair).map(([style, worn]) => [style, worn.groom])]
   .filter(([, groom]) => assets[groom]).map(([style, groom]) => [style, { groom, ...assets[groom].credit }]));
 
-/**
- * Hold hair that stands off the head in the shape its artist combed. A card vertex is fitted to the skin under
- * it, which is right for hair lying on the scalp and wrong for a hem hanging centimetres from a neck: there
- * every fold of the skin swings it. Such a vertex follows the skull as a whole instead, stretched to the
- * width, height and depth of this head. In between the two are blended by how far the vertex stands off.
- *   p         fitted positions (changed in place)
- *   anchor    where each vertex is tied on this body, anchorRest the same on the resting body
- *   offsets   the authored stand-off of each vertex, in metres
- *   onSkull   1 for a vertex tied to the skull, 0 for one tied to neck or shoulders
- */
 export function settleAuthored(p, anchor, anchorRest, offsets, onSkull) {
   const count = p.length / 3, gain = [1, 1, 1], shift = [0, 0, 0];
   for (let d = 0; d < 3; d++) {
-    // Least squares of this head against the resting one, along each axis.
     let n = 0, sx = 0, sy = 0, sxx = 0, sxy = 0;
     for (let i = 0; i < count; i++) if (onSkull[i]) { const x = anchorRest[i * 3 + d], y = anchor[i * 3 + d]; n++; sx += x; sy += y; sxx += x * x; sxy += x * y; }
     const spread = n * sxx - sx * sx;
@@ -70,17 +50,6 @@ function field(name, key, Type) {
   return decoded.get(id);
 }
 
-/**
- * Authored facial hair as a mesh in the head's frame: the artist's strand cards tied to the face, each vertex
- * carrying the expression offsets of the skin it is tied to, so the hair follows the jaw, lips and cheeks.
- *   style     a name of authoredFacialHair
- *   s, idMap  the evaluated adult and its source vertex ids -> indices
- *   moves     per expression, the displacement of every skin point (expressionDisplacements)
- *   map       the strand picture in the hair colour, or none (then `colour` tints the plain cards)
- *   name      the name of the mesh
- * A beard has thousands of strand cards. Whole cards are left out evenly until the style's triangle count is
- * met, and the rest are widened to keep the cover, so the same mesh serves the editor and a game model.
- */
 export function authoredFacialMesh(style, s, idMap, origin, moves, names, material, colour, map, meshName = "facial-hair") {
   const worn = authoredFacialHair[style], name = worn.groom;
   const refs = field(name, "refs", Uint16Array), weights = field(name, "weights", Float32Array), offsets = field(name, "offsets", Float32Array),
@@ -100,8 +69,6 @@ export function authoredFacialMesh(style, s, idMap, origin, moves, names, materi
     }
   }
   if (worn.out) {
-    // A fuller beard: the groom is raised from the face by how far each point lies inside its border, and hangs
-    // from the chin. Rings of points are counted in from the open edge.
     const edges = new Map(), beside = Array.from({ length: count }, () => []);
     for (let c = 0; c < corners.length; c += 3) for (let j = 0; j < 3; j++) {
       const u = corners[c + j], v = corners[c + (j + 1) % 3], key = u < v ? u * count + v : v * count + u;
@@ -121,24 +88,20 @@ export function authoredFacialMesh(style, s, idMap, origin, moves, names, materi
     for (let i = 0; i < count; i++) {
       const inner = Math.min(1, Math.max(0, ring[i]) / 3), depth = inner * inner * (3 - 2 * inner);
       const out = [anchor[i * 3] - cx, 0, anchor[i * 3 + 2] - (cz - .05 * k)], size = Math.hypot(out[0], out[2]) || 1;
-      // Hair hangs most from the chin and jaw, the lowest third of the groom.
       const under = Math.min(1, Math.max(0, (low + (high - low) * .42 - anchor[i * 3 + 1]) / ((high - low) * .3)));
       p[i * 3] += out[0] / size * worn.out * k * depth;
       p[i * 3 + 2] += out[2] / size * worn.out * k * depth;
       p[i * 3 + 1] -= worn.drop * k * depth * under * under;
     }
   }
-  // Cards are the connected pieces of the source mesh.
   const parent = Int32Array.from({ length: count }, (_, i) => i), root = (v) => { while (parent[v] !== v) v = parent[v] = parent[parent[v]]; return v; };
   for (let c = 0; c < corners.length; c += 3) { parent[root(corners[c + 1])] = root(corners[c]); parent[root(corners[c + 2])] = root(corners[c]); }
   const share = Math.min(1, worn.triangles / (corners.length / 3)), kept = (v) => (Math.imul(root(v) + 11, 2654435761) >>> 0) / 4294967296 < share;
-  // What is left is widened about the middle of each card.
   const widen = Math.min(1.7, 1 / Math.sqrt(share)), centre = new Map();
   if (widen > 1.01) {
     for (let i = 0; i < count; i++) { const r = root(i), c = centre.get(r) ?? centre.set(r, [0, 0, 0, 0]).get(r); c[0] += p[i * 3]; c[1] += p[i * 3 + 1]; c[2] += p[i * 3 + 2]; c[3]++; }
     for (let i = 0; i < count; i++) { const c = centre.get(root(i)); for (let d = 0; d < 3; d++) p[i * 3 + d] = c[d] / c[3] + (p[i * 3 + d] - c[d] / c[3]) * (d === 1 ? 1 + (widen - 1) * .35 : widen); }
   }
-  // Lit as part of the face they grow from: away from a point inside the head, not as flat chips.
   let low = Infinity, high = -Infinity, back = Infinity;
   for (let i = 0; i < count; i++) { low = Math.min(low, anchor[i * 3 + 1]); high = Math.max(high, anchor[i * 3 + 1]); back = Math.min(back, anchor[i * 3 + 2]); }
   const inside = [0, (low + high) / 2 + .02 * k, back - .02 * k];
@@ -164,7 +127,6 @@ export function authoredFacialMesh(style, s, idMap, origin, moves, names, materi
   geometry.setAttribute("position", new T.Float32BufferAttribute(pos, 3));
   geometry.setAttribute("normal", new T.Float32BufferAttribute(norm, 3));
   geometry.setAttribute("uv", new T.Float32BufferAttribute(tex, 2));
-  // White vertex colour, so the mesh joins the vertex-coloured fibres of a face without a second material kind.
   geometry.setAttribute("color", new T.Float32BufferAttribute(new Float32Array(pos.length).fill(1), 3));
   geometry.setIndex(index);
   geometry.morphTargetsRelative = true;
@@ -175,7 +137,6 @@ export function authoredFacialMesh(style, s, idMap, origin, moves, names, materi
   m.map = map ?? null;
   if (map) { m.alphaTest = .3; m.alphaToCoverage = true; }
   m.side = T.DoubleSide;
-  // Already as few cards as a game model carries, so its export keeps every one.
   m.userData = { ...m.userData, fibreLOD: true };
   const mesh = new T.Mesh(geometry, m);
   mesh.name = meshName;

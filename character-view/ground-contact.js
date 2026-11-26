@@ -1,8 +1,5 @@
 import { AnimationMixer, LoopOnce, VectorKeyframeTrack } from "three";
 
-// Measure the skinned sole, talon or hem rather than assuming that the
-// ankle joint lies on the floor. At each motion key, translate the whole
-// actor by the residual. Limb IK continues to determine its local shape.
 export function alignGroundContacts(actor, mesh, root, clips) {
   const pos = mesh.geometry.attributes.position,
     joints = mesh.geometry.attributes.skinIndex,
@@ -61,7 +58,6 @@ export function alignGroundContacts(actor, mesh, root, clips) {
       );
     }
     if (airborne) {
-      // Lift the entire loop enough for the lowest wingtip, preserving the authored bob.
       const lift = Math.max(0, min.y + 0.035 * (max.y - min.y) - lowest);
       for (let i = 1; i < positions.length; i += 3) positions[i] += lift;
     }

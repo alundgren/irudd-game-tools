@@ -3,15 +3,32 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "npm run build && node scripts/workshop.mjs",
+    "start": "node scripts/build.mjs && node scripts/workshop.mjs",
     "build": "node scripts/build.mjs",
-    "test": "node --test",
-    "references": "node scripts/local-references.mjs"
+    "test": "node --test \"character-view/**/*.test.js\" \"examples/**/*.test.js\"",
+    "references": "node scripts/local-references.mjs",
+    "check": "node scripts/check-comments.mjs && node tools/static/check.ts",
+    "check:bundles": "node tools/static/bundles.ts",
+    "check:fixtures": "node tools/static/fixtures.ts",
+    "format": "node tools/static/check.ts --write-format",
+    "test:port": "pnpm --recursive --if-present test",
+    "check:comments": "node scripts/check-comments.mjs"
   },
   "dependencies": {
-    "three": "0.187.0"
+    "three": "catalog:"
   },
   "devDependencies": {
-    "esbuild": "0.28.2"
-  }
+    "@ast-grep/cli": "catalog:",
+    "@swc/core": "catalog:",
+    "@types/node": "catalog:",
+    "dependency-cruiser": "catalog:",
+    "esbuild": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "engines": {
+    "node": ">=26.13.1 <27"
+  },
+  "packageManager": "pnpm@12.23.0"
 }

@@ -4,8 +4,6 @@ export const breastplateDevices = ["Plain", "Night moth", "Reed heron", "Knotted
 let artwork;
 export function setArmourDeviceArtwork(image) { artwork = image; }
 
-// Front and back each have their own half of the sheet. Split the side seam
-// after computing normals so the skin weights and smooth highlights continue across it.
 function plateChart(mesh, fit) {
   const geometry = mesh.geometry, weights = mesh.humanWeights;
   const position = geometry.getAttribute("position"), normals = geometry.getAttribute("normal");
@@ -54,10 +52,6 @@ function rgb(hex) {
   return [1, 3, 5].map(i => parseInt(hex.slice(i, i+2), 16));
 }
 
-// Pigment, tooled height, polished inlay and rough base are separate. The
-// highlight therefore follows the light as a character turns in the player.
-// Broad, soft patches, as the fire and the hammer leave them in a forged plate and wear leaves them in leather:
-// two sizes of smooth noise between -1 and 1. `x` and `y` are in patches.
 function mottle(x, y) {
   const at = (i, j) => { const n = Math.imul(i * 374761393 + j * 668265263 ^ 0x5bd1e995, 1274126177); return ((n ^ n >>> 15) >>> 0) / 4294967296; };
   const soft = (px, py) => {
@@ -90,13 +84,9 @@ export function finishBreastplate(mesh, finish) {
     const offset = 4*(y*width+x), mark = colour.data[offset]/255;
     random = (Math.imul(random,1664525)+1013904223) >>> 0;
     const grit = random/4294967296-.5;
-    // Broad tooling marks are shallow so a polished plate keeps its silhouette.
     const hammer = Math.sin(x*.15 + Math.sin(y*.17)*1.7)*Math.cos(y*.13 + Math.sin(x*.07));
-    // A plate is darker and duller where scale stayed in its hollows; a hide where it has been handled less.
     const patch = mottle(x/width*14, y/height*7);
     const grain = (leather ? grit*.12 + hammer*.025 : grit*.042 + hammer*.019) + patch*(leather ? .07 : .085);
-    // The visible rivet heads fix overlapping waist plates to internal
-    // leathers. A pair of stitched side tabs closes the upper shell.
     const px = Math.abs(((x+.5) % (width/2) / (width/2) - .5) * widthM/.96);
     const aboveHem = (1-(y+.5)/height)*heightM;
     let metal = mark, raise = 0, seam = 0, strap = 0;
@@ -149,9 +139,6 @@ export function finishBreastplate(mesh, finish) {
 
 const shoulderSurfaces = new WeakMap();
 
-// Stamped and chased decoration follows each sheet of metal through a pose.
-// The bell has a fan of flutes. Each articulated lame has a pair of fasteners
-// and a rolled edge, leaving the gaps between moving plates free.
 export function finishShoulder(mesh, coordinates, style, limb = false) {
   if (coordinates) mesh.geometry.setAttribute("uv", new Float32BufferAttribute(coordinates,2));
   if (typeof document === "undefined") return;
@@ -181,8 +168,6 @@ export function finishShoulder(mesh, coordinates, style, limb = false) {
     const rib=Math.abs((x-.5)/span);
     let ridge=bell && rib<1 && t>0 && t<1
       ? Math.cos(rib*Math.PI*3)**8 * Math.sin(Math.PI*t)**.7 : 0;
-    // A greave or vambrace has a central crest with two swept flutes. Their
-    // section narrows towards the ankle or wrist. Studs pin the side straps.
     const u = Math.min(1, Math.max(0,t));
     if (limb && bell) {
       const across = Math.abs(x-.5);

@@ -42,7 +42,6 @@ test("the fields are smooth across the surface, so nothing tears", () => {
       const edge = 1000 * Math.hypot(p[a * 3] - p[b * 3], p[a * 3 + 1] - p[b * 3 + 1], p[a * 3 + 2] - p[b * 3 + 2]);
       if (step > 1e-6) steepest = Math.max(steepest, step / Math.max(edge, 0.3));
     }
-  // No edge changes length by more than its own length.
   assert.ok(steepest > 0.05 && steepest < 1.1, "steepest change per mm of edge " + steepest);
 });
 
@@ -53,12 +52,10 @@ test("the lips lose their roll: the upper border sits back and the seam comes fo
       after = refineFaceForm(smoothHumanSurface(cage)),
       unit = (0.001 * (form.human.height ?? 1.72)) / 1.72,
       back = (v) => (before.positions[v * 3 + 2] - after.positions[v * 3 + 2]) / unit;
-    // Vertices on the midline: the upper border, the front of the lower lip, and the nose tip.
     assert.ok(back(455) > 1.6 && back(455) < faceAnatomy.upperBack + faceAnatomy.philtrum, "upper border " + back(455));
     assert.ok(back(496) > 0.8 && back(496) < faceAnatomy.lowerBack + 0.01, "lower lip " + back(496));
     assert.equal(back(294), 0);
     assert.ok(restLipProfile(after).upper < restLipProfile(before).upper + 0.5);
-    // Nothing outside the head moves.
     let far = 0;
     for (let i = 0; i < before.positions.length; i += 3)
       if (before.positions[i + 1] < 1.3 * (form.human.height ?? 1.72) / 1.72)
@@ -84,13 +81,10 @@ test("nostrils and the line between the lips are shaded on the coloured head and
   }
   assert.ok(darkN > 20 && dark / darkN < 0.75 * (plain / plainN), "nostril vertices are darker");
   assert.equal(skinOf(head(form, true)).geometry.attributes.color, undefined);
-  // Expressions are still the full targets on the refined head.
   assert.deepEqual(Object.keys(skin.morphTargetDictionary), ["Blink", "Smile", "BrowLift", "LookUp", "LookDown"]);
 });
 
 test("a smile brings the lower lip up toward the upper teeth and still parts the lips", () => {
-  // At the standard animated opening all three faces show the upper teeth.
-  // A deliberately reserved smile can part the lips by less than 2 mm.
   for (const form of [humanForm({}, 1), generatedHuman(8734), generatedHuman(8738)]) {
     form.human.smileOpenness = 0;
     const skin = skinOf(head(form)),
@@ -106,7 +100,6 @@ test("a smile brings the lower lip up toward the upper teeth and still parts the
       smiling = mean(upperEdge, true) - mean(lowerEdge, true),
       unit = (0.001 * (form.human.height ?? 1.72)) / 1.72;
     assert.ok(smiling - rest > 2 * unit && smiling - rest < 9 * unit, "the lips part by " + (smiling - rest) / unit);
-    // Applying it again closes only a share of what is left, so the lips cannot cross.
     assert.ok(refineExpressions(g, skin.humanSkin.vertices, unit * 1000) <= faceAnatomy.smileLiftMost * unit + 1e-9);
     assert.ok(mean(upperEdge, true) > mean(lowerEdge, true));
     assert.ok(lower.some((w) => w > 0.9));
@@ -133,7 +126,6 @@ test("eyelids carry 3D supratarsal crease depth, thicker margins, lid anchors an
   const { move, crease, lidAnchors } = faceAnatomyFields();
   const cage = evaluateHuman({}), before = smoothHumanSurface(cage), after = refineFaceForm(smoothHumanSurface(cage));
   const unit = 0.001;
-  // Upper crease vertices tuck inward (negative dz) and are unwound during Blink; ring 0 opening stays unmoved.
   let creaseVerts = 0, maxTuck = 0;
   for (let v = 0; v < crease.length; v++) {
     if (crease[v] > 0.5) {
@@ -142,12 +134,10 @@ test("eyelids carry 3D supratarsal crease depth, thicker margins, lid anchors an
     }
   }
   assert.ok(creaseVerts > 40 && maxTuck > 0.9 && maxTuck < 2.2, `crease verts=${creaseVerts} tuck=${maxTuck}`);
-  // Cage opening loop (6756..6783, 13352..13379) stays anchored and unmoved in Y so the editable opening is preserved.
   for (const v of [6756, 6770, 13352, 13370]) {
     assert.equal(lidAnchors[v], 1);
     assert.equal(Math.abs(after.positions[v * 3 + 1] - before.positions[v * 3 + 1]), 0);
   }
-  // Blink unwinds the recessed crease forward rather than pinching it deeper.
   const form = generatedHuman(8734), skin = skinOf(head(form));
   const blink = skin.geometry.morphAttributes.position.find((a) => a.name === "Blink");
   let unwound = 0;

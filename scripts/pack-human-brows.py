@@ -26,7 +26,6 @@ read_proxy = face["read_proxy"]
 
 
 def project_brow(card, alpha, verts, faces, uv, tex, rect, fibres=None):
-    # Flatten the authored brow cards onto the closest patch of skin.
     position = (verts[card["refs"]] * card["weights"][..., None]).sum(1) + card["offsets"]
     triangles = verts[faces]
     tree = cKDTree(triangles.mean(1))
@@ -37,7 +36,6 @@ def project_brow(card, alpha, verts, faces, uv, tex, rect, fibres=None):
         bary, dist = skin["closest_on_triangles"](point, a, b, c)
         best = dist.argmin()
         projected.append(bary[best] @ uv[tex[ids[best]]])
-    # Pixel centres use the same convention as fitFaceLayout.
     density = 2
     projected = (np.array(projected) * [2048, -2048] + [-rect[0], 2048 - rect[1]]) * density
     width, height = (np.array(rect[2:]) - rect[:2]) * density
@@ -69,8 +67,6 @@ def project_brow(card, alpha, verts, faces, uv, tex, rect, fibres=None):
     mask.save(buf, "PNG", optimize=True)
     result = {"x": bounds[0], "y": bounds[1], "url": "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()}
     if fibres:
-        # The scar parts actual strand roots. Project their fitted card
-        # coordinates by the same map used to paint the brows.
         def field(key, dtype):
             return np.frombuffer(zlib.decompress(base64.b64decode(fibres[key])), dtype)
         points = (projected[field("triRefs", "<u2").reshape(-1, 3)] *

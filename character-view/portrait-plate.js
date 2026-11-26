@@ -1,7 +1,5 @@
 import { MathUtils, Vector3 } from "three";
 
-// Shared triangle rasterizer for UV textures and visibility buffers.
-// Coordinates are pixel edges and each sample is taken at a pixel centre.
 export function rasterTriangles(geometry, xy, width, height, visit) {
   const indices = geometry.index;
   for (
@@ -40,8 +38,6 @@ export function rasterTriangles(geometry, xy, width, height, visit) {
   }
 }
 
-// A similarity sets scale and roll. Interpolate the residual displacements
-// so that each photographed feature lands on the selected surface texel.
 export function photoRegistration(pairs, aspect) {
   const a = pairs[0],
     b = pairs[1],
@@ -78,8 +74,6 @@ export function photoRegistration(pairs, aspect) {
   };
 }
 
-// Preserve plain or transparent backdrops at the boundary. On a chroma-key
-// background, suppress its dominant colour even in mixed hair/skin edge pixels.
 export function backdropOpacity(rgb, j, first, last) {
   const delta = (a, b) =>
     Math.max(
@@ -127,8 +121,6 @@ export async function capturePortraitPlate(probe, camera, photo, pairs, half) {
       [depthSize * (0.5 + u / (2 * half)), depthSize * (0.5 - v / (2 * half))],
       i * 2,
     );
-    // The mask fades at grazing angles. Use a head-centred radial direction
-    // to avoid cutting holes under the lips or on a sharply sculpted brow.
     pt.y *= 0.15;
     pt.normalize();
     angular[i] = MathUtils.smoothstep(pt.dot(out), 0.07, 0.59);

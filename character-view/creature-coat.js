@@ -43,7 +43,6 @@ export function drawCreatureCoat(plan, seed) {
                 ? ["plumage", "plumage", "scutes"]
                 : ["pelt", "pelt", "wet skin", "scutes"];
   const family = options[Math.floor(draw() * options.length)];
-  // Keep the existing species palette and its authored markings intact.
   return {
     ...plan.skin,
     coat: {
@@ -54,8 +53,6 @@ export function drawCreatureCoat(plan, seed) {
     },
   };
 }
-// The shared coordinates follow the spine, with tangent extension beyond
-// its ends. Separate limbs and the welded trunk see the same pigment field.
 export function creatureCoatField(form, objects) {
   const skin = form.origin?.plan?.skin,
     coat = readCreatureCoat(skin?.coat);
@@ -142,9 +139,6 @@ export function creatureCoatField(form, objects) {
         );
       out.copy(base);
       const c = coat.contrast;
-      // The species' original light/dark field stays visible. Add one recognisable
-      // signal track that follows the flank and sweeps up towards the collar.
-      // Limbs retain their primary colour instead of acquiring a full-body print.
       const zone = part?.coatZone ?? "body",
         head = part?.motionRole === "head";
       const limb =
@@ -168,9 +162,6 @@ export function creatureCoatField(form, objects) {
       if (!limb) {
         const shoulder = edge(t, 0.46, 0.65) * (1 - edge(t, 1.06, 1.29));
         const rear = edge(t, -0.36, -0.15) * (1 - edge(t, 0.43, 0.63));
-        // Large colour fields describe the animal at figure distance. The
-        // dorsal mantle and throat share a soft intermediate tone around the
-        // flanks. Preserve the outside marks painted over this undercoat.
         if (coat.graded) {
           const ridge = y * .66 + up * .34;
           const mantle = edge(ridge + .10*Math.sin(flow + phase), -.08, .83);
@@ -198,7 +189,6 @@ export function creatureCoatField(form, objects) {
         const track =
           (0.36 + 0.48 * shoulder + 0.18 * rear) * duty * c * accentBudget;
         out.lerp(light, outer * track * 0.61).lerp(accent, core * track);
-        // A mantle has its largest distinct value shape on the shoulders/back.
         if (!existing && !head) {
           const cap =
             edge(y * 0.8 + up * 0.25, 0.26, 0.8) * (0.55 + 0.45 * shoulder);
@@ -294,10 +284,6 @@ export function applyCreatureCoat(
   return true;
 }
 
-// A mirrored chart maps the dorsal-to-ventral arc and the distance along
-// the local limb. Coordinates stay continuous across UV seams, and a thin
-// ankle receives fewer motifs than the broad trunk. The atlas receives UVs
-// already inside [0,1]; no shader extension is needed in the exported game.
 function coatCoordinates(mesh, part, field) {
   const geom = mesh.geometry,
     pos = geom.attributes.position;
@@ -364,8 +350,6 @@ function coatCoordinates(mesh, part, field) {
     }
     radius = Math.max(radius, nearest);
   }
-  // One swatch contains ten motifs across and eight rows along the organ.
-  // A continuous triangular wave mirrors a repeated tile without a UV jump.
   const wave = (x) => 1 - Math.abs((x % 2) - 1);
   const uSpan = Math.max(0.04, (Math.PI * radius) / (10 * field.motifSize));
   const vSpan = Math.max(0.04, length / (8 * field.motifSize));

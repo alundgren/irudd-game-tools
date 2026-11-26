@@ -49,8 +49,6 @@ export function validCut(c) {
     c.folds <= 24
   );
 }
-// A single fabric panel wraps an open neckline. Two surfaces share sewn
-// boundaries around the hem, front opening and armholes.
 export function mantleGeometry(c) {
   if (c.kind === "Skirt") return skirtGeometry(c);
   const arms = armAccess(c);

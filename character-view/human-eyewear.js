@@ -35,8 +35,6 @@ const frames = {
   },
 };
 
-// Orthographic depth through the current skin. Project from the front for
-// the nose and rims, and from the side for the temple arms and earpieces.
 function faceDepth(surface, eye, unit) {
   const triangles = [],
     v = (i) => new T.Vector3().fromArray(surface.positions, 3 * i);
@@ -85,8 +83,6 @@ function faceDepth(surface, eye, unit) {
   };
 }
 
-// One unglazed frame with clear openings at every export detail, using ordinary
-// opaque geometry so the single-material game export shows both pupils.
 export function fittedEyewear(surface, style, material, plain = false) {
   const cut = frames[style];
   if (!cut) return [];
@@ -128,8 +124,6 @@ export function fittedEyewear(surface, style, material, plain = false) {
         -0.15 * width * lateral + 0.06 * height * vertical,
       );
     });
-    // Rims have one plane per eye. Lift the whole plane until both the eye
-    // dome and every point of the rim clear the fitted skin.
     const plane = Math.max(
       eyeBounds[i].max.z + 0.003 * unit,
       ...rim.map((p) => front(p.x, p.y) - p.z + radius + 0.002 * unit),
@@ -181,7 +175,6 @@ export function fittedEyewear(surface, style, material, plain = false) {
     frameMaterial.roughness = cut.metal ? 0.29 : 0.39;
     frameMaterial.metalness = cut.metal ? 0.57 : 0.04;
   }
-  // The hinges and narrow wires must stay connected after mesh reduction.
   frameMaterial.userData.fibreLOD = true;
   const mesh = new T.Mesh(geometry, frameMaterial);
   mesh.name = style;

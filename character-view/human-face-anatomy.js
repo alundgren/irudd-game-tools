@@ -1,31 +1,15 @@
 import * as T from "three";
 import {evaluateHuman,smoothHumanSurface} from "./human-surface.js";
 
-/* Anatomy of the nose and mouth that the source head leaves soft, added to every adult head
-   before anything is fitted to it. The source lips are two rolls: the upper one is furthest
-   forward at its top border and runs back 8 mm to the line where the lips meet, so the mouth
-   reads as everted. The nostrils open downward and show as nothing from the front. Each
-   change is a field over the neutral head, stored per vertex, so a vertex keeps its share on
-   any head, however its face has been drawn or sculpted, and points that coincide on the
-   neutral head (the lips and the mouth lining along the seam) always move together.
-   Distances are millimetres on a 1.72 m adult. */
 export const faceAnatomy={
-  // The line where the lips meet, the two lip fronts and the corner, on the neutral head.
   seam:1540.8,upper:1549.6,lower:1534.5,corner:[23.5,1539.6],
-  // How far each band moves: the upper border and the lower lip back, the seam forward.
   upperBack:2.3,lowerBack:1.4,seamForward:1.6,cornerBack:1.3,
   philtrum:.75,columns:.35,bow:.7,
   nostril:[10.6,1567.6,154],nostrilDeepen:1.3,
-  // Eyelid 3D anatomy (millimetres on a 1.72 m adult, along surface distance from the closed lid margin loop):
-  // thicker overhanging upper lid shelf, rounded tarsal cushion, recessed supratarsal crease, subtle brow hood,
-  // and a fuller lower lid tarsal shelf with a gentle infraorbital transition beneath it.
   upperRim:[.72,.16],tarsal:.38,upperCrease:[1.32,.24],upperHood:[.42,.22],
   lowerRim:[.82,.16],lowerGroove:.32,
-  // Shade laid on the skin colour, as the share of light that is lost.
   shade:{nostril:.66,seam:.3,corner:.24,lash:.56,crease:.28,lowerRim:.1},
-  // In a smile the lower lip rises to the edge of the upper teeth: the share of the parting it closes.
   smileLift:.34,smileLiftMost:3.2,
-  // In a blink the upper lid unfolds, relaxing most of the recessed supratarsal crease.
   blinkUnwind:.65,
 };
 
@@ -33,10 +17,6 @@ const smooth=(v,a,b)=>{const t=Math.min(1,Math.max(0,(v-a)/(b-a)));return t*t*(3
 const bell=(v,at,width)=>Math.exp(-(((v-at)/width)**2));
 
 let fields=null;
-/* The fields on the neutral head, one value per vertex of the smoothed surface:
-   `move` is a displacement in millimetres, `shade` the share of light lost, `crease` the
-   supratarsal crease weight for Blink unwinding, and `lidAnchors` the front lid/crease
-   contour vertices preserved during game decimation. */
 export function faceAnatomyFields(){
   if(fields)return fields;
   const A=faceAnatomy,cage=evaluateHuman({}),s=smoothHumanSurface(cage),p=s.positions,count=p.length/3,corners=s.bodyTriangles*3;
@@ -50,7 +30,6 @@ export function faceAnatomyFields(){
     lip[v]=Math.max(lip[v],s.pigments[t]);lid[v]=Math.max(lid[v],s.pigments[t+1]);
   }
   for(let v=0;v<count;v++)for(let j=v*4;j<v*4+4;j++)if(s.boneIndices[j]===bone&&s.weights[j]>.5)head[v]=1;
-  // The eyes' height and centres, for the lash line and concentric eyelid rings.
   const eye=[0,0,0];let eyes=0;
   const eyeCentres=cage.eyeGroups.map(ids=>{
     const c=[0,0,0];
@@ -63,7 +42,6 @@ export function faceAnatomyFields(){
     return {c,reach};
   });
   for(let d=0;d<3;d++)eye[d]*=1000/eyes;
-  // Build front-skin concentric eyelid rings and surface distance (mm) from the closed lid margin loop.
   const adj=Array.from({length:count},()=>new Set());
   for(let c=0;c<corners;c+=3){
     const a=s.indices[c],b=s.indices[c+1],d=s.indices[c+2];
@@ -81,8 +59,6 @@ export function faceAnatomyFields(){
     const seg=Math.hypot(p[u*3]-p[w*3],p[u*3+1]-p[w*3+1],p[u*3+2]-p[w*3+2]);
     if(d<.22*seg)ring0[v]=1;
   }
-  // Flood-fill the hidden socket lining from its UV islands up to the closed ring0 barrier,
-  // so every vertex reached outward from ring0 is guaranteed front-facing eyelid skin.
   const uvParent=Int32Array.from({length:s.uv.length/2},(_,i)=>i);
   const findUv=i=>{while(uvParent[i]!==i)i=uvParent[i]=uvParent[uvParent[i]];return i;};
   for(let t=0;t<corners;t+=3){const a=findUv(s.uvFaces[t]);uvParent[findUv(s.uvFaces[t+1])]=a;uvParent[findUv(s.uvFaces[t+2])]=a;}
@@ -136,9 +112,6 @@ export function faceAnatomyFields(){
   const cornerY=ax=>{const t=Math.min(1,Math.max(0,(ax-minAx)/(maxAx-minAx)));return (innerY+(outerY-innerY)*t)*1000;};
   const move=new Float32Array(count*3),shade=new Float32Array(count),lower=new Float32Array(count),crease=new Float32Array(count),lidAnchors=new Uint8Array(count);
   const upperEdge=[],lowerEdge=[];
-  // Preserve key visible 3D eyelid & supratarsal crease contours during 24K game decimation:
-  // ring 0 (opening & Blink seal), front ring 2 (upper/lower lid margin thickness bevel),
-  // upper crease trough (ring 10) + flanking tarsal/hood cage loops (rings 6 & 12), and inner-ring-1 cage seal.
   for(let v=0;v<count;v++){
     if(ring0[v]){lidAnchors[v]=1;continue;}
     if(innerSocket[v]&&v<cage.bodyVertices){
@@ -158,25 +131,19 @@ export function faceAnatomyFields(){
     const x=1000*p[v*3],y=1000*p[v*3+1],z=1000*p[v*3+2],ax=Math.abs(x),side=x<0?-1:1;
     if(z<118||y<1505||y>1640)continue;
     let dx=0,dy=0,dz=0,dark=0;
-    // The mouth. `front` leaves the deep lining alone and `across` fades toward the corners.
     if(y<1568&&y>1518&&ax<34){
       const front=smooth(z,144,148.5),across=1-smooth(ax/A.corner[0],.5,1.02);
       const up=bell(y,A.upper,y>A.upper?3.6:3.3),low=bell(y,A.lower,4.2),meet=bell(y,A.seam,1.7);
       dz+=front*across*(-A.upperBack*up-A.lowerBack*low)+smooth(z,143,147)*across*A.seamForward*meet;
-      // The corners turn in toward the teeth.
       const corner=Math.exp(-(((ax-A.corner[0])/5.2)**2+((y-A.corner[1])/4.6)**2))*smooth(z,128,138);
       dz-=A.cornerBack*corner;
-      // The groove from the nose to the bow of the upper lip, between its two ridges.
       const run=smooth(y,A.upper-.5,A.upper+2.5)*(1-smooth(y,1559,1563))*front;
       dz+=run*(-A.philtrum*bell(x,0,2.8)+A.columns*bell(ax,5,1.9));
-      // The bow: the border dips in the middle and peaks beside it.
       const border=bell(y,A.upper+.6,2.2)*front;
       dy+=border*A.bow*(-bell(x,0,2.6)+.6*bell(ax,5.2,2.4));
-      // The seam is shadow between two surfaces, darkest at the corners.
       const lips=lip[v]/255;
       dark=Math.max(dark,A.shade.seam*lips*bell(y,A.seam-.25*(ax/A.corner[0])**2,1.15)*smooth(z,140,146),A.shade.corner*corner*smooth(z,134,140));
     }
-    // The lower lip and the skin under it, for expressions. At the seam the lower lip faces up.
     if(y<A.seam+1.2&&y>A.seam-22&&ax<26&&z>126){
       const facing=y>A.seam-2.2?smooth(normal[v*3+1],-.05,.3):1;
       lower[v]=facing*(1-smooth(ax/A.corner[0],.3,.98))*(1-smooth(A.seam-y,8,21))*smooth(z,128,140);
@@ -184,7 +151,6 @@ export function faceAnatomyFields(){
     if(ax<5&&Math.abs(y-A.seam)<1.7&&z>147.5&&lip[v]>128){
       if(normal[v*3+1]>.25)lowerEdge.push(v);else if(normal[v*3+1]<-.25)upperEdge.push(v);
     }
-    // The nostrils: deeper, and dark where they open.
     const [nx,ny,nz]=A.nostril,down=smooth(-normal[v*3+1],-.35,.7);
     const hole=Math.exp(-(((ax-nx)/3.6)**2+((y-ny)/2.6)**2+((z-nz)/4.8)**2));
     if(hole>.01){
@@ -192,8 +158,6 @@ export function faceAnatomyFields(){
       const wide=Math.exp(-(((ax-nx)/4.1)**2+((y-ny)/2.9)**2+((z-nz)/5.3)**2));
       dark=Math.max(dark,A.shade.nostril*Math.min(1,1.25*wide)*down);
     }
-    // Eyelid 3D form: thicker upper & lower lid margins, tarsal cushion, recessed supratarsal crease,
-    // and subtle brow hood overhang — strictly outside ring 0 so the editable eye opening stays exact.
     const d=lidDist[v];
     if(Number.isFinite(d)&&d>0&&d<12.5&&!innerSocket[v]){
       const cY=cornerY(Math.abs(p[v*3])),tAcross=(Math.abs(p[v*3])-minAx)/(maxAx-minAx);
@@ -217,7 +181,6 @@ export function faceAnatomyFields(){
       dz-=isLower*acrossL*A.lowerGroove*bell(d,4.6,1.5);
       dark=Math.max(dark,A.shade.crease*creaseW,A.shade.lowerRim*isLower*acrossL*bell(d,3.5,1.15)*smooth(-normal[v*3+1],-.05,.35));
     }
-    // The upper lid margin faces down and carries the lash roots; leave the upward lower lid shelf un-darkened so it catches light.
     if(lid[v]>100&&Math.abs(y-eye[1])<14){
       const margin=lid[v]/255*smooth(z,eye[2]-6,eye[2]-1);
       if(y>eye[1])dark=Math.max(dark,margin*A.shade.lash*smooth(-normal[v*3+1],.05,.5));
@@ -227,8 +190,6 @@ export function faceAnatomyFields(){
   return fields={move,shade,lower,crease,lidAnchors,upperEdge,lowerEdge,count};
 }
 
-/** Give every posed expression its own surface normals. Rejoin UV copies for
- * this calculation so a smile carries its highlights across the cheek seam. */
 export function facialMorphNormals(geometry, vertexIds) {
   const distinct = new Map(), representatives = [];
   const welded = vertexIds.map((v, i) => {
@@ -266,7 +227,6 @@ export function facialMorphNormals(geometry, vertexIds) {
   probe.dispose();
 }
 
-/** Moves the head's smoothed surface in place. Call before anything is built on it. */
 export function refineFaceForm(surface){
   const {move,count}=faceAnatomyFields(),p=surface.positions;
   if(p.length!==count*3)return surface;
@@ -275,7 +235,6 @@ export function refineFaceForm(surface){
   return surface;
 }
 
-/** Lays the nostril, lip seam and lid margin shade on the head skin's vertex colours. */
 export function shadeFaceForm(geometry,vertexIds){
   const colour=geometry.attributes.color;
   if(!colour)return;
@@ -283,16 +242,11 @@ export function shadeFaceForm(geometry,vertexIds){
   for(let i=0;i<vertexIds.length;i++){
     const dark=shade[vertexIds[i]];
     if(!dark)continue;
-    // Shadow in skin is warm: red is lost least.
     colour.setXYZ(i,colour.getX(i)*(1-.86*dark),colour.getY(i)*(1-dark),colour.getZ(i)*(1-dark));
   }
   colour.needsUpdate=true;
 }
 
-/** Reshapes the head skin's Smile target, in place, before the mouth is built from it. The
-    source smile drops the lower lip clear of both rows of teeth, which stretches it thin and
-    shows the teeth as two stripes. Here it rises to the edge of the upper teeth. Returns the
-    rise in metres. */
 export function refineExpressions(geometry,vertexIds,scale=1){
   const blink=geometry.morphAttributes.position?.find(attr=>attr.name==="Blink");
   const {lower,crease,upperEdge,lowerEdge}=faceAnatomyFields();

@@ -1,0 +1,239 @@
+{
+  "format": "irudd.character",
+  "version": 1,
+  "id": "doc-fixture1",
+  "label": "Marsh walker",
+  "requires": [
+    {
+      "feature": "core.generation",
+      "version": 1
+    },
+    {
+      "feature": "core.parts",
+      "version": 1
+    }
+  ],
+  "catalog": [],
+  "assets": [],
+  "parts": [
+    {
+      "id": "p-11009ffb3cf3e1cd",
+      "label": "Leg 1 right",
+      "parent": "p-4b577d33f77c2cda",
+      "shape": "capsule",
+      "position": [-0.16000000000000003, -0.325, 0.315],
+      "rotation": [0, 0, 0, 1],
+      "size": [0.06999999999999999, 0.45, 0.06999999999999999],
+      "color": "#5f7a58",
+      "sculpt": [],
+      "slot": "leg.0.r",
+      "features": {}
+    },
+    {
+      "id": "p-12a04495210a91f7",
+      "label": "Head",
+      "parent": "p-43354865f1fe8d27",
+      "shape": "ellipsoid",
+      "position": [0, 0, 0.25],
+      "rotation": [0.3826834323650898, 0, 0, 0.9238795325112867],
+      "size": [0.22, 0.22, 0.264],
+      "color": "#5f7a58",
+      "sculpt": [],
+      "slot": "head",
+      "features": {}
+    },
+    {
+      "id": "p-43354865f1fe8d27",
+      "label": "Neck",
+      "parent": "p-4b577d33f77c2cda",
+      "shape": "capsule",
+      "position": [0, 0.19899494936611667, 0.5489949493661167],
+      "rotation": [-0.3826834323650898, 0, 0, 0.9238795325112867],
+      "size": [0.12, 0.12, 0.28],
+      "color": "#5f7a58",
+      "sculpt": [],
+      "slot": "neck",
+      "features": {}
+    },
+    {
+      "id": "p-4b577d33f77c2cda",
+      "label": "Body",
+      "parent": null,
+      "shape": "ellipsoid",
+      "position": [0, 0.65, 0],
+      "rotation": [0, 0, 0, 1],
+      "size": [0.4, 0.4, 0.9],
+      "color": "#5f7a58",
+      "sculpt": [],
+      "slot": "trunk",
+      "features": {}
+    },
+    {
+      "id": "p-5d193069981e343e",
+      "label": "Leg 2 left",
+      "parent": "p-4b577d33f77c2cda",
+      "shape": "capsule",
+      "position": [0.16000000000000003, -0.325, -0.315],
+      "rotation": [0, 0, 0, 1],
+      "size": [0.06999999999999999, 0.45, 0.06999999999999999],
+      "color": "#5f7a58",
+      "sculpt": [],
+      "slot": "leg.1.l",
+      "features": {}
+    },
+    {
+      "id": "p-9250a9052b9413d4",
+      "label": "Leg 1 left",
+      "parent": "p-4b577d33f77c2cda",
+      "shape": "capsule",
+      "position": [0.16000000000000003, -0.325, 0.315],
+      "rotation": [0, 0, 0, 1],
+      "size": [0.06999999999999999, 0.45, 0.06999999999999999],
+      "color": "#5f7a58",
+      "sculpt": [],
+      "slot": "leg.0.l",
+      "features": {}
+    },
+    {
+      "id": "p-c02822d8e4eb29d1",
+      "label": "Leg 2 right",
+      "parent": "p-4b577d33f77c2cda",
+      "shape": "capsule",
+      "position": [-0.16000000000000003, -0.325, -0.315],
+      "rotation": [0, 0, 0, 1],
+      "size": [0.06999999999999999, 0.45, 0.06999999999999999],
+      "color": "#5f7a58",
+      "sculpt": [],
+      "slot": "leg.1.r",
+      "features": {}
+    },
+    {
+      "id": "p-e7e1f4ed71ae7682",
+      "label": "Tail",
+      "parent": "p-4b577d33f77c2cda",
+      "shape": "capsule",
+      "position": [0, 0.04000000000000001, -0.7],
+      "rotation": [0, 0, 0, 1],
+      "size": [0.06, 0.06, 0.5],
+      "color": "#5f7a58",
+      "sculpt": [],
+      "slot": "tail",
+      "features": {}
+    }
+  ],
+  "poses": [],
+  "generation": {
+    "generator": "irudd.frame-creature",
+    "version": 1,
+    "params": {
+      "scale": 1,
+      "trunk": {
+        "length": 0.9,
+        "girth": 0.2,
+        "shape": "ellipsoid"
+      },
+      "neck": {
+        "length": 0.28,
+        "pitch": 45
+      },
+      "head": {
+        "size": 0.22
+      },
+      "legs": {
+        "pairs": 2,
+        "length": 0.45
+      },
+      "tail": {
+        "length": 0.5
+      },
+      "color": "#5f7a58"
+    },
+    "base": {
+      "digest": "sha256:6ce94f540dfe1bf6e300d775f7d623724ea543fa20dd7837e240c4c4d6de6b40",
+      "slots": [
+        {
+          "slot": "trunk",
+          "parent": null,
+          "label": "Body",
+          "shape": "ellipsoid",
+          "position": [0, 0.65, 0],
+          "rotation": [0, 0, 0, 1],
+          "size": [9, 9, 9],
+          "color": "#5f7a58"
+        },
+        {
+          "slot": "neck",
+          "parent": "trunk",
+          "label": "Neck",
+          "shape": "capsule",
+          "position": [0, 0.19899494936611667, 0.5489949493661167],
+          "rotation": [-0.3826834323650898, 0, 0, 0.9238795325112867],
+          "size": [0.12, 0.12, 0.28],
+          "color": "#5f7a58"
+        },
+        {
+          "slot": "head",
+          "parent": "neck",
+          "label": "Head",
+          "shape": "ellipsoid",
+          "position": [0, 0, 0.25],
+          "rotation": [0.3826834323650898, 0, 0, 0.9238795325112867],
+          "size": [0.22, 0.22, 0.264],
+          "color": "#5f7a58"
+        },
+        {
+          "slot": "leg.0.l",
+          "parent": "trunk",
+          "label": "Leg 1 left",
+          "shape": "capsule",
+          "position": [0.16000000000000003, -0.325, 0.315],
+          "rotation": [0, 0, 0, 1],
+          "size": [0.06999999999999999, 0.45, 0.06999999999999999],
+          "color": "#5f7a58"
+        },
+        {
+          "slot": "leg.0.r",
+          "parent": "trunk",
+          "label": "Leg 1 right",
+          "shape": "capsule",
+          "position": [-0.16000000000000003, -0.325, 0.315],
+          "rotation": [0, 0, 0, 1],
+          "size": [0.06999999999999999, 0.45, 0.06999999999999999],
+          "color": "#5f7a58"
+        },
+        {
+          "slot": "leg.1.l",
+          "parent": "trunk",
+          "label": "Leg 2 left",
+          "shape": "capsule",
+          "position": [0.16000000000000003, -0.325, -0.315],
+          "rotation": [0, 0, 0, 1],
+          "size": [0.06999999999999999, 0.45, 0.06999999999999999],
+          "color": "#5f7a58"
+        },
+        {
+          "slot": "leg.1.r",
+          "parent": "trunk",
+          "label": "Leg 2 right",
+          "shape": "capsule",
+          "position": [-0.16000000000000003, -0.325, -0.315],
+          "rotation": [0, 0, 0, 1],
+          "size": [0.06999999999999999, 0.45, 0.06999999999999999],
+          "color": "#5f7a58"
+        },
+        {
+          "slot": "tail",
+          "parent": "trunk",
+          "label": "Tail",
+          "shape": "capsule",
+          "position": [0, 0.04000000000000001, -0.7],
+          "rotation": [0, 0, 0, 1],
+          "size": [0.06, 0.06, 0.5],
+          "color": "#5f7a58"
+        }
+      ]
+    }
+  },
+  "features": {},
+  "extensions": {}
+}

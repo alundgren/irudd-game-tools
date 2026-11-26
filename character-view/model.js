@@ -67,8 +67,6 @@ const waist = "#374a46",
   hardware = "#85958c";
 const up = new T.Vector3(0, 1, 0);
 
-// Ring sections, in metres, describe the outer contour at each landmark.
-// Each row holds height, half-width, half-depth, forward offset and lateral offset.
 function shellGeometry(rows, sides) {
   const knots = rows.map(([y, w, d, z = 0, x = 0]) => [x, y, z, w, d]);
   return sweepGeometry(knots);
@@ -453,8 +451,6 @@ function baseParts(recipe, material, silhouette) {
       16,
     );
     region = "head";
-    // An open-face helmet leaves the face visible and gives the suit a
-    // distinct outline in profile. The cheek guards join the neck seal.
     shell(
       [
         [1.55, 0.115, 0.059, -0.069],
@@ -633,7 +629,6 @@ export function createCharacter(
           });
           break;
         case "wing":
-          // Feathers, veins and skin carry their own colours vertex by vertex.
           geometry = wingGeometry(part.wing, part.color, { game: fibreBudget > 0 });
           if (plainView) geometry.deleteAttribute("color");
           break;
@@ -658,8 +653,6 @@ export function createCharacter(
                 p.seamGroup === part.seamGroup,
             )
           ) {
-            // Expose the separate toes in everyday wear. Clothing fits
-            // still use the full length of the original foot last.
             const ball = knots.at(-3),
               next = knots.at(-2);
             knots = [
@@ -1099,7 +1092,6 @@ export function createCharacter(
           paintJoinedCoat(mesh, coatParts, limbTints);
           continue;
         }
-        // The undercoat is painted first and the markings lie over it.
         if (part.undercoat) paintMarkings(mesh, part.undercoat);
         paintLimbPigment(mesh,limbTints.get(part.id));
         if (part.markings) paintMarkings(mesh, part.markings);

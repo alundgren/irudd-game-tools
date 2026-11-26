@@ -37,7 +37,7 @@ function blankFace(skinHex) {
     map[i + 2] = neutral[2];
     map[i + 3] = 255;
     rough[i] = 255;
-    rough[i + 1] = 180; // ~0.565 roughness
+    rough[i + 1] = 180;
     rough[i + 2] = 0;
     rough[i + 3] = 255;
   }
@@ -69,13 +69,11 @@ test("bare and everyday makeup styles stay untouched and random draw schedule ne
     const form = generatedHuman(61410);
     validateForm({ ...form, humanStyle: { ...form.humanStyle, makeup: name } });
   }
-  // Random draws only sample from the original 5 drawn styles (plus None).
   for (let seed = 61410; seed < 61460; seed++) {
     const dressed = dressHuman(generatedHuman(seed), seed, "Festive");
     const chosen = dressed.humanStyle.makeup;
     assert.ok(chosen === "None" || drawnMakeupStyles.includes(chosen), "unexpected drawn makeup: " + chosen);
   }
-  // Bare and everyday looks are strict no-ops in paintStageMakeup and stageMakeupFace.
   const mat = { map: { image: null }, color: new T.Color("#b08566") };
   for (const name of ["None", "Rose stain", "Burnished copper", "Berry satin"]) {
     assert.equal(stageMakeupFace(mat, { humanStyle: { makeup: name } }), mat);
@@ -85,7 +83,6 @@ test("bare and everyday makeup styles stay untouched and random draw schedule ne
     assert.equal(res.changed.size, 0);
     assert.deepEqual(buf.map, before);
   }
-  // Everyday mixMakeup keeps full shadow & cheek stain; bare border stays exact.
   const rose = makeupPalette("Rose stain"),
     c = [1, 1, 1];
   mixMakeup(c, rose, 0, 1, 0, 0, 1);
@@ -113,13 +110,11 @@ test("stage makeup paints crisp graphic eye wing, luminous lid shimmer, clean un
       );
       assert.ok(changed.has("map") && changed.has("rough"));
 
-      // Bare border pixel (0, 0) recovers exact true skin colour!
       const border = [decode(buf.map[0]) * base[0], decode(buf.map[1]) * base[1], decode(buf.map[2]) * base[2]];
       for (let k = 0; k < 3; k++) {
         assert.ok(Math.abs(border[k] - buf.skin[k]) < 0.008, `${style}/${label} border ch ${k}: ${border[k]} vs ${buf.skin[k]}`);
       }
 
-      // Luminous mobile lid shimmer is clearly brighter than the deep outer wing & smoother in roughness!
       const lidRgb = sampleLinear(buf.map, base, 30.5, 5.6);
       const wingRgb = sampleLinear(buf.map, base, eye.outer[0] + 5.0, eye.outer[1] + 4.4);
       const underEyeRgb = sampleLinear(buf.map, base, 31.0, -7.2);
@@ -128,22 +123,18 @@ test("stage makeup paints crisp graphic eye wing, luminous lid shimmer, clean un
 
       assert.ok(luma(lidRgb) > luma(wingRgb) * 1.8, `${style}/${label} lid (${luma(lidRgb).toFixed(3)}) brighter than wing (${luma(wingRgb).toFixed(3)})`);
       assert.ok(lidRough < wingRough - 0.12, `${style}/${label} lid shimmer (${lidRough.toFixed(2)}) smoother than velvet wing (${wingRough.toFixed(2)})`);
-      // Under-eye center stays clean (close to bare skin, NOT bruised dark ring!).
       const underDiff = Math.hypot(underEyeRgb[0] - buf.skin[0], underEyeRgb[1] - buf.skin[1], underEyeRgb[2] - buf.skin[2]);
       assert.ok(underDiff < 0.06, `${style}/${label} clean under-eye diff=${underDiff.toFixed(3)}`);
 
-      // Sculpted lip: central cushion is brighter and smoother than outer corner border.
       const lipCenter = sampleLinear(buf.map, base, 0, mouth.centre[1] - 2.0);
       const lipCorner = sampleLinear(buf.map, base, mouth.corner - 3.5, mouth.centre[1]);
       assert.ok(luma(lipCenter) > luma(lipCorner) * 1.25, `${style}/${label} sculpted lip center > corner`);
 
-      // All roughness pixels stay strictly within [0.24, 0.80] contract!
       for (let i = 1; i < buf.rough.length; i += 4) {
         const rv = (buf.rough[i] / 255) * 0.8;
         assert.ok(rv >= 0.235 && rv <= 0.805, `roughness out of bounds: ${rv}`);
       }
     }
-    // Stage brows stay darker than bare brows on the same fair skin.
     const stageBrow = browPigment(new T.Color("#d3cbd0"), new T.Color("#ad87b2"), 0.59, style);
     const bareBrow = browPigment(new T.Color("#d3cbd0"), new T.Color("#ad87b2"), 0.59, "None");
     assert.ok(luma([stageBrow.r, stageBrow.g, stageBrow.b]) < luma([bareBrow.r, bareBrow.g, bareBrow.b]));

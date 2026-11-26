@@ -32,7 +32,6 @@ def check_wipe(page, out):
         frames[percent] = Image.open(io.BytesIO(canvas.screenshot())).convert("RGB")
     middle = frames[50]
     width, height = middle.size
-    # Skip the divider and its overlaid labels.
     for percent, box in [(100, (3, 42, width//2-4, height-3)),
                          (0, (width//2+4, 42, width-3, height-3))]:
         if ImageChops.difference(middle.crop(box), frames[percent].crop(box)).getbbox():
@@ -70,8 +69,6 @@ def fit_subject(page, subject, control, out, refine_face):
         image = Image.open(io.BytesIO(data)).convert("RGB")
         image.thumbnail((402, 268))
         panels.append(image)
-    # Keep facial differences readable alongside the smaller full-body sheet.
-    # Both panes always use the same orthographic camera in the reference dialog.
     page.locator("#hfit-frame").select_option("head")
     readings["headViews"] = {}
     for name, angle in (("oblique","0.62"), ("profile","1.5708")):
@@ -115,7 +112,6 @@ def run(out, url, refine_face):
         print("Renderer:", renderer, flush=True)
         (out/"renderer.json").write_text(json.dumps({"renderer":renderer})+"\n",encoding="utf8")
         page.goto(url.rstrip("/") + "/#study=mhr-f1&compare=3d", wait_until="load")
-        # Hash navigation on the same document may leave the current study open.
         page.reload()
         page.wait_for_function("""document.querySelector('#hfit-source')?.value === 'mhr-f1'
             && document.querySelector('#hfit-facts')?.textContent.includes('female-typical 1')""",

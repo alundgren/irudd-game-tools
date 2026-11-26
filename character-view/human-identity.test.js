@@ -14,7 +14,6 @@ import { drawHumanIdentity, generatedHuman, nudgeHuman, rerollHuman } from "./hu
 import { drawIdentity, faceOutlines, skinLightness } from "./human-identity.js";
 import { readFileSync } from "node:fs";
 
-// The editor module loads browser assets, so its names are read from the source.
 const editorSource = readFileSync(new URL("./human-editor.js", import.meta.url), "utf8");
 
 test("an adult saved without identity controls keeps its surface", () => {
@@ -33,8 +32,6 @@ test("an adult saved without identity controls keeps its surface", () => {
 });
 
 test("each identity control reshapes the head and leaves the body its shape", () => {
-  // A taller or shorter skull rescales the figure to its stature, as head height always has.
-  // Apart from that one scale the body below the neck is the body it was.
   const base = evaluateHuman({}), pelvis = base.names.indexOf("pelvis") * 3 + 1;
   const head = new Set(["head", "neck_01"].map((name) => base.names.indexOf(name)));
   for (const key of humanIdentityAxes)
@@ -57,30 +54,25 @@ test("new adults are valid, repeatable people with chosen outlines, moods and so
   const draws = Array.from({ length: 160 }, (_, i) => randomHuman(52000 + i));
   assert.ok(draws.every(validHuman));
   assert.deepEqual(randomHuman(52003), draws[3]);
-  // Every outline control is used in both directions somewhere, and most faces commit to one.
   for (const key of ["faceTaper", "faceRound", "faceSquare"]) {
     assert.ok(draws.some((p) => p[key] > 0.35) && draws.some((p) => p[key] < -0.25), key);
   }
   assert.ok(draws.some((p) => p.faceDiamond > 0.3));
   const committed = draws.filter((p) => ["faceTaper", "faceRound", "faceSquare", "faceDiamond"].some((key) => Math.abs(p[key]) > 0.3));
   assert.ok(committed.length > 0.75 * draws.length, committed.length + " of " + draws.length);
-  // Age folds the face: the oldest third carries a deeper fold than the youngest third.
   const byAge = [...draws].sort((a, b) => a.age - b.age), third = Math.floor(draws.length / 3);
   const mean = (list, key) => list.reduce((sum, p) => sum + p[key], 0) / list.length;
   assert.ok(mean(byAge.slice(-third), "nasolabialFold") - mean(byAge.slice(0, third), "nasolabialFold") > 0.4);
   assert.ok(mean(byAge.slice(-third), "lidBag") - mean(byAge.slice(0, third), "lidBag") > 0.25);
-  // Resting expressions differ: smiles, level mouths, set mouths and one-sided ones.
   assert.ok(draws.filter((p) => p.smileLeft > 0.5 && p.smileRight > 0.5).length >= 5);
   assert.ok(draws.filter((p) => Math.abs(p.smileLeft) < 0.15 && Math.abs(p.smileRight) < 0.15).length >= 40);
   assert.ok(draws.filter((p) => p.mouthCorners < -0.1).length >= 8);
   assert.ok(draws.filter((p) => Math.abs(p.smileLeft - p.smileRight) > 0.3).length >= 5);
-  // No two sides alike, and never much.
   assert.ok(draws.every((p) => Math.abs(p.eyeSkew) <= 0.3));
   assert.ok(draws.filter((p) => ["jawSkew", "noseSkew", "mouthSkew", "browSkew"].some((key) => Math.abs(p[key]) > 0.3)).length > 20);
 });
 
 test("the body of a seed is the same body whatever face it draws", () => {
-  // The face rules take their own keyed draws, so the frame and build of a seed stay put.
   for (const seed of [8710, 8715, 52004]) {
     const p = randomHuman(seed);
     const again = randomHuman(seed, "any", { relaxed: false });
@@ -106,7 +98,6 @@ test("a full face is shared out and the eye opening stays within what the lids c
 test("skin lightness follows the skull's ancestry loosely and spans dark to light", () => {
   assert.ok(skinLightness([1, 0, 0], 0.5) < skinLightness([0, 1, 0], 0.5));
   assert.ok(skinLightness([0, 1, 0], 0.5) < skinLightness([0, 0, 1], 0.5));
-  // The ranges overlap: a dark-leaning draw at its lightest passes a light-leaning draw at its darkest.
   assert.ok(skinLightness([1, 0, 0], 0.99) > skinLightness([0, 0, 1], 0.01));
   const value = (hex) => [1, 3, 5].reduce((sum, at) => sum + parseInt(hex.slice(at, at + 2), 16), 0) / 765;
   const tones = Array.from({ length: 120 }, (_, i) => value(generatedHuman(52000 + i).appearance.skin));

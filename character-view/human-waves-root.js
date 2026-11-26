@@ -14,8 +14,6 @@ const { clamp, smoothstep } = MathUtils;
 let strands;
 const textures = new Map();
 
-// At the forehead the dense hair starts behind the fine hairs. At the temple
-// the curve turns down and meets the length over the ear.
 export function frontRoot(phi) {
   const a = Math.abs(phi);
   return (
@@ -63,7 +61,6 @@ export function paintWaveRoots(mesh, shell, frame, skin, hair) {
   const uv = new Float32Array(mesh.geometry.attributes.position.count * 2);
   for (let i = 0; i < shell.count; i++) {
     const { phi, eps } = frame.aim(shell.anchor(i));
-    // Only the front half is exposed. Fold the texture coordinate at the back.
     uv[2 * i] = 0.5 + 0.48 * Math.sin(phi * 0.83);
     uv[2 * i + 1] = clamp((eps - frontRoot(phi) + 0.095) / 0.46, 0, 0.99);
   }
@@ -103,7 +100,6 @@ export function softenWaveEdge(geometry, frame) {
     const atSkin = smoothstep(Math.abs(phi), 1.12, 1.47);
     const volume = Math.max(atSkin, smoothstep(distance, 0.12, 0.49));
     const gap = MathUtils.lerp(0.0014 * frame.k, h, volume);
-    // Keep a hanging lock's distance to the shoulders as it crosses the temple.
     if (xyz[1] < frame.centre[1] - 0.03 * frame.k) {
       const r = Math.hypot(xyz[0] - frame.centre[0], xyz[2] - frame.centre[2]);
       positions.setXYZ(

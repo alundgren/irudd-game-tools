@@ -1,15 +1,9 @@
-// Decodes the first Draco-compressed primitive of a GLB into two raw files:
-//   <out>.positions.f32  little-endian float32 xyz
-//   <out>.indices.u32    little-endian uint32 triangles
-// Usage: node decode-draco.mjs input.glb output-prefix
-// The decoder is the one shipped with three.js (Apache-2.0, Google Draco).
 import { readFile, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
 const [input, output] = process.argv.slice(2);
 const lib = new URL("../../node_modules/three/examples/jsm/libs/draco/", import.meta.url);
-// The wrapper is a classic script inside an ES-module package, so it is evaluated with the two names it expects.
 const wrapper = await readFile(fileURLToPath(new URL("draco_wasm_wrapper.js", lib)), "utf8");
 const factory = new Function("require", "__dirname", wrapper + "\nreturn DracoDecoderModule;")(
   createRequire(import.meta.url), fileURLToPath(lib));

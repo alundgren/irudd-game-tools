@@ -1,12 +1,3 @@
-// Resolve each packed groom against the body it is worn on.
-//   node scripts/pack-human-grooms-finish.mjs character-view/human-grooms-data.json
-// Run by pack-human-grooms.py. Two things are worked out here.
-// MakeClothes stores every offset in units of a span of the wearer's head (the x, y and z scale lines of the
-// .mhclo). The spans are measured here on the resting body, so the cards stand as far from the skin as their
-// author set them, and the runtime fit in human-library.js can use the offsets as they are.
-// Then the scalp each groom covers is found: a skin point of the head is covered when the trimmed cards pass
-// over it. The roots layer under a groom is cut to this, so it ends where the artist's hairline ends and the
-// feathered strands at the edge lie on skin, not on a cap.
 import { readFileSync, writeFileSync } from "node:fs";
 import { deflateSync, inflateSync } from "node:zlib";
 import { evaluateHuman, humanRestPositions } from "../character-view/human-surface.js";
@@ -16,11 +7,9 @@ const file = process.argv[2], library = JSON.parse(readFileSync(file, "utf8"));
 const body = evaluateHuman({}), rest = humanRestPositions(), at = new Map(Array.from(body.ids, (id, i) => [id, i]));
 const unpack = (text, Type) => { const raw = inflateSync(Buffer.from(text, "base64")); return new Type(raw.buffer, raw.byteOffset, raw.byteLength / Type.BYTES_PER_ELEMENT); };
 const skin = surfaceBody(body), headWeight = skin.weight(/^head/), P = skin.P, N = skin.N;
-// Skin points next to each other, for smoothing the edge of the covered scalp.
 const beside = Array.from({ length: skin.count }, () => new Set());
 for (let t = 0; t < skin.tri.length; t += 3) for (let k = 0; k < 3; k++) { const a = skin.tri[t + k], b = skin.tri[t + (k + 1) % 3]; if (a < skin.count && b < skin.count) { beside[a].add(b); beside[b].add(a); } }
 function covered(record, refs, offsets) {
-  // The trimmed cards on the resting body.
   const weights = unpack(record.weights, Float32Array), card = new Float32Array(refs.length);
   for (let i = 0; i < refs.length; i += 3) for (let d = 0; d < 3; d++) {
     for (let k = 0; k < 3; k++) card[i + d] += body.positions[at.get(refs[i + k]) * 3 + d] * weights[i + k];
@@ -29,7 +18,6 @@ function covered(record, refs, offsets) {
   const faceRefs = unpack(record.faceRefs, Uint16Array), blend = unpack(record.faceWeights, Uint16Array), faces = unpack(record.faceIndices, Uint32Array);
   const p = new Float32Array(faceRefs.length);
   for (let i = 0; i < p.length; i += 3) for (let k = 0; k < 3; k++) for (let d = 0; d < 3; d++) p[i + d] += card[faceRefs[i + k] * 3 + d] * blend[i + k] / 65535;
-  // Triangles are binned by height so each skin point tests only the hair near it.
   const reach = .05, slab = .02, bins = new Map();
   for (let f = 0; f < faces.length; f += 3) {
     const ys = [0, 1, 2].map((k) => p[faces[f + k] * 3 + 1]);
@@ -57,7 +45,6 @@ function covered(record, refs, offsets) {
     const n = [N[i * 3], N[i * 3 + 1], N[i * 3 + 2]], o = [P[i * 3] - n[0] * .004, P[i * 3 + 1] - n[1] * .004, P[i * 3 + 2] - n[2] * .004];
     value[i] = hit(o, n) ? 1 : 0;
   }
-  // A smooth edge half way between covered and bare skin, then drawn in a little under the hair.
   let field = value;
   for (let pass = 0; pass < 2; pass++) {
     const next = field.slice();
@@ -78,7 +65,6 @@ for (const [name, record] of Object.entries(library)) {
     if (!span) return 1;
     const [a, b, authored] = span;
     if (!at.has(a) || !at.has(b)) throw new Error(name + " measures a span this body does not carry");
-    // Offsets and spans are stored in decimetres.
     return Math.abs(rest[at.get(a) * 3 + d] - rest[at.get(b) * 3 + d]) * 10 / authored;
   });
   for (let i = 0; i < offsets.length; i++) offsets[i] *= factor[i % 3];

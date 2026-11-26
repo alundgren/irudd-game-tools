@@ -1,0 +1,30 @@
+{
+  "name": "@irudd/workshop",
+  "private": true,
+  "bin": {
+    "irudd-host": "./src/host/main.ts"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./contract": "./src/contract/index.ts",
+    "./wire": "./src/wire/index.ts",
+    "./endpoint": "./src/wire/local.ts",
+    "./client": "./src/client/index.ts",
+    "./host": "./src/host/index.ts",
+    "./host-command": "./src/host/command.ts"
+  },
+  "scripts": {
+    "test": "node --import ../document/test/support/register.ts --test \"test/**/*.test.ts\"",
+    "gate:crash": "node --import ../document/test/support/register.ts --test test/crash.gate.ts",
+    "bench": "node --import ../document/test/support/register.ts test/bench.ts"
+  },
+  "dependencies": {
+    "@effect/sql-sqlite-node": "catalog:",
+    "@irudd/document": "workspace:*",
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:"
+  }
+}

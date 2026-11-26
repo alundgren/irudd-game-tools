@@ -29,7 +29,6 @@ export const bodyRegion = (p) =>
     p.id,
   );
 
-// Blur occupancy in physical units. Separate small grids keep fine limbs cheap.
 function blur(data, size, axis, sigma) {
   const radius = Math.ceil(2 * sigma),
     kernel = [];
@@ -48,9 +47,6 @@ function blur(data, size, axis, sigma) {
   }
   return out;
 }
-// For fitted human surfaces the distance to the original triangles gives
-// the shoulder and hips a smooth contour even when a sleeve spans few cells.
-// Rasterize the sign along Z and measure the distance in a narrow band.
 function figureLayer(points, index, step, size, offset, lines, band) {
   const [w, h, depth] = size,
     count = w * h * depth;
@@ -212,8 +208,6 @@ function voxelize({ mesh, part }, min, step, n, sigma, band) {
       Math.min(255, Math.round(v * gain * 255)),
     ),
   };
-  // A long fine limb can fit between adjacent voxels. Keep its original mesh
-  // if the reconstructed centreline would break before it reaches the foot.
   if (part.knots) {
     const path = part.knots.map((k) =>
       new Vector3(...k.slice(0, 3))
@@ -352,8 +346,6 @@ function triangulate(entries, softness, band, n) {
         }
       });
       if (band) {
-        // Marching cubes emits one crossing per grid edge. Reuse it within
-        // each region so a full-detail export shares its skinned vertices.
         let ix = Math.round(verts.x),
           iy = Math.round(verts.y),
           iz = Math.round(verts.z),

@@ -6,7 +6,7 @@ The repository holds the code that makes the comparisons, the source addresses, 
 
 ## What a fresh checkout does
 
-`npm ci`, `npm run build` and `npm test` need none of the reference material. The build prints which reference studies it found. With none:
+`pnpm install --frozen-lockfile`, `npm run build` and `npm test` need none of the reference material. The build prints which reference studies it found. With none:
 
 - The workshop's study list has no scan studies, no measured torso and no 3D reference fits.
 - **Fit a 3D reference…** still opens. Its model list is empty, and **Choose a GLB file…** loads a model from your disk for the session.
@@ -50,7 +50,7 @@ Downloads, intermediate files and scratch renders go in `.reference-cache/`, whi
 
 ## Rebuilding a set
 
-The commands run from the repository root after `npm ci`. The Python steps need Python 3.12 with `numpy`, `scipy`, `moderngl`, `opencv-python`, `pillow`, `requests` and `torch`. The rest-pose rig needs Blender.
+The commands run from the repository root after `pnpm install --frozen-lockfile`. The Python steps need Python 3.12 with `numpy`, `scipy`, `moderngl`, `opencv-python`, `pillow`, `requests` and `torch`. The rest-pose rig needs Blender.
 
 **MHR archive.** Both MHR sets start from the release's `assets.zip`.
 

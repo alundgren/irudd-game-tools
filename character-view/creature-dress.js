@@ -1,17 +1,12 @@
 import { Euler, MathUtils, Quaternion, Vector3 } from "three";
 import { randomStream } from "./random.js";
 
-// Worn layers of a creature: a small ensemble of fitted pieces that follow
-// the anatomy the plan built. Every piece is an ordinary rigid cage region
-// carried by the trunk, the neck, the head or one limb segment, so it can be
-// selected, recoloured, sculpted or removed like any other region.
 const { clamp, lerp } = MathUtils;
 const hexColor = (v, fallback) =>
   typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : fallback;
 
 export const dressDevices = ["none", "swallow", "oak", "sunburst", "tide", "compass"];
 export const dressKinds = ["none", "herald", "warden", "sage", "nomad", "ranger"];
-// Cloth and trim that were chosen together.
 export const dressLiveries = [
   ["#b3202e", "#f0c24f"],
   ["#27408b", "#e8ecf2"],
@@ -33,12 +28,9 @@ export function readDress(raw = {}) {
     ...(dressDevices.includes(raw.device) && raw.device !== "none" ? { device: raw.device } : {}),
     color: hexColor(raw.color, dressLiveries[0][0]),
     trim: hexColor(raw.trim, dressLiveries[0][1]),
-    // 1 keeps the signature piece, 2 adds limb pieces, 3 adds a headpiece.
     layers: Math.round(number(raw.layers, 1, 3, 3)),
     size: number(raw.size, 0.7, 1.4, 1),
-    // A station along the spine that a carried pack occupies.
     ...(Number.isFinite(raw.clear) ? { clear: clamp(raw.clear, 0, 1) } : {}),
-    // Cut 2 shapes armour to the animal. Cut 3 also fits a breastplate on inclined bipeds.
     ...([2, 3].includes(raw.cut) ? { cut: raw.cut } : {}),
     seed: Number.isInteger(raw.seed) ? clamp(raw.seed, 0, 4294967295) : 1,
   };
@@ -59,8 +51,6 @@ const hueOf = (hex) => {
   return [h * 60, d / (1 - Math.abs(2 * light - 1) + 1e-6), light];
 };
 
-// Choose an ensemble that suits the animal: what it can wear depends on its
-// posture, its arms and what already grows on its back.
 export function drawDress(plan, seed, odds = 0.45) {
   const draw = randomStream((seed ^ 0x5d2e61c7) >>> 0);
   const roll = draw();
@@ -79,7 +69,6 @@ export function drawDress(plan, seed, odds = 0.45) {
   let kind = options[Math.floor(draw() * options.length)];
   if (kind === "sage" && !bareBack && !upright) kind = "herald";
   const [bodyHue, bodySat, bodyLight] = hueOf(plan.skin.base);
-  // Cloth has to stand apart from the hide in hue or in value.
   const apart = dressLiveries.filter(([cloth]) => {
     const [h, s, l] = hueOf(cloth);
     const turn = Math.abs(((h - bodyHue + 540) % 360) - 180);
@@ -99,8 +88,6 @@ export function drawDress(plan, seed, odds = 0.45) {
   });
 }
 
-// Closed loops of points become one shell. A closed path joins the last
-// loop back to the first, like a ring; an open path is capped.
 function shell(rings, closedPath = false) {
   const vertices = rings.flat(),
     faces = [],
@@ -124,7 +111,6 @@ function shell(rings, closedPath = false) {
     }
   return { vertices, faces };
 }
-// A sheet with thickness from two matching grids of points.
 function slab(outer, inner) {
   const m = outer.length,
     n = outer[0].length,
@@ -160,7 +146,6 @@ function basis(axis) {
     v = new Vector3().crossVectors(axis, u).normalize();
   return [u, v];
 }
-// A faceted stone or stud seated on a surface.
 function gem(at, normal, size, tall = 0.7) {
   const [u, v] = basis(normal);
   const ring = (h, r) =>
@@ -173,7 +158,6 @@ function gem(at, normal, size, tall = 0.7) {
     );
   return shell([ring(-0.3, 0.8), ring(0.1 * tall, 1), ring(tall, 0.42)]);
 }
-// A band around a straight limb segment or a neck.
 function cuff(a, b, ra, rb, from, to, thick, flare = 0, sides = 10) {
   const axis = b.clone().sub(a).normalize(),
     [u, v] = basis(axis);
@@ -197,7 +181,6 @@ function cuff(a, b, ra, rb, from, to, thick, flare = 0, sides = 10) {
     true,
   );
 }
-// A flattened blade along a path: a plume, a fin on a helm or a pennant.
 function blade(points, widths, normal, thick) {
   const rings = points.map((p, i) => {
     const along = (points[Math.min(points.length - 1, i + 1)] ?? p)
@@ -220,8 +203,6 @@ function blade(points, widths, normal, thick) {
 const needed = { none: 0, herald: 12, warden: 15, sage: 11, nomad: 11, ranger: 12 };
 export const dressRegionCount = (dress) => needed[dress?.kind ?? "none"] ?? 0;
 
-// Build the ensemble. `ctx` carries the measured anatomy: the spine frame,
-// limb anchors and head frames in world metres, and `emit` to add a region.
 export function dressCreature(ctx) {
   const { plan, spine, anchors, heads, emit, room } = ctx;
   const dress = plan.dress;
@@ -236,16 +217,12 @@ export function dressCreature(ctx) {
   const arms = anchors.filter((a) => a.kind === "arm"),
     legs = anchors.filter((a) => a.kind === "leg");
   const chestRise = Math.sin(spine.at(0.5).pitch);
-  // An inclined two-legged animal carries the breastplate over its sternum.
-  // A four-legged trunk needs a free underside between the front legs.
   const upright = chestRise > .72 || (dress.cut === 3 && dress.kind === "warden"
     && arms.length > 0 && legs.length === 2 && chestRise > .49);
   const winged = plan.limbs.some((l) => l.kind === "wing");
   const bareBack = plan.back.kind === "none" && !winged;
   const tailed = plan.tail.kind !== "none";
   const length = plan.spine.length * k;
-  // The ellipsoids that grow at limb roots can extend past the trunk rings.
-  // Cast through the actual anatomy once per garment sample in the bind pose.
   const supports = (ctx.supports ?? []).map(part => ({
     centre: new Vector3(...part.position),
     radius: new Vector3(...part.size).multiplyScalar(0.5),
@@ -261,7 +238,6 @@ export function dressCreature(ctx) {
     }
     return depth;
   };
-  // Limb roots carry shoulders and haunches that stand proud of the trunk.
   const proud = (t, angle) => {
     const f = spine.at(t);
     let most = 0;
@@ -273,14 +249,11 @@ export function dressCreature(ctx) {
     }
     return most;
   };
-  // A point around the trunk. Angle 0 is the back, pi the belly. Stations
-  // below 0 continue straight past the hips, for a hem that hangs free.
   const trunk = (t, angle, r = 1, pad = 0) => {
     const f = spine.at(clamp(t, 0.1, 0.9)),
       g = spine.at(clamp(t, 0, 1));
     const reach = t < 0 ? t * length : t > 1 ? (t - 1) * length : 0;
     const [w, d] = t < 0.1 || t > 0.9 ? f.radius.map((v, i) => Math.max(v * 0.82, g.radius[i])) : g.radius;
-    // Cinches and garments sit over the thickness of the dorsal plumage.
     const down = plan.back.kind === "contour plumage"
       ? girth * (0.07 + 0.11 * plan.back.height / plan.spine.girth)
         * MathUtils.smoothstep(Math.cos(angle), -0.64, -0.1)
@@ -317,12 +290,10 @@ export function dressCreature(ctx) {
     emit("dress " + id, parent, shells, color, surface);
     return true;
   };
-  // Stations that keep clear of a carried pack and its harness.
   const free = (t, half = 0.06) => dress.clear === undefined || Math.abs(t - dress.clear) > 0.2 + half;
   const head = heads.length === 1 ? heads[0] : null;
   const half = clamp((0.05 * girth) / Math.max(0.2, length) / 0.2, 0.018, 0.05) * size;
 
-  // The collar closes every ensemble at the neck.
   function collar(scallops, drop = 1, yoke = true) {
     if (!head) return;
     const h = head;
@@ -368,7 +339,6 @@ export function dressCreature(ctx) {
       if (scallops)
         put("collar clasp", h.neckId, [gem(front, h.facing.clone().setY(0.2).normalize(), r(top) * 0.34)], trim, "metal");
     } else if (yoke) {
-      // A head set on the shoulders wears a yoke on the front of the trunk.
       const wave = scallops ? (a) => 0.02 * Math.cos(6 * a) : null;
       put(
         "collar",
@@ -389,7 +359,6 @@ export function dressCreature(ctx) {
       );
     }
   }
-  // A plate over the root of a limb: a pauldron on an arm, a guard on a haunch.
   function guards(limbs, tiers, color, surface, name) {
     const done = new Set();
     for (const a of limbs) {
@@ -423,7 +392,6 @@ export function dressCreature(ctx) {
       put(a.id + " " + name, a.upper, shells, color, surface);
     }
   }
-  // A plate over the front of a shin, flared at the knee.
   function shins(limbs, color, name) {
     const done = new Set();
     for (const a of limbs) {
@@ -445,8 +413,6 @@ export function dressCreature(ctx) {
       put(a.id + " " + name, a.lower, [slab(grid(5, 7, at(1.42)), grid(5, 7, at(1.1)))], color, "metal");
     }
   }
-  // A breastplate: its lower edge runs down to a point over the belly, its
-  // top is cut away under the arms and a keel stands along the breastbone.
   function breastplate(lo, hi) {
     const front = (a) => (1 - Math.cos(a)) / 2;
     const ring = (v, r, pad) =>
@@ -460,7 +426,6 @@ export function dressCreature(ctx) {
       });
     return shell([ring(0, 0.95, 0), ring(0, 1.04, 0.07), ring(0.3, 1.05, 0.13), ring(0.7, 1.05, 0.13), ring(1, 1.04, 0.07), ring(1, 0.95, 0)], true);
   }
-  // Bands on the lower segment of a limb.
   function bands(limbs, color, surface, name, from = 0.3, to = 0.82, thick = 1.34, flare = 0.2) {
     const done = new Set();
     for (const a of limbs) {
@@ -470,7 +435,6 @@ export function dressCreature(ctx) {
       put(a.id + " " + name, a.lower, [cuff(a.mid, a.end, a.r1, a.r2, from, to, thick * (0.94 + 0.06 * size), flare)], color, surface);
     }
   }
-  // A cloak for an upright back or a saddle cloth for a level one.
   function mantle(front, hem, wide, flare, hemWave = 0) {
     const m = 7,
       n = 9;
@@ -483,7 +447,6 @@ export function dressCreature(ctx) {
     };
     const rows = (lift) => grid(m, n, at(lift));
     const ok = put("mantle", "body", [slab(rows(0.045), rows(0))], cloth);
-    // A border in the trim colour lies over the hem.
     const hemAt = (lift) => (s, t, i, j) => {
       const station = lerp(lerp(front, hem, 0.84), hem, s);
       const spread = lerp(wide[0], wide[1], (0.84 + 0.16 * s) ** 0.7);
@@ -495,7 +458,6 @@ export function dressCreature(ctx) {
     if (ok) put("mantle border", "body", [slab(grid(3, n, hemAt(0.075)), grid(3, n, hemAt(0.035)))], trim);
     return ok;
   }
-  // Headwear. A bare crown takes a cap; horns, ears or antennae take a band.
   function headpiece(style) {
     if (!head || plan.head.eyePlace === "top" || plan.head.crest === "crown") return;
     const h = head;
@@ -506,8 +468,6 @@ export function dressCreature(ctx) {
         return h.onHead(az, el + tilt * Math.cos(az), scale);
       });
     if (style === "wrap") {
-      // Two bias-cut swathes cross above the eyes. At an ear or horn the
-      // top stays open, while a smooth crown carries the gathered cap.
       const base = plan.head.eyes > 2 ? 0.83 : 0.69, wraps = [];
       for (const turn of [0, 1]) {
         const band = [[-.115,1.015],[-.085,1.17],[.074,1.16],[.115,1.01]];
@@ -539,12 +499,9 @@ export function dressCreature(ctx) {
       }
       put("feather pin",h.headId,vanes,trim,"plain");
     } else if (style === "helm" && bare) {
-      // Rings from the brim to the crown and back along the inside.
       const rings = [0.5, 0.86, 1.2, 1.46].map((el, i) => ringOn(el, 1.1 + (i === 0 ? 0.05 : 0), 12, i < 2 ? -0.18 : -0.06));
       const inner = [1.46, 1.2, 0.86, 0.5].map((el) => ringOn(el, 0.96, 12, el < 1 ? -0.18 : -0.06));
       put("helm", h.headId, [shell([...rings, ...inner], true)], trim, "metal");
-      // The crest grows from a keel fitted along the sagittal arc. Its lower
-      // edge continues inside the shell from the brow to the back of the head.
       const crest = Array.from({ length: 11 }, (_, i) => {
         const t = i / 10, pitch = lerp(0.73, 2.48, t);
         const az = pitch <= Math.PI / 2 ? 0 : Math.PI;
@@ -591,12 +548,8 @@ export function dressCreature(ctx) {
     const n = at.clone().sub(f.centre).normalize();
     put("medallion", "body", [gem(at, n, girth * 0.2 * size, 0.6)], trim, "metal");
   };
-  // A garment around the trunk from a top station down to a hem. The hem
-  // stands off the body, so legs and a tail leave it freely.
   function tunic(id, top, hem, flare, color, surface = "canvas", scallop = 0) {
     const sides = 16, count = scallop ? 5 : 4;
-    // These are sewn gores. Cloth hangs straighter over the hips but opens
-    // below them, with one side gathered farther up than the other.
     const point = (v, a, lift = 0) => {
       const wave = Math.cos(a*count + .6*Math.sin(a*2) + v*.7);
       const hemDrop = (scallop+.014)*Math.cos(a*3+.4) - .032*Math.sin(a-.6);
@@ -608,12 +561,10 @@ export function dressCreature(ctx) {
     const ring = (v,lift=0) => Array.from({length:sides},(_,j) => point(v,j*2*Math.PI/sides,lift));
     const clothRings = [ring(0),ring(.15),ring(.36),ring(.58),ring(.79),ring(.94),ring(1),ring(1,-.036),ring(.78,-.055),ring(.52,-.055),ring(.24,-.055),ring(0,-.042)];
     if (!put(id,"body",[shell(clothRings,true)],color,surface)) return;
-    // Attachment follows the last two rows of the garment even at its folds.
     put(id+" border","body",[shell([ring(.915,.006),ring(.94,.009),ring(.98,.009),ring(.993,.004),
       ring(.98,-.015),ring(.915,-.015)],true)],trim,"canvas");
 
     if (id === "robe" || id === "surcoat") {
-      // The overlapping front runs across the breast and fans out at the hip.
       const at = lift => (v,u) => {
         const centre = Math.PI + lerp(-.95,.5,v);
         const angle = centre + (u-.5)*(.32+.37*v);
@@ -636,7 +587,6 @@ export function dressCreature(ctx) {
   };
 
   if (kindOf === "herald") {
-    // Court dress: a surcoat in the house colour under bright metal.
     collar(true, 1.2);
     if (upright && free(0.5, 0.3)) {
       tunic("surcoat", 0.7, hips + 0.08, 0.34, cloth, "canvas", 0.012);
@@ -648,11 +598,8 @@ export function dressCreature(ctx) {
     if (dress.layers > 1) limbBands(arms.length ? "bracer" : "anklet", trim, "metal", 0.42, 0.86);
     if (dress.layers > 2) headpiece("plume");
   } else if (kindOf === "warden") {
-    // Armour: plate on the chest, the shoulders, the shins and the skull.
     collar(false, 0.6, !(shaped && upright && free(0.66, 0.16)));
     if (!upright && free(.56,.22)) {
-      // Three shingled plates on each flank. Their top edges sit on the
-      // shoulder blanket and the ridged outer lips overlap toward the tail.
       const lames = [];
       for (const sign of [-1,1]) for (let tier=0; tier<3; tier++) {
         const point = (inset) => (s,u) => {
@@ -676,7 +623,6 @@ export function dressCreature(ctx) {
       guards(shouldered.length ? shouldered : legs, 2, trim, "metal", arms.length ? "pauldron" : "guard");
       studs(shouldered.length ? shouldered : legs);
     } else if (bareBack && free(0.4, 0.12))
-      // A level back takes a crupper plate over the hips instead.
       put("crupper", "body", [shell([loopAt(0.26, 0.95, 0), loopAt(0.26, 1.04, girth * 0.09), loopAt(0.36, 1.05, girth * 0.13), loopAt(0.44, 1.04, girth * 0.08), loopAt(0.44, 0.95, 0)], true)], trim, "metal");
     if (upright && free(waist)) {
       tunic("tassets", waist + 0.1, hips + 0.1, 0.34, cloth, "canvas", 0.02);
@@ -689,11 +635,8 @@ export function dressCreature(ctx) {
     }
     if (dress.layers > 2) headpiece("helm");
   } else if (kindOf === "sage") {
-    // Robes: a long gown, a cloak over the back and a jewelled band.
     collar(true, 1.6);
     if (upright && free(0.45, 0.35)) {
-      // A ring of legs under the body leaves no room for a gown: a capelet
-      // over the shoulders instead.
       if (shaped && plan.limbs.some((l) => l.kind === "leg" && l.fan > 100)) tunic("capelet", 0.8, 0.44, 0.3, cloth, "canvas", 0.03);
       else {
         tunic("robe", 0.72, hips - 0.04, 0.44, cloth);
@@ -704,7 +647,6 @@ export function dressCreature(ctx) {
     if (dress.layers > 1 && arms.length) bands(arms, cloth, "canvas", "cuff", 0.5, 0.95, 1.5, 0.5);
     if (dress.layers > 2) headpiece("wrap");
   } else if (kindOf === "nomad") {
-    // Travelling dress: a poncho or saddle cloth, straps and leg wraps.
     collar(false, 1);
     if (upright && free(0.6, 0.28)) {
       tunic("poncho", 0.86, 0.42, 0.5, cloth, "canvas", 0.03);
@@ -714,7 +656,6 @@ export function dressCreature(ctx) {
     if (dress.layers > 1) bands(legs, cloth, "canvas", "wrap", 0.25, 0.8, 1.36, 0.05);
     if (dress.layers > 2) headpiece("circlet");
   } else if (kindOf === "ranger") {
-    // Field dress: a bandolier across the chest, a kilt and leather.
     const side = draw() < 0.5 ? 1 : -1;
     const wave = (a) => 0.11 * side * Math.sin(a) + 0.03 * Math.cos(a);
     if (free(0.62, 0.14)) {

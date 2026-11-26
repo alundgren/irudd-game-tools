@@ -5,8 +5,6 @@ import { silhouetteRuns, traceRegion } from "./turnaround.js";
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const lerp = (a, b, t) => a + (b - a) * t;
 
-// Match disconnected islands in an A-pose. Once the sleeve meets the
-// torso, extrapolate to the shoulder; the silhouette cannot resolve the seam.
 export function traceBiped(atlas, height) {
   const form = startingForm(() => 0.5);
   form.parts = [];
@@ -51,8 +49,6 @@ export function traceBiped(atlas, height) {
         sign > 0 ? a > core[1] + 0.009 : b < core[0] - 0.009,
       );
       const edge = sign > 0 ? islands.at(-1)?.[1] : islands[0]?.[0];
-      // When the trousers nearly meet, the opposite thigh can be a second
-      // island on the same side as the hand. Only join adjacent finger islands.
       const outside = islands.filter(([a, b]) =>
         sign > 0 ? edge - b < 0.053 : a - edge < 0.053,
       );

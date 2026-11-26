@@ -202,7 +202,6 @@ function subdivide(vertices, faces, creases) {
   );
   return { vertices: out, faces: quads, creases: nextSharp };
 }
-// Closed shells should face out even if an imported cage used the opposite winding.
 function orientShells(vertices, faces) {
   const { edges } = net(vertices, faces);
   const links = faces.map(() => []),
@@ -244,7 +243,6 @@ function orientShells(vertices, faces) {
   }
   return result;
 }
-// Give each smooth fan its own render vertex so a deliberate crease also splits normals.
 function splitNormals(mesh, faceted) {
   if (!mesh.creases.length && !faceted) return mesh;
   const { faceRings, edgeRings } = net(mesh.vertices, mesh.faces);
@@ -404,7 +402,6 @@ export function editCage(cage, action) {
         ),
       );
       const shift = costs.indexOf(Math.min(...costs));
-      // Keep the two old face indices stable by assigning the first wall panels to them.
       const walls = a.map((v, i) => [
         v,
         a[(i + 1) % N],

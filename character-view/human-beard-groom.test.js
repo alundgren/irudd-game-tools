@@ -27,7 +27,6 @@ test("beard atlas has six feathered tufts and a continuous patch of beard", () =
         if (a < 20) transparent++;
       }
     }
-    // Every tile has both real hair coverage AND feathered transparent gaps (zero opaque square stickers).
     assert.ok(opaque > tw * th * 0.12, `tile (${tx},${ty}) has hair coverage`);
     assert.ok(transparent > tw * th * 0.14, `tile (${tx},${ty}) has feathered transparent border/gaps`);
   }
@@ -53,7 +52,6 @@ test("salt-road warden grey beard has real tonal variation, responds to editable
   assert.equal(beard.material.userData.fibreLOD, true);
   assert.equal(beard.material.userData.portrait, true);
 
-  // Measure grey tonal spread across vertices (salt-and-pepper variation, not flat [1,1,1])
   const col = beard.geometry.attributes.color;
   let minL = 1, maxL = 0, sumL = 0;
   for (let i = 0; i < col.count; i++) {
@@ -66,7 +64,6 @@ test("salt-road warden grey beard has real tonal variation, responds to editable
   assert.ok(maxL - minL > 0.18, `grey beard tonal spread ${(maxL - minL).toFixed(3)} exceeds flat paste`);
   assert.ok(meanL > 0.25 && meanL < 0.60, `grey beard mean linear luma ${meanL.toFixed(3)} stays faithful to #bcb2a3`);
 
-  // Editable hairColor changes vertex colours cleanly
   const darkWarden = { ...warden, humanStyle: { ...warden.humanStyle, hairColor: "#241c18" } };
   const darkBeard = buildHead(darkWarden, false).children.find((m) => m.name === "facial-hair");
   let darkSum = 0;
@@ -76,7 +73,6 @@ test("salt-road warden grey beard has real tonal variation, responds to editable
   }
   assert.ok(darkSum / darkBeard.geometry.attributes.color.count < meanL * 0.25, "editable hairColor darkens beard");
 
-  // Central red-lip clearance holds cleanly (no moustache fangs covering the mouth)
   const tb = new T.Box3().setFromBufferAttribute(teeth.geometry.attributes.position);
   const mouthMidY = 0.5 * (tb.min.y + tb.max.y);
   const bp = beard.geometry.attributes.position;
@@ -107,7 +103,6 @@ test("Short beard and Full beard styles stay distinct in silhouette, volume, and
   assert.ok(clippedBox.min.y > shortBox.min.y, "the clipped jaw has less hanging hair");
   assert.ok(fullBox.min.y < shortBox.min.y - 0.025, "Full beard hangs well below Short beard");
   assert.ok(fullBox.max.z > shortBox.max.z + 0.001, "Full beard stands further forward than Short beard");
-  // Clay mode preserves sculpted mass without texture cutout
   const clayMesh = buildHead(warden, true).children.find((m) => m.name === "facial-hair");
   assert.equal(clayMesh.userData.originalBeardGroom, undefined);
   assert.equal(clayMesh.material.map, null);

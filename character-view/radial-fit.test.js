@@ -22,7 +22,6 @@ test("radial fit keeps its two ends anchored and wraps across the front axis", (
     assert.ok(Math.abs(geom.attributes.position.getZ(i) - r) < 1e-6),
   );
 });
-// The saved fit is private comparison data. See docs/local-references.md.
 const needsFit = { skip: !mhrFit && "examples/mhr-fit.json is not installed" };
 test("rig fit study reopens with the same editable torso and procedural joints", needsFit, () => {
   const form = mhrStudy(),

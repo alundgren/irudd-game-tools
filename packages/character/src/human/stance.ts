@@ -1,0 +1,1388 @@
+import * as T from "three";
+import { alignGroundContacts } from "../rig/ground.js";
+import type { Region } from "../rig/region.js";
+import type { BoneName } from "./catalogue.js";
+import { animateDrapes, type Drapes } from "./drape.js";
+import { postureRanges, type Posture, type PostureAxis } from "./posture.js";
+
+const rad = T.MathUtils.degToRad,
+  clamp = T.MathUtils.clamp,
+  tau = 2 * Math.PI;
+const X = new T.Vector3(1, 0, 0),
+  Y = new T.Vector3(0, 1, 0),
+  Z = new T.Vector3(0, 0, 1);
+type V = T.Vector3;
+type Q = T.Quaternion;
+
+const read = (p: Posture, key: PostureAxis): number => p[key] ?? postureRanges[key][2];
+const arc = (from: V, to: V) => new T.Quaternion().setFromUnitVectors(from, to);
+const turn = (axis: V, angle: number) => new T.Quaternion().setFromAxisAngle(axis, angle);
+const joint = (pitch: number, yaw = 0, roll = 0) =>
+  turn(Y, yaw).multiply(turn(Z, roll)).multiply(turn(X, pitch));
+function frame(along: V, hinge: V): Q {
+  const h = hinge.clone().addScaledVector(along, -hinge.dot(along)).normalize();
+  const third = new T.Vector3().crossVectors(along, h);
+  const m0 = along.x,
+    m1 = h.x,
+    m2 = third.x,
+    m3 = along.y,
+    m4 = h.y,
+    m5 = third.y,
+    m6 = along.z,
+    m7 = h.z,
+    m8 = third.z;
+  const trace = m0 + m4 + m8;
+  const q = new T.Quaternion();
+  if (trace > 0) {
+    const s = 0.5 / Math.sqrt(trace + 1);
+    q.set((m7 - m5) * s, (m2 - m6) * s, (m3 - m1) * s, 0.25 / s);
+  } else if (m0 > m4 && m0 > m8) {
+    const s = 2 * Math.sqrt(1 + m0 - m4 - m8);
+    q.set(0.25 * s, (m1 + m3) / s, (m2 + m6) / s, (m7 - m5) / s);
+  } else if (m4 > m8) {
+    const s = 2 * Math.sqrt(1 + m4 - m0 - m8);
+    q.set((m1 + m3) / s, 0.25 * s, (m5 + m7) / s, (m2 - m6) / s);
+  } else {
+    const s = 2 * Math.sqrt(1 + m8 - m0 - m4);
+    q.set((m2 + m6) / s, (m5 + m7) / s, 0.25 * s, (m3 - m1) / s);
+  }
+  return q.normalize();
+}
+const carry = (along0: V, hinge0: V, along: V, hinge: V) =>
+  frame(along, hinge).multiply(frame(along0, hinge0).invert());
+const smooth = (t: number) => t * t * (3 - 2 * t);
+const smoother = (t: number) => t * t * t * (t * (6 * t - 15) + 10);
+
+const needed: ReadonlyArray<BoneName> = [
+  "pelvis",
+  "spine_01",
+  "spine_02",
+  "spine_03",
+  "neck_01",
+  "head",
+  "clavicle_l",
+  "clavicle_r",
+  "upperarm_l",
+  "upperarm_r",
+  "lowerarm_l",
+  "lowerarm_r",
+  "hand_l",
+  "hand_r",
+  "thigh_l",
+  "thigh_r",
+  "calf_l",
+  "calf_r",
+  "foot_l",
+  "foot_r",
+  "ball_l",
+  "ball_r",
+];
+const digits = [
+  ["index", 0.72],
+  ["middle", 0.86],
+  ["ring", 1],
+  ["pinky", 1.1],
+  ["thumb", 0.3],
+] as const;
+
+interface FingerJoint {
+  readonly bone: T.Bone;
+  readonly axis: V;
+  readonly bend: number;
+  readonly gather: Q | null;
+}
+
+interface Side {
+  readonly side: number;
+  readonly suffix: "_l" | "_r";
+  readonly hipBone: T.Bone;
+  readonly kneeBone: T.Bone;
+  readonly footBone: T.Bone;
+  readonly toeBone: T.Bone;
+  readonly clavicle: T.Bone;
+  readonly shoulderBone: T.Bone;
+  readonly elbowBone: T.Bone;
+  readonly wristBone: T.Bone;
+  readonly hip: V;
+  readonly knee: V;
+  readonly ankle: V;
+  readonly ball: V;
+  readonly shoulder: V;
+  readonly elbow: V;
+  readonly wrist: V;
+  readonly palm: V | undefined;
+  readonly acrossPalm: V | null;
+  readonly thigh: number;
+  readonly shin: number;
+  readonly thighDir: V;
+  readonly shinDir: V;
+  readonly kneeHinge: V;
+  readonly heading: V;
+  readonly yaw: number;
+  readonly footReach: number;
+  readonly upper: V;
+  readonly lower: V;
+  readonly elbowAxis: V;
+  readonly upperLength: number;
+  readonly fingers: ReadonlyArray<FingerJoint>;
+  readonly elbowBend: number;
+  readonly fitted: number;
+}
+
+interface ArmSamples {
+  readonly points: ReadonlyArray<number>;
+  readonly give: ReadonlyArray<number>;
+  readonly body: ReadonlyArray<number>;
+  readonly waist: V | undefined;
+}
+
+export interface PostureRig {
+  readonly root: T.Bone;
+  readonly skeleton: T.Skeleton;
+  readonly mesh: T.SkinnedMesh;
+  readonly regions: ReadonlyMap<string, Region>;
+  readonly boneOf: (r: Region) => BoneName | undefined;
+  readonly sides: readonly [Side, Side];
+  readonly left: Side;
+  readonly right: Side;
+  readonly pelvisBone: T.Bone;
+  readonly pelvis: V;
+  readonly spine: readonly [T.Bone, T.Bone, T.Bone];
+  readonly neckBone: T.Bone;
+  readonly headBone: T.Bone;
+  readonly floor: number;
+  readonly pelvisRest: V;
+  readonly limb: number;
+  readonly half: number;
+  readonly hipHalf: number;
+  readonly bones: ReadonlyArray<T.Bone>;
+  narrowest: number;
+  skirted: number;
+  arms: ReadonlyArray<ArmSamples | null>;
+}
+
+export function postureRig(
+  regions: ReadonlyMap<string, Region>,
+  root: T.Bone,
+  skeleton: T.Skeleton,
+  mesh: T.SkinnedMesh,
+  boneOf: (r: Region) => BoneName | undefined,
+): PostureRig | null {
+  const byBone = new Map<string, Region>();
+  for (const r of regions.values()) {
+    const b = boneOf(r);
+    if (b && !byBone.has(b)) byBone.set(b, r);
+  }
+  const region = (name: string): Region => {
+    const r = byBone.get(name);
+    if (!r) throw new Error(`The adult rig has no ${name}.`);
+    return r;
+  };
+  if (!needed.every((name) => byBone.get(name)?.bones[0] && byBone.get(name)?.points[0]))
+    return null;
+  const bone = (name: string): T.Bone => {
+    const b = region(name).bones[0];
+    if (!b) throw new Error(`The adult rig has no ${name} joint.`);
+    return b;
+  };
+  const at = (name: string): V => {
+    const p = region(name).points[0];
+    if (!p) throw new Error(`The adult rig has no ${name} point.`);
+    return p.clone();
+  };
+  for (const name of needed)
+    if (bone(name).quaternion.lengthSq() < 0.99 || Math.abs(bone(name).quaternion.w) < 0.999999)
+      return null;
+  const makeSide = (suffix: "_l" | "_r", side: number): Side => {
+    const hip = at("thigh" + suffix),
+      knee = at("calf" + suffix),
+      ankle = at("foot" + suffix),
+      ball = at("ball" + suffix);
+    const shoulder = at("upperarm" + suffix),
+      elbow = at("lowerarm" + suffix),
+      wrist = at("hand" + suffix);
+    const heading = new T.Vector3(ball.x - ankle.x, 0, ball.z - ankle.z);
+    const reach = heading.length();
+    heading.normalize();
+    const line = ankle.clone().sub(hip).normalize();
+    const pole = heading.clone().addScaledVector(line, -heading.dot(line)).normalize();
+    const kneeHinge = new T.Vector3().crossVectors(line, pole).normalize();
+    const upper = elbow.clone().sub(shoulder).normalize(),
+      lower = wrist.clone().sub(elbow).normalize();
+    const elbowAxis = new T.Vector3().crossVectors(upper, lower);
+    if (elbowAxis.lengthSq() < 0.025) elbowAxis.crossVectors(lower, Z);
+    if (elbowAxis.lengthSq() < 0.001) elbowAxis.set(-1, 0, 0);
+    elbowAxis.normalize();
+    if (new T.Vector3().crossVectors(elbowAxis, lower).z < 0) elbowAxis.negate();
+    const fingers: FingerJoint[] = [];
+    const index = byBone.get("index_01" + suffix)?.points[0],
+      pinky = byBone.get("pinky_01" + suffix)?.points[0];
+    if (index && pinky) {
+      const across = pinky.clone().sub(index).normalize().multiplyScalar(side);
+      const along = (digit: string): V | null => {
+        const a = byBone.get(digit + "_01" + suffix)?.points[0],
+          b = byBone.get(digit + "_02" + suffix)?.points[0];
+        return a && b ? b.clone().sub(a).normalize() : null;
+      };
+      const middle = along("middle");
+      for (const [digit, bend] of digits) {
+        const axis = across.clone();
+        if (digit === "thumb") axis.lerp(new T.Vector3(side, 0, 0), 0.7).normalize();
+        const own = digit === "thumb" || digit === "middle" ? null : along(digit);
+        [0.64, 1, 0.63].forEach((factor, i) => {
+          const b = byBone.get(digit + "_0" + (i + 1) + suffix)?.bones[0];
+          if (b)
+            fingers.push({
+              bone: b,
+              axis,
+              bend: bend * factor,
+              gather: i === 0 && own && middle ? arc(own, middle) : null,
+            });
+        });
+      }
+    }
+    return {
+      side,
+      suffix,
+      hipBone: bone("thigh" + suffix),
+      kneeBone: bone("calf" + suffix),
+      footBone: bone("foot" + suffix),
+      toeBone: bone("ball" + suffix),
+      clavicle: bone("clavicle" + suffix),
+      shoulderBone: bone("upperarm" + suffix),
+      elbowBone: bone("lowerarm" + suffix),
+      wristBone: bone("hand" + suffix),
+      hip,
+      knee,
+      ankle,
+      ball,
+      shoulder,
+      elbow,
+      wrist,
+      palm: byBone
+        .get("middle_01" + suffix)
+        ?.points[0]?.clone()
+        .sub(wrist),
+      acrossPalm: index && pinky ? pinky.clone().sub(index).normalize() : null,
+      thigh: hip.distanceTo(knee),
+      shin: knee.distanceTo(ankle),
+      thighDir: knee.clone().sub(hip).normalize(),
+      shinDir: ankle.clone().sub(knee).normalize(),
+      kneeHinge,
+      heading,
+      yaw: Math.atan2(heading.x, heading.z),
+      footReach: reach,
+      upper,
+      lower,
+      elbowAxis,
+      upperLength: shoulder.distanceTo(elbow),
+      fingers,
+      elbowBend: Math.acos(clamp(upper.dot(lower), -1, 1)),
+      fitted: Math.atan2(Math.hypot(upper.x, upper.z), -upper.y),
+    };
+  };
+  const left = makeSide("_l", 1),
+    right = makeSide("_r", -1);
+  const sides: readonly [Side, Side] = [left, right];
+  const spine: readonly [T.Bone, T.Bone, T.Bone] = [
+    bone("spine_01"),
+    bone("spine_02"),
+    bone("spine_03"),
+  ];
+  const rig: PostureRig = {
+    root,
+    skeleton,
+    mesh,
+    regions,
+    boneOf,
+    sides,
+    left,
+    right,
+    pelvisBone: bone("pelvis"),
+    pelvis: at("pelvis"),
+    spine,
+    neckBone: bone("neck_01"),
+    headBone: bone("head"),
+    floor: Math.min(left.ankle.y, right.ankle.y),
+    pelvisRest: bone("pelvis").position.clone(),
+    limb: Math.min(...sides.map((s) => s.thigh + s.shin)),
+    half: (left.ankle.x - right.ankle.x) / 2,
+    hipHalf: (left.hip.x - right.hip.x) / 2,
+    bones: [
+      bone("pelvis"),
+      ...spine,
+      bone("neck_01"),
+      bone("head"),
+      ...sides.flatMap((s) => [
+        s.clavicle,
+        s.shoulderBone,
+        s.elbowBone,
+        s.wristBone,
+        s.hipBone,
+        s.kneeBone,
+        s.footBone,
+        s.toeBone,
+        ...s.fingers.map((f) => f.bone),
+      ]),
+    ],
+    narrowest: 0,
+    skirted: 0,
+    arms: [],
+  };
+  rig.narrowest = legRoom(rig);
+  rig.skirted = skirtDepth(rig);
+  rig.arms = sides.map((s) => armSamples(rig, s));
+  return rig;
+}
+
+function owners(rig: PostureRig, ids: ReadonlyArray<string>): Set<number> {
+  const wanted = new Set(ids);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const r of rig.regions.values())
+      if (!wanted.has(r.part.id) && r.part.parent !== null && wanted.has(r.part.parent)) {
+        wanted.add(r.part.id);
+        grew = true;
+      }
+  }
+  const bones = new Set<number>();
+  for (const r of rig.regions.values())
+    if (wanted.has(r.part.id)) for (const b of r.bones) bones.add(rig.skeleton.bones.indexOf(b));
+  return bones;
+}
+function regionsWhere(rig: PostureRig, test: (bone: string) => boolean): string[] {
+  return [...rig.regions.values()].filter((r) => test(rig.boneOf(r) ?? "")).map((r) => r.part.id);
+}
+function dominant(mesh: T.SkinnedMesh, i: number): number {
+  const ids = mesh.geometry.getAttribute("skinIndex").array,
+    w = mesh.geometry.getAttribute("skinWeight").array;
+  let best = 0;
+  for (let j = 1; j < 4; j++) if ((w[4 * i + j] ?? 0) > (w[4 * i + best] ?? 0)) best = j;
+  return ids[4 * i + best] ?? 0;
+}
+function legRoom(rig: PostureRig): number {
+  const p = rig.mesh.geometry.getAttribute("position");
+  let limit = 0;
+  for (const s of rig.sides) {
+    const bones = owners(
+      rig,
+      regionsWhere(rig, (b) => b === "thigh" + s.suffix || b === "calf" + s.suffix),
+    );
+    const high = s.hip.y - 0.62 * (s.hip.y - s.knee.y);
+    let slope = Infinity;
+    for (let i = 0; i < p.count; i++) {
+      const y = p.getY(i);
+      if (y > high || y < s.ankle.y || !bones.has(dominant(rig.mesh, i))) continue;
+      slope = Math.min(slope, (s.side * p.getX(i) - 0.004) / (s.hip.y - y));
+    }
+    const drop = s.hip.y - s.ankle.y;
+    limit = Math.max(
+      limit,
+      s.side * s.ankle.x - (Number.isFinite(slope) ? Math.max(0, slope) : 0) * drop,
+    );
+  }
+  return clamp(limit, 0.045, Math.max(0.045, rig.half));
+}
+function skirtDepth(rig: PostureRig): number {
+  const p = rig.mesh.geometry.getAttribute("position");
+  const band = clamp(rig.half - 0.09, 0, 0.02),
+    knee = (rig.left.knee.y + rig.right.knee.y) / 2;
+  let low = knee,
+    found = 0;
+  for (let i = 0; i < p.count; i++) {
+    const y = p.getY(i);
+    if (y >= knee || Math.abs(p.getX(i)) >= band) continue;
+    found++;
+    low = Math.min(low, y);
+  }
+  return found < 12 ? 0 : clamp((knee - low) / Math.max(0.01, knee - rig.floor), 0, 1);
+}
+
+const flankCell = 0.018;
+const flankKey = (y: number, z: number) =>
+  (Math.floor(y / flankCell) + 4096) * 8192 + Math.floor(z / flankCell) + 4096;
+
+function armSamples(rig: PostureRig, s: Side): ArmSamples {
+  const mesh = rig.mesh,
+    p = mesh.geometry.getAttribute("position");
+  const arm = owners(
+    rig,
+    regionsWhere(rig, (b) => ["upperarm", "lowerarm", "hand"].some((n) => b === n + s.suffix)),
+  );
+  const girdle = owners(
+    rig,
+    regionsWhere(rig, (b) => /^(clavicle|upperarm)_[lr]$/.test(b)),
+  );
+  const hand = owners(
+    rig,
+    regionsWhere(rig, (b) => b === "hand" + s.suffix),
+  );
+  const sleeve: number[] = [],
+    palm: number[] = [],
+    body: number[] = [];
+  const v = new T.Vector3(),
+    outer = new Map<number, number>(),
+    rest: number[] = [];
+  for (let i = 0; i < p.count; i++) {
+    const owner = dominant(mesh, i);
+    v.fromBufferAttribute(p, i);
+    if (arm.has(owner)) {
+      const k = flankKey(v.y, v.z),
+        o = outer.get(k);
+      if (!(o !== undefined && o >= s.side * v.x)) outer.set(k, s.side * v.x);
+      if (v.distanceTo(s.shoulder) > 0.9 * s.upperLength) (hand.has(owner) ? palm : sleeve).push(i);
+    } else if (
+      !girdle.has(owner) &&
+      s.side * v.x > -0.01 &&
+      v.y < s.shoulder.y - 0.7 * s.upperLength &&
+      v.y > s.knee.y
+    )
+      rest.push(i);
+  }
+  for (const i of rest) {
+    const o = outer.get(flankKey(p.getY(i), p.getZ(i)));
+    if (!(o !== undefined && s.side * p.getX(i) > o - 0.005)) body.push(i);
+  }
+  const thin = (list: number[], most: number) =>
+    list.length > most ? list.filter((_, k) => k % Math.ceil(list.length / most) === 0) : list;
+  const kept = [thin(sleeve, 260), thin(palm, 160)] as const;
+  return {
+    points: [...kept[0], ...kept[1]],
+    give: [...kept[0].map(() => 0.022), ...kept[1].map(() => 0.009)],
+    body: thin(body, 6000),
+    waist: waistContact(body, p, s),
+  };
+}
+function skinnedPoints(rig: PostureRig, list: ReadonlyArray<number>): Float32Array {
+  const mesh = rig.mesh,
+    out = new Float32Array(list.length * 3),
+    v = new T.Vector3();
+  rig.root.parent?.updateMatrixWorld(true);
+  rig.root.updateMatrixWorld(true);
+  mesh.skeleton.update();
+  list.forEach((i, k) => mesh.getVertexPosition(i, v).toArray(out, k * 3));
+  return out;
+}
+
+function chain(bone: T.Object3D | null, root: T.Bone): T.Object3D[] {
+  const out: T.Object3D[] = [];
+  for (let b = bone; b; b = b.parent) {
+    out.push(b);
+    if (b === root) break;
+  }
+  return out;
+}
+function worldQuat(bone: T.Object3D | null, root: T.Bone): Q {
+  const list = chain(bone, root);
+  const q = new T.Quaternion();
+  for (let i = list.length - 1; i >= 0; i--) {
+    const b = list[i];
+    if (b) q.multiply(b.quaternion);
+  }
+  return q;
+}
+function worldPoint(bone: T.Object3D, root: T.Bone): V {
+  const list = chain(bone, root);
+  const q = new T.Quaternion(),
+    p = new T.Vector3(),
+    v = new T.Vector3();
+  for (let i = list.length - 1; i >= 0; i--) {
+    const b = list[i];
+    if (!b) continue;
+    p.add(v.copy(b.position).applyQuaternion(q));
+    q.multiply(b.quaternion);
+  }
+  return p;
+}
+function setWorld(bone: T.Bone, root: T.Bone, q: Q): void {
+  bone.quaternion.copy(worldQuat(bone.parent, root).invert().multiply(q)).normalize();
+}
+
+interface Foot {
+  readonly ankle: V;
+  readonly yaw: number;
+  readonly pitch: number;
+  readonly toe: number;
+  readonly eased?: boolean;
+}
+
+function placeLeg(rig: PostureRig, s: Side, target: Foot): number {
+  const hip = worldPoint(s.hipBone, rig.root);
+  const to = target.ankle.clone().sub(hip);
+  const full = s.thigh + s.shin,
+    most = full * 0.9993,
+    least = Math.abs(s.thigh - s.shin) + 0.01;
+  let d = to.length();
+  const soft = full * 0.9955;
+  if (target.eased && d > soft)
+    d = soft + (most - soft) * (1 - Math.exp(-(d - soft) / (most - soft)));
+  d = clamp(d, least, most);
+  const line = to.normalize();
+  const yaw = target.yaw,
+    ahead = new T.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+  const pole = ahead.addScaledVector(line, -ahead.dot(line)).normalize();
+  const a = (s.thigh * s.thigh - s.shin * s.shin + d * d) / (2 * d),
+    h = Math.sqrt(Math.max(0, s.thigh * s.thigh - a * a));
+  const knee = hip.clone().addScaledVector(line, a).addScaledVector(pole, h),
+    ankle = hip.clone().addScaledVector(line, d);
+  const hinge = new T.Vector3().crossVectors(line, pole).normalize();
+  const upper = carry(s.thighDir, s.kneeHinge, knee.clone().sub(hip).normalize(), hinge),
+    lower = carry(s.shinDir, s.kneeHinge, ankle.clone().sub(knee).normalize(), hinge);
+  setWorld(s.hipBone, rig.root, upper);
+  s.kneeBone.quaternion.copy(upper.clone().invert().multiply(lower)).normalize();
+  const foot = turn(Y, yaw - s.yaw).multiply(turn(X, target.pitch));
+  s.footBone.quaternion.copy(lower.invert().multiply(foot)).normalize();
+  s.toeBone.quaternion.copy(turn(X, -target.toe));
+  return hip.y + line.y * d - target.ankle.y;
+}
+function hipHeight(
+  rig: PostureRig,
+  s: Side,
+  pelvisQ: Q,
+  pelvisAt: V,
+  ankle: V,
+  ease: number,
+): number {
+  const offset = s.hip.clone().sub(rig.pelvis).applyQuaternion(pelvisQ);
+  const dx = pelvisAt.x + offset.x - ankle.x,
+    dz = pelvisAt.z + offset.z - ankle.z;
+  const length = (s.thigh + s.shin) * (1 - ease);
+  return ankle.y + Math.sqrt(Math.max(0.0001, length * length - dx * dx - dz * dz)) - offset.y;
+}
+function setPelvis(rig: PostureRig, at: V, q: Q): void {
+  rig.pelvisBone.quaternion.copy(q);
+  rig.pelvisBone.position.copy(rig.pelvisRest).add(at.clone().sub(rig.pelvis));
+}
+
+interface Arm {
+  waist: number;
+  hang: number;
+  ease: number;
+  abduct: number;
+  forward: number;
+  roll: number;
+  elbow: number;
+  wrist: number;
+  fingers: number;
+  swing?: number;
+  bend?: number;
+  release?: number;
+}
+
+function placeArm(rig: PostureRig, s: Side, arm: Arm): void {
+  const parent = worldQuat(s.clavicle, rig.root);
+  const carried = s.upper.clone().applyQuaternion(parent);
+  const a = arm.abduct,
+    f = arm.forward,
+    ease = arm.ease;
+  const down = new T.Vector3(
+    s.side * Math.sin(a),
+    -Math.cos(a) * Math.cos(f),
+    Math.cos(a) * Math.sin(f),
+  );
+  const world = new T.Quaternion().slerp(arc(carried, down), arm.hang).multiply(parent);
+  if (arm.roll)
+    world.premultiply(turn(s.upper.clone().applyQuaternion(world), s.side * arm.roll * arm.hang));
+  if (arm.swing) world.premultiply(turn(X.clone().applyQuaternion(parent), -arm.swing));
+  s.shoulderBone.quaternion.copy(parent.invert().multiply(world)).normalize();
+  const free = Math.max(
+    arm.release ?? 0,
+    1 - T.MathUtils.smoothstep(s.elbowBend, rad(42), rad(62)),
+  );
+  s.elbowBone.quaternion.copy(
+    turn(s.elbowAxis, (arm.elbow - s.elbowBend) * free * ease + (arm.bend ?? 0)),
+  );
+  s.wristBone.quaternion.copy(turn(s.elbowAxis, arm.wrist * ease));
+  if (arm.waist > 0) restHandAtWaist(rig, s, arm.waist);
+  const curl = arm.fingers,
+    still = new T.Quaternion();
+  for (const finger of s.fingers) {
+    finger.bone.quaternion.copy(turn(finger.axis, finger.bend * curl));
+    if (finger.gather)
+      finger.bone.quaternion.premultiply(
+        still.identity().slerp(finger.gather, clamp(curl * 0.9, 0, 0.8)),
+      );
+  }
+}
+function waistContact(
+  points: ReadonlyArray<number>,
+  positions: T.BufferAttribute | T.InterleavedBufferAttribute,
+  side: Side,
+): V | undefined {
+  const y = side.hip.y + 0.25 * (side.shoulder.y - side.hip.y);
+  const normal = new T.Vector3(side.side * 0.86, 0, 0.51);
+  let best = -Infinity,
+    contact: V | undefined;
+  const point = new T.Vector3();
+  for (const i of points) {
+    point.fromBufferAttribute(positions, i);
+    const dy = Math.abs(point.y - y);
+    if (dy > 0.055) continue;
+    const extent = point.dot(normal) - 2 * dy;
+    if (extent > best) {
+      best = extent;
+      contact = point.clone();
+    }
+  }
+  return contact?.addScaledVector(normal, 0.018);
+}
+function restHandAtWaist(rig: PostureRig, s: Side, amount: number): void {
+  const contact = rig.arms[rig.sides.indexOf(s)]?.waist;
+  if (!contact || !s.palm || !s.acrossPalm) return;
+  const pelvis = worldPoint(rig.pelvisBone, rig.root);
+  const waistTurn = worldQuat(rig.pelvisBone, rig.root);
+  const wrist = contact.clone().sub(rig.pelvis).applyQuaternion(waistTurn).add(pelvis);
+  const down = new T.Vector3(-s.side * 0.22, -0.85, 0.48).normalize().applyQuaternion(waistTurn);
+  wrist.addScaledVector(down, -s.palm.length());
+  const pole = new T.Vector3(s.side * 0.9, -0.28, -0.64).applyQuaternion(waistTurn);
+  const across = new T.Vector3(s.side * 0.48, 0, -0.86).applyQuaternion(waistTurn);
+  placeHand(rig, s, amount, wrist, pole, down, across);
+}
+function placeHand(
+  rig: PostureRig,
+  s: Side,
+  amount: number,
+  wrist: V,
+  pole: V,
+  down: V,
+  across: V,
+): void {
+  if (!s.palm || !s.acrossPalm) return;
+  const shoulder = worldPoint(s.shoulderBone, rig.root);
+  const line = wrist.sub(shoulder);
+  const upperLength = s.upperLength,
+    lowerLength = s.elbow.distanceTo(s.wrist);
+  const length = clamp(
+    line.length(),
+    Math.abs(upperLength - lowerLength) + 0.001,
+    upperLength + lowerLength - 0.001,
+  );
+  line.normalize();
+  pole.addScaledVector(line, -pole.dot(line)).normalize();
+  const along = (upperLength ** 2 - lowerLength ** 2 + length ** 2) / (2 * length);
+  const elbow = line
+    .clone()
+    .multiplyScalar(along)
+    .addScaledVector(pole, Math.sqrt(Math.max(0, upperLength ** 2 - along ** 2)));
+  const forearm = line.multiplyScalar(length).sub(elbow).normalize();
+  elbow.normalize();
+  const hinge = new T.Vector3().crossVectors(elbow, forearm).normalize();
+  if (new T.Vector3().crossVectors(s.upper, s.lower).dot(s.elbowAxis) < 0) hinge.negate();
+  const armTurn = carry(s.upper, s.elbowAxis, elbow, hinge);
+  const lowerTurn = carry(s.lower, s.elbowAxis, forearm, hinge);
+  const handTurn = carry(s.palm.clone().normalize(), s.acrossPalm, down, across);
+  const shoulderTurn = worldQuat(s.clavicle, rig.root).invert().multiply(armTurn);
+  s.shoulderBone.quaternion.slerp(shoulderTurn, amount);
+  s.elbowBone.quaternion.slerp(armTurn.invert().multiply(lowerTurn), amount);
+  s.wristBone.quaternion.slerp(lowerTurn.invert().multiply(handTurn), amount);
+}
+
+function flank(rig: PostureRig, s: Side): Map<number, number> | null {
+  const samples = rig.arms[rig.sides.indexOf(s)];
+  if (!samples?.body.length) return null;
+  const p = skinnedPoints(rig, samples.body),
+    reach = new Map<number, number>();
+  for (let i = 0; i < p.length; i += 3) {
+    const k = flankKey(p[i + 1] ?? 0, p[i + 2] ?? 0),
+      x = s.side * (p[i] ?? 0),
+      r = reach.get(k);
+    if (!(r !== undefined && r >= x)) reach.set(k, x);
+  }
+  return reach;
+}
+function armRoom(rig: PostureRig, s: Side, arm: Arm, reach: Map<number, number> | null): number {
+  const samples = rig.arms[rig.sides.indexOf(s)];
+  if (!samples?.points.length || !reach) return arm.hang;
+  const sunk = (hang: number) => {
+    placeArm(rig, s, { ...arm, hang });
+    const p = skinnedPoints(rig, samples.points);
+    let hits = 0;
+    for (let i = 0; i < p.length; i += 3)
+      if (
+        s.side * (p[i] ?? 0) <
+        (reach.get(flankKey(p[i + 1] ?? 0, p[i + 2] ?? 0)) ?? -Infinity) -
+          (samples.give[i / 3] ?? 0)
+      )
+        hits++;
+    return hits;
+  };
+  const allowed = sunk(0) + Math.max(3, samples.points.length * 0.04);
+  for (let k = 12; k > 0; k--) if (sunk((arm.hang * k) / 12) <= allowed) return (arm.hang * k) / 12;
+  return 0;
+}
+export function massCentre(rig: PostureRig): V {
+  const at = (b: T.Bone) => worldPoint(b, rig.root),
+    sum = new T.Vector3();
+  let total = 0;
+  const add = (a: V, b: V, t: number, share: number) => {
+    sum.addScaledVector(a.clone().lerp(b, t), share);
+    total += share;
+  };
+  const pelvis = at(rig.pelvisBone),
+    neck = at(rig.neckBone),
+    head = at(rig.headBone);
+  add(pelvis, neck, 0.42, 0.5);
+  add(neck, head, 1.25, 0.08);
+  for (const s of rig.sides) {
+    const elbow = at(s.elbowBone),
+      wrist = at(s.wristBone),
+      knee = at(s.kneeBone),
+      ankle = at(s.footBone);
+    add(at(s.shoulderBone), elbow, 0.45, 0.027);
+    add(elbow, wrist, 0.68, 0.022);
+    add(at(s.hipBone), knee, 0.43, 0.1);
+    add(knee, ankle, 0.43, 0.046);
+    add(ankle, at(s.toeBone), 0.5, 0.014);
+  }
+  return sum.multiplyScalar(1 / total);
+}
+
+interface Upper {
+  spine: readonly [Q, Q, Q];
+  clavicles: readonly [Q, Q];
+  neck: Q;
+  head: Q;
+}
+interface Body extends Upper {
+  pelvis: { at: V; turn: Q };
+  feet: [Foot, Foot];
+  arms: [Arm, Arm];
+}
+
+function pose(rig: PostureRig, body: Body): void {
+  setPelvis(rig, body.pelvis.at, body.pelvis.turn);
+  rig.sides.forEach((s, i) => placeLeg(rig, s, body.feet[i === 0 ? 0 : 1]));
+  body.spine.forEach((q, i) => rig.spine[i === 0 ? 0 : i === 1 ? 1 : 2].quaternion.copy(q));
+  rig.sides.forEach((s, i) => s.clavicle.quaternion.copy(body.clavicles[i === 0 ? 0 : 1]));
+  rig.neckBone.quaternion.copy(body.neck);
+  rig.headBone.quaternion.copy(body.head);
+  rig.sides.forEach((s, i) => placeArm(rig, s, body.arms[i === 0 ? 0 : 1]));
+}
+
+interface TrunkOptions {
+  readonly tilt?: number;
+  readonly yaw?: number;
+  readonly pitch?: number;
+  readonly keep?: number;
+  readonly headYaw?: number | null;
+  readonly extraPitch?: number;
+  readonly extraYaw?: number;
+  readonly extraRoll?: number;
+}
+function trunk(rig: PostureRig, p: Posture, o: TrunkOptions = {}): Upper {
+  const {
+    tilt = 0,
+    yaw = 0,
+    pitch = 0,
+    keep = 1,
+    headYaw = null,
+    extraPitch = 0,
+    extraYaw = 0,
+    extraRoll = 0,
+  } = o;
+  const slouch = read(p, "slouch") * keep,
+    lean = read(p, "lean") * keep,
+    twist = read(p, "twist") * keep;
+  const round = Math.max(0, slouch),
+    lift = Math.max(0, -slouch);
+  const shares = [0.3, 0.4, 0.3] as const;
+  const pitches = [
+    rad(3 * round - 2 * lift + 2 * Math.max(0, lean) - 3 * Math.max(0, -lean)) +
+      extraPitch * shares[0],
+    rad(7 * round - 3 * lift + 2 * Math.max(0, lean) - 3 * Math.max(0, -lean)) +
+      extraPitch * shares[1],
+    rad(7 * round - 3 * lift + 1 * Math.max(0, lean) - 2 * Math.max(0, -lean)) +
+      extraPitch * shares[2],
+  ] as const;
+  const answer = -tilt * 1.32 + extraRoll,
+    turnTotal = rad(13) * twist - yaw + extraYaw;
+  const chestYaw = yaw + turnTotal;
+  const spine = [
+    joint(pitches[0], turnTotal * shares[0], answer * 0.42),
+    joint(pitches[1], turnTotal * shares[1], answer * 0.36),
+    joint(pitches[2], turnTotal * shares[2], answer * 0.22),
+  ] as const;
+  const shoulders = read(p, "shoulders") * keep,
+    shrug = read(p, "shrug") * keep;
+  const clavicle = (s: Side) =>
+    turn(Z, s.side * rad(5 * shrug + s.side * 4 * shoulders - 2 * round)).multiply(
+      turn(Y, -s.side * rad(7 * round - 4 * lift)),
+    );
+  const chestPitch = pitch + pitches[0] + pitches[1] + pitches[2],
+    chestRoll = tilt + answer;
+  const tiltWorld = -rad(9) * read(p, "headTilt") * keep + 0.3 * chestRoll,
+    yawWorld = headYaw ?? rad(20) * read(p, "headTurn") * keep + 0.35 * chestYaw,
+    pitchWorld =
+      rad(4 * round - 2 * lift - 9 * read(p, "chin") * keep + 2 * Math.max(0, lean)) +
+      extraPitch * 0.25;
+  const neckPitch = rad(8 * round - 2 * lift + 3 * Math.max(0, -lean));
+  const roll = tiltWorld - chestRoll,
+    turnHead = yawWorld - chestYaw,
+    nod = pitchWorld - chestPitch;
+  return {
+    spine,
+    clavicles: [clavicle(rig.left), clavicle(rig.right)],
+    neck: joint(neckPitch + (nod - neckPitch) * 0.25, turnHead * 0.35, roll * 0.4),
+    head: joint((nod - neckPitch) * 0.75, turnHead * 0.65, roll * 0.6),
+  };
+}
+function hangingArms(rig: PostureRig, p: Posture): [Arm, Arm] {
+  const elbows = read(p, "elbows"),
+    weight = read(p, "weight");
+  const arm = (s: Side): Arm => ({
+    waist: Math.max(0, s.side * read(p, "handAtWaist")),
+    hang: read(p, "arms"),
+    ease: read(p, "arms"),
+    abduct: rad(4.5),
+    forward: rad(2 + 3 * elbows - 3 * s.side * weight),
+    roll: rad(8),
+    elbow: rad(6 + 22 * elbows),
+    wrist: rad(4 + 6 * read(p, "hands")),
+    fingers: 0.3 + 0.5 * read(p, "hands"),
+  });
+  return [arm(rig.left), arm(rig.right)];
+}
+const footTurn = (p: Posture, s: Side, extra = 0) => s.side * rad(7 + 11 * read(p, "toes") + extra);
+
+export interface Standing {
+  readonly body: Body;
+  readonly half: number;
+  readonly lead: number;
+  readonly load: number;
+  readonly support: Side;
+  readonly free: Side;
+  readonly posture: Posture;
+  readonly tilt: number;
+  readonly yaw: number;
+  readonly pitch: number;
+  readonly hang: ReadonlyArray<number>;
+}
+
+export function stand(rig: PostureRig, posture: Posture): Standing {
+  const p = posture,
+    weight = read(p, "weight"),
+    load = Math.abs(weight),
+    lead = weight < 0 ? -1 : 1;
+  const support = lead > 0 ? rig.left : rig.right,
+    free = lead > 0 ? rig.right : rig.left;
+  const wanted = rig.hipHalf * (0.92 + 0.5 * read(p, "feet") - 0.1 * load);
+  const half = clamp(
+    Math.max(wanted, rig.narrowest * (1 - 0.12 * load)),
+    0.045,
+    Math.max(rig.half * 1.3, 0.05),
+  );
+  const lean = read(p, "lean"),
+    slouch = read(p, "slouch");
+  const tilt = lead * rad(1 + 7.5 * read(p, "hip")) * load;
+  const pelvisYaw = lead * rad(5) * read(p, "step") * load;
+  const pelvisPitch = rad(
+    -4 * Math.max(0, slouch) +
+      3 * Math.max(0, -slouch) -
+      4 * Math.max(0, -lean) +
+      2 * Math.max(0, lean),
+  );
+  const turnPelvis = joint(pelvisPitch, pelvisYaw, tilt);
+  const stepAhead = read(p, "step") * 0.13 * (0.35 + 0.65 * load) * (1 - 0.5 * rig.skirted);
+  const foot = (s: Side): Foot => {
+    const own = s === support || load < 0.02;
+    const z =
+      (rig.left.ankle.z + rig.right.ankle.z) / 2 + (s === free ? stepAhead : -stepAhead * 0.25);
+    return {
+      ankle: new T.Vector3(s.side * (half + (own ? 0 : 0.018 * load)), s.ankle.y, z),
+      yaw: footTurn(p, s, own ? 0 : 9 * load),
+      pitch: 0,
+      toe: 0,
+    };
+  };
+  const feet: [Foot, Foot] = [foot(rig.left), foot(rig.right)];
+  const upper = trunk(rig, p, { tilt, yaw: pelvisYaw, pitch: pelvisPitch });
+  const arms = hangingArms(rig, p);
+  const body: Body = { pelvis: { at: rig.pelvis.clone(), turn: turnPelvis }, feet, ...upper, arms };
+  const supportFoot = support === rig.left ? feet[0] : feet[1],
+    freeFoot = free === rig.left ? feet[0] : feet[1];
+  const middle = (f: Foot, s: Side) => f.ankle.z + 0.34 * s.footReach;
+  const share = 0.5 + 0.44 * load;
+  const aim = {
+    x: clamp(supportFoot.ankle.x * share + freeFoot.ankle.x * (1 - share), -0.085, 0.085),
+    z: middle(supportFoot, support) * share + middle(freeFoot, free) * (1 - share) + 0.012 * lean,
+  };
+  const shift = new T.Vector3(lead * load * half * 0.7, 0, -0.03 * Math.min(0, lean));
+  for (let pass = 0; pass < 4; pass++) {
+    const at = rig.pelvis.clone().add(shift);
+    const ease = 0.0015 + 0.002 * (1 - load);
+    at.y = hipHeight(rig, support, turnPelvis, at, supportFoot.ankle, ease);
+    if (load < 0.02)
+      at.y = Math.min(at.y, hipHeight(rig, free, turnPelvis, at, freeFoot.ankle, ease));
+    else {
+      const hip = free.hip.clone().sub(rig.pelvis).applyQuaternion(turnPelvis).add(at);
+      const length = (free.thigh + free.shin) * (1 - 0.004 - 0.012 * load),
+        drop = hip.y - freeFoot.ankle.y,
+        most = Math.sqrt(Math.max(0.0001, length * length - drop * drop));
+      const dx = freeFoot.ankle.x - hip.x,
+        dz = freeFoot.ankle.z - hip.z,
+        flat = Math.hypot(dx, dz);
+      if (flat > most) {
+        freeFoot.ankle.x = hip.x + (dx * most) / flat;
+        freeFoot.ankle.z = hip.z + (dz * most) / flat;
+      }
+    }
+    body.pelvis.at = at;
+    pose(rig, body);
+    if (pass === 3) break;
+    const centre = massCentre(rig);
+    shift.x += aim.x - centre.x;
+    shift.z += aim.z - centre.z;
+  }
+  rig.sides.forEach((s, i) => {
+    const arm = arms[i === 0 ? 0 : 1];
+    arm.hang = armRoom(rig, s, arm, flank(rig, s));
+    placeArm(rig, s, arm);
+  });
+  return {
+    body,
+    half,
+    lead,
+    load,
+    support,
+    free,
+    posture: p,
+    tilt,
+    yaw: pelvisYaw,
+    pitch: pelvisPitch,
+    hang: arms.map((arm) => arm.hang),
+  };
+}
+
+interface Held {
+  readonly bone: T.Bone;
+  readonly turn: Q;
+  readonly place: V;
+}
+const capture = (rig: PostureRig): Held[] =>
+  rig.bones.map((bone) => ({ bone, turn: bone.quaternion.clone(), place: bone.position.clone() }));
+function restore(state: ReadonlyArray<Held>): void {
+  for (const { bone, turn: q, place } of state) {
+    bone.quaternion.copy(q);
+    bone.position.copy(place);
+  }
+}
+function record(rig: PostureRig, tracks: Map<T.Bone, { turns: number[]; places: number[] }>): void {
+  for (const bone of rig.bones) {
+    let t = tracks.get(bone);
+    if (!t) tracks.set(bone, (t = { turns: [], places: [] }));
+    t.turns.push(...bone.quaternion.toArray());
+    if (bone === rig.pelvisBone) t.places.push(...bone.position.toArray());
+  }
+}
+function cloneBody(body: Body): Body {
+  const arm = (a: Arm): Arm => ({ ...a });
+  const foot = (f: Foot): Foot => ({ ...f, ankle: f.ankle.clone() });
+  return {
+    pelvis: { at: body.pelvis.at.clone(), turn: body.pelvis.turn.clone() },
+    feet: [foot(body.feet[0]), foot(body.feet[1])],
+    spine: [body.spine[0].clone(), body.spine[1].clone(), body.spine[2].clone()],
+    clavicles: [body.clavicles[0].clone(), body.clavicles[1].clone()],
+    neck: body.neck.clone(),
+    head: body.head.clone(),
+    arms: [arm(body.arms[0]), arm(body.arms[1])],
+  };
+}
+
+interface Gait {
+  readonly stance: number;
+  readonly travel: number;
+  readonly half: number;
+  readonly toeOut: number;
+  readonly strike: number;
+  readonly push: number;
+  readonly lift: number;
+  readonly origin: number;
+  readonly stride: number;
+  readonly swing: number;
+  readonly pitch: number;
+}
+
+function walkingFoot(s: Side, phase: number, gait: Gait): Foot {
+  const { travel, half, toeOut, stance } = gait;
+  const heel = 0.42 * s.footReach,
+    base = s.ankle.y,
+    rise = s.ankle.y - s.ball.y + 0.008;
+  const flat = (u: number) => gait.origin + travel * (0.5 - u);
+  const onHeel = (z: number, up: number) => ({
+    z: z - heel + heel * Math.cos(up) + rise * Math.sin(up),
+    y: base + heel * Math.sin(up) - rise * (1 - Math.cos(up)),
+  });
+  const onBall = (z: number, down: number) => ({
+    z: z + s.footReach - s.footReach * Math.cos(down) + rise * Math.sin(down),
+    y: base + s.footReach * Math.sin(down) - rise * (1 - Math.cos(down)),
+  });
+  const strike = gait.strike,
+    push = gait.push;
+  let z: number,
+    y: number,
+    pitch: number,
+    toe = 0;
+  if (phase < stance) {
+    const u = phase / stance;
+    if (u < 0.14) {
+      const up = strike * (1 - smooth(u / 0.14));
+      ({ z, y } = onHeel(flat(u), up));
+      pitch = -up;
+    } else if (u < 0.52) {
+      z = flat(u);
+      y = base;
+      pitch = 0;
+    } else {
+      const down = push * smooth((u - 0.52) / 0.48);
+      ({ z, y } = onBall(flat(u), down));
+      pitch = down;
+      toe = down;
+    }
+  } else {
+    const v = (phase - stance) / (1 - stance),
+      from = onBall(flat(1), push),
+      to = onHeel(flat(0), strike);
+    const e = smoother(v);
+    z = from.z + (to.z - from.z) * e;
+    y = from.y + (to.y - from.y) * e + gait.lift * Math.sin(Math.PI * v) ** 1.3 * (1 - 0.35 * v);
+    pitch = push + (-strike - push) * smooth(Math.min(1, v * 1.25));
+    toe = push * (1 - smooth(Math.min(1, v * 3)));
+  }
+  return {
+    ankle: new T.Vector3(s.side * half, y, z),
+    yaw: s.side * toeOut,
+    pitch,
+    toe,
+    eased: true,
+  };
+}
+
+export function postureClips(
+  rig: PostureRig,
+  standing: Standing,
+  clips: ReadonlyArray<T.AnimationClip>,
+  skirted = rig.skirted,
+): void {
+  const p = standing.posture,
+    rest = capture(rig),
+    base = standing.body;
+  const owned = new Set(rig.bones.map((b) => b.name));
+  const keys = 32;
+  for (const clip of clips) {
+    if (!["Idle", "Walk", "Reach", "Crouch"].includes(clip.name)) continue;
+    const tracks = new Map<T.Bone, { turns: number[]; places: number[] }>(),
+      times: number[] = [];
+    let duration = clip.duration;
+    let plan: WalkPlan | null = null;
+    if (clip.name === "Walk") {
+      duration = clamp(
+        1.16 * Math.sqrt(Math.max(0.1, rig.limb) / 0.8) * (1 - 0.07 * read(p, "stride")),
+        0.7,
+        2.1,
+      );
+      plan = planWalk(rig, standing, keys, skirted);
+    }
+    for (let i = 0; i <= keys; i++) {
+      const t = i / keys,
+        wave = (1 - Math.cos(t * tau)) * 0.5;
+      times.push(t * duration);
+      const body = cloneBody(base);
+      if (clip.name === "Idle") idle(rig, standing, body, t);
+      else if (clip.name === "Reach") reach(rig, standing, body, wave);
+      else if (clip.name === "Crouch") crouch(rig, standing, body, wave);
+      else if (plan) walk(rig, standing, body, t, plan, keys);
+      pose(rig, body);
+      record(rig, tracks);
+    }
+    const kept = clip.tracks.filter((track) => {
+      const name = track.name.slice(0, track.name.lastIndexOf("."));
+      return !owned.has(name) || !/\.(quaternion|position)$/.test(track.name);
+    });
+    const rootTrack = rig.root.name + ".position";
+    const made: T.KeyframeTrack[] = [
+      new T.VectorKeyframeTrack(
+        rootTrack,
+        [0, duration],
+        [...rig.root.position.toArray(), ...rig.root.position.toArray()],
+      ),
+    ];
+    for (const [bone, { turns, places }] of tracks) {
+      made.push(new T.QuaternionKeyframeTrack(bone.name + ".quaternion", times, turns));
+      if (places.length)
+        made.push(new T.VectorKeyframeTrack(bone.name + ".position", times, places));
+    }
+    const scale = duration / clip.duration;
+    for (const track of kept) {
+      if (track.name === rootTrack) continue;
+      if (scale !== 1)
+        for (let k = 0; k < track.times.length; k++) track.times[k] = (track.times[k] ?? 0) * scale;
+      made.push(track);
+    }
+    clip.tracks = made;
+    clip.duration = duration;
+    clip.resetDuration();
+    clip.optimize();
+  }
+  restore(rest);
+}
+
+function idle(rig: PostureRig, standing: Standing, body: Body, t: number): void {
+  const p = standing.posture,
+    breath = Math.sin(t * tau),
+    drift = Math.sin(t * tau + 1.1);
+  Object.assign(
+    body,
+    trunk(rig, p, {
+      tilt: standing.tilt,
+      yaw: standing.yaw,
+      pitch: standing.pitch,
+      extraPitch: rad(-0.9) * breath,
+      extraRoll: rad(0.5) * drift,
+    }),
+  );
+  body.head = body.head.clone().multiply(joint(rad(0.6) * breath, rad(2.2) * drift, 0));
+  body.pelvis.at.x += 0.004 * drift * (0.4 + standing.load);
+  body.pelvis.at.y -= 0.0015 * (1 - Math.cos(t * tau * 2)) * 0.5;
+  const lift = (q: Q, s: Side) =>
+    q.clone().multiply(turn(Z, s.side * rad(0.7) * (breath * 0.5 + 0.5)));
+  body.clavicles = [lift(body.clavicles[0], rig.left), lift(body.clavicles[1], rig.right)];
+  body.arms.forEach((arm, i) => {
+    arm.swing = rad(0.9) * Math.sin(t * tau + i * 2.1);
+    arm.bend = rad(1.2) * (breath * 0.5 + 0.5);
+  });
+}
+function reach(rig: PostureRig, standing: Standing, body: Body, wave: number): void {
+  const p = standing.posture;
+  Object.assign(
+    body,
+    trunk(rig, p, {
+      tilt: standing.tilt,
+      yaw: standing.yaw,
+      pitch: standing.pitch,
+      extraPitch: rad(7) * wave,
+      extraYaw: rad(9) * wave,
+    }),
+  );
+  body.arms.forEach((arm, i) => {
+    const lift = wave * ((rig.sides[i]?.side ?? 1) < 0 ? 1 : 0.42);
+    arm.waist *= 1 - wave;
+    arm.swing = rad(74) * lift;
+    arm.bend = rad(12) * lift;
+    arm.release = lift;
+    arm.roll *= 1 - lift;
+    arm.wrist *= 1 - 0.6 * lift;
+    arm.fingers *= 1 - 0.5 * lift;
+  });
+  body.pelvis.at.z += 0.012 * wave;
+}
+function crouch(rig: PostureRig, standing: Standing, body: Body, wave: number): void {
+  const p = standing.posture,
+    keep = 1 - 0.85 * smooth(wave);
+  const tilt = standing.tilt * keep,
+    yaw = standing.yaw * keep,
+    pitch = standing.pitch + rad(9) * wave;
+  body.pelvis.turn = joint(pitch, yaw, tilt);
+  Object.assign(body, trunk(rig, p, { tilt, yaw, pitch, extraPitch: rad(14) * wave }));
+  const centre = (body.feet[0].ankle.x + body.feet[1].ankle.x) / 2;
+  body.pelvis.at.x += (centre - body.pelvis.at.x) * (1 - keep) * 0.8;
+  body.pelvis.at.y -= rig.limb * 0.28 * wave;
+  body.pelvis.at.z -= rig.limb * 0.11 * wave;
+  for (const arm of body.arms) {
+    arm.waist *= 1 - wave;
+    arm.swing = rad(24) * wave;
+    arm.bend = rad(16) * wave;
+  }
+}
+
+interface WalkFrame {
+  readonly yaw: number;
+  readonly list: number;
+  readonly turnPelvis: Q;
+  readonly feet: [Foot, Foot];
+  readonly at: V;
+  height: number;
+}
+interface WalkPlan {
+  readonly gait: Gait;
+  readonly frames: ReadonlyArray<WalkFrame>;
+  readonly hangs: ReadonlyArray<number>;
+}
+function planWalk(rig: PostureRig, standing: Standing, keys: number, skirted: number): WalkPlan {
+  const p = standing.posture,
+    stride = read(p, "stride"),
+    swing = read(p, "swing"),
+    slouch = read(p, "slouch");
+  const length = rig.limb * (1.16 + 0.2 * stride) * (1 - 0.38 * skirted);
+  const gait: Gait = {
+    stance: 0.62,
+    travel: 0.62 * length,
+    half: Math.max(0.046 + 0.03 * Math.max(0, read(p, "feet")), rig.narrowest * 0.82),
+    toeOut: rad(5 + 6 * read(p, "toes")),
+    strike: rad(17 + 4 * stride),
+    push: rad(46 + 8 * stride) * (1 - 0.4 * skirted),
+    lift: rig.limb * (0.035 + 0.008 * stride) * (1 - 0.4 * skirted),
+    origin: (rig.left.ankle.z + rig.right.ankle.z) / 2 - 0.012,
+    stride,
+    swing,
+    pitch: rad(2.5 + 1.5 * stride - 3 * Math.max(0, slouch) + 2 * Math.max(0, -slouch)),
+  };
+  const frames: WalkFrame[] = [];
+  for (let i = 0; i < keys; i++) {
+    const t = i / keys,
+      a = t * tau;
+    const yaw = -rad(4.5 + 1.5 * stride) * Math.cos(a) * (1 - 0.4 * skirted),
+      list = rad(2.6 + 0.8 * swing) * Math.sin(a - 0.3);
+    const turnPelvis = joint(gait.pitch, yaw, list);
+    const feet: [Foot, Foot] = [
+      walkingFoot(rig.left, t % 1, gait),
+      walkingFoot(rig.right, (t + 0.5) % 1, gait),
+    ];
+    const at = rig.pelvis.clone();
+    at.x = (0.3 * gait.half + 0.006) * Math.sin(a - 0.3);
+    at.z = rig.pelvis.z + 0.012;
+    let height = Infinity;
+    rig.sides.forEach((s, k) => {
+      const phase = (t + k * 0.5) % 1;
+      if (phase < gait.stance * 0.9 || phase > 0.9)
+        height = Math.min(
+          height,
+          hipHeight(rig, s, turnPelvis, at, feet[k === 0 ? 0 : 1].ankle, 0.003),
+        );
+    });
+    frames.push({ yaw, list, turnPelvis, feet, at, height });
+  }
+  for (let pass = 0; pass < 2; pass++) {
+    const h = frames.map((f) => f.height);
+    frames.forEach((f, i) => {
+      f.height =
+        0.25 * (h[(i + keys - 1) % keys] ?? 0) +
+        0.5 * (h[i] ?? 0) +
+        0.25 * (h[(i + 1) % keys] ?? 0);
+    });
+  }
+  for (const f of frames) f.at.y = f.height - rig.limb * 0.003;
+  pose(rig, standing.body);
+  const hangs = rig.sides.map((s, i) => {
+    const arm = standing.body.arms[i === 0 ? 0 : 1];
+    return arm.waist || s.elbowBend > rad(42)
+      ? armRoom(rig, s, { ...arm, waist: 0, hang: arm.ease, release: 1 }, flank(rig, s))
+      : arm.hang;
+  });
+  return { gait, frames, hangs };
+}
+function walk(
+  rig: PostureRig,
+  standing: Standing,
+  body: Body,
+  t: number,
+  plan: WalkPlan,
+  keys: number,
+): void {
+  const p = standing.posture,
+    { gait } = plan,
+    f = plan.frames[Math.round(t * keys) % keys],
+    a = t * tau;
+  if (!f) return;
+  body.pelvis.turn = f.turnPelvis;
+  body.pelvis.at = f.at;
+  body.feet = f.feet;
+  const chestYaw = rad(3.4 + 2.4 * gait.swing) * Math.cos(a);
+  Object.assign(
+    body,
+    trunk(rig, p, {
+      tilt: f.list,
+      yaw: f.yaw,
+      pitch: gait.pitch,
+      keep: 0.85,
+      extraYaw: chestYaw - rad(13) * read(p, "twist") * 0.85 * 0.6,
+      extraPitch: rad(2 + 2 * gait.stride),
+      extraRoll: f.list * 0.45,
+      headYaw: rad(20) * read(p, "headTurn") * 0.3,
+    }),
+  );
+  const reachOut = 1 + 0.45 * gait.swing;
+  body.arms.forEach((arm, i) => {
+    const s = rig.sides[i === 0 ? 0 : 1];
+    const lag = a + (s.side > 0 ? Math.PI : 0) - 0.25,
+      c = Math.cos(lag);
+    arm.release = 1;
+    arm.waist = 0;
+    arm.hang = plan.hangs[i] ?? arm.hang;
+    arm.elbow = rad(8 + 10 * read(p, "elbows"));
+    arm.swing = rad(15) * reachOut * c - rad(9);
+    arm.bend = rad(12) * reachOut * (0.5 + 0.5 * Math.cos(lag - 0.45));
+    arm.fingers = Math.max(arm.fingers, 0.6);
+  });
+  const sway = (q: Q, s: Side) =>
+    q.clone().multiply(turn(Y, s.side * rad(1.5) * Math.cos(a + (s.side > 0 ? Math.PI : 0))));
+  body.clavicles = [sway(body.clavicles[0], rig.left), sway(body.clavicles[1], rig.right)];
+}
+
+export function standingClip(rig: PostureRig): T.AnimationClip {
+  const root = rig.root.position.toArray();
+  const tracks: T.KeyframeTrack[] = [
+    new T.VectorKeyframeTrack(rig.root.name + ".position", [0, 1], [...root, ...root]),
+  ];
+  for (const bone of rig.bones) {
+    const q = bone.quaternion.toArray();
+    tracks.push(new T.QuaternionKeyframeTrack(bone.name + ".quaternion", [0, 1], [...q, ...q]));
+  }
+  const v = rig.pelvisBone.position.toArray();
+  tracks.push(new T.VectorKeyframeTrack(rig.pelvisBone.name + ".position", [0, 1], [...v, ...v]));
+  return new T.AnimationClip("Stand", 1, tracks);
+}
+
+export interface HumanPostureInput {
+  readonly regions: ReadonlyMap<string, Region>;
+  readonly root: T.Bone;
+  readonly skeleton: T.Skeleton;
+  readonly actor: T.Object3D;
+  readonly skinned: T.SkinnedMesh;
+  readonly boneOf: (r: Region) => BoneName | undefined;
+  readonly posture: Posture;
+  readonly clips: ReadonlyArray<T.AnimationClip>;
+  readonly poses: ReadonlyArray<T.AnimationClip>;
+  readonly bindings: ReadonlyMap<
+    string,
+    { readonly bone: T.Bone; readonly position: V; readonly rotation: Q }
+  >;
+  readonly drapes?: Drapes | undefined;
+}
+
+export function applyHumanPosture(input: HumanPostureInput): boolean {
+  const { regions, root, skeleton, actor, skinned } = input;
+  const posed = postureRig(regions, root, skeleton, skinned, input.boneOf);
+  if (!posed) return false;
+  input.drapes?.stance(posed);
+  const standing = stand(posed, input.posture),
+    rest = standingClip(posed);
+  if (input.drapes) animateDrapes(actor, input.drapes, [rest]);
+  alignGroundContacts(actor, skinned, root, [rest]);
+  for (const track of rest.tracks) {
+    const at = track.name.lastIndexOf("."),
+      bone = skeleton.getBoneByName(track.name.slice(0, at));
+    if (!bone) continue;
+    if (track.name.endsWith(".position")) bone.position.fromArray(track.values);
+    else bone.quaternion.fromArray(track.values).normalize();
+  }
+  actor.updateMatrixWorld(true);
+  const held = new Map([...input.bindings.values()].map((b) => [b.bone, b]));
+  for (const clip of input.poses) {
+    const keyed = new Set(clip.tracks.map((t) => t.name));
+    for (const bone of [root, ...posed.bones]) {
+      const bind = held.get(bone);
+      if (!bind) continue;
+      const q = bind.rotation.toArray(),
+        v = bind.position.toArray();
+      if (!keyed.has(bone.name + ".quaternion") && !bone.quaternion.equals(bind.rotation))
+        clip.tracks.push(
+          new T.QuaternionKeyframeTrack(bone.name + ".quaternion", [0, 1], [...q, ...q]),
+        );
+      if (!keyed.has(bone.name + ".position") && !bone.position.equals(bind.position))
+        clip.tracks.push(new T.VectorKeyframeTrack(bone.name + ".position", [0, 1], [...v, ...v]));
+    }
+  }
+  postureClips(posed, standing, input.clips);
+  return true;
+}

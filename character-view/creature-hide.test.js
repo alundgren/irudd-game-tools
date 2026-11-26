@@ -27,14 +27,12 @@ test("isCreatureHidePart selects organic hide parts and respects artist override
   assert.equal(isCreatureHidePart(byId("head"), skin), true);
   assert.equal(isCreatureHidePart(byId("neck"), skin), true);
 
-  // Eyes, teeth, horns, dress, gear are excluded.
   for (const p of form.parts) {
     if (/(?:eye|pupil|iris|tooth|nostril|mouth|claw|horn|beak)$/.test(p.id) || p.id.startsWith("dress ") || p.id.startsWith("gear ")) {
       assert.equal(isCreatureHidePart(p, skin), false, `expected ${p.id} excluded`);
     }
   }
 
-  // Artist surface or paint override opts that part out cleanly.
   assert.equal(isCreatureHidePart({ ...byId("head"), surface: "metal" }, skin), false);
   assert.equal(isCreatureHidePart({ ...byId("head"), paint: { atlas: "a" } }, skin), false);
 });
@@ -63,7 +61,6 @@ test("buildHideCharts and packHideCharts produce valid non-overlapping charts an
     { mesh: ball, part: { id: "body", shape: "ellipsoid", motionRole: "torso" } },
   ]);
   assert.ok(charts.length >= 4);
-  // Remapped handRig must stay completely in bounds and keep non-empty digit bindings without mutating cached handGeo.handRig.
   assert.notEqual(hand.handRig, handGeo.handRig);
   const vCount = hand.geometry.attributes.position.count;
   for (const digit of hand.handRig) {
@@ -102,7 +99,6 @@ test("createHideEvaluator gives flat hides continuous palette-true variation and
     },
   };
   const form = buildCreature(flatPlan);
-  // Simulate an artist recolouring the head in an expanded authored recipe.
   form.parts.find((p) => p.id === "head").color = "#c84030";
   const objects = new Map();
   for (const part of form.parts) {
@@ -118,13 +114,10 @@ test("createHideEvaluator gives flat hides continuous palette-true variation and
   ev.evaluate(botOut, 0, 0.4, 0, 0, -1, 0, bodyLayer, null, 1);
 
   for (const v of [...topOut, ...botOut]) assert.ok(Number.isFinite(v));
-  // Dorsal top is visibly richer/deeper than ventral underside, and roughness varies.
   assert.ok(botOut[0] + botOut[1] + botOut[2] > topOut[0] + topOut[1] + topOut[2] + 0.12);
   assert.ok(topOut[4] < botOut[4], "dorsal hide should have sleeker roughness than ventral belly");
-  // Palette preserved: purple stays purple (blue & red stronger than green on dorsal body).
   assert.ok(topOut[2] > topOut[1] * 1.4 && topOut[0] > topOut[1] * 1.1);
 
-  // Per-part artist edit on head is respected (red channel dominates on head).
   const headOut = new Float64Array(5);
   ev.evaluate(headOut, 0, 0.8, 0.5, 0.5, 0.2, 0.8, ev.partLayers.get("head"), null, 1);
   assert.ok(headOut[0] > headOut[2] * 1.8, "recoloured head keeps its authored red hue");

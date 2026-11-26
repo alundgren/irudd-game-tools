@@ -3,8 +3,6 @@ import chart from "./human-photo-detail-data.json" with { type: "json" };
 import pigment from "./human-skin-pigment-data.json" with { type: "json" };
 import { randomStream } from "./random.js";
 
-// Grayscale residuals from a generated cheek study. Source skin hue and broad
-// lighting were removed offline. Values are centred on 128.
 export const photoDetailNames = Object.keys(chart.patches);
 const decoded = new Map();
 function reflected(value, size) {
@@ -33,8 +31,6 @@ export function photoDetail(choice, seed) {
   };
 }
 
-// Signed variation in bare-skin colour from the cheeks and forehead of the
-// original runner study. Rotation and phase vary with the saved face seed.
 export function skinPigment(seed) {
   const random = randomStream(seed ^ 0x0b2739c1);
   const index = Math.floor(random() * pigment.patches.length);

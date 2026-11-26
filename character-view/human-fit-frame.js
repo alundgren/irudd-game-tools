@@ -1,9 +1,6 @@
 import {Vector3} from "three";
 import {humanControls,humanRestPositions} from "./human-surface.js";
 
-// A stored offset points out of the surface in the pose in which it was made.
-// Transport it in the tangent frame of the same triangle when the user reshapes
-// the underlying arm or face. Saved offsets stay in their original file format.
 let anchorFaces;
 function findAnchorFaces(surface) {
   const anchors=humanControls().ids, cells=new Map(Array.from(anchors,(v,i)=>[v,i])),

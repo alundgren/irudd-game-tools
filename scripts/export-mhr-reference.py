@@ -10,7 +10,6 @@ body = next(o for o in bpy.context.scene.objects if o.type == "MESH")
 rig = body.find_armature()
 if not rig or not body.vertex_groups:
     raise ValueError("Expected the release's weighted armature")
-# Verify a joint actually drives skin before exporting its neutral state.
 graph = bpy.context.evaluated_depsgraph_get()
 def positions():
     mesh = body.evaluated_get(graph)
@@ -27,8 +26,6 @@ if moved < 0.01:
 elbow.matrix_basis = initial
 bpy.context.view_layer.update()
 print(f"Reference check: {len(rest)} vertices, {len(rig.data.bones)} bones, elbow displacement {moved:.4f} m")
-# The study needs the skeleton and rest surface. Exclude the release's
-# expression library, animations, and materials from this smaller conversion.
 bpy.ops.export_scene.gltf(filepath=str(dest), export_format="GLB",
                           export_morph=False, export_animations=False,
                           export_skins=True, export_all_influences=True,

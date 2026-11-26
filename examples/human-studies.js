@@ -201,7 +201,6 @@ const looks = [
     "#9d7260",
   ],
 ];
-// Fits to private reference bodies and heads. Both are empty in a fresh checkout.
 import { workshopFits, headFits } from "./local-references.js";
 const scannedHead = headFits["lee-perry-smith"];
 

@@ -149,15 +149,13 @@ A wing group takes `structure` (`plain`, `bat`, `feather` or `insect`), `ribs`, 
 
 ## References
 
-The goals come from published work on Spore's creature creator and from creatures that Maxis or the Sporepedia picked out.
+The motion reference below informed the tests. Two community designs supplied private comparison targets.
 
 - Hecker, Raabe, Enslow, DeWeese, Maynard and van Prooijen, *Real-time Motion Retargeting to Highly Varied User-Created Morphologies*, SIGGRAPH 2008. [Paper and notes](https://chrishecker.com/Real-time_Motion_Retargeting_to_Highly_Varied_User-Created_Morphologies) · [doi 10.1145/1360612.1360626](https://doi.org/10.1145/1360612.1360626). The source for limb-relative motion that survives any leg count.
-- [IEEE Spectrum, *Engineering Spore*](https://spectrum.ieee.org/engineering-spore), on the spine-and-parts creator.
-- [Maxis Captain Postcard Challenge winners](https://www.spore.com/what/ga_captains), with the judges' notes on extra hands, repeated armour and aquatic builds.
-- Development target: [Breen](http://www.spore.com/sporepedia#qry=sast-500314050878) (Sporepedia 500314050878), an upright creature on ten legs with long arms.
-- Held-out target: [Abaoth by dragonmaker94](http://www.spore.com/sporepedia#qry=sast-501125203656) (Sporepedia 501125203656), a floating maw surrounded by tentacles.
+- Development target: an upright creature on ten legs with long arms.
+- Held-out target: a floating maw surrounded by tentacles.
 
-Reference images, models and the creatures built to match them stay on the author's machine. This page cites them by address and reports what was measured.
+Reference images, models and the creatures built to match them stay on the author's machine. This page reports what was measured.
 
 ## Measured results
 
@@ -209,26 +207,26 @@ Measured on 23 November 2026 with the triangles of the built and skinned creatur
 
 ## The held-out trial
 
-The protocol was fixed before looking: freeze the creature code, record its hashes, then take the first creature in the Sporepedia's featured list as the target and build it through the panel alone.
+The protocol was fixed before looking: freeze the creature code, record its hashes, then take the first creature in the private reference shortlist as the target and build it through the panel alone.
 
 **Frozen attempt (the held-out result).** Built with 57 panel actions. The result has the dark body, eight small eyes and 38 tentacles of the target. It misses the features that make the target recognisable: there was no way to open a jaw or add teeth, the body lay on the floor because only legs could lift it, the tentacles were straight and left the body in comb-like rows, and the fourth group of tentacles was refused by the limit of 48 joined skin regions. Likeness as judged by the author: about 30 of 100.
 
 **After the trial (not held-out).** Those four failures became changes: a jaw with gape and teeth, floating for legless bodies, tentacles that fan around the body and curl, and a skin that leaves the smallest pieces separate past the join limit. A second build with 64 panel actions floats, has 22 teeth in an open maw and 46 curling tentacles in four fans. The author judges it at about 55 of 100. It still lacks the target's long needle fangs, arms that leave the body upward and downward as densely as sideways, and its pale tips. This second build was made with knowledge of the target and counts as development, not as a test.
 
-**Development target.** Breen was rebuilt with 28 panel actions: an upright body, ten jointed legs in a fan, long arms with large hands and a wide head with large eyes. Its legs come out as stilts where the original's are short and finger-like.
+**Development target.** The ten-legged creature was rebuilt with 28 panel actions: an upright body, ten jointed legs in a fan, long arms with large hands and a wide head with large eyes. Its legs come out as stilts where the original's are short and finger-like.
 
 ## How far this is from the best creature creators
 
-The aim is 80 of 100 against the best of Spore's creature creator, with The Sims 4 and Dragon's Dogma 2 as the bar for finish. These scores are the author's judgement after the work above. They are estimates, not measurements, and an art review should replace them.
+The aim is 80 of 100 against the commercial reference editors for body-plan flexibility and surface finish. These scores are the author's judgement after the work above. They are estimates, not measurements, and an art review should replace them.
 
 | Aspect | Estimate | Why |
 | --- | --- | --- |
 | Freedom of body plan | 65 | Any posture, eight limb groups of five kinds, radial stances, several heads. One spine only, limbs leave the flanks, no branching bodies. |
-| Direct manipulation | 40 | The plan is edited with sliders in a panel. Spore drags parts and vertebrae on the model. Individual regions can still be dragged with the workshop's sculpt tools. |
-| Parts and detail | 45 | 6 mouths, 5 crests, 7 tails, 4 back rows, 8 extras, 6 feet. Spore offers over two hundred parts with their own morph handles. |
+| Direct manipulation | 40 | The plan is edited with sliders in a panel. The reference creator drags parts and vertebrae on the model. Individual regions can still be dragged with the workshop's sculpt tools. |
+| Parts and detail | 45 | 6 mouths, 5 crests, 7 tails, 4 back rows, 8 extras, 6 feet. The reference creator offers over two hundred parts with their own morph handles. |
 | Skin and paint | 40 | Four patterns, a pale underside, dark limb ends and a scale texture. No layered coat and detail paint. |
-| Movement of any morphology | 55 | Walk, idle, crouch, reach, swim, fly, slither and coil for any plan, with planted feet. Far fewer behaviours than Spore and no gait variety by size or leg count. |
-| Posing | 85 | Paired, grouped and radial posing, limb-tip guiding and planted feet, saved as clips. Spore's creator has no posing. |
+| Movement of any morphology | 55 | Walk, idle, crouch, reach, swim, fly, slither and coil for any plan, with planted feet. Far fewer behaviours than the reference creator and no gait variety by size or leg count. |
+| Posing | 85 | Paired, grouped and radial posing, limb-tip guiding and planted feet, saved as clips. The reference creator has no posing. |
 | Export | 80 | Skinned GLB with clips that plays in a separate Three.js scene. |
 | Finish of the rendered animal | 45 | Coherent anatomy and colour zoning, but soft detail and visible seams. |
 | **Overall** | **about 55** | Short of the 80 target. |

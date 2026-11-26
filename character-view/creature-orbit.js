@@ -1,7 +1,5 @@
 import { Vector3 } from "three";
 
-// Each row goes counterclockwise around the aperture, viewed from outside.
-// Closed rows form a skin rim. The other shapes are capped on the back.
 function surface(rows, closed = false) {
   const n = rows[0].length;
   const vertices = rows.flat().map(p => p.toArray());
@@ -33,8 +31,6 @@ function ring(sample) {
   });
 }
 
-// Model the visible lens and the fold of skin around it in the same frame.
-// The foot of the fold follows the actual skull, including the cheek and temple.
 export function creatureOrbit({head, gaze, up, side, seatOnSkull}) {
   const horizontal = new Vector3().crossVectors(up,gaze).normalize();
   const vertical = new Vector3().crossVectors(gaze,horizontal).normalize();
@@ -54,8 +50,6 @@ export function creatureOrbit({head, gaze, up, side, seatOnSkull}) {
     eyeRow(.82,lens(.82,0)),eyeRow(.52,lens(.52,0)),eyeRow(.18,lens(.18,0))]);
   const pupilWidth = grazer ? .45 : bird ? .28 : .24;
   const pupilHeight = grazer ? .19 : bird ? .31 : .40;
-  // Coloured lens and pupil lie on nested curved surfaces. A back row
-  // overlaps the lens so neither piece detaches when the export is reduced.
   function disc(w,h,z) {
     const row=(r,dz)=>ring((a,b)=>{
       const x = r*a*w-.07*side, y = r*b*h;

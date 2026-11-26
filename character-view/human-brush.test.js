@@ -42,7 +42,6 @@ function nearest(surface, point, keep = () => true) {
   }
   return best;
 }
-// Largest movement in millimetres of the kept cage vertices between two cages.
 function moved(a, b, keep) {
   let most = 0;
   for (let v = 0; v < a.bodyVertices; v++)
@@ -57,7 +56,6 @@ test("a touch on the ribs spreads along the skin and leaves the hanging arm alon
     body = brushBody(form),
     parts = regions(body.fitted),
     controls = humanControls();
-  // The outermost trunk vertex below the armpit sits beside the resting upper arm.
   let ribs = -1;
   for (let v = 0; v < body.fitted.bodyVertices; v++) {
     const [x, y] = at(body.fitted, v);
@@ -65,7 +63,6 @@ test("a touch on the ribs spreads along the skin and leaves the hanging arm alon
   }
   const point = at(body.fitted, ribs),
     stroke = brushStroke(form, touchAt(body.fitted, ribs), { reach: 0.09 });
-  // Coarse trunk anchors widen the brush; a ball of that size reaches into the arm.
   assert.ok(stroke.used >= 0.09 && stroke.used < 0.16, "brush settled on " + stroke.used);
   const armAnchors = [];
   controls.ids.forEach((v, i) => {
@@ -77,7 +74,6 @@ test("a touch on the ribs spreads along the skin and leaves the hanging arm alon
   const field = skinDistances(body.fitted, [{ vertex: ribs, distance: 0 }], 0.09);
   assert.ok(field.size > 20 && [...field.keys()].every((v) => parts[v] === "trunk"));
   const after = applyHumanControls(body.bare, stroke.vectors([0.02, 0, 0]));
-  // The arm from 5 cm above the touch down hangs beside it; the armpit above is joined skin.
   const hanging = (v) => parts[v] === "arms" && at(body.fitted, v)[1] < point[1] + 0.05;
   const here = moved(after, body.fitted, (v) => v === ribs),
     armpit = moved(after, body.fitted, (v) => parts[v] === "arms"),
@@ -87,7 +83,6 @@ test("a touch on the ribs spreads along the skin and leaves the hanging arm alon
   assert.ok(here > 12 && here <= 20.05, "touched skin moved " + here.toFixed(1) + " mm");
   assert.equal(beside + legs + head, 0);
   assert.ok(armpit < 1.5, "armpit skin moved " + armpit.toFixed(2) + " mm");
-  // One drag is held to a share of the brush size.
   const far = applyHumanControls(body.bare, stroke.vectors([0.2, 0, 0]));
   assert.ok(Math.abs(moved(far, body.fitted, () => true) - stroke.limit * 1000) < 0.5);
 });
@@ -145,7 +140,6 @@ test("strokes stay an ordinary recipe: bounded, added to a reference fit, soften
   const rows = new Map(next.humanFit.controls.map(([i, ...row]) => [i, row]));
   assert.equal(next.humanFit.strength, 1);
   assert.ok(Math.max(...[...rows.values()].map((row) => Math.hypot(...row))) <= 651);
-  // Anchors outside the brush keep the earlier fit at its stored strength.
   for (const [i, ...row] of fitted.humanFit.controls)
     if (!stroke.primary[i] && !stroke.twin[i]) assert.deepEqual(rows.get(i), row.map((x) => x / 2));
   assert.ok(rows.size > 4 && stroke.changes(stroke.vectors([0, 0, 0.5])));

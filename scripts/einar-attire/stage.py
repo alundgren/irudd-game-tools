@@ -28,7 +28,6 @@ def stage(subsurf=1, keep_shader_nodes=True):
         scene.collection.objects.link(c)
         c.matrix_world = world(o)
         if me.shape_keys:
-            # Pose correctives rest at zero. Authored clipping fixes are permanently on.
             kb = me.shape_keys.key_blocks
             co = [v.co.copy() for v in kb[0].data]
             for k in kb[1:]:

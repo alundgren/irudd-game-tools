@@ -11,7 +11,6 @@ by = {f.name: f for f in tex.rglob('*.tif')}
 for i in bpy.data.images:
     src = by.get(bpy.path.basename(i.filepath.replace(chr(92), '/')))
     if src: i.filepath = str(src); i.reload()
-# piece: (subsurf level, decimate ratio, smart uv)
 SPEC = {
     'jacket_main': (1, .5, False), 'jacket_collar1': (1, .6, False), 'jacket_collar2': (1, .5, False),
     'jacket_pocket1': (1, .35, False), 'jacket_pocket2': (1, .4, False), 'jacket_belts': (1, .3, False),
@@ -46,7 +45,6 @@ for k, name in enumerate(names):
         me.transform(c.matrix_world); c.matrix_world.identity(); me.flip_normals()
     a = me.attributes.new('piece', 'INT', 'FACE'); a.data.foreach_set('value', [k] * len(me.polygons))
     if name == 'sweater':
-        # Only the knitted neck shows inside the coat. The hidden body of the sweater is left out.
         import bmesh
         bm = bmesh.new(); bm.from_mesh(me); W = c.matrix_world
         bmesh.ops.delete(bm, geom=[f for f in bm.faces if (W @ f.calc_center_median()).z < 1.30], context='FACES'); bm.to_mesh(me); bm.free()
@@ -69,7 +67,6 @@ bpy.ops.object.join()
 J = parts[0]; me = J.data
 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
 me.uv_layers.active = me.uv_layers['Bake']
-# Materials read their UV maps by name, so the render map stays the authored one.
 me.uv_layers['UVMap'].active_render = True
 bpy.ops.object.mode_set(mode='EDIT'); bpy.ops.mesh.select_all(action='SELECT'); bpy.ops.uv.select_all(action='SELECT')
 bpy.ops.uv.average_islands_scale(); bpy.ops.uv.pack_islands(margin=0.004, rotate=True)

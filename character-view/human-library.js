@@ -24,8 +24,6 @@ import { palette, toneFields } from "./human-style.js";
 const assets = { ...systemAssets, ...attireAssets, ...authoredAssets, ...einarAssets, ...fieldAssets, ...scannedAssets };
 for (const [groom, maps] of Object.entries(nativeBobMaps)) if (assets[groom]) assets[groom] = { ...assets[groom], ...maps };
 
-// A style keeps its name when its groom is packed again: the first groom of a list that the library holds is
-// worn, so a saved look resolves whether or not the newer packing is present.
 const packed = (...grooms) => grooms.find((groom) => assets[groom]?.faceRefs) ?? grooms.at(-1);
 export const additionalHair = {
   "Blunt bob": "bob02",
@@ -77,12 +75,6 @@ export function loadHumanLibraryMaps() {
     }),
   );
 }
-/**
- * The strand picture of a library groom in one hair colour. The middle strand takes the colour as chosen and
- * the painted light and dark stay as shading. Hair also has a sheen that does not come from its pigment, so
- * the lightest strands of black hair still show as strands. Without a canvas there is no picture and the
- * caller tints the plain map by its material colour.
- */
 const tinted = new Map();
 export function tintedStrands(name, hex) {
   const source = textures.get(name);
@@ -99,8 +91,6 @@ export function tintedStrands(name, hex) {
   const colour = [1, 3, 5].map((at) => lin(parseInt(hex.slice(at, at + 2), 16) / 255)), middle = lin(188 / 255);
   const luma = 0.2126 * colour[0] + 0.7152 * colour[1] + 0.0722 * colour[2], sheen = 0.012 + 0.05 * (1 - Math.min(1, luma * 3)) ** 2;
   const table = colour.map((c) => Uint8ClampedArray.from({ length: 256 }, (_, v) => {
-    // Lit hair is a little darker than its pigment in the middle; light strands rise toward it and are held
-    // below white, so pale hair keeps its strands.
     const t = lin(v / 255) / middle, glint = between(t, 0.95, 1.7), level = 0.72 * (t <= 1 ? t : 1 + (t - 1) * 0.5);
     return Math.round(255 * srgb(Math.min(1, c * level + sheen * glint * glint)));
   }));
@@ -120,12 +110,6 @@ export function tintedStrands(name, hex) {
 }
 const directed = (style) => Object.keys(toneFields).some((field) => style[field]);
 function between(x, a, b) { return Math.min(1, Math.max(0, (x - a) / (b - a))); }
-/**
- * How the cloth of each library garment takes dye. A rule picks texels of the scanned garment by hue (0 to 1),
- * saturation and lightness and names the tone of the outfit that dyes them; `level` is the lightness the tone
- * stands for, so folds and seams painted into the texture stay as shading. `pale` names a second tone for the
- * light threads of a stripe. Texels no rule picks are left as they are.
- */
 const dyes = {
   male_elegantsuit01: [
     { pick: (h, s, l) => s > 0.2 && h > 0.5 && h < 0.8 && l > 0.008, tone: "accent", level: 0.03 },
@@ -152,9 +136,6 @@ const dyes = {
 const dyed = new Map();
 function dyedMap(name, tones) {
   const source = textures.get(name), levels = assets[name].panelLevels;
-  // The original top and jeans sometimes use the same indigo dye. Their sewn
-  // UV panels distinguish the pieces even where the hues are identical.
-  // A costume carries its own chart: each texel names the rule that dyes it, or none.
   const charted = assets[name].dye;
   const panels = levels || charted ? array(name, "panels", Uint8Array) : null;
   const rules = charted ?? (levels ? [
@@ -193,13 +174,11 @@ function dyedMap(name, tones) {
     if (at < 0) continue;
     const rule = rules[at],
       [dye, pale] = colours[at];
-    // Shading painted into the scan is kept, a little flatter so a pale dye still shows its folds.
     const shade = Math.min(1.5, Math.max(0.36, (l / rule.level) ** 0.72)),
       light = pale ? between(l, rule.from, rule.to) : 0;
     for (let c = 0; c < 3; c++) {
       const base = Math.min(255, dye[c] * (light ? Math.min(shade, 1) : shade));
       const dyedTo = pale ? base + (pale[c] - base) * light : base;
-      // Worn cloth keeps a share of its own stains, rust and fading under the dye.
       data[i + c] = rule.worn ? dyedTo + (data[i + c] - dyedTo) * rule.worn : dyedTo;
     }
   }
@@ -208,7 +187,6 @@ function dyedMap(name, tones) {
   map.colorSpace = T.SRGBColorSpace;
   map.anisotropy = 4;
   map.flipY = source.flipY;
-  // A few dyes are kept so changing something else about the figure does not dye the cloth again.
   if (dyed.size >= 24) {
     const oldest = dyed.keys().next().value;
     dyed.get(oldest).dispose();
@@ -246,7 +224,6 @@ function fittedProxy(s, name, idMap) {
   )
     ? new Float32Array(refs.length)
     : null;
-  // Authored hair is held in its combed shape where it stands off the head (see settleAuthored).
   const held = assets[name].credit && assets[name].faceRefs
     ? { anchor: new Float32Array(refs.length), anchorRest: new Float32Array(refs.length), onSkull: new Uint8Array(refs.length / 3) }
     : null;
@@ -327,8 +304,6 @@ function fittedProxy(s, name, idMap) {
   }
   if (panel) {
     fitChestPanel(name, s, panel, p);
-    // A fitted shirt interpolates between skin anchors. It can cut across the
-    // curved neck-to-shoulder ridge when the adult gains upper-back tissue.
     const body = surfaceBody(s), shoulder = body.joint("upperarm_l"), neck = body.joint("neck_01"), k = body.scale;
     for (let j = 0; j < p.length; j += 3) {
       const dy = p[j+1] - shoulder[1];
@@ -342,10 +317,6 @@ function fittedProxy(s, name, idMap) {
   else if (held) settleAuthored(p, held.anchor, held.anchorRest, offsets, held.onSkull);
   return { p, bones, skin };
 }
-// Hair for the game export: the fitted cards themselves, cut to their outline by the map as
-// they were authored. Trimmed cards are separate slivers that a simplifier pulls apart; whole
-// cards share their vertices and thin evenly. Triangles the map leaves empty are left out;
-// without a map to cut them, `cover` is the least share of a triangle that must be hair.
 function gameCards(s, name, p, style, cover = 0) {
   const corners = array(name, "corners", Uint16Array),
     texCorners = array(name, "uvCorners", Uint16Array),
@@ -355,7 +326,6 @@ function gameCards(s, name, p, style, cover = 0) {
     faces = array(name, "faceIndices", Uint32Array);
   const triple = (a, b, c) => (a * 65536 + b) * 65536 + c,
     covered = new Map();
-  // Each trimmed sliver lies inside one card triangle and knows how much of it it fills.
   for (let f = 0; f < faces.length; f += 3) {
     const i = faces[f] * 3,
       j = faces[f + 1] * 3,
@@ -402,7 +372,6 @@ function gameCards(s, name, p, style, cover = 0) {
   g.setIndex(indices);
   return g;
 }
-// Join the slivers of trimmed cards where they meet, so a plain game export can thin them too.
 function joinTrimmed(g) {
   const { position, normal, uv } = g.attributes,
     seen = new Map(),
@@ -426,7 +395,6 @@ function joinTrimmed(g) {
     keep.forEach((i, k) => data.set(a.array.subarray(i * a.itemSize, (i + 1) * a.itemSize), k * a.itemSize));
     out.setAttribute(name, new T.BufferAttribute(data, a.itemSize));
   }
-  // Slivers that close up to nothing would only confuse the simplifier.
   out.setIndex(index.filter((_, k) => {
     const t = k - (k % 3);
     return index[t] !== index[t + 1] && index[t + 1] !== index[t + 2] && index[t] !== index[t + 2];
@@ -434,8 +402,6 @@ function joinTrimmed(g) {
   g.dispose();
   return out;
 }
-// These three system shoes have separate stockings after the left/right shoe
-// shells in the source OBJ. A full trouser cuff covers an ankle sock.
 const stockingStart = { shoes01: 1434, shoes02: 1306, shoes05: 1306 };
 function tuckSocks(positions, surface, start) {
   const joint = (name) => new T.Vector3().fromArray(surface.joints, 3*surface.names.indexOf(name));
@@ -458,20 +424,15 @@ function garment(s, name, idMap, material, plain, style, game) {
   const hair = Boolean(assets[name].faceRefs),
     authored = hair && Boolean(assets[name].credit),
     { p, bones, skin } = fittedProxy(s, name, idMap);
-  // A dress or a robe hangs below the waist instead of following each leg.
   const joints = hair ? null : hangLibraryCloth(s, name, p, bones, skin);
-  // Preserve tied and cropped silhouettes. Loose authored fringes still follow
-  // the wearer's comb setting, including on glasses and under a hat.
   if (authored && !["Side-swept pixie", "Fringed bob", "Long centre part", "Loose waves"].includes(style.hair))
     style = { ...style, fringe: undefined };
   if (Object.hasOwn(stockingStart, name) && style.outfit !== "Striped blouse and skirt" && !bareLegged.has(style.outfit))
     tuckSocks(p, s, stockingStart[name]);
-  // The fringe is combed on the fitted cards, before they are trimmed to their outline.
   if (hair && style.fringe) combFringe(p, surfaceFrame(s), style.fringe);
   const color = hair ? (style.hairColor ?? "#51433b") : "#ffffff";
   const m = material(color).clone();
   if (!plain) {
-    // A style that names its tones dyes the cloth itself. One with only a cloth colour keeps the light tint it had.
     const dye = !hair && directed(style) ? dyedMap(name, palette(style)) : null;
     const strands = authored ? tintedStrands(name, color) : null;
     if (strands) m.color.set("#ffffff");
@@ -507,13 +468,8 @@ function garment(s, name, idMap, material, plain, style, game) {
   }
   m.side = T.DoubleSide;
   if (hair) {
-    // The game exporter gives tagged hair its own share of triangles and keeps its cards whole.
-    // Some callers measure hair with bare stand-in materials that carry no user data.
     (m.userData ??= {}).hairCards = true;
-    // Authored layers are painted thin where they overlap; cut at the usual opacity they open holes to the roots.
     const cutoff = authored ? 0.2 : 0.34;
-    // A plain export has no map, so it keeps the trimmed outline. Where trimming cuts each card
-    // triangle into many slivers no game budget can hold them, and the half-covered cards stand in.
     const fine = array(name, "faceIndices", Uint32Array).length > 8 * array(name, "corners", Uint16Array).length;
     const rounded = !plain && assets[name].smoothCards;
     if (name === "cloud_waves") {
@@ -567,8 +523,6 @@ function garment(s, name, idMap, material, plain, style, game) {
         for (let d = 0; d < 3; d++) p2[i * 3 + d] += p[id * 3 + d] * f;
       }
     if (style.fringe) settleFringe(p2, surfaceFrame(s), style.fringe);
-    // Clipping a hair card splits its triangles. Interpolate the original smooth
-    // normals across those cuts so each little triangle does not catch a different light.
     const cards = new T.BufferGeometry();
     cards.setAttribute("position", new T.BufferAttribute(p, 3));
     cards.setIndex(
@@ -668,7 +622,6 @@ function garment(s, name, idMap, material, plain, style, game) {
     const mesh = new T.Mesh(g, m);
     mesh.castShadow = true;
     mesh.humanWeights = { boneIndices: bi, weights: sw };
-    // The skirt, not the sleeves beside it, may hang from joints of its own.
     if (joints && !sleeveBone(s.names[owner])) mesh.humanWeights.clothJoints = joints;
     mesh.userData.styleRegion = s.names[owner];
     out.push(mesh);
@@ -693,16 +646,13 @@ export function libraryPieces(s, style, material, plain, game = false, skin = "#
     for (const v of array(key, "hide", Uint16Array)) hidden.add(v);
   }
   if (libraryHair[style.hair]) {
-    // Roots in a darker tone of the hair, about as dark as the shaded cards above them.
     const groom = libraryHair[style.hair], authored = Boolean(assets[groom].rootIds);
     const tone = "#" + new T.Color(style.hairColor ?? "#51433b").multiplyScalar(authored && !plain ? .86 : authored ? .5 : .6).getHexString();
     let within = null;
     if (authored) {
-      // An authored groom records the scalp its cards cover, so its roots end at its own hairline.
       const rootIds = array(groom, "rootIds", Uint16Array), rootField = array(groom, "rootField", Int8Array),
         field = new Float32Array(s.positions.length / 3).fill(-1);
       rootIds.forEach((id, k) => { const v = ids.get(id); if (v !== undefined) field[v] = rootField[k] / 100; });
-      // Let the painted root hairs emerge a little beyond the thickest locks.
       const fringe = !plain && ["short_layered", "short_receding", "bun_tied"].includes(groom) ? 0.38 : 0;
       within = (i) => (field[i] + fringe) * .3;
     }

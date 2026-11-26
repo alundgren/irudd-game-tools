@@ -1,9 +1,3 @@
-// How an adult stands and walks, as a rest pose of the rig.
-//
-// The body, its clothes, hair and eyewear are built and fitted in the fitting pose. A posture
-// turns the joints of the finished rig, so everything that is skinned to the skull, an arm or the
-// pelvis follows, and no measurement of the head or body ever sees the pose. The same solver
-// writes the Idle, Walk, Reach and Crouch clips of a figure that has a posture.
 import {
   AnimationClip,
   MathUtils,
@@ -21,27 +15,26 @@ const X = new Vector3(1, 0, 0),
   Y = new Vector3(0, 1, 0),
   Z = new Vector3(0, 0, 1);
 
-// Every control, its range and the value an unnamed control takes.
 export const postureRanges = {
-  weight: [-1, 1, 0], // the leg that carries the body: left above zero
-  hip: [0, 1, 0.5], // how far the pelvis drops on the free side
-  lean: [-1, 1, 0], // hips forward and shoulders back, or leaning into a step
-  slouch: [-1, 1, 0], // chest lifted, or the upper back rounded
-  twist: [-1, 1, 0], // shoulders turned against the hips, to the left above zero
-  shoulders: [-1, 1, 0], // left shoulder carried higher above zero
-  shrug: [-1, 1, 0], // both shoulders dropped or raised
-  arms: [0, 1, 0.95], // from the fitting pose to hanging as close as the body allows
+  weight: [-1, 1, 0],
+  hip: [0, 1, 0.5],
+  lean: [-1, 1, 0],
+  slouch: [-1, 1, 0],
+  twist: [-1, 1, 0],
+  shoulders: [-1, 1, 0],
+  shrug: [-1, 1, 0],
+  arms: [0, 1, 0.95],
   elbows: [0, 1, 0.3],
-  hands: [0, 1, 0.55], // fingers falling into a loose curl
-  headTilt: [-1, 1, 0], // toward the left shoulder above zero
-  headTurn: [-1, 1, 0], // looking to the left above zero
+  hands: [0, 1, 0.55],
+  headTilt: [-1, 1, 0],
+  headTurn: [-1, 1, 0],
   chin: [-1, 1, 0],
-  feet: [-1, 1, 0], // narrow to wide
-  toes: [-1, 1, 0.2], // turned in or out
-  step: [-1, 1, 0], // free foot behind or ahead
-  stride: [-1, 1, 0], // length of the walking step
-  handAtWaist: [-1, 1, 0], // support the right or left hand on the dressed hip
-  swing: [-1, 1, 0], // how freely the arms and shoulders swing in the walk
+  feet: [-1, 1, 0],
+  toes: [-1, 1, 0.2],
+  step: [-1, 1, 0],
+  stride: [-1, 1, 0],
+  handAtWaist: [-1, 1, 0],
+  swing: [-1, 1, 0],
 };
 export const postureAxes = Object.keys(postureRanges);
 export const postureLabels = {
@@ -65,10 +58,8 @@ export const postureLabels = {
   swing: "Walking arm swing",
   handAtWaist: "Right or left hand on hip",
 };
-// Controls that change sign when a posture is mirrored.
 const sided = ["weight", "twist", "shoulders", "headTilt", "headTurn", "handAtWaist"];
 
-// Ways of standing, written with the weight on the left leg.
 export const postureStyles = {
   Easy: { weight: 0.5, hip: 0.45, slouch: 0.15, elbows: 0.35, toes: 0.25, step: 0.15, headTilt: 0.1 },
   "Hip-shot": { weight: 0.95, hip: 0.9, slouch: 0.05, twist: 0.2, shoulders: 0.25, hands: 0.6, feet: 0.1, toes: 0.55, step: 0.45, headTilt: 0.3, headTurn: -0.2 },
@@ -110,7 +101,6 @@ function tidy(values) {
   }
   return out;
 }
-/** A named way of standing, with the weight on the left leg or mirrored onto the right. */
 export function posturePreset(style, mirrored = false) {
   if (!Object.hasOwn(postureStyles, style)) throw new Error("Unknown standing posture.");
   const p = tidy({ style, ...postureStyles[style] });
@@ -121,7 +111,6 @@ export function mirrorPosture(p) {
   for (const key of sided) if (out[key]) out[key] = -out[key];
   return out;
 }
-/** One adult's own way of standing and walking. Age and build weigh the choice, the seed decides. */
 export function drawPosture(seed, human = {}) {
   const draw = randomStream((seed ^ 0x9c2f41d7) >>> 0);
   const age = human.age ?? 0,
@@ -153,7 +142,6 @@ export function drawPosture(seed, human = {}) {
     if (key === "handAtWaist") continue;
     const [lo, hi, initial] = postureRanges[key];
     const base = postureStyles[style][key] ?? initial;
-    // Each person departs from the type. The fitting arm angle stays near the body.
     const spread = key === "arms" ? 0.05 : key === "headTurn" || key === "headTilt" ? 0.22 : 0.16;
     values[key] = clamp(base + (draw() * 2 - 1) * spread * (hi - lo) * 0.5, lo, hi);
   }
@@ -166,14 +154,12 @@ export function drawPosture(seed, human = {}) {
 
 const arc = (from, to) => new Quaternion().setFromUnitVectors(from, to);
 const turn = (axis, angle) => new Quaternion().setFromAxisAngle(axis, angle);
-// A joint turn from a forward pitch, a turn to the left and a roll that lifts the left side.
 function joint(pitch, yaw = 0, roll = 0) {
   return turn(Y, yaw).multiply(turn(Z, roll)).multiply(turn(X, pitch));
 }
 function frame(along, hinge) {
   const h = hinge.clone().addScaledVector(along, -hinge.dot(along)).normalize();
   const third = new Vector3().crossVectors(along, h);
-  // Columns of a rotation matrix, as a quaternion.
   const m = [along.x, h.x, third.x, along.y, h.y, third.y, along.z, h.z, third.z];
   const trace = m[0] + m[4] + m[8];
   const q = new Quaternion();
@@ -192,7 +178,6 @@ function frame(along, hinge) {
   }
   return q.normalize();
 }
-// World turn that carries the bind frame (along0, hinge0) onto (along, hinge).
 function carry(along0, hinge0, along, hinge) {
   return frame(along, hinge).multiply(frame(along0, hinge0).invert());
 }
@@ -205,10 +190,6 @@ const needed = [
 ];
 const digits = { index: 0.72, middle: 0.86, ring: 1, pinky: 1.1, thumb: 0.3 };
 
-/**
- * The joints of an adult rig that a posture turns. Returns null for a rig without the adult
- * skeleton, such as a creature or an adult whose limbs were replaced.
- */
 export function postureRig(regions, root, skeleton, mesh, handProp) {
   const byBone = new Map();
   for (const r of regions.values())
@@ -233,13 +214,11 @@ export function postureRig(regions, root, skeleton, mesh, handProp) {
     const heading = new Vector3(ball.x - ankle.x, 0, ball.z - ankle.z);
     const reach = heading.length();
     heading.normalize();
-    // The knee hinges square to the leg and the foot, whatever small bow the fitted leg has.
     const line = ankle.clone().sub(hip).normalize();
     const pole = heading.clone().addScaledVector(line, -heading.dot(line)).normalize();
     const kneeHinge = new Vector3().crossVectors(line, pole).normalize();
     const upper = elbow.clone().sub(shoulder).normalize(),
       lower = wrist.clone().sub(elbow).normalize();
-    // The elbow folds the forearm forward, as in the generated reach.
     const elbowAxis = new Vector3().crossVectors(upper, lower);
     if (elbowAxis.lengthSq() < 0.025) elbowAxis.crossVectors(lower, Z);
     if (elbowAxis.lengthSq() < 0.001) elbowAxis.set(-1, 0, 0);
@@ -259,7 +238,6 @@ export function postureRig(regions, root, skeleton, mesh, handProp) {
       for (const [digit, bend] of Object.entries(digits)) {
         const axis = across.clone();
         if (digit === "thumb") axis.lerp(new Vector3(side, 0, 0), 0.7).normalize();
-        // A relaxed hand closes the fan the fitted fingers are spread in.
         const own = digit === "thumb" || digit === "middle" ? null : along(digit);
         [0.64, 1, 0.63].forEach((factor, i) => {
           const r = byBone.get(digit + "_0" + (i + 1) + suffix);
@@ -280,7 +258,6 @@ export function postureRig(regions, root, skeleton, mesh, handProp) {
       kneeHinge, heading, yaw: Math.atan2(heading.x, heading.z), footReach: reach,
       upper, lower, elbowAxis, upperLength: shoulder.distanceTo(elbow), fingers,
       elbowBend: Math.acos(clamp(upper.dot(lower), -1, 1)),
-      // How far off the body the arm was fitted. A hanging arm never stands further out.
       fitted: Math.atan2(Math.hypot(upper.x, upper.z), -upper.y),
     };
   });
@@ -308,7 +285,6 @@ export function postureRig(regions, root, skeleton, mesh, handProp) {
   return rig;
 }
 
-// Vertices of the bound surface that follow the given regions and everything attached to them.
 function owners(rig, ids) {
   const wanted = new Set(ids);
   let grew = true;
@@ -331,14 +307,12 @@ function dominant(mesh, i) {
   for (let j = 1; j < 4; j++) if (w[4 * i + j] > w[4 * i + best]) best = j;
   return ids[4 * i + best];
 }
-// How near the midline each ankle may come before the legs or their clothes meet.
 function legRoom(rig) {
   if (!rig.mesh) return rig.half;
   const p = rig.mesh.geometry.attributes.position;
   let limit = 0;
   for (const s of rig.sides) {
     const bones = owners(rig, [...rig.regions.values()].filter((r) => ["thigh", "calf"].some((n) => r.part.humanBone === n + s.suffix)).map((r) => r.part.id));
-    // Above this the thighs meet anyway, in the flesh and in the seat of the trousers.
     const high = s.hip.y - 0.62 * (s.hip.y - s.knee.y);
     let slope = Infinity;
     for (let i = 0; i < p.count; i++) {
@@ -351,7 +325,6 @@ function legRoom(rig) {
   }
   return clamp(limit, 0.045, Math.max(0.045, rig.half));
 }
-// How far below the knees cloth hangs between the legs: 0 for trousers, 1 for a hem at the ankles.
 function skirtDepth(rig) {
   if (!rig.mesh) return 0;
   const p = rig.mesh.geometry.attributes.position;
@@ -367,7 +340,6 @@ function skirtDepth(rig) {
   }
   return found < 12 ? 0 : clamp((knee - low) / Math.max(0.01, knee - rig.floor), 0, 1);
 }
-// Points on the lower arm and hand, and the points of the body they must not sink into.
 function armSamples(rig, s) {
   if (!rig.mesh) return null;
   const mesh = rig.mesh,
@@ -381,8 +353,6 @@ function armSamples(rig, s) {
   const v = new Vector3(),
     outer = new Map(),
     rest = [];
-  // The forearm and hand are tested against the body from the lower ribs down. Skin around the
-  // armpit belongs to both and says nothing about where the arm may hang.
   for (let i = 0; i < p.count; i++) {
     const owner = dominant(mesh, i);
     v.fromBufferAttribute(p, i);
@@ -392,11 +362,9 @@ function armSamples(rig, s) {
       if (v.distanceTo(s.shoulder) > 0.9 * s.upperLength) (hand.has(owner) ? palm : sleeve).push(i);
     } else if (!girdle.has(owner) && s.side * v.x > -0.01 && v.y < s.shoulder.y - 0.7 * s.upperLength && v.y > s.knee.y) rest.push(i);
   }
-  // A cloak that hangs over the fitted arm is no obstacle: the arm is free to move under it.
   for (const i of rest) if (!(s.side * p.getX(i) > outer.get(flankKey(p.getY(i), p.getZ(i))) - 0.005)) body.push(i);
   const thin = (list, most) => (list.length > most ? list.filter((_, k) => k % Math.ceil(list.length / most) === 0) : list);
   const kept = [thin(sleeve, 260), thin(palm, 160)];
-  // Cloth gives where a sleeve rests against it. A hand stays outside what it hangs beside.
   return { points: kept.flat(), give: [...kept[0].map(() => 0.022), ...kept[1].map(() => 0.009)], body: thin(body, 6000), waist: waistContact(body, p, s) };
 }
 function skinned(rig, list) {
@@ -439,8 +407,6 @@ function setWorld(bone, root, q) {
   bone.quaternion.copy(worldQuat(bone.parent, root).invert().multiply(q)).normalize();
 }
 
-// Place a foot: turn the thigh, shin and foot so the ankle meets its target with the knee
-// folding toward the toes. Pitch tips the toes down and `toe` bends them back to the floor.
 function placeLeg(rig, s, target) {
   const hip = worldPoint(s.hipBone, rig.root);
   const to = target.ankle.clone().sub(hip);
@@ -448,7 +414,6 @@ function placeLeg(rig, s, target) {
     most = full * 0.9993,
     least = Math.abs(s.thigh - s.shin) + 0.01;
   let d = to.length();
-  // A walking leg eases into full extension, so the knee never snaps straight.
   const soft = full * 0.9955;
   if (target.eased && d > soft) d = soft + (most - soft) * (1 - Math.exp(-(d - soft) / (most - soft)));
   d = clamp(d, least, most);
@@ -470,7 +435,6 @@ function placeLeg(rig, s, target) {
   s.toeBone.quaternion.copy(turn(X, -(target.toe ?? 0)));
   return hip.y + line.y * d - target.ankle.y;
 }
-// Height of the hips that leaves the given leg just short of straight over its foot.
 function hipHeight(rig, s, pelvisQ, pelvisAt, ankle, ease) {
   const offset = s.hip.clone().sub(rig.pelvis).applyQuaternion(pelvisQ);
   const dx = pelvisAt.x + offset.x - ankle.x,
@@ -479,13 +443,9 @@ function hipHeight(rig, s, pelvisQ, pelvisAt, ankle, ease) {
   return ankle.y + Math.sqrt(Math.max(0.0001, length * length - dx * dx - dz * dz)) - offset.y;
 }
 function setPelvis(rig, at, q) {
-  // The pelvis hangs from the root, whose own turn stays as built.
   rig.pelvisBone.quaternion.copy(q);
   rig.pelvisBone.position.copy(rig.pelvisRest).add(at.clone().sub(rig.pelvis));
 }
-// Let an arm fall from where the shoulder carries it toward a hanging line, as far as `hang`
-// says, then swing it and fold the joints. `ease` is how far the joints below the shoulder
-// leave the fitting pose, and `release` lets go of a forearm that was fitted raised.
 function placeArm(rig, s, arm) {
   const parent = worldQuat(s.clavicle, rig.root);
   const carried = s.upper.clone().applyQuaternion(parent);
@@ -494,11 +454,9 @@ function placeArm(rig, s, arm) {
     ease = arm.ease ?? arm.hang;
   const down = new Vector3(s.side * Math.sin(a), -Math.cos(a) * Math.cos(f), Math.cos(a) * Math.sin(f));
   const world = new Quaternion().slerp(arc(carried, down), arm.hang).multiply(parent);
-  // The hanging arm turns in about its own length, so the hand rests against the thigh.
   if (arm.roll) world.premultiply(turn(s.upper.clone().applyQuaternion(world), s.side * arm.roll * arm.hang));
   if (arm.swing) world.premultiply(turn(X.clone().applyQuaternion(parent), -arm.swing));
   s.shoulderBone.quaternion.copy(parent.invert().multiply(world)).normalize();
-  // A forearm fitted in a raised gesture keeps it. Any other elbow takes the bend asked for.
   const free = Math.max(arm.release ?? 0, 1 - MathUtils.smoothstep(s.elbowBend, rad(42), rad(62)));
   s.elbowBone.quaternion.copy(turn(s.elbowAxis, (arm.elbow - s.elbowBend) * free * ease + (arm.bend ?? 0)));
   s.wristBone.quaternion.copy(turn(s.elbowAxis, (arm.wrist ?? 0) * ease));
@@ -512,8 +470,6 @@ function placeArm(rig, s, arm) {
   }
   if (s.fanGrip) for (const [bone,rotation] of s.fanGrip) bone.quaternion.copy(rotation);
 }
-// Locate the hand on this figure's dressed flank. The palm rests on the
-// anterolateral hip; the wrist stands above it and the elbow points out and back.
 function waistContact(points, positions, side) {
   const y = side.hip.y + 0.25 * (side.shoulder.y - side.hip.y);
   const normal = new Vector3(side.side * 0.86, 0, 0.51);
@@ -532,8 +488,6 @@ function waistContact(points, positions, side) {
   return contact?.addScaledVector(normal, 0.018);
 }
 
-// Pinch the guard between thumb and forefinger. The pin lies close to the
-// middle joint of the forefinger. All rotations below the wrist remain local.
 function makeFanGrip(regions) {
   const at=id=>regions.get(id+"_r").points[0];
   const bone=id=>regions.get(id+"_r").bones[0];
@@ -552,8 +506,6 @@ function makeFanGrip(regions) {
     [bone("thumb_02"),first.clone().invert().multiply(distal)],[bone("thumb_03"),new Quaternion()]];
 }
 
-// Present the fan just outside the chest. Its face follows the pinch while the
-// wrist and bent elbow track the performing character's upper-body turn.
 function holdFan(rig,s,amount) {
   if(!s.palm||!s.acrossPalm) return;
   const upperWorld=worldQuat(rig.spine.at(-1),rig.root);
@@ -601,8 +553,6 @@ function placeHand(rig,s,amount,wrist,pole,down,across) {
   s.wristBone.quaternion.slerp(lowerTurn.invert().multiply(handTurn), amount);
 }
 
-// The body seen from one side: how far out it reaches at each height and depth. An arm point
-// nearer the midline than that, at its own height and depth, is inside the body or its clothes.
 const flankCell = 0.018;
 const flankKey = (y, z) => (Math.floor(y / flankCell) + 4096) * 8192 + Math.floor(z / flankCell) + 4096;
 function flank(rig, s) {
@@ -617,8 +567,6 @@ function flank(rig, s) {
   }
   return reach;
 }
-// How far the arm may fall before the lower arm and hand sink into the trunk, the hips, a
-// skirt or something carried at the waist. The fitted arm is the measure of what is clear.
 function armRoom(rig, s, arm, reach) {
   const samples = rig.arms[rig.sides.indexOf(s)];
   if (!samples?.points.length || !reach) return arm.hang;
@@ -633,7 +581,6 @@ function armRoom(rig, s, arm, reach) {
   for (let k = 12; k > 0; k--) if (sunk((arm.hang * k) / 12) <= allowed) return (arm.hang * k) / 12;
   return 0;
 }
-// Where the body's mass sits, from the usual shares of each segment.
 export function massCentre(rig) {
   const at = (b) => worldPoint(b, rig.root),
     sum = new Vector3();
@@ -661,11 +608,6 @@ export function massCentre(rig) {
   return sum.multiplyScalar(1 / total);
 }
 
-/**
- * Pose the whole figure. `body` holds the pelvis (offset from its fitted place and turn), the
- * feet, the local turns of spine, neck and head, and both arms. Every joint the posture owns
- * is written, so one call fully replaces the last.
- */
 function pose(rig, body) {
   setPelvis(rig, body.pelvis.at, body.pelvis.turn);
   rig.sides.forEach((s, i) => placeLeg(rig, s, body.feet[i]));
@@ -676,21 +618,17 @@ function pose(rig, body) {
   rig.sides.forEach((s, i) => placeArm(rig, s, body.arms[i]));
 }
 
-// The trunk above the pelvis for a posture: spine, shoulders and head.
-// `turned` is how far the pelvis already leans and turns, which the trunk partly answers.
 function trunk(rig, p, { tilt = 0, yaw = 0, pitch = 0, keep = 1, headYaw = null, extraPitch = 0, extraYaw = 0, extraRoll = 0 } = {}) {
   const slouch = read(p, "slouch") * keep,
     lean = read(p, "lean") * keep,
     twist = read(p, "twist") * keep;
   const round = Math.max(0, slouch),
     lift = Math.max(0, -slouch);
-  // Forward pitch of each spine joint, low to high.
   const pitches = [
     rad(3 * round - 2 * lift + 2 * Math.max(0, lean) - 3 * Math.max(0, -lean)),
     rad(7 * round - 3 * lift + 2 * Math.max(0, lean) - 3 * Math.max(0, -lean)),
     rad(7 * round - 3 * lift + 1 * Math.max(0, lean) - 2 * Math.max(0, -lean)),
   ].map((v, i) => v + extraPitch * [0.3, 0.4, 0.3][i]);
-  // The shoulders lean back over the standing foot, a little past level.
   const answer = -tilt * 1.32 + extraRoll,
     turnTotal = rad(13) * twist - yaw + extraYaw;
   const chestYaw = yaw + turnTotal;
@@ -698,12 +636,10 @@ function trunk(rig, p, { tilt = 0, yaw = 0, pitch = 0, keep = 1, headYaw = null,
   const shoulders = read(p, "shoulders") * keep,
     shrug = read(p, "shrug") * keep;
   const clavicles = rig.sides.map((s) =>
-    // Raising a shoulder leans its collarbone up, and a rounded back draws both forward.
     turn(Z, s.side * rad(5 * shrug + s.side * 4 * shoulders - 2 * round)).multiply(turn(Y, -s.side * rad(7 * round - 4 * lift))),
   );
   const chestPitch = pitch + pitches[0] + pitches[1] + pitches[2],
     chestRoll = tilt + answer;
-  // The eyes stay near level: the head undoes most of what the spine leans and turns.
   const tiltWorld = -rad(9) * read(p, "headTilt") * keep + 0.3 * chestRoll,
     yawWorld = headYaw ?? rad(20) * read(p, "headTurn") * keep + 0.35 * chestYaw,
     pitchWorld = rad(4 * round - 2 * lift - 9 * read(p, "chin") * keep + 2 * Math.max(0, lean)) + extraPitch * 0.25;
@@ -727,7 +663,6 @@ function hangingArms(rig, p) {
     hang: read(p, "arms"),
     ease: read(p, "arms"),
     abduct: rad(4.5),
-    // The arm on the free side hangs a little ahead of the other.
     forward: rad(2 + 3 * elbows - 3 * s.side * weight),
     roll: rad(8),
     elbow: rad(6 + 22 * elbows),
@@ -739,7 +674,6 @@ function footTurn(rig, p, s, extra = 0) {
   return s.side * rad(7 + 11 * read(p, "toes") + extra);
 }
 
-/** Solve the standing posture and leave it on the joints. Returns what the clips build on. */
 export function stand(rig, posture) {
   const p = posture,
     weight = read(p, "weight"),
@@ -747,13 +681,11 @@ export function stand(rig, posture) {
     lead = weight < 0 ? -1 : 1;
   const support = lead > 0 ? rig.left : rig.right,
     free = lead > 0 ? rig.right : rig.left;
-  // Ankles under the hips, wider or narrower by choice, never closer than the legs allow.
   const wanted = rig.hipHalf * (0.92 + 0.5 * read(p, "feet") - 0.1 * load);
   const half = clamp(Math.max(wanted, rig.narrowest * (1 - 0.12 * load)), 0.045, Math.max(rig.half * 1.3, 0.05));
   const lean = read(p, "lean"),
     slouch = read(p, "slouch");
   const tilt = lead * rad(1 + 7.5 * read(p, "hip")) * load;
-  // The hip of a foot set forward comes forward with it.
   const pelvisYaw = lead * rad(5) * read(p, "step") * load;
   const pelvisPitch = rad(-4 * Math.max(0, slouch) + 3 * Math.max(0, -slouch) - 4 * Math.max(0, -lean) + 2 * Math.max(0, lean));
   const turnPelvis = joint(pelvisPitch, pelvisYaw, tilt);
@@ -762,7 +694,6 @@ export function stand(rig, posture) {
     const own = s === support || load < 0.02;
     const z = (rig.left.ankle.z + rig.right.ankle.z) / 2 + (s === free ? stepAhead : -stepAhead * 0.25);
     return {
-      // The free foot rests a little wider and turned out.
       ankle: new Vector3(s.side * (half + (own ? 0 : 0.018 * load)), s.ankle.y, z),
       yaw: footTurn(rig, p, s, own ? 0 : 9 * load),
       pitch: 0,
@@ -772,13 +703,11 @@ export function stand(rig, posture) {
   const upper = trunk(rig, p, { tilt, yaw: pelvisYaw, pitch: pelvisPitch });
   const arms = hangingArms(rig, p);
   const body = { pelvis: { at: rig.pelvis.clone(), turn: turnPelvis }, feet, ...upper, arms };
-  // Carry the weight: the mass centre moves over the standing foot, and over mid-foot.
   const supportFoot = feet[rig.sides.indexOf(support)],
     freeFoot = feet[rig.sides.indexOf(free)];
   const middle = (f, s) => f.ankle.z + 0.34 * s.footReach;
   const share = 0.5 + 0.44 * load;
   const aim = {
-    // However wide the feet, the hips travel no further than a hand's breadth.
     x: clamp(supportFoot.ankle.x * share + freeFoot.ankle.x * (1 - share), -0.085, 0.085),
     z: middle(supportFoot, support) * share + middle(freeFoot, free) * (1 - share) + 0.012 * lean,
   };
@@ -789,7 +718,6 @@ export function stand(rig, posture) {
     at.y = hipHeight(rig, support, turnPelvis, at, supportFoot.ankle, ease);
     if (load < 0.02) at.y = Math.min(at.y, hipHeight(rig, free, turnPelvis, at, freeFoot.ankle, ease));
     else {
-      // The free leg is slack: its foot rests where the bent knee lets it, not at full stretch.
       const hip = free.hip.clone().sub(rig.pelvis).applyQuaternion(turnPelvis).add(at);
       const length = (free.thigh + free.shin) * (1 - 0.004 - 0.012 * load),
         drop = hip.y - freeFoot.ankle.y,
@@ -809,7 +737,6 @@ export function stand(rig, posture) {
     shift.x += aim.x - centre.x;
     shift.z += aim.z - centre.z;
   }
-  // Let each arm fall as near the posed body as its sleeve, the hips and the skirt allow.
   rig.sides.forEach((s, i) => {
     arms[i].hang = armRoom(rig, s, arms[i], flank(rig, s));
     placeArm(rig, s, arms[i]);
@@ -817,7 +744,6 @@ export function stand(rig, posture) {
   return { body, half, lead, load, support, free, posture: p, tilt, yaw: pelvisYaw, pitch: pelvisPitch, hang: arms.map((arm) => arm.hang) };
 }
 
-/** What the posture leaves on every joint it owns, for the rest of the file and for tests. */
 export function capture(rig) {
   return rig.bones.map((bone) => ({ bone, turn: bone.quaternion.clone(), place: bone.position.clone() }));
 }
@@ -847,15 +773,12 @@ function cloneBody(body) {
   };
 }
 
-// Stance and swing of one walking foot at phase 0 to 1, with 0 the heel strike.
 function walkingFoot(rig, s, phase, gait) {
   const { travel, half, toeOut, stance } = gait;
   const heel = 0.42 * s.footReach,
     base = s.ankle.y,
-    // Height of the ankle joint above the sole decides how far a tipped foot lifts it.
     rise = s.ankle.y - s.ball.y + 0.008;
   const flat = (u) => gait.origin + travel * (0.5 - u);
-  // Ankle of a foot tipped about its heel (toes up) or about the ball (heel up).
   const onHeel = (z, up) => ({ z: z - heel + heel * Math.cos(up) + rise * Math.sin(up), y: base + heel * Math.sin(up) - rise * (1 - Math.cos(up)) });
   const onBall = (z, down) => ({ z: z + s.footReach - s.footReach * Math.cos(down) + rise * Math.sin(down), y: base + s.footReach * Math.sin(down) - rise * (1 - Math.cos(down)) });
   const strike = gait.strike,
@@ -883,7 +806,6 @@ function walkingFoot(rig, s, phase, gait) {
       to = onHeel(flat(0), strike);
     const e = smoother(v);
     z = from.z + (to.z - from.z) * e;
-    // The foot clears the ground early in the swing and reaches out low before the heel lands.
     y = from.y + (to.y - from.y) * e + gait.lift * Math.sin(Math.PI * v) ** 1.3 * (1 - 0.35 * v);
     pitch = push + (-strike - push) * smooth(Math.min(1, v * 1.25));
     toe = push * (1 - smooth(Math.min(1, v * 3)));
@@ -891,11 +813,6 @@ function walkingFoot(rig, s, phase, gait) {
   return { ankle: new Vector3(s.side * half, y, z), yaw: s.side * toeOut, pitch, toe, eased: true };
 }
 
-/**
- * Rewrite the generated clips of an adult with a posture. Each key is solved on the rig, so the
- * feet are placed by the legs rather than slid, and whatever a clip leaves alone keeps the
- * standing posture.
- */
 export function postureClips(rig, standing, clips, { skirted = rig.skirted } = {}) {
   const p = standing.posture,
     rest = capture(rig),
@@ -928,15 +845,12 @@ export function postureClips(rig, standing, clips, { skirted = rig.skirted } = {
       const name = track.name.slice(0, track.name.lastIndexOf("."));
       return !owned.has(name) || !/\.(quaternion|position)$/.test(track.name);
     });
-    // The root keeps its place: the hips carry every rise and fall, and ground contact is
-    // measured on the finished clip.
     const rootTrack = rig.root.name + ".position";
     const made = [new VectorKeyframeTrack(rootTrack, [0, duration], [...rig.root.position.toArray(), ...rig.root.position.toArray()])];
     for (const [bone, { turns, places }] of tracks) {
       made.push(new QuaternionKeyframeTrack(bone.name + ".quaternion", times, turns));
       if (places.length) made.push(new VectorKeyframeTrack(bone.name + ".position", times, places));
     }
-    // Tracks made for the old stride keep their rhythm on the new length of the loop.
     const scale = duration / clip.duration;
     for (const track of kept) {
       if (track.name === rootTrack) continue;
@@ -955,7 +869,6 @@ function idle(rig, standing, body, t) {
   const p = standing.posture,
     breath = Math.sin(t * tau),
     drift = Math.sin(t * tau + 1.1);
-  // Breathing lifts the chest and shoulders. The weight drifts a few millimetres over the feet.
   const upper = trunk(rig, p, {
     tilt: standing.tilt,
     yaw: standing.yaw,
@@ -975,7 +888,6 @@ function idle(rig, standing, body, t) {
 }
 function reach(rig, standing, body, wave) {
   const p = standing.posture;
-  // The right hand leads, the trunk follows it a little and the other arm comes part of the way.
   const upper = trunk(rig, p, {
     tilt: standing.tilt,
     yaw: standing.yaw,
@@ -1001,7 +913,6 @@ function reach(rig, standing, body, wave) {
 function crouch(rig, standing, body, wave) {
   const p = standing.posture,
     keep = 1 - 0.85 * smooth(wave);
-  // Both legs share the load on the way down: the hips level out and come back over the feet.
   const tilt = standing.tilt * keep,
     yaw = standing.yaw * keep,
     pitch = standing.pitch + rad(9) * wave;
@@ -1019,14 +930,11 @@ function crouch(rig, standing, body, wave) {
   });
 }
 
-// The stride of one figure: how far and wide the feet travel, and how high the hips ride at
-// each key of the loop.
 function planWalk(rig, standing, keys, skirted) {
   const p = standing.posture,
     stride = read(p, "stride"),
     swing = read(p, "swing"),
     slouch = read(p, "slouch");
-  // A long skirt shortens the step it allows.
   const length = rig.limb * (1.16 + 0.2 * stride) * (1 - 0.38 * skirted);
   const gait = {
     stance: 0.62,
@@ -1034,7 +942,6 @@ function planWalk(rig, standing, keys, skirted) {
     half: Math.max(0.046 + 0.03 * Math.max(0, read(p, "feet")), rig.narrowest * 0.82),
     toeOut: rad(5 + 6 * read(p, "toes")),
     strike: rad(17 + 4 * stride),
-    // Under a long skirt the heel rises less, so the hem is not kicked out behind.
     push: rad(46 + 8 * stride) * (1 - 0.4 * skirted),
     lift: rig.limb * (0.035 + 0.008 * stride) * (1 - 0.4 * skirted),
     origin: (rig.left.ankle.z + rig.right.ankle.z) / 2 - 0.012,
@@ -1046,8 +953,6 @@ function planWalk(rig, standing, keys, skirted) {
   for (let i = 0; i < keys; i++) {
     const t = i / keys,
       a = t * tau;
-    // Left heel lands at 0 and right at one half. The hips turn with the forward leg, drop
-    // toward the swinging side and ride over the standing foot.
     const yaw = -rad(4.5 + 1.5 * stride) * Math.cos(a) * (1 - 0.4 * skirted),
       list = rad(2.6 + 0.8 * swing) * Math.sin(a - 0.3);
     const turnPelvis = joint(gait.pitch, yaw, list);
@@ -1055,7 +960,6 @@ function planWalk(rig, standing, keys, skirted) {
     const at = rig.pelvis.clone();
     at.x = (0.3 * gait.half + 0.006) * Math.sin(a - 0.3);
     at.z = rig.pelvis.z + 0.012;
-    // Ride as high as the legs allow. A foot about to land already draws the hips down.
     let height = Infinity;
     rig.sides.forEach((s, k) => {
       const phase = (t + k * 0.5) % 1;
@@ -1063,13 +967,11 @@ function planWalk(rig, standing, keys, skirted) {
     });
     frames.push({ yaw, list, turnPelvis, feet, at, height });
   }
-  // Round the corners where one leg hands over to the other.
   for (let pass = 0; pass < 2; pass++) {
     const h = frames.map((f) => f.height);
     frames.forEach((f, i) => (f.height = 0.25 * h[(i + keys - 1) % keys] + 0.5 * h[i] + 0.25 * h[(i + 1) % keys]));
   }
   for (const f of frames) f.at.y = f.height - rig.limb * 0.003;
-  // A forearm fitted raised comes down for the walk, as far as the standing body lets it.
   pose(rig, standing.body);
   const hangs = rig.sides.map((s, i) => {
     const arm = standing.body.arms[i];
@@ -1085,7 +987,6 @@ function walk(rig, standing, body, t, plan, keys) {
   body.pelvis.turn = f.turnPelvis;
   body.pelvis.at = f.at;
   body.feet = f.feet;
-  // The chest turns against the hips, the head stays on the road ahead.
   const chestYaw = rad(3.4 + 2.4 * gait.swing) * Math.cos(a);
   Object.assign(body, trunk(rig, p, {
     tilt: f.list,
@@ -1100,16 +1001,12 @@ function walk(rig, standing, body, t, plan, keys) {
   const reachOut = 1 + 0.45 * gait.swing;
   body.arms.forEach((arm, i) => {
     const s = rig.sides[i];
-    // Each arm swings with the opposite leg and bends more as it comes forward.
     const lag = a + (s.side > 0 ? Math.PI : 0) - 0.25,
       c = Math.cos(lag);
     arm.release = 1;
     arm.waist = 0;
-    // Carry the open fan ahead of the hip as the opposite arm swings freely.
-    // A little of the stride reaches the wrist without sweeping the leaf through a long hem.
     arm.showFan = s.fanGrip ? .94 + .035*c : 0;
     arm.hang = plan.hangs[i];
-    // The upper arm travels further back than forward, and the forearm folds as it comes ahead.
     arm.elbow = rad(8 + 10 * read(p, "elbows"));
     arm.swing = rad(15) * reachOut * c - rad(9);
     arm.bend = rad(12) * reachOut * (0.5 + 0.5 * Math.cos(lag - 0.45));
@@ -1118,7 +1015,6 @@ function walk(rig, standing, body, t, plan, keys) {
   body.clavicles = body.clavicles.map((q, i) => q.clone().multiply(turn(Y, rig.sides[i].side * rad(1.5) * Math.cos(a + (rig.sides[i].side > 0 ? Math.PI : 0)))));
 }
 
-/** A one-frame clip of the standing posture, used to measure the skirt and the ground under it. */
 export function standingClip(rig) {
   const tracks = [new VectorKeyframeTrack(rig.root.name + ".position", [0, 1], [...rig.root.position.toArray(), ...rig.root.position.toArray()])];
   for (const bone of rig.bones) {

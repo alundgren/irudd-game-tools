@@ -1,7 +1,3 @@
-// Suggests the two Limbs settings that put an adult in a target's pose: Arm rest angle and
-// Standing width. It reads both figures with the reference dialog's own pose reader and solves
-// the same way its "match arms" step does.
-//   node scripts/rocketbox-study/pose-match.mjs
 import { poseReadings } from "../../character-view/human-reference-align.js";
 import { evaluateHuman } from "../../character-view/human-surface.js";
 import { readGlb } from "./glb.mjs";

@@ -23,7 +23,6 @@ export function mhrStudy(radialFit = fit) {
       structuredClone(radialFit);
   return form;
 }
-// The measured torso is a study only where the fit to the private rig is installed.
 export const mhrStudies = fit
   ? [
       {

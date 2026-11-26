@@ -9,7 +9,6 @@ import {
 } from "./human-surface.js";
 import { neckBuild, neckFields, neckSettings } from "./human-neck.js";
 
-// The donor surface alone, for comparison with the shaped one.
 function donor(parameters) {
   neckSettings.strength = 0;
   try {
@@ -35,7 +34,6 @@ function normal(surface, v) {
   const size = Math.hypot(...n);
   return n.map((x) => x / size);
 }
-// Millimetres a vertex moved outward along the donor skin normal.
 function raised(parameters, v) {
   const before = donor(parameters),
     after = evaluateHuman(parameters),
@@ -50,7 +48,6 @@ function raised(parameters, v) {
 }
 evaluateHuman({});
 const fields = neckFields({ rest: humanRestPositions() });
-// The left-side vertex that carries most of a landmark.
 function peak(name) {
   let best = -1;
   fields.ids.forEach((v, i) => {
@@ -67,11 +64,9 @@ test("the landmarks sit where the anatomy is on the donor body", () => {
     joint = (name) => at({ positions: body.joints }, body.names.indexOf(name));
   const pitVertex = peak("pit"),
     [x, y, z] = at(body, pitVertex);
-  // The pit of the neck: on the front midline, between the collar joints and the neck joint.
   assert.ok(Math.abs(x) < 0.002 && z > 0.05, "pit at " + [x, y, z]);
   assert.ok(y > joint("clavicle_l")[1] && y < joint("neck_01")[1]);
   assert.equal(pit[0], 0);
-  // The collarbone starts beside the pit and reaches the shoulder; the crest runs behind it.
   assert.ok(collarbone[0][0] < 0.035 && collarbone.at(-1)[0] > 0.14);
   for (let k = 1; k < collarbone.length; k++)
     assert.ok(collarbone[k][0] > collarbone[k - 1][0]);
@@ -103,7 +98,6 @@ test("a lean body gains a collarbone ridge, a pit, a hollow above the bone and a
 });
 
 test("fat covers the bone, muscle builds the slope, and both sides match", () => {
-  // How far the bone stands out of the dip under it; a heavy body lifts both with soft tissue.
   const ridge = peak("collarbone"),
     dip = peak("under"),
     crest = peak("trapezius"),
@@ -111,8 +105,6 @@ test("fat covers the bone, muscle builds the slope, and both sides match", () =>
   const lean = relief({ weight: -0.8 }),
     average = relief({}),
     heavy = relief({ weight: 0.9 });
-  // The dip sits lower on the chest, where the deeper throat of a heavy body has thinned out,
-  // so some of the relief left on a heavy body is that slope and not the bone.
   assert.ok(
     lean > average * 1.2 && heavy < average * 0.8 && heavy > 0,
     [lean, average, heavy].join(" "),
@@ -128,7 +120,6 @@ test("fat covers the bone, muscle builds the slope, and both sides match", () =>
     strong = raised({ muscle: 0.9, frame: 0.8 }, crest);
   assert.ok(strong > slight * 2 && slight > 1, [slight, strong].join(" "));
   assert.ok(neckBuild({ weight: 1 }).trapezius > neckBuild({}).trapezius);
-  // Mirror image: every moved vertex has a twin that moved the same way.
   const before = donor({}),
     after = evaluateHuman({}),
     moved = new Map();
@@ -172,10 +163,7 @@ test("only the girdle moves, by a bounded amount, on every kind of adult", () =>
       top = Math.max(top, after.positions[v * 3 + 1]);
       if (!move) continue;
       most = Math.max(most, move);
-      // A longer neck can carry the same vertebra above 90% of stature.
-      // Check the anatomical region and the neutral vertex, independently of that proportion.
       const bone = before.names[before.boneIndices[v * 4]];
-      // Skin that mostly follows the head only takes up the join with the neck.
       if (bone === "head")
         assert.ok(
           move < 0.007 * (h / 1.72),
@@ -213,7 +201,6 @@ test("the shaping scales with stature and can be switched off for comparison", (
   assert.notDeepEqual(at(evaluateHuman({}), v), at(donor({}), v));
 });
 
-// A vertex of the left side by where it sits on the neutral body, in millimetres at 1.72 m.
 function near(x, y, z) {
   const body = donor({ height: 1.72 });
   let best = 0,
@@ -228,7 +215,6 @@ function near(x, y, z) {
   }
   return best;
 }
-// How a heavy adult is built: mass with the waist and abdomen that go with it.
 const heavyAdult = {
   height: 1.72,
   weight: 0.9,
@@ -255,12 +241,10 @@ test("a heavy body carries a deeper neck, a fuller shoulder line and a padded up
   );
   assert.ok(line > 9 && line < 19, "shoulder line " + line.toFixed(1) + " mm");
   assert.ok(pad > 10 && pad < 18, "upper back " + pad.toFixed(1) + " mm");
-  // The throat runs out over the top of the chest and is gone a hand's width below the pit.
   assert.ok(
     more(near(0, 1375, 95)) < 0.6 * front &&
       Math.abs(more(near(0, 1300, 110))) < 0.5,
   );
-  // Bones, the skull and the face stay where they are.
   const before = donor(heavyAdult),
     after = evaluateHuman(heavyAdult);
   assert.deepEqual(Array.from(after.joints), Array.from(before.joints));
@@ -271,7 +255,6 @@ test("a heavy body carries a deeper neck, a fuller shoulder line and a padded up
     near(0, 1600, -80),
   ])
     assert.deepEqual(at(after, v), at(before, v), "head vertex " + v);
-  // The mass control alone reaches an ordinary build, so it does less than a heavy adult.
   assert.ok(neckBuild({ weight: 1 }).column < neckBuild(heavyAdult).column);
   assert.ok(
     raised({ height: 1.72, weight: 1 }, back) < raised(heavyAdult, back),
@@ -291,7 +274,6 @@ test("lean and average bodies keep the neck they had, whatever their waist", () 
     assert.equal(build.pad, 0);
     assert.equal(build.back, 0);
   }
-  // A slight body with a full abdomen gains a little, far less than a heavy one.
   const slight = neckBuild({ weight: -0.1, belly: 0.8, waist: 0.6 });
   assert.ok(
     slight.column > 0 && slight.column < 0.35 * neckBuild(heavyAdult).column,
@@ -306,7 +288,6 @@ test("the artist can fill or flatten the shoulder line and the upper back on any
         validHuman({ [key]: -1 }) &&
         !validHuman({ [key]: 1.2 }),
     );
-    // Generated adults leave both at rest: mass decides, and the artist adds to it.
     for (let seed = 8710; seed < 8716; seed++)
       assert.equal(randomHuman(seed)[key], 0);
   }
@@ -334,17 +315,14 @@ test("the artist can fill or flatten the shoulder line and the upper back on any
     full[1] - rest[1] > 13 && full[1] - rest[1] < 19,
     "upper back +" + (full[1] - rest[1]).toFixed(1) + " mm",
   );
-  // The two meet at the base of the neck, so each lifts a little of the other's ground.
   assert.ok(
     raised({ ...lean, upperBack: 1 }, slope) > rest[0] &&
       raised({ ...lean, shoulderLine: 1 }, back) < rest[1] + 4,
   );
-  // Flattening the back takes half as much away, so the shoulder blades stay covered.
   assert.ok(
     rest[1] - flat[1] > 6 && rest[1] - flat[1] < 10,
     "upper back -" + (rest[1] - flat[1]).toFixed(1) + " mm",
   );
-  // Neither touches the throat, and on a heavy body they add to what mass does, up to a full pad.
   const throat = near(0, 1450, 72);
   assert.ok(
     Math.abs(

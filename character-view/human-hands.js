@@ -1,7 +1,5 @@
 import { Matrix4, Vector3 } from "three";
 
-// Flex from the knuckles in the plane of each palm. The ring and little
-// fingers lead a relaxed curl and the thumb bends around its own oblique axis.
 export function poseFingers(positions, joints, bones, weights, names, amount) {
   const transforms = new Map(),
     point = new Vector3(),

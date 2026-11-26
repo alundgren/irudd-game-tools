@@ -20,8 +20,6 @@ edge_hits = geometry["edge_hits"]
 
 def shaft_faces(mesh):
     faces = mesh.region_faces("gear dispatch handle")
-    # The rod and its two standoffs are independent shells. Weld positions
-    # across UV seams for this connectivity calculation only.
     points = mesh.rest[faces].reshape(-1, 3)
     points, indices = np.unique(points.round(5), axis=0, return_inverse=True)
     ids = indices.reshape(-1, 3)
@@ -29,7 +27,6 @@ def shaft_faces(mesh):
     cols = ids[:, [1, 2, 0]].flatten()
     graph = coo_matrix((np.ones(len(rows)), (rows, cols)), shape=(len(points), len(points)))
     _, labels = connected_components(graph, directed=False)
-    # Select the long grip rod, excluding both short standoffs.
     spans = [np.linalg.norm(np.ptp(points[labels == c], axis=0)) for c in range(labels.max() + 1)]
     return faces[labels[ids[:, 0]] == np.argmax(spans)]
 
@@ -37,7 +34,6 @@ def shaft_faces(mesh):
 def contact(surface, shaft, center, axis):
     low, high = surface.min(axis=1), surface.max(axis=1)
     hits, contact_points = set(), []
-    # Filter pairs by their boxes. Only a few faces touch this small handle.
     for face in shaft:
         selected = np.flatnonzero(np.all(low <= face.max(axis=0) + 1e-7, axis=1)
                                   & np.all(high >= face.min(axis=0) - 1e-7, axis=1))

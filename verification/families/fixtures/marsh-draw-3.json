@@ -1,0 +1,847 @@
+{
+  "assets": [],
+  "catalog": [],
+  "extensions": {},
+  "features": {
+    "character.appearance": {
+      "face": 1,
+      "hair": "Crop",
+      "hairColor": "#372e2a",
+      "palette": "Tide",
+      "skin": "#ae7f5d"
+    },
+    "outfit.wardrobe": {
+      "outfit": "Work clothes"
+    }
+  },
+  "format": "irudd.character",
+  "id": "doc-marsh-draw-3",
+  "label": "marsh-draw-3",
+  "parts": [
+    {
+      "color": "#7b8a68",
+      "features": {
+        "creature.blend": {
+          "blend": true
+        },
+        "figure.assembly": {
+          "order": 0
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "motion.role": {
+          "role": "torso"
+        }
+      },
+      "id": "p-body",
+      "label": "body",
+      "parent": null,
+      "position": [0, 0.67, 0],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.8, 0.81, 1.02]
+    },
+    {
+      "color": "#829073",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [1, 1, 1],
+          "order": 6
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.071, 0.075],
+            [0, 0.09999999999999987, 0.025, 0.127, 0.128],
+            [0, 0.1399999999999999, 0.114, 0.108, 0.087],
+            [0, 0.08000000000000007, 0.21, 0.077, 0.065],
+            [0, 0.06800000000000006, 0.246, 0.054, 0.042]
+          ]
+        },
+        "motion.role": {
+          "role": "head"
+        },
+        "outfit.wear": {
+          "role": "head"
+        }
+      },
+      "id": "p-head",
+      "label": "head",
+      "parent": null,
+      "position": [0, 0.635, 0.5216071428571427],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1.92857142857143, 1.92857142857143, 1.92857142857143]
+    },
+    {
+      "color": "#213b36",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.049, 0.047, 0.051],
+          "order": 9
+        },
+        "motion.role": {
+          "role": "head"
+        }
+      },
+      "id": "p-left-eye",
+      "label": "left-eye",
+      "parent": "p-head",
+      "position": [0.188, 0.116, 0.067],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.049, 0.047, 0.051]
+    },
+    {
+      "color": "#9ca784",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.115, 0.105, 0.13],
+          "order": 7
+        },
+        "motion.role": {
+          "role": "head"
+        }
+      },
+      "id": "p-left-eye-cushion",
+      "label": "left-eye-cushion",
+      "parent": "p-head",
+      "position": [0.158, 0.1, 0.025],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.115, 0.105, 0.13]
+    },
+    {
+      "color": "#7b8a68",
+      "features": {
+        "creature.blend": {
+          "blend": true
+        },
+        "figure.assembly": {
+          "order": 11
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.12, 0.13],
+            [0.17, -0.12, 0.07, 0.105, 0.11],
+            [0.28, -0.31, 0.13, 0.075, 0.085],
+            [0.3, -0.46, 0.18, 0.07, 0.085]
+          ]
+        },
+        "motion.role": {
+          "role": "thigh"
+        }
+      },
+      "id": "p-left-front-leg",
+      "label": "left-front-leg",
+      "parent": null,
+      "position": [0.26, 0.58, 0.33],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#536e5e",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.27, 0.13, 0.37],
+          "order": 17
+        },
+        "motion.role": {
+          "role": "foot"
+        }
+      },
+      "id": "p-left-front-paddle",
+      "label": "left-front-paddle",
+      "parent": null,
+      "position": [0.56, 0.065, 0.57],
+      "rotation": [0, 0.13052619222005157, 0, 0.9914448613738104],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.27, 0.13, 0.37]
+    },
+    {
+      "color": "#7b8a68",
+      "features": {
+        "creature.blend": {
+          "blend": true
+        },
+        "figure.assembly": {
+          "order": 13
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.12, 0.12],
+            [0.19, -0.12, 0, 0.1, 0.1],
+            [0.31, -0.3, 0.015, 0.075, 0.08],
+            [0.32, -0.43, 0.025, 0.07, 0.08]
+          ]
+        },
+        "motion.role": {
+          "role": "thigh"
+        }
+      },
+      "id": "p-left-middle-leg",
+      "label": "left-middle-leg",
+      "parent": null,
+      "position": [0.31, 0.55, 0],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#536e5e",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.29, 0.13, 0.34],
+          "order": 19
+        },
+        "motion.role": {
+          "role": "foot"
+        }
+      },
+      "id": "p-left-middle-paddle",
+      "label": "left-middle-paddle",
+      "parent": null,
+      "position": [0.63, 0.065, 0.065],
+      "rotation": [0, 0.21643961393810288, 0, 0.9762960071199334],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.29, 0.13, 0.34]
+    },
+    {
+      "color": "#617e70",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.13, 0.045, 0.15],
+          "order": 30
+        },
+        "motion.role": {
+          "role": "tail"
+        }
+      },
+      "id": "p-left-pod-seal",
+      "label": "left-pod-seal",
+      "parent": "p-left-sample-pod",
+      "position": [0, 0.11, 0],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.13, 0.045, 0.15]
+    },
+    {
+      "color": "#7b8a68",
+      "features": {
+        "creature.blend": {
+          "blend": true
+        },
+        "figure.assembly": {
+          "order": 15
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.12, 0.13],
+            [0.16, -0.12, -0.07, 0.105, 0.11],
+            [0.28, -0.3, -0.13, 0.075, 0.085],
+            [0.3, -0.44, -0.15, 0.07, 0.085]
+          ]
+        },
+        "motion.role": {
+          "role": "thigh"
+        }
+      },
+      "id": "p-left-rear-leg",
+      "label": "left-rear-leg",
+      "parent": null,
+      "position": [0.25, 0.56, -0.33],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#536e5e",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.27, 0.13, 0.36],
+          "order": 21
+        },
+        "motion.role": {
+          "role": "foot"
+        }
+      },
+      "id": "p-left-rear-paddle",
+      "label": "left-rear-paddle",
+      "parent": null,
+      "position": [0.55, 0.065, -0.46],
+      "rotation": [0, 0.3007057995042731, 0, 0.9537169507482269],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.27, 0.13, 0.36]
+    },
+    {
+      "color": "#465f56",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.32, 0.18, 0.35],
+          "order": 26
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "motion.role": {
+          "role": "tail"
+        }
+      },
+      "id": "p-left-sample-cradle",
+      "label": "left-sample-cradle",
+      "parent": "p-tail-left-branch",
+      "position": [0.48, 0.23, -0.25],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.32, 0.18, 0.35]
+    },
+    {
+      "color": "#c5ad70",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.23, 0.24, 0.26],
+          "order": 28
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "motion.role": {
+          "role": "tail"
+        }
+      },
+      "id": "p-left-sample-pod",
+      "label": "left-sample-pod",
+      "parent": "p-left-sample-cradle",
+      "position": [0, 0.105, 0],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.23, 0.24, 0.26]
+    },
+    {
+      "color": "#7b8a68",
+      "features": {
+        "creature.blend": {
+          "blend": true
+        },
+        "figure.assembly": {
+          "order": 5
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.2, 0.18],
+            [0, 0.04, 0.16, 0.18, 0.16],
+            [0, 0.09, 0.3, 0.15, 0.14]
+          ]
+        },
+        "motion.role": {
+          "role": "head"
+        }
+      },
+      "id": "p-neck",
+      "label": "neck",
+      "parent": null,
+      "position": [0, 0.65, 0.35],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#213b36",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.049, 0.047, 0.051],
+          "order": 10
+        },
+        "motion.role": {
+          "role": "head"
+        }
+      },
+      "id": "p-right-eye",
+      "label": "right-eye",
+      "parent": "p-head",
+      "position": [-0.188, 0.116, 0.067],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.049, 0.047, 0.051]
+    },
+    {
+      "color": "#9ca784",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.115, 0.105, 0.13],
+          "order": 8
+        },
+        "motion.role": {
+          "role": "head"
+        }
+      },
+      "id": "p-right-eye-cushion",
+      "label": "right-eye-cushion",
+      "parent": "p-head",
+      "position": [-0.158, 0.1, 0.025],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.115, 0.105, 0.13]
+    },
+    {
+      "color": "#7b8a68",
+      "features": {
+        "creature.blend": {
+          "blend": true
+        },
+        "figure.assembly": {
+          "order": 12
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.12, 0.13],
+            [-0.17, -0.12, 0.07, 0.105, 0.11],
+            [-0.28, -0.31, 0.13, 0.075, 0.085],
+            [-0.3, -0.46, 0.18, 0.07, 0.085]
+          ]
+        },
+        "motion.role": {
+          "role": "thigh"
+        }
+      },
+      "id": "p-right-front-leg",
+      "label": "right-front-leg",
+      "parent": null,
+      "position": [-0.26, 0.58, 0.33],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#536e5e",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.27, 0.13, 0.37],
+          "order": 18
+        },
+        "motion.role": {
+          "role": "foot"
+        }
+      },
+      "id": "p-right-front-paddle",
+      "label": "right-front-paddle",
+      "parent": null,
+      "position": [-0.56, 0.065, 0.57],
+      "rotation": [0, -0.13052619222005157, 0, 0.9914448613738104],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.27, 0.13, 0.37]
+    },
+    {
+      "color": "#7b8a68",
+      "features": {
+        "creature.blend": {
+          "blend": true
+        },
+        "figure.assembly": {
+          "order": 14
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.12, 0.12],
+            [-0.19, -0.12, 0, 0.1, 0.1],
+            [-0.31, -0.3, 0.015, 0.075, 0.08],
+            [-0.32, -0.43, 0.025, 0.07, 0.08]
+          ]
+        },
+        "motion.role": {
+          "role": "thigh"
+        }
+      },
+      "id": "p-right-middle-leg",
+      "label": "right-middle-leg",
+      "parent": null,
+      "position": [-0.31, 0.55, 0],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#536e5e",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.29, 0.13, 0.34],
+          "order": 20
+        },
+        "motion.role": {
+          "role": "foot"
+        }
+      },
+      "id": "p-right-middle-paddle",
+      "label": "right-middle-paddle",
+      "parent": null,
+      "position": [-0.63, 0.065, 0.065],
+      "rotation": [0, -0.21643961393810288, 0, 0.9762960071199334],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.29, 0.13, 0.34]
+    },
+    {
+      "color": "#617e70",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.13, 0.045, 0.15],
+          "order": 31
+        },
+        "motion.role": {
+          "role": "tail"
+        }
+      },
+      "id": "p-right-pod-seal",
+      "label": "right-pod-seal",
+      "parent": "p-right-sample-pod",
+      "position": [0, 0.11, 0],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.13, 0.045, 0.15]
+    },
+    {
+      "color": "#7b8a68",
+      "features": {
+        "creature.blend": {
+          "blend": true
+        },
+        "figure.assembly": {
+          "order": 16
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.12, 0.13],
+            [-0.16, -0.12, -0.07, 0.105, 0.11],
+            [-0.28, -0.3, -0.13, 0.075, 0.085],
+            [-0.3, -0.44, -0.15, 0.07, 0.085]
+          ]
+        },
+        "motion.role": {
+          "role": "thigh"
+        }
+      },
+      "id": "p-right-rear-leg",
+      "label": "right-rear-leg",
+      "parent": null,
+      "position": [-0.25, 0.56, -0.33],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#536e5e",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.27, 0.13, 0.36],
+          "order": 22
+        },
+        "motion.role": {
+          "role": "foot"
+        }
+      },
+      "id": "p-right-rear-paddle",
+      "label": "right-rear-paddle",
+      "parent": null,
+      "position": [-0.55, 0.065, -0.46],
+      "rotation": [0, -0.3007057995042731, 0, 0.9537169507482269],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.27, 0.13, 0.36]
+    },
+    {
+      "color": "#465f56",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.32, 0.18, 0.35],
+          "order": 27
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "motion.role": {
+          "role": "tail"
+        }
+      },
+      "id": "p-right-sample-cradle",
+      "label": "right-sample-cradle",
+      "parent": "p-tail-right-branch",
+      "position": [-0.48, 0.23, -0.25],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.32, 0.18, 0.35]
+    },
+    {
+      "color": "#c5ad70",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.23, 0.24, 0.26],
+          "order": 29
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "motion.role": {
+          "role": "tail"
+        }
+      },
+      "id": "p-right-sample-pod",
+      "label": "right-sample-pod",
+      "parent": "p-right-sample-cradle",
+      "position": [0, 0.105, 0],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.23, 0.24, 0.26]
+    },
+    {
+      "color": "#d4cfaa",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.36, 0.15, 0.48],
+          "order": 4
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "motion.role": {
+          "role": "torso"
+        }
+      },
+      "id": "p-shell-crown",
+      "label": "shell-crown",
+      "parent": null,
+      "position": [0, 1.27, -0.1],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.36, 0.15, 0.48]
+    },
+    {
+      "color": "#617e70",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.59, 0.25, 0.74],
+          "order": 3
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "motion.role": {
+          "role": "torso"
+        }
+      },
+      "id": "p-shell-inner",
+      "label": "shell-inner",
+      "parent": null,
+      "position": [0, 1.18, -0.1],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.59, 0.25, 0.74]
+    },
+    {
+      "color": "#b5bea0",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.8, 0.34, 0.96],
+          "order": 2
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "motion.role": {
+          "role": "torso"
+        }
+      },
+      "id": "p-shell-middle",
+      "label": "shell-middle",
+      "parent": null,
+      "position": [0, 1.065, -0.1],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.8, 0.34, 0.96]
+    },
+    {
+      "color": "#465f56",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.99, 0.48, 1.16],
+          "order": 1
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "motion.role": {
+          "role": "torso"
+        }
+      },
+      "id": "p-shell-outer",
+      "label": "shell-outer",
+      "parent": null,
+      "position": [0, 0.91, -0.1],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.99, 0.48, 1.16]
+    },
+    {
+      "color": "#7b8a68",
+      "features": {
+        "creature.blend": {
+          "blend": true
+        },
+        "figure.assembly": {
+          "order": 24
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.095, 0.095],
+            [0.2, -0.01, -0.13, 0.075, 0.075],
+            [0.4, 0.08, -0.24, 0.065, 0.065],
+            [0.48, 0.22, -0.25, 0.075, 0.075]
+          ]
+        },
+        "motion.role": {
+          "role": "tail"
+        }
+      },
+      "id": "p-tail-left-branch",
+      "label": "tail-left-branch",
+      "parent": "p-tail-root",
+      "position": [0, 0, -0.35],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#7b8a68",
+      "features": {
+        "creature.blend": {
+          "blend": true
+        },
+        "figure.assembly": {
+          "order": 25
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.095, 0.095],
+            [-0.2, -0.01, -0.13, 0.075, 0.075],
+            [-0.4, 0.08, -0.24, 0.065, 0.065],
+            [-0.48, 0.22, -0.25, 0.075, 0.075]
+          ]
+        },
+        "motion.role": {
+          "role": "tail"
+        }
+      },
+      "id": "p-tail-right-branch",
+      "label": "tail-right-branch",
+      "parent": "p-tail-root",
+      "position": [0, 0, -0.35],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#7b8a68",
+      "features": {
+        "creature.blend": {
+          "blend": true
+        },
+        "figure.assembly": {
+          "order": 23
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.16, 0.15],
+            [0, -0.03, -0.2, 0.12, 0.12],
+            [0, 0, -0.37, 0.095, 0.095]
+          ]
+        },
+        "motion.role": {
+          "role": "tail"
+        },
+        "outfit.wear": {
+          "role": "tail"
+        }
+      },
+      "id": "p-tail-root",
+      "label": "tail-root",
+      "parent": null,
+      "position": [0, 0.63, -0.42],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    }
+  ],
+  "poses": [],
+  "requires": [
+    {
+      "feature": "character.appearance",
+      "version": 1
+    },
+    {
+      "feature": "core.parts",
+      "version": 1
+    },
+    {
+      "feature": "creature.blend",
+      "version": 1
+    },
+    {
+      "feature": "figure.assembly",
+      "version": 1
+    },
+    {
+      "feature": "figure.finish",
+      "version": 1
+    },
+    {
+      "feature": "figure.sweep",
+      "version": 1
+    },
+    {
+      "feature": "motion.role",
+      "version": 1
+    },
+    {
+      "feature": "outfit.wardrobe",
+      "version": 1
+    },
+    {
+      "feature": "outfit.wear",
+      "version": 1
+    }
+  ],
+  "version": 1
+}

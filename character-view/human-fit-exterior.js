@@ -4,11 +4,6 @@ import { eyeOpenings } from "./human-fit-eyes.js";
 
 const byTopology = new WeakMap();
 
-// An external scan can observe the lips, but cannot observe the bag of mouth
-// lining behind them. A vertex shared by the lining and the outer lip belongs
-// to the observed surface and must remain available to the artist.
-// The same holds for the lining of each eye socket behind the lids. Fitted, it is
-// drawn forward onto the scan's lids or eyeball and takes the eyeball with it.
 export function exteriorSkin(surface) {
   if (byTopology.has(surface.uvFaces)) return byTopology.get(surface.uvFaces);
   const chart = new BufferGeometry();

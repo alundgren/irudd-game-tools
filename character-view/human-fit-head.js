@@ -1,8 +1,5 @@
 import { Vector3 } from "three";
 
-// Eyelids, nostril rims and touching lips can be millimetres apart while
-// belonging to different mesh islands. Couple their fitting displacements in
-// space so a close target triangle cannot pull one side of a rim through the other.
 export function headFitSupport(surface, controls, anchors) {
   const head = surface.names.indexOf("head");
   const radius = (0.036 * surface.height) / 1.72;
@@ -43,17 +40,12 @@ export function smoothHeadFit(vectors, initial, support, observed) {
         movement += weight * (candidate[k] - initial[k]);
       }
       const k = i * 3 + axis;
-      // Keep existing manual edits. Smooth only the corrections from this fit.
       vectors[k] = initial[k] + movement / total;
     }
-    // Neighbours can still move outward when this anchor is already near its limit.
     offset.fromArray(vectors, i * 3).clampLength(0, fitOffsetLimit).toArray(vectors, i * 3);
   }
 }
 
-// Compare aligned head surfaces with the same topology. A normal turning
-// past perpendicular flags a possible fold; in a posed mesh the same
-// rotation could be an ordinary movement. Call only at equal rest poses.
 export function headFitDistortion(before, after, onFold) {
   const head = before.names.indexOf("head");
   let triangles = 0,
@@ -80,7 +72,7 @@ export function headFitDistortion(before, after, onFold) {
     )
       continue;
     normal(before.positions, i, j, k, oldNormal);
-    if (oldNormal.lengthSq() < (2 * 0.25e-6) ** 2) continue; // 0.25 square millimetres
+    if (oldNormal.lengthSq() < (2 * 0.25e-6) ** 2) continue;
     normal(after.positions, i, j, k, newNormal);
     triangles++;
     if (oldNormal.dot(newNormal) <= 0) {

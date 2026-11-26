@@ -2,8 +2,6 @@ import { MathUtils, Ray, Vector3 } from "three";
 
 const { lerp } = MathUtils;
 
-// Rings run from the nape towards the nose (+Z); x is half breadth, y is
-// elevation. The cheekbone and jaw ramus have separate corners on each ring.
 export function skullCage(shape, snout) {
   const crusher = snout === "mandibles";
   const grazer = snout === "muzzle";
@@ -52,8 +50,6 @@ export function skullCage(shape, snout) {
   return loft(rings);
 }
 
-// Attach an orbit or a crest by casting its local unit direction against
-// the cranial control hull. The small inset matches the subdivided surface.
 export function skullSurfaceRadius(cage, az, el) {
   const direction = new Vector3(
     Math.sin(az) * Math.cos(el),
@@ -82,8 +78,6 @@ export function skullSurfaceRadius(cage, az, el) {
   return 0.5;
 }
 
-// Closed section loft with centroid fans on either end. Consistent winding
-// also supports the reflected blade of the other mandible.
 function loft(rings) {
   const vertices = rings.flat(),
     faces = [],
@@ -132,15 +126,11 @@ function finish(vertices, faces) {
   return { vertices, faces, levels: 1 };
 }
 
-// The dorsal lip is taller and swept backwards. Its lower lip opens onto
-// the moving femur. All sockets on one side share a trunk attachment.
 export function coxalShields(row) {
-  // Beyond eight sockets the widest joints carry the shields.
   row = [...row].sort((a,b)=>b.r0-a.r0).slice(0,8);
   const points = [], faces = [];
   const centre = row.reduce((sum,leg) => sum.add(leg.root),new Vector3()).divideScalar(row.length);
   const unit = Math.max(...row.map(leg=>leg.frame.radius[0]),.01);
-  // Keep the editable cage within its point budget even on radial walkers.
   const sides = Math.min(10, Math.floor((192/row.length-2)/5));
   for (const {root,knee,r0,frame} of row) {
     const axis = knee.clone().sub(root).normalize();
@@ -164,11 +154,6 @@ export function coxalShields(row) {
   return {centre,unit,cage:{vertices:points,faces,levels:1}};
 }
 
-// The whole pinna is one sheet folded back around its lip. Its cupped inner
-// face has a raised antihelix below a softer turned-over tip.
-// Profiles grow from the same nine cartilage loops as the original ear.
-// Each station gives the centreline's sideways, vertical and rearward reach,
-// followed by its half width. The last two stations turn the tip.
 const pinnae = {
   lance: [[0,0,0,.035],[.09,.12,.01,.14],[.19,.29,.065,.15],[.29,.49,.16,.105],[.35,.68,.22,.016]],
   fan: [[0,0,0,.05],[.085,.10,.02,.16],[.20,.22,.08,.25],[.29,.36,.15,.19],[.33,.48,.23,.04]],
@@ -181,8 +166,6 @@ function shapedPinna(outward, up, forward, style) {
   const side = outward.clone().addScaledVector(up, -outward.dot(up));
   side.addScaledVector(forward, -side.dot(forward)).normalize();
   const stations = pinnae[style];
-  // In a front view the rim spreads across the centreline. In profile
-  // it rolls forward at the base and bends back towards the tip.
   const rows = [[.22,-.062],[.72,-.066],[.97,-.038],[1,.012],[.92,.051],
     [.77,.025],[.60,-.031],[.36,.002],[.16,-.027]];
   const rings = rows.map(([radius, depth], ring) => Array.from({length:16}, (_, i) => {
@@ -221,14 +204,10 @@ export function earCage(outward, up, forward, rounded, style) {
   })));
 }
 
-// The two fingers of a chela have different jobs. The fixed finger carries the
-// heavy crushing teeth and grows out of the palm. The moving finger hinges
-// from the far shoulder of the palm and hooks over its tip.
 export function chelaCage(part, forward, opening) {
   const normal = new Vector3().crossVectors(forward, opening).normalize();
   let sections;
   if (part === "palm") {
-    // Distance along the wrist, centre in the gape plane, half-width, depth.
     sections = [
       [-.17, 0, .21, .24], [-.08, 0, .30, .30], [.11, -.02, .34, .34],
       [.28, -.055, .47, .40], [.60, -.065, .55, .41], [.84, -.085, .51, .32],
@@ -237,7 +216,6 @@ export function chelaCage(part, forward, opening) {
   } else {
     const movable = part === "upper";
     const sign = movable ? 1 : -1;
-    // Opposing teeth are staggered. They belong to the blade's own surface.
     const profile = movable
       ? [[.72,.25,.21],[.88,.35,.25],[1.08,.46,.23],[1.23,.52,.185],
          [1.37,.53,.16],[1.49,.52,.14],[1.64,.47,.12],[1.81,.37,.085],
@@ -259,8 +237,6 @@ export function chelaCage(part, forward, opening) {
     })));
 }
 
-// A pectoral fin opens from a narrow muscular base, with longer anterior
-// rays and a trailing membrane that draws inward between their tips.
 export function pectoralFinCage(side, sweep, span, chord, girth) {
   const direction = new Vector3(side * Math.cos(sweep), -0.18, -Math.sin(sweep)).normalize();
   const across = new Vector3(-side * Math.sin(sweep), 0, -Math.cos(sweep));
@@ -299,7 +275,6 @@ export function pectoralFinCage(side, sweep, span, chord, girth) {
   return finish(vertices, faces);
 }
 
-// The two caudal lobes share a narrow peduncle and sweep back around a fork.
 export function caudalFinCage(along, horizontal) {
   const across = new Vector3(1, 0, 0).addScaledVector(along, -along.x).normalize();
   const vertical = new Vector3().crossVectors(across, along).normalize();
@@ -319,9 +294,6 @@ export function caudalFinCage(along, horizontal) {
   return loft(rings);
 }
 
-// Corneous upper and lower shells keep their own culmen and cutting edge.
-// Sections run from the cheek across the bridge to the paired upper lip pads.
-// The lower jaw sits on its own hinge; the teeth retain their separate roots.
 export function mammalMuzzle(profile, lower, width, height, reach, drop) {
   const cat = profile === "feline", rooting = profile === "rooting";
   const grazing = profile === "grazing";
@@ -347,8 +319,6 @@ export function mammalMuzzle(profile, lower, width, height, reach, drop) {
   return loft(rings);
 }
 
-// Each nasal wing has a thick rim rolled around a blind cavity. The two
-// wings share a straight medial border; their concave ends face forward.
 export function noseWing(profile, side) {
   const rooting = profile === "rooting";
   const scaleY = rooting ? .85 : .65;
@@ -370,10 +340,6 @@ export function noseWing(profile, side) {
   return loft(rings.map(row=>row.map(([x,y,z])=>[x*side,y*scaleY,z])));
 }
 
-// The bill fans out near its tip; the beak hooks under the shorter lower jaw.
-// Longitudinal sections of the upper and lower rhamphotheca. A spear
-// tapers to a common point, a seed cracker bears deep opposed cutting
-// faces, and a spoon narrows at mid-length before spreading at the tip.
 const feedingBills = {
   spear: { length: 1.36, width: .72, depth: .64, lower: .985, bend: -.08,
     breadth: [.95,1,.76,.5,.29,.12,.025], crown: [.72,1,.78,.54,.32,.14,.03] },
@@ -417,7 +383,6 @@ export function beakCage(bill, lower, width, height, length, gape, profile) {
       w = cut.breadth[row];
       h = cut.crown[row];
     }
-    // Preserve the common seam of the jaws as the lower jaw pivots open.
     const arc = cut ? height * cut.bend * at ** 1.8 : 0;
     const y = cut ? arc - (lower ? height*.28 + long*at*Math.sin(gape*.49) : 0) : lower
       ? -height * 0.32 - long * at * Math.sin(gape * 0.49)
@@ -454,7 +419,6 @@ export function beakCage(bill, lower, width, height, length, gape, profile) {
   return loft(rings);
 }
 
-// The inner serration and outer cutting blade belong to one editable solid.
 export function mandibleCage(side, length, width, height, gape) {
   const rows = [
     [-0.1, 0, 0.66],
@@ -493,8 +457,6 @@ export function mandibleCage(side, length, width, height, gape) {
   );
 }
 
-// A shared septum divides two recessed nasal passages. The rear of the
-// piece overlaps the trunk; the front lip projects past its rounded cap.
 export function trunkTipCage(across, axis) {
   const vertical = new Vector3().crossVectors(axis, across).normalize();
   const vertices = [],
@@ -552,8 +514,6 @@ export function trunkTipCage(across, axis) {
   return finish(vertices, faces);
 }
 
-// Each ray and the scalloped membrane between it and the next ray share
-// vertices. The outer web therefore moves with the same tarsal joint.
 function webbedFoot(digits, ankle) {
   const n = Math.max(2, Math.min(digits || 2, 6)),
     columns = 2 * n - 1;
@@ -642,8 +602,6 @@ export function nailKnots(end, count, digit) {
   ].map(([t, h]) => [ray.centre + t * ray.shift, h, lerp(1.12, ray.reach, t)]);
 }
 
-// A single watertight foot has a sloping heel, metatarsal pad, and toes
-// extruded from shared metatarsal edges. It keeps the leg's animation joint.
 export function footCage(end, style, digits, ankleRatio) {
   if (end === "paddle") return webbedFoot(digits, ankleRatio);
   if (!digits && (end === "paw" || end === "talons")) end = "pad";

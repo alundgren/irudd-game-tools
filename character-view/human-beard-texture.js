@@ -2,12 +2,9 @@ import * as T from "three";
 import { unzlibSync } from "three/addons/libs/fflate.module.js";
 import grain from "./human-beard-grain-data.json" with { type: "json" };
 
-// The left half of the second row contains transparent edge fibres. The right
-// half holds dense short hairs. Both are monochrome so the wearer can dye them.
 let cachedPixels = null;
 let cachedTexture = null;
 
-/** The four drawn bunches and their thinner edges share one dyeable cutout map. */
 export function beardStrandPixels() {
   if (cachedPixels) return cachedPixels;
   const size = grain.size;
@@ -23,7 +20,6 @@ export function beardStrandPixels() {
   return (cachedPixels = { width: size, height: size, data });
 }
 
-/** Shared procedural beard strand texture (CanvasTexture in browser, DataTexture in Node). */
 export function beardStrandMap() {
   if (cachedTexture) return cachedTexture;
   const { width, height, data } = beardStrandPixels();
@@ -110,8 +106,6 @@ export function beardSurfaceMaps() {
 }
 
 const clamp = (x) => Math.max(0, Math.min(1, x));
-// Coordinates in the dense patch, in pixels with the origin at the top left.
-// The face chart runs from forehead to chin along x and from ear to ear along y.
 export const bedColumn = (faceY) => 130 + 122 * clamp(faceY);
 export const bedRow = (faceX) => 132 + 119 * clamp((faceX - 0.46) / 0.54);
 
@@ -128,8 +122,6 @@ export function beardRootTone(faceX, faceY) {
   ];
 }
 
-// Skin paint under a short beard. The growth value rises slowly from bare skin, so the paint
-// tapers into the cheek, and is nearly solid in the core where the roots shade each other.
 const ease = (v, a, b) => {
   const t = clamp((v - a) / (b - a));
   return t * t * (3 - 2 * t);
@@ -140,21 +132,10 @@ function valueNoise(x, y) {
   const i = Math.floor(x), j = Math.floor(y), a = x - i, b = y - j, u = a * a * (3 - 2 * a), v = b * b * (3 - 2 * b);
   return (lattice(i, j) * (1 - u) + lattice(i + 1, j) * u) * (1 - v) + (lattice(i, j + 1) * (1 - u) + lattice(i + 1, j + 1) * u) * v;
 }
-/**
- * Shade of the roots at a point of the face chart: dark undergrowth with lighter streaks that
- * run the way the hair grows. The chart lies on its side, so growth runs along x.
- */
 export function shortBeardRoot(faceX, faceY, moustache = 0, deepen = 0.22) {
-  // Over the lip the hair runs out from the middle, which is across the chart.
   const down = valueNoise(faceX * 70, faceY * 260), out = valueNoise(faceX * 250, faceY * 80);
   return (0.34 + 0.46 * (down + (out - down) * clamp(moustache * 1.6)) + 0.12 * valueNoise(faceX * 9, faceY * 40)) * (1 - deepen * clamp(moustache * 1.6));
 }
-/**
- * How much short-beard hair grows at a point of the face chart, from the moustache, chin and side
- * growth there: 0 bare, 1 full. The skin paint and the hair cards both read this, so no card
- * grows where the skin is bare. The cheek thins over a wide band, a thin strip of stubble joins
- * the cheek to the hair in front of the ear, and the moustache parts under the nose.
- */
 export function shortBeardGrowth(faceX, faceY, growth) {
   const lateral = Math.abs(faceY - 0.5) * 2;
   const line = 0.635 - 0.085 * ease(lateral, 0.28, 0.74);

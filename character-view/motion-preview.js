@@ -130,7 +130,6 @@ export function motionPreview(scene, render, changed) {
     }
     scene.add(rig.actor);
     mixer = new AnimationMixer(rig.actor);
-    // "Stand" shows the rig at rest: an adult with a posture rests in it.
     clip = rig.clips.find((c) => c.name === select.value) ?? null;
     if (clip) {
       mixer.clipAction(clip).play();
@@ -228,7 +227,6 @@ export function motionPreview(scene, render, changed) {
         configure();
       }
     },
-    /** Show an adult that has a posture standing in it, as it rests in a game. */
     stand() {
       if (!recipe?.posture || select.value !== "Bind") return;
       select.value = "Stand";

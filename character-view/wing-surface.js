@@ -7,16 +7,6 @@ import {
 } from "three";
 import { randomStream } from "./random.js";
 
-// The lifting surface of a wing, grown from the anatomy that carries it. A
-// bat wing is a skin stretched between an arm and long fingers, a feathered
-// wing is rows of overlapping blades on a folded arm, and an insect wing is a
-// pleated film stiffened by branching veins. Each is built from one short
-// description, so the same description always grows the same wing.
-//
-// The wing is drawn in its own flat frame: u runs along the span from the
-// shoulder to the tip, v runs back along the body and h rises from the upper
-// side. The arm that carries the surface is a swept region of its own. Both
-// follow the same curve, which keeps the surface on its bones.
 export const wingStructures = ["plain", "bat", "feather", "insect"];
 export const wingPatterns = ["none", "tips", "bars", "eyespot"];
 export const wingCounts = { bat: [2, 5], feather: [4, 12], insect: [3, 8] };
@@ -65,8 +55,6 @@ export function validWing(w) {
   );
 }
 
-// The frame of a wing: its span and chord and the three directions of the
-// flat drawing in the space of the region.
 function frameOf(w) {
   const span = new Vector3(...w.span),
     L = span.length(),
@@ -78,8 +66,6 @@ function frameOf(w) {
     c.set(0, 0, -1).addScaledVector(s, s.z);
   c.normalize();
   const n = new Vector3().crossVectors(s, c).multiplyScalar(w.side);
-  // A gentle gull curve along the span and an aerofoil droop along the
-  // chord. Both vanish at the shoulder, where the arm leaves the body.
   const droop = { bat: 0.1, feather: 0.13, insect: 0.04 }[w.structure];
   const rest = (u, v) =>
     0.05 * L * Math.sin(Math.PI * clamp(u / L, 0, 1)) - (droop * v * v) / C;
@@ -91,8 +77,6 @@ const place = (f, [u, v, h]) =>
     .addScaledVector(f.c, v)
     .addScaledVector(f.n, h);
 
-// Where the flight feathers of a bird's wing sit: primaries on the hand,
-// secondaries on the forearm and a few tertials on the upper arm.
 function featherPlan(w, f) {
   const { L, C } = f,
     b = w.bend;
@@ -104,8 +88,6 @@ function featherPlan(w, f) {
     feathers = [];
   const out = (7 - 11 * w.notch) * rad,
     inner = 64 * rad;
-  // The longest primary sits near the leading edge on a pointed wing and a
-  // few feathers in on a rounded one.
   const peak = lerp(3.2, 0.5, w.point) * ((np - 1) / 8),
     shortfall = lerp(0.24, 0.05, w.point);
   const fan = [];
@@ -152,7 +134,6 @@ function featherPlan(w, f) {
       kind: "tertial",
     });
   }
-  // The shaft of the leading primary carries the wing to its tip.
   const tip = feathers[0];
   const shaft = (r) => [
     tip.base[0] + Math.cos(tip.phi) * tip.length * r - Math.sin(tip.phi) * 0.05 * tip.length * r * r,
@@ -161,7 +142,6 @@ function featherPlan(w, f) {
   return { S, E, W, H, M: shaft(0.5), T: shaft(0.97), feathers };
 }
 
-// The leading edge and the chord of an insect wing along its span.
 function insectOutline(w, f) {
   const { L, C } = f;
   const rise = lerp(1.1, 0.55, w.point),
@@ -176,9 +156,6 @@ function insectOutline(w, f) {
   return { chord, lead };
 }
 
-// The joints of the arm that carries the surface, each with the thickness of
-// the arm there. The swept arm region and the surface both follow the curve
-// through these joints.
 export function wingArm(w) {
   const f = frameOf(w),
     { L } = f,
@@ -218,7 +195,6 @@ export function wingArm(w) {
     radius: Math.max(0.0012, r * k),
   }));
 }
-// The same joints as the knots of a sweep whose pivot is the shoulder.
 export function wingArmKnots(w) {
   const f = frameOf(w);
   return wingArm(w).map(({ at, radius }) => [
@@ -244,7 +220,6 @@ function surface() {
       col.push(color.r, color.g, color.b);
       return pos.length / 3 - 1;
     },
-    // A sheet of points that faces up or down as a whole.
     sheet(rows, facing) {
       const quads = [];
       let turn = 0;
@@ -262,7 +237,6 @@ function surface() {
         if (flip) idx.push(a, c, b, a, d, c);
         else idx.push(a, b, c, a, c, d);
     },
-    // A round rod through the points. `closed` rounds off its far end.
     rod(points, radii, color, sides = 6, lift = [0, 0, 1]) {
       const rings = [];
       for (let i = 0; i < points.length; i++) {
@@ -316,7 +290,6 @@ function surface() {
   return api;
 }
 
-// Dark and pale pigment laid over the wing as a whole.
 function pigment(w, f) {
   const { L, C } = f;
   const eye = [0.56 * L, 0.5 * C],
@@ -350,8 +323,6 @@ function shades(w, color) {
   return { main, dark, pale, limb, tone };
 }
 
-// Skin between two rays that leave one joint. Its free edge hangs in a
-// scallop between the ends of the rays.
 function webFan(S, rayA, rayB, o) {
   const { across = 8, along = 10, scallop, sag, thickness, shade } = o;
   const top = [],
@@ -404,11 +375,9 @@ function buildBat(S, w, f, color) {
     last = lerp(98, 72, w.point) * rad;
   const reach = Math.hypot(tip[0] - wrist[0], tip[1] - wrist[1]),
     rear = (C * lerp(1, 0.82, w.point) - wrist[1]) / Math.sin(last);
-  // Every finger after the leading one fans back from the wrist.
   const fingers = [along(2, 4)];
   const bones = [];
   for (let k = 1; k < count; k++) {
-    // No two animals spread their fingers alike.
     const t = k / (count - 1),
       angle =
         lerp(first, last, t ** lerp(1, 1.35, w.point)) +
@@ -432,7 +401,6 @@ function buildBat(S, w, f, color) {
   const film = c.main;
   const shade = (at, a, r) => {
     const [darkness, paleness] = spot(at[0], at[1], r);
-    // The skin is thinnest and palest in the middle of each panel.
     return c.tone(film, darkness, paleness, lerp(0.74, 1.06, Math.sin(Math.PI * a) ** 0.6));
   };
   const thickness = Math.max(0.0016, 0.16 * w.bone);
@@ -446,7 +414,6 @@ function buildBat(S, w, f, color) {
         shade,
       }),
     );
-  // The skin in front of the elbow, from the shoulder to the wrist.
   edges.push(
     webFan(S, along(1, 0), along(1, 2), {
       across: 8,
@@ -457,7 +424,6 @@ function buildBat(S, w, f, color) {
       shade: (at, a) => c.tone(film, 0, 0, lerp(0.74, 0.98, Math.sin(Math.PI * a) ** 0.6)),
     }),
   );
-  // The arm wing: from the arm and the last finger back to the flank.
   const flank = [0, C, rest(0, C)],
     shoulder = arm[0].at,
     lastFinger = fingers.at(-1),
@@ -515,7 +481,6 @@ function buildBat(S, w, f, color) {
   S.sheet(top, 1);
   S.sheet(under, -1);
   edges.push(hemline);
-  // A cord runs along every free edge of the skin.
   const cord = c.tone(film, 0.25, 0, 0.7);
   for (const edge of edges)
     S.rod(edge, edge.map(() => Math.max(0.0012, 0.2 * w.bone)), cord, 5);
@@ -535,7 +500,6 @@ function buildBat(S, w, f, color) {
     }
     S.rod(points, radii, bone, 7);
   }
-  // The thumb is a free hooked claw on the wrist.
   const claw = [];
   for (let i = 0; i <= 5; i++) {
     const r = i / 5,
@@ -569,15 +533,11 @@ function buildFeathers(S, w, f, color, game) {
     const t = (i / 48) * (3 / (arm.length - 1));
     return [curve.getPoint(t).toArray(), lerp(arm[0].radius, arm[3].radius, i / 48)];
   });
-  // The leading edge runs from the shoulder to the wrist in front of the
-  // elbow, and then along the hand.
   const leadAt = (u) =>
     u <= wrist[0]
       ? lerp(shoulder[1], wrist[1], clamp(u / wrist[0], 0, 1)) +
         0.018 * L * Math.sin(Math.PI * clamp(u / wrist[0], 0, 1))
       : lerp(wrist[1], hand[1], clamp((u - wrist[0]) / (hand[0] - wrist[0]), 0, 1));
-  // How high the arm and the skin in front of it stand at a point. The small
-  // feathers that cover the arm ride on this.
   const armAt = (u, v) => {
     let best = Infinity,
       radius = arm[0].radius,
@@ -600,14 +560,11 @@ function buildFeathers(S, w, f, color, game) {
     feather.base[0] + Math.cos(feather.phi) * feather.length * r - Math.sin(feather.phi) * curlOf(feather.kind) * feather.length * r * r,
     feather.base[1] + Math.sin(feather.phi) * feather.length * r + Math.cos(feather.phi) * curlOf(feather.kind) * feather.length * r * r,
   ];
-  // No two feathers are quite alike. The leading primary carries the arm, so
-  // it stays as planned.
   feathers.forEach((feather, i) => {
     if (!i) return;
     feather.length *= 1 + 0.045 * (2 * draw() - 1);
     feather.phi += 1.3 * rad * (2 * draw() - 1);
   });
-  // A feather is as wide as it must be to cover the gap to its neighbours.
   feathers.forEach((feather, i) => {
     const gaps = [feathers[i - 1], feathers[i + 1]].filter(Boolean).map((other) => {
       const a = point(feather, 0.62),
@@ -626,8 +583,6 @@ function buildFeathers(S, w, f, color, game) {
     stations = game
       ? [0, 0.18, 0.38, 0.62, 0.84, 0.96, 1]
       : [0, 0.07, 0.2, 0.38, 0.56, 0.72, 0.84, 0.93, 0.98, 1];
-  // One feather: a shaft with a narrow outer vane that rises to lie on the
-  // next feather and a wider inner vane that curves down under its neighbour.
   function blade(feather, o) {
     const { length, phi } = feather,
       long = length * o.length,
@@ -638,7 +593,6 @@ function buildFeathers(S, w, f, color, game) {
         ? w.notch * (1 - feather.outer / 6)
         : 0;
     const outerShare = o.covert ? 0.5 : feather.kind === "primary" ? 0.32 : 0.42;
-    // The smallest feathers are drawn with the fewest faces.
     const rows = o.covert && game ? [0, 0.48, 0.8, 1]
       : o.small ? [0, 0.4, 0.8, 1]
       : o.covert ? [0, 0.3, 0.6, 0.82, 0.95, 1] : stations;
@@ -648,7 +602,6 @@ function buildFeathers(S, w, f, color, game) {
       under = [];
     const from = o.from ?? feather.base;
     for (const r of rows) {
-      // A flight feather narrows to its quill. A covert keeps a broad base.
       const fill = o.covert ? lerp(0.82, 1, Math.min(1, r / 0.3)) : Math.min(1, (r / 0.14) ** 0.6),
         round = o.covert ? 0.45 : feather.kind === "primary" ? 0.7 : 0.8,
         tipIn = r > round ? Math.sqrt(Math.max(0, 1 - ((r - round) / (1 - round)) ** 2)) : 1,
@@ -665,7 +618,6 @@ function buildFeathers(S, w, f, color, game) {
         const u = cu + out[0] * across,
           v = cv + out[1] * across;
         let h = rest(u, v) + o.lift + across * roll;
-        // The covered vane curves away under the feather that lies on it.
         if (x < 0) h -= 0.11 * widthHere * side * x * x;
         else if (o.covert) h -= 0.1 * widthHere * side * x * x;
         if (o.covert) h -= 0.06 * long * r * r;
@@ -699,8 +651,6 @@ function buildFeathers(S, w, f, color, game) {
     cover = c.limb;
   for (const feather of feathers)
     blade(feather, { length: 1, width: 1, lift: -0.25 * arm[2].radius, face: 0, color: flight });
-  // Coverts lie in rows over the bases of the flight feathers. Each row is
-  // shorter and higher than the one behind it, and the front rows wrap the arm.
   const between = (a, b, t) => ({
     base: [lerp(a.base[0], b.base[0], t), lerp(a.base[1], b.base[1], t)],
     phi: lerp(a.phi, b.phi, t),
@@ -710,8 +660,6 @@ function buildFeathers(S, w, f, color, game) {
     value: 0.92 + 0.16 * draw(),
   });
   const rows = [
-    // share of the flight feather, start in front of the arm, layer, tint
-    // toward the flight feathers, side of the wing, shift along the arm
     [0.48, 0, 1.1, 0.4, 1, 0],
     [0.3, 0.12, 2.2, 0.16, 1, 0.5],
     [0.17, 0.6, 3.2, 0.05, 1, 0],
@@ -719,8 +667,6 @@ function buildFeathers(S, w, f, color, game) {
     [0.42, 0, -1.8, 0.3, -1, 0],
     [0.2, 0.55, -2.9, 0.08, -1, 0.5],
   ];
-  // Keep a complete low-poly vane for each flight feather. Simplifying the
-  // layered sheets together can leave long loose edges instead of feathers.
   for (const [share, forward, height, tint, side, shift] of rows) {
     if (game && [0.3, 0.09, 0.2].includes(share)) continue;
     for (let i = 0; i + 1 < feathers.length; i++) {
@@ -736,14 +682,12 @@ function buildFeathers(S, w, f, color, game) {
         width: lerp(1.1, 0.96, forward),
         lift: height * layer,
         ride: side,
-        // On the hand these feathers overhang the leading edge and show both sides.
         face: primary || forward >= 0.5 ? 0 : side,
         color: cover.clone().lerp(flight, tint),
         value: side > 0 ? 1 : 0.9,
       });
     }
   }
-  // The skin in front of the elbow fills the leading edge.
   const web = (r, t) => {
     const back = curve.getPoint(t * (2 / (arm.length - 1))).toArray(),
       u = lerp(back[0], lerp(shoulder[0], wrist[0], t), r);
@@ -770,7 +714,6 @@ function buildFeathers(S, w, f, color, game) {
     return [u, v, rest(u, v)];
   });
   S.rod(lead, lead.map(([u, v]) => armAt(u, v)[0] * 0.52), c.tone(cover, 0, 0, 0.96), 7);
-  // The alula: a few stiff feathers on the thumb.
   for (let i = 0; i < 3; i++)
     blade(
       {
@@ -798,8 +741,6 @@ function buildInsect(S, w, f, color) {
     pleat = 0.02 * C;
   const rim = (t) => [t * L, lead(t) + chord(t)];
   const fore = (t) => [t * L, lead(t)];
-  // Each vein leaves the root near the leading edge and curves back to its
-  // own place on the margin.
   const ends = [1];
   for (let i = 1; i <= veins; i++)
     ends.push(1 - ((i - 0.35) / veins) ** 1.1 * 0.92);
@@ -837,8 +778,6 @@ function buildInsect(S, w, f, color) {
         let u = lerp(a0[0], b0[0], a),
           v = lerp(a0[1], b0[1], a);
         if (!closing) {
-          // Bring the outer row onto the curved margin, with a small bay
-          // between the ends of the veins.
           const edge = rim(lerp(ends[i], ends[i + 1], a)),
             chordal = [lerp(rays[i](1)[0], rays[i + 1](1)[0], a), lerp(rays[i](1)[1], rays[i + 1](1)[1], a)],
             bay = 1 - 0.5 * w.notch * 4 * a * (1 - a) * (i ? 1 : 0.4);
@@ -852,7 +791,6 @@ function buildInsect(S, w, f, color) {
         }
         const h = rest(u, v) + lerp(height(i, r), height(i + 1, r), a);
         const [darkness, paleness] = spot(u, v, r);
-        // A dark cell near the tip of the leading edge.
         const stigma = i === 0 && r > 0.8 && r < 0.9 && a < 0.3 ? 0.8 : 0;
         const root = 0.4 * (1 - ease(0.02, 0.22, u / L));
         const colour = c.tone(film, Math.max(darkness, stigma, root), paleness, lerp(0.94, 1.05, Math.sin(Math.PI * a)));
@@ -869,11 +807,8 @@ function buildInsect(S, w, f, color) {
     }
     S.sheet(top, 1);
     S.sheet(under, -1);
-    // Cross veins tie neighbouring veins together and close the cells. A
-    // short vein often starts on one and runs out to the margin.
     const cells = 3 + Math.floor(draw() * 3) + Math.round(3 * ends[i]),
       shift = draw();
-    // A wide panel is divided again by veins that start partway out.
     const outer = Math.hypot(rays[i](1)[0] - rays[i + 1](1)[0], rays[i](1)[1] - rays[i + 1](1)[1]);
     const forks = closing
       ? []
@@ -914,7 +849,6 @@ function buildInsect(S, w, f, color) {
       i === 0 ? 7 : 5,
     );
   }
-  // The vein that runs around the outer margin.
   const margin = lines.margin ?? [];
   const order = [];
   for (let i = 0; i <= veins; i++)
@@ -922,8 +856,6 @@ function buildInsect(S, w, f, color) {
   S.rod(order.filter(Boolean), order.filter(Boolean).map(() => Math.max(0.0008, w.bone * 0.2)), veinTone, 5);
 }
 
-// The whole surface as one mesh in the space of its region, coloured vertex
-// by vertex. `color` is the main colour of the surface.
 export function wingGeometry(w, color = "#d7a24c", { game = false } = {}) {
   const f = frameOf(w),
     S = surface();
@@ -940,7 +872,6 @@ export function wingGeometry(w, color = "#d7a24c", { game = false } = {}) {
     uv[i * 2] = clamp(at[0] / f.L, 0, 1);
     uv[i * 2 + 1] = clamp(at[1] / f.C, 0, 1);
   }
-  // The drawing is mirrored for a right wing, which turns its faces over.
   const index = S.idx;
   if (w.side < 0)
     for (let i = 0; i < index.length; i += 3)
@@ -951,8 +882,6 @@ export function wingGeometry(w, color = "#d7a24c", { game = false } = {}) {
   geometry.setAttribute("color", new Float32BufferAttribute(S.col, 3));
   geometry.setIndex(index);
   geometry.computeVertexNormals();
-  // Where a fan of skin closes to a point its faces have no area. Such a
-  // point takes the facing of the point drawn before it.
   const normal = geometry.attributes.normal;
   for (let i = 0; i < count; i++) {
     p.fromBufferAttribute(normal, i);
