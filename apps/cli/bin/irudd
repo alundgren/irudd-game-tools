@@ -1,0 +1,14 @@
+#!/bin/sh
+# irudd launcher for a source checkout (development). Runs the CLI, the
+# headless host ("irudd host") or the MCP server ("irudd mcp") with the
+# workspace's source resolver. A packaged build replaces this launcher.
+root=$(CDPATH= cd -- "$(dirname -- "$0")/../../.." && pwd)
+entry="$root/apps/cli/src/main.ts"
+# Steering messages tell agents to run this launcher.
+: "${IRUDD_AGENT_COMMAND:=$root/apps/cli/bin/irudd}"
+export IRUDD_AGENT_COMMAND
+case "$1" in
+  host) entry="$root/packages/workshop/src/host/main.ts"; shift ;;
+  mcp) entry="$root/apps/mcp/src/main.ts"; shift ;;
+esac
+exec node --no-warnings=ExperimentalWarning --import "$root/packages/document/test/support/register.ts" "$entry" "$@"

@@ -215,7 +215,7 @@ In the live workshop, all six MHR studies opened, fitted and saved with facial c
 
 ## Reproduce
 
-1. Run `npm ci`. Install Python 3.12 with `numpy`, `scipy`, `opencv-python` and `pillow`.
+1. Run `pnpm install --frozen-lockfile`. Install Python 3.12 with `numpy`, `scipy`, `opencv-python` and `pillow`.
 2. Download the two files named above into `CACHE/lee-perry-smith/` and `CACHE/lincoln-mills/`, and the Smithsonian package's `document.json` beside the Lincoln file. `CACHE` is any ignored folder, for example `.reference-cache/head-study`. The loader refuses a file whose hash differs.
 3. `python scripts/head-study/test_head_study.py`
 4. `python scripts/head-study/prepare-targets.py CACHE` places both scans (about eight minutes).

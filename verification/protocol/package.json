@@ -1,0 +1,16 @@
+{
+  "name": "@irudd/verification-protocol",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check:fast": "node --import ../../packages/document/test/support/register.ts --test \"test/**/*.test.ts\"",
+    "gate:g1-protocol": "node --import ../../packages/document/test/support/register.ts src/gate.ts"
+  },
+  "dependencies": {
+    "@irudd/document": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:"
+  }
+}

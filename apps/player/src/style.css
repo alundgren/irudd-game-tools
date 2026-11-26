@@ -1,0 +1,71 @@
+:root {
+  color-scheme: light;
+  --bg: #f4f5f2;
+  --panel: #ffffff;
+  --text: #1d2a27;
+  --muted: #50605b;
+  --border: #c3ccc6;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #161b1a;
+    --panel: #1f2624;
+    --text: #e3e8e5;
+    --muted: #a3b0ab;
+    --border: #3a4642;
+    --pl-text: #e3e8e5;
+    --pl-muted: #a3b0ab;
+    --pl-border: #3a4642;
+  }
+}
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font:
+    14px/1.4 system-ui,
+    sans-serif;
+}
+.app {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  height: 100%;
+}
+.stage {
+  position: relative;
+  min-height: 240px;
+  overflow: hidden;
+}
+.side {
+  overflow: auto;
+  padding: 16px;
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+}
+.side h1 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+.hint {
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+.open {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+@media (max-width: 720px) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: 60vh auto;
+  }
+  .side {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+  }
+}

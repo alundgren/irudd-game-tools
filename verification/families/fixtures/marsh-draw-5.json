@@ -1,0 +1,675 @@
+{
+  "assets": [],
+  "catalog": [],
+  "extensions": {},
+  "features": {
+    "character.appearance": {
+      "face": 1,
+      "hair": "Crop",
+      "hairColor": "#372e2a",
+      "palette": "Tide",
+      "skin": "#ae7f5d"
+    },
+    "outfit.wardrobe": {
+      "outfit": "Work clothes"
+    }
+  },
+  "format": "irudd.character",
+  "id": "doc-marsh-draw-5",
+  "label": "marsh-draw-5",
+  "parts": [
+    {
+      "color": "#718779",
+      "features": {
+        "figure.assembly": {
+          "order": 0
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "motion.role": {
+          "role": "torso"
+        }
+      },
+      "id": "p-body",
+      "label": "body",
+      "parent": null,
+      "position": [0, 0.86, -0.08],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.7, 0.48, 1.35]
+    },
+    {
+      "color": "#829073",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [1, 1, 1],
+          "order": 2
+        },
+        "figure.finish": {
+          "surface": "scales"
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.071, 0.075],
+            [0, 0.09999999999999987, 0.025, 0.127, 0.128],
+            [0, 0.1399999999999999, 0.114, 0.108, 0.087],
+            [0, 0.08000000000000007, 0.21, 0.077, 0.065],
+            [0, 0.06800000000000006, 0.246, 0.054, 0.042]
+          ]
+        },
+        "motion.role": {
+          "role": "head"
+        },
+        "outfit.wear": {
+          "role": "head"
+        }
+      },
+      "id": "p-head",
+      "label": "head",
+      "parent": null,
+      "position": [0, 0.705, 0.5548214285714285],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1.785714285714287, 1.785714285714287, 1.785714285714287]
+    },
+    {
+      "color": "#263e39",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.055, 0.065, 0.06],
+          "order": 3
+        },
+        "motion.role": {
+          "role": "head"
+        }
+      },
+      "id": "p-left-eye",
+      "label": "left-eye",
+      "parent": null,
+      "position": [0.145, 0.91, 0.79],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.055, 0.065, 0.06]
+    },
+    {
+      "color": "#a9b99a",
+      "features": {
+        "figure.assembly": {
+          "order": 5
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.023, 0.023],
+            [0.035, 0.12, 0.03, 0.017, 0.017],
+            [0.07, 0.22, 0.1, 0.012, 0.012],
+            [0.085, 0.24, 0.17, 0.018, 0.018]
+          ]
+        },
+        "motion.role": {
+          "role": "head"
+        }
+      },
+      "id": "p-left-feeler",
+      "label": "left-feeler",
+      "parent": null,
+      "position": [0.1, 0.94, 0.65],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#839b86",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.25, 0.11, 0.32],
+          "order": 13
+        },
+        "motion.role": {
+          "role": "foot"
+        }
+      },
+      "id": "p-left-front-foot",
+      "label": "left-front-foot",
+      "parent": null,
+      "position": [0.53, 0.055, 0.59],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.25, 0.11, 0.32]
+    },
+    {
+      "color": "#536f65",
+      "features": {
+        "figure.assembly": {
+          "order": 7
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.065, 0.065],
+            [0.18, -0.18, 0.08, 0.047, 0.047],
+            [0.22, -0.46, 0.14, 0.033, 0.033],
+            [0.28, -0.72, 0.18, 0.046, 0.04]
+          ]
+        },
+        "motion.role": {
+          "role": "thigh"
+        }
+      },
+      "id": "p-left-front-leg",
+      "label": "left-front-leg",
+      "parent": null,
+      "position": [0.25, 0.82, 0.38],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#839b86",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.27, 0.11, 0.3],
+          "order": 15
+        },
+        "motion.role": {
+          "role": "foot"
+        }
+      },
+      "id": "p-left-middle-foot",
+      "label": "left-middle-foot",
+      "parent": null,
+      "position": [0.6, 0.055, -0.06],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.27, 0.11, 0.3]
+    },
+    {
+      "color": "#536f65",
+      "features": {
+        "figure.assembly": {
+          "order": 9
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.065, 0.065],
+            [0.22, -0.17, 0, 0.047, 0.047],
+            [0.26, -0.44, 0.01, 0.033, 0.033],
+            [0.3, -0.7, 0.03, 0.046, 0.04]
+          ]
+        },
+        "motion.role": {
+          "role": "thigh"
+        }
+      },
+      "id": "p-left-middle-leg",
+      "label": "left-middle-leg",
+      "parent": null,
+      "position": [0.3, 0.8, -0.12],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#839b86",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.25, 0.11, 0.32],
+          "order": 17
+        },
+        "motion.role": {
+          "role": "foot"
+        }
+      },
+      "id": "p-left-rear-foot",
+      "label": "left-rear-foot",
+      "parent": null,
+      "position": [0.51, 0.055, -0.72],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.25, 0.11, 0.32]
+    },
+    {
+      "color": "#536f65",
+      "features": {
+        "figure.assembly": {
+          "order": 11
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.06, 0.06],
+            [0.17, -0.16, -0.1, 0.045, 0.045],
+            [0.22, -0.42, -0.17, 0.033, 0.033],
+            [0.27, -0.68, -0.22, 0.046, 0.04]
+          ]
+        },
+        "motion.role": {
+          "role": "thigh"
+        }
+      },
+      "id": "p-left-rear-leg",
+      "label": "left-rear-leg",
+      "parent": null,
+      "position": [0.24, 0.78, -0.53],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#dce1c5",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.2, 0.055, 0.27],
+          "order": 22
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-left-sample-lid",
+      "label": "left-sample-lid",
+      "parent": null,
+      "position": [0.44, 0.755, 0.15],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.2, 0.055, 0.27]
+    },
+    {
+      "color": "#ad8960",
+      "features": {
+        "figure.assembly": {
+          "order": 20
+        },
+        "figure.finish": {
+          "surface": "leather"
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.09, 0.12],
+            [0.02, -0.09, 0, 0.125, 0.17],
+            [0.025, -0.23, -0.02, 0.105, 0.14],
+            [0.02, -0.35, -0.05, 0.055, 0.085],
+            [0.015, -0.4, -0.075, 0.015, 0.025]
+          ]
+        },
+        "motion.role": {
+          "role": "rigid"
+        },
+        "outfit.wear": {
+          "role": "accessory"
+        }
+      },
+      "id": "p-left-sample-pannier",
+      "label": "left-sample-pannier",
+      "parent": null,
+      "position": [0.44, 0.75, 0.15],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#c8bd94",
+      "features": {
+        "figure.assembly": {
+          "order": 19
+        },
+        "figure.finish": {
+          "surface": "canvas"
+        },
+        "figure.sweep": {
+          "knots": [
+            [-0.44, -0.12, 0, 0.025, 0.045],
+            [-0.32, 0.08, 0, 0.025, 0.045],
+            [-0.17, 0.22, 0, 0.025, 0.045],
+            [0, 0.25, 0, 0.025, 0.045],
+            [0.17, 0.22, 0, 0.025, 0.045],
+            [0.32, 0.08, 0, 0.025, 0.045],
+            [0.44, -0.12, 0, 0.025, 0.045]
+          ]
+        },
+        "motion.role": {
+          "role": "torso"
+        },
+        "outfit.wear": {
+          "role": "accessory"
+        }
+      },
+      "id": "p-pannier-harness",
+      "label": "pannier-harness",
+      "parent": null,
+      "position": [0, 0.86, 0.15],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#263e39",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.055, 0.065, 0.06],
+          "order": 4
+        },
+        "motion.role": {
+          "role": "head"
+        }
+      },
+      "id": "p-right-eye",
+      "label": "right-eye",
+      "parent": null,
+      "position": [-0.145, 0.91, 0.79],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.055, 0.065, 0.06]
+    },
+    {
+      "color": "#a9b99a",
+      "features": {
+        "figure.assembly": {
+          "order": 6
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.023, 0.023],
+            [-0.035, 0.12, 0.03, 0.017, 0.017],
+            [-0.07, 0.22, 0.1, 0.012, 0.012],
+            [-0.085, 0.24, 0.17, 0.018, 0.018]
+          ]
+        },
+        "motion.role": {
+          "role": "head"
+        }
+      },
+      "id": "p-right-feeler",
+      "label": "right-feeler",
+      "parent": null,
+      "position": [-0.1, 0.94, 0.65],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#839b86",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.25, 0.11, 0.32],
+          "order": 14
+        },
+        "motion.role": {
+          "role": "foot"
+        }
+      },
+      "id": "p-right-front-foot",
+      "label": "right-front-foot",
+      "parent": null,
+      "position": [-0.53, 0.055, 0.59],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.25, 0.11, 0.32]
+    },
+    {
+      "color": "#536f65",
+      "features": {
+        "figure.assembly": {
+          "order": 8
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.065, 0.065],
+            [-0.18, -0.18, 0.08, 0.047, 0.047],
+            [-0.22, -0.46, 0.14, 0.033, 0.033],
+            [-0.28, -0.72, 0.18, 0.046, 0.04]
+          ]
+        },
+        "motion.role": {
+          "role": "thigh"
+        }
+      },
+      "id": "p-right-front-leg",
+      "label": "right-front-leg",
+      "parent": null,
+      "position": [-0.25, 0.82, 0.38],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#839b86",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.27, 0.11, 0.3],
+          "order": 16
+        },
+        "motion.role": {
+          "role": "foot"
+        }
+      },
+      "id": "p-right-middle-foot",
+      "label": "right-middle-foot",
+      "parent": null,
+      "position": [-0.6, 0.055, -0.06],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.27, 0.11, 0.3]
+    },
+    {
+      "color": "#536f65",
+      "features": {
+        "figure.assembly": {
+          "order": 10
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.065, 0.065],
+            [-0.22, -0.17, 0, 0.047, 0.047],
+            [-0.26, -0.44, 0.01, 0.033, 0.033],
+            [-0.3, -0.7, 0.03, 0.046, 0.04]
+          ]
+        },
+        "motion.role": {
+          "role": "thigh"
+        }
+      },
+      "id": "p-right-middle-leg",
+      "label": "right-middle-leg",
+      "parent": null,
+      "position": [-0.3, 0.8, -0.12],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#839b86",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.25, 0.11, 0.32],
+          "order": 18
+        },
+        "motion.role": {
+          "role": "foot"
+        }
+      },
+      "id": "p-right-rear-foot",
+      "label": "right-rear-foot",
+      "parent": null,
+      "position": [-0.51, 0.055, -0.72],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.25, 0.11, 0.32]
+    },
+    {
+      "color": "#536f65",
+      "features": {
+        "figure.assembly": {
+          "order": 12
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.06, 0.06],
+            [-0.17, -0.16, -0.1, 0.045, 0.045],
+            [-0.22, -0.42, -0.17, 0.033, 0.033],
+            [-0.27, -0.68, -0.22, 0.046, 0.04]
+          ]
+        },
+        "motion.role": {
+          "role": "thigh"
+        }
+      },
+      "id": "p-right-rear-leg",
+      "label": "right-rear-leg",
+      "parent": null,
+      "position": [-0.24, 0.78, -0.53],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#dce1c5",
+      "features": {
+        "figure.assembly": {
+          "frameSize": [0.2, 0.055, 0.27],
+          "order": 23
+        },
+        "figure.finish": {
+          "surface": "plain"
+        },
+        "motion.role": {
+          "role": "rigid"
+        }
+      },
+      "id": "p-right-sample-lid",
+      "label": "right-sample-lid",
+      "parent": null,
+      "position": [-0.44, 0.755, 0.15],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "ellipsoid",
+      "size": [0.2, 0.055, 0.27]
+    },
+    {
+      "color": "#ad8960",
+      "features": {
+        "figure.assembly": {
+          "order": 21
+        },
+        "figure.finish": {
+          "surface": "leather"
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.09, 0.12],
+            [-0.02, -0.09, 0, 0.125, 0.17],
+            [-0.025, -0.23, -0.02, 0.105, 0.14],
+            [-0.02, -0.35, -0.05, 0.055, 0.085],
+            [-0.015, -0.4, -0.075, 0.015, 0.025]
+          ]
+        },
+        "motion.role": {
+          "role": "rigid"
+        },
+        "outfit.wear": {
+          "role": "accessory"
+        }
+      },
+      "id": "p-right-sample-pannier",
+      "label": "right-sample-pannier",
+      "parent": null,
+      "position": [-0.44, 0.75, 0.15],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    },
+    {
+      "color": "#718779",
+      "features": {
+        "creature.blend": {
+          "blend": true
+        },
+        "figure.assembly": {
+          "order": 1
+        },
+        "figure.sweep": {
+          "knots": [
+            [0, 0, 0, 0.25, 0.19],
+            [0, -0.04, -0.2, 0.19, 0.15],
+            [0, -0.12, -0.4, 0.1, 0.09],
+            [0, -0.18, -0.59, 0.015, 0.02]
+          ]
+        },
+        "motion.role": {
+          "role": "tail"
+        }
+      },
+      "id": "p-seed-tail",
+      "label": "seed-tail",
+      "parent": null,
+      "position": [0, 0.84, -0.58],
+      "rotation": [0, 0, 0, 1],
+      "sculpt": [],
+      "shape": "capsule",
+      "size": [1, 1, 1]
+    }
+  ],
+  "poses": [],
+  "requires": [
+    {
+      "feature": "character.appearance",
+      "version": 1
+    },
+    {
+      "feature": "core.parts",
+      "version": 1
+    },
+    {
+      "feature": "creature.blend",
+      "version": 1
+    },
+    {
+      "feature": "figure.assembly",
+      "version": 1
+    },
+    {
+      "feature": "figure.finish",
+      "version": 1
+    },
+    {
+      "feature": "figure.sweep",
+      "version": 1
+    },
+    {
+      "feature": "motion.role",
+      "version": 1
+    },
+    {
+      "feature": "outfit.wardrobe",
+      "version": 1
+    },
+    {
+      "feature": "outfit.wear",
+      "version": 1
+    }
+  ],
+  "version": 1
+}

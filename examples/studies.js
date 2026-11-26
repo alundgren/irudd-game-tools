@@ -683,17 +683,17 @@ export const studies = [
   {
     id: "ranger",
     title: "Scarred ranger",
-    game: "Dragon’s Dogma 2",
+    game: "Portrait study",
     make: ranger,
   },
   {
     id: "surveyor",
     title: "Dock surveyor",
-    game: "Dragon’s Dogma 2",
+    game: "Portrait study",
     make: surveyor,
   },
-  { id: "merchant", title: "Marsh trader", game: "Spore", make: merchant },
-  { id: "carapace", title: "Ridgeback porter", game: "Spore", make: carapace },
-  { id: "elder", title: "Estuary elder", game: "The Sims 4", make: elder },
-  { id: "courier", title: "Relay runner", game: "The Sims 4", make: courier },
+  { id: "merchant", title: "Marsh trader", game: "Creature study", make: merchant },
+  { id: "carapace", title: "Ridgeback porter", game: "Creature study", make: carapace },
+  { id: "elder", title: "Estuary elder", game: "Wardrobe study", make: elder },
+  { id: "courier", title: "Relay runner", game: "Wardrobe study", make: courier },
 ];

@@ -1,0 +1,22 @@
+{
+  "name": "@irudd/player",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./player.css": "./src/player.css"
+  },
+  "scripts": {
+    "test": "node --import ../document/test/support/register.ts --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc -p tsconfig.json && tsc -p test/tsconfig.json"
+  },
+  "dependencies": {
+    "three": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/three": "catalog:"
+  }
+}

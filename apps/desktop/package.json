@@ -1,0 +1,38 @@
+{
+  "name": "@irudd/desktop",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "build": "node --import ../../packages/document/test/support/register.ts scripts/build.ts",
+    "start": "node --import ../../packages/document/test/support/register.ts scripts/build.ts && node --import ../../packages/document/test/support/register.ts scripts/launch.ts",
+    "launch": "node --import ../../packages/document/test/support/register.ts scripts/launch.ts",
+    "qa": "node --import ../../packages/document/test/support/register.ts scripts/qa.ts",
+    "qa:review": "node --import ../../packages/document/test/support/register.ts scripts/qa-review.ts",
+    "qa:art": "node --import ../../packages/document/test/support/register.ts scripts/qa-art.ts",
+    "qa:player": "node --import ../../packages/document/test/support/register.ts scripts/qa-player.ts",
+    "qa:character": "node --import ../../packages/document/test/support/register.ts scripts/qa-character.ts",
+    "qa:adult": "node --import ../../packages/document/test/support/register.ts ../../verification/families/src/locked.ts scripts/qa-adult.ts",
+    "test": "node --import ../../packages/document/test/support/register.ts --test \"qa/{update,human,art}/*.test.ts\"",
+    "test:recovery": "node --import ../../packages/document/test/support/register.ts --test \"qa/recovery/*.test.ts\"",
+    "package": "node --import ../../packages/document/test/support/register.ts scripts/package.ts",
+    "rehearse": "node --import ../../packages/document/test/support/register.ts scripts/rehearse.ts",
+    "typecheck": "tsc -p tsconfig.main.json && tsc -p tsconfig.preload.json && tsc -p tsconfig.renderer.json && tsc -p scripts/tsconfig.json && tsc -p qa/tsconfig.json"
+  },
+  "dependencies": {
+    "@irudd/character": "workspace:*",
+    "@irudd/document": "workspace:*",
+    "@irudd/player": "workspace:*",
+    "@irudd/workshop": "workspace:*",
+    "effect": "catalog:",
+    "electron": "catalog:",
+    "three": "catalog:"
+  },
+  "devDependencies": {
+    "@playwright/test": "catalog:",
+    "@types/node": "catalog:",
+    "@types/three": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

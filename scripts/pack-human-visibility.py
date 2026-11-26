@@ -1,6 +1,6 @@
 """Bake ambient visibility from the workshop's own neutral, unstyled head.
 
-Run from the repository after npm ci with numpy, scipy, Pillow and moderngl.
+Run from the repository after pnpm install --frozen-lockfile with numpy, scipy, Pillow and moderngl.
 Uses the same hardware rasterizer and software fallback as the 3D benchmark.
 """
 import base64

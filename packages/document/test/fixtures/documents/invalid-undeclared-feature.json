@@ -1,0 +1,92 @@
+{
+  "format": "irudd.character",
+  "version": 1,
+  "id": "doc-fixture1",
+  "label": "Lantern grazer",
+  "requires": [
+    {
+      "feature": "core.parts",
+      "version": 1
+    },
+    {
+      "feature": "core.paint",
+      "version": 1
+    },
+    {
+      "feature": "core.catalog",
+      "version": 1
+    }
+  ],
+  "catalog": [
+    {
+      "id": "irudd.parts",
+      "digest": "sha256:b3c03d24fec8f57b00e3c1a8f6f3712a0da64658f08bb4dd75eade74552f6252"
+    }
+  ],
+  "assets": [
+    {
+      "digest": "sha256:839a23088cdb5d1864ff49537d97567808dd89b07b65b7b24ad39a862e2b0d93",
+      "mediaType": "image/webp",
+      "byteLength": 23,
+      "role": "paint-atlas"
+    },
+    {
+      "digest": "sha256:2008d1ae5bb81334b00a3b852d3dbc3eccff8ed68a0979bb3fe7bb5765acc358",
+      "mediaType": "image/webp",
+      "byteLength": 26,
+      "role": "occluder-atlas"
+    }
+  ],
+  "parts": [
+    {
+      "id": "p-body",
+      "label": "Body",
+      "parent": null,
+      "shape": "ellipsoid",
+      "position": [0, 0.8, 0],
+      "rotation": [0, 0, 0, 1],
+      "size": [0.4, 0.4, 0.9],
+      "color": "#5f7a58",
+      "sculpt": [],
+      "paint": {
+        "atlas": "sha256:839a23088cdb5d1864ff49537d97567808dd89b07b65b7b24ad39a862e2b0d93",
+        "occluder": "sha256:2008d1ae5bb81334b00a3b852d3dbc3eccff8ed68a0979bb3fe7bb5765acc358"
+      },
+      "features": {}
+    },
+    {
+      "id": "p-lamp",
+      "label": "Lamp",
+      "parent": "p-body",
+      "shape": "cylinder",
+      "position": [0, 0.3, 0.3],
+      "rotation": [0, 0, 0, 1],
+      "size": [0.05, 0.2, 0.05],
+      "color": "#d7a24c",
+      "sculpt": [],
+      "component": {
+        "catalog": "irudd.parts",
+        "item": "lantern"
+      },
+      "features": {}
+    }
+  ],
+  "poses": [
+    {
+      "id": "pose-raise",
+      "label": "Raise lamp",
+      "joints": [
+        {
+          "part": "p-lamp",
+          "rotation": [0.2588190451, 0, 0, 0.9659258263]
+        }
+      ]
+    }
+  ],
+  "features": {},
+  "extensions": {
+    "org.example.notes": {
+      "mood": "curious"
+    }
+  }
+}

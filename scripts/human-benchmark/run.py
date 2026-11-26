@@ -1,6 +1,6 @@
 """Fit the editable human to every benchmark target and score the results independently.
 
-From the repository root, after `npm ci`:
+From the repository root, after `pnpm install --frozen-lockfile`:
     python scripts/human-benchmark/run.py WORK [--targets mhr-f1,mhr-m1] [--refit]
                                                [--keep-snapshot] [--fits-only]
 

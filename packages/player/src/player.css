@@ -1,0 +1,68 @@
+/* Player controls. Hosts set the custom properties; defaults suit a light panel. */
+.pl-controls {
+  display: grid;
+  gap: 8px;
+  font:
+    13px/1.4 system-ui,
+    sans-serif;
+  color: var(--pl-text, #1d2a27);
+}
+.pl-controls select,
+.pl-controls button,
+.pl-controls input[type="range"] {
+  font: inherit;
+  min-height: 28px;
+}
+.pl-field {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  align-items: center;
+  gap: 6px;
+}
+.pl-field[hidden] {
+  display: none;
+}
+.pl-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.pl-row input[type="range"] {
+  flex: 1;
+  min-width: 120px;
+}
+.pl-status {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.pl-stats,
+.pl-origin {
+  margin: 0;
+  color: var(--pl-muted, #50605b);
+  overflow-wrap: anywhere;
+}
+.pl-report {
+  margin: 0;
+  white-space: pre-wrap;
+  font:
+    12px/1.4 ui-monospace,
+    monospace;
+}
+.pl-shots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pl-shots figure {
+  margin: 0;
+  display: grid;
+  gap: 2px;
+  font-size: 11px;
+  text-align: center;
+}
+.pl-shots img {
+  border: 1px solid var(--pl-border, #c3ccc6);
+  height: auto;
+}

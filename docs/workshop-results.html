@@ -185,7 +185,7 @@
     <header>irudd / game tools</header>
     <nav>
       <a href="character-creator.html">Experiment plan</a
-      ><a href="creator-benchmarks.md">Reference credits</a
+      ><a href="creator-benchmarks.md">Study descriptions</a
       ><a href="../README.md">Run the workshop</a>
     </nav>
     <main>
@@ -227,9 +227,9 @@
           <figcaption>All three are game meshes opened in the independent player. Each panel is framed to show the feature under test.</figcaption>
         </figure>
         <div class="examples">
-          <section><h3>Shape a likeness</h3><p>Inspect the dockworker’s face in profile, move the eyes and check the hairline. The generated portrait fits better from the side than it does against the pawn’s low camera angle.</p><p><a href="../examples/portrait-dockworker.glb" data-player="portrait-dockworker" data-view="portrait-oblique">Inspect portrait</a> · <a href="#paired-portrait">Measurements</a> · <a href="https://www.reddit.com/r/fashiondogma/comments/1bj09z1/frank_reynolds_v2/">badtrouble’s pawn</a></p></section>
-          <section><h3>Change the anatomy</h3><p>An artist marked two ribs and asked the agent to move the extra shoulders there. Play Reach to see the four hands and the jar on the merchant’s palm.</p><p><a href="../examples/harbour-trader.glb" data-player="harbour-trader" data-clip="Reach">Inspect creature</a> · <a href="#marked-branches">Measurements</a> · <a href="https://www.spore.com/what/ga_captains">Karl-EL’s merchant</a></p></section>
-          <section><h3>Dress the same wearer</h3><p>Switch the runner between track clothes, a base layer, a pressure suit and a traced concert skirt. The four looks share one GLB and the walking animation keeps its place.</p><p><a href="../examples/relay-wardrobe.glb" data-player="relay-wardrobe" data-clip="Walk">Inspect wardrobe</a> · <a href="#traced-wardrobe">Measurements</a> · <a href="https://www.pcgamer.com/the-most-fabulous-fan-made-sims/">The two Sims</a></p></section>
+          <section><h3>Shape a likeness</h3><p>Inspect the dockworker’s face in profile, move the eyes and check the hairline. The generated portrait fits better from the side than it does against the pawn’s low camera angle.</p><p><a href="../examples/portrait-dockworker.glb" data-player="portrait-dockworker" data-view="portrait-oblique">Inspect portrait</a> · <a href="#paired-portrait">Measurements</a></p></section>
+          <section><h3>Change the anatomy</h3><p>An artist marked two ribs and asked the agent to move the extra shoulders there. Play Reach to see the four hands and the jar on the merchant’s palm.</p><p><a href="../examples/harbour-trader.glb" data-player="harbour-trader" data-clip="Reach">Inspect creature</a> · <a href="#marked-branches">Measurements</a></p></section>
+          <section><h3>Dress the same wearer</h3><p>Switch the runner between track clothes, a base layer, a pressure suit and a traced concert skirt. The four looks share one GLB and the walking animation keeps its place.</p><p><a href="../examples/relay-wardrobe.glb" data-player="relay-wardrobe" data-clip="Walk">Inspect wardrobe</a> · <a href="#traced-wardrobe">Measurements</a></p></section>
         </div>
       </section>
       <section class="method" id="courier">
@@ -249,12 +249,12 @@
         <figure><a href="media/figure-shorts-fix.webp"><img src="media/figure-shorts-fix.webp" alt="Pairs of front, three-quarter and back views. In each pair the second figure has shorts that close in a crease, smoother shoulders and hair that reaches the nape. Three further views show hands on hips, Reach and a walking stride."></a><figcaption>After the second test. In each pair the kept held-out result is on the left and the same request on the changed code is on the right, followed by the saved pose, Reach, a Walk frame and the head. The right-hand figures are a replay. The hair uses a new nape setting and the jaw is milder than in the kept attempt.</figcaption></figure>
         <p>Three general changes followed. The trouser seat loses depth toward the crotch seam, so shorts close in a crease. The shoulder joint moves in by the arm’s own radius. A hair groom accepts a nape amount that carries a cropped cut down the back of the head and brings it in to the skull, so the fringe no longer overhangs the forehead. The first version of the seat change let skin show between the aviator’s trouser legs, and a lean figure later showed skin from behind where the seat steps in. A test now casts rays at the swept surfaces of 24 random figures in trousers and shorts and fails on both earlier versions.</p>
         <figure><a href="media/figure-current.webp"><img src="media/figure-current.webp" alt="The aviator at rest and reaching, and a short heavy older man in a hooded top, a pressure suit and reaching."></a><figcaption>The aviator and a short, heavy dock worker rebuilt from their recorded proposals on the current code. The dock worker uses an existing original painted head, a hooded top and the bulky pressure suit.</figcaption></figure>
-        <figure><a href="media/figure-runner.webp"><img src="media/figure-runner.webp" alt="The earlier painted runner at rest and reaching, with smeared sleeves and splayed arms, followed by a runner built from a figure request at rest, reaching, walking, from behind and in the standalone player."></a><figcaption>The Sims-inspired runner again. The first two panels are the earlier painted trace. The rest are one figure request with the same original painted head: rest, Reach, a Walk frame, the back, a close view of a shoe and the exported GLB in the standalone player.</figcaption></figure>
+        <figure><a href="media/figure-runner.webp"><img src="media/figure-runner.webp" alt="The earlier painted runner at rest and reaching, with smeared sleeves and splayed arms, followed by a runner built from a figure request at rest, reaching, walking, from behind and in the standalone player."></a><figcaption>The painted runner again. The first two panels are the earlier painted trace. The rest are one figure request with the same original painted head: rest, Reach, a Walk frame, the back, a close view of a shoe and the exported GLB in the standalone player.</figcaption></figure>
         <p>The runner was the benchmark whose shoulders, palms and stance looked most like a mannequin. One proposal with a figure request and the existing head gave it hanging arms, a bent elbow in Reach and open hands. The first version also lost what the painted trace had: cargo pockets, knee patches, arm wraps and laced trainers. Two of those became general options afterwards. Every shoe now has a lower upper, a tongue and four laces, and trousers or shorts can carry cargo pockets that follow the thigh. Knee patches, arm wraps and printed cloth still have no place in a figure request.</p>
         <figure><a href="media/figure-random.webp"><img src="media/figure-random.webp" alt="Six different people in shirts, tees, trousers and trainers. Five wear original painted heads, one of them lilac-skinned, and their bare arms match their faces."></a><figcaption>Six consecutive results from <b>Generate new form</b> with the jointed person selected. Nothing was picked or retried. Four in five draws take one of four original painted heads, and the bare skin takes its tone from that artwork.</figcaption></figure>
         <p>These random people share the same faces again and again because only four painted heads exist. The sheet also exposed a fault in the first version: bare arms and legs came out white beside a painted head, because the tone was read from the head’s part colour and not from its artwork. It now samples the face.</p>
         <figure><a href="media/figure-player-motion.webp"><img src="media/figure-player-motion.webp" alt="The athlete, aviator, runner and dock worker each shown in a crouch and two walking frames with bent knees and swinging arms."></a><figcaption>The four game GLBs in the standalone player: one Crouch frame and two Walk frames each. An earlier athlete export showed the shoulder through the tee in these frames. Sleeves now keep 5.5 mm of clearance at the reference height.</figcaption></figure>
-        <p>All four exports replayed in the standalone player with one skeleton, one material and about 24,000 triangles. They measured 1.851 m, 1.758 m, 1.620 m and 1.700 m, and the lowest vertex stayed on the floor in every clip. Against the Sims and Dragon’s Dogma 2 targets, the gain is in body construction: proportion, joints and clothes that remain separate from the wearer. Likeness is still far away. Calves and knees are plain tubes, cloth has no folds, a rigid shirt body lets a lifted thigh pass through an untucked hem, and cropped hair is a smooth shell of strands with no texture and a bare patch behind the ear. No new face or cloth artwork was painted in this run because no image tool was available to the agent.</p>
+        <p>All four exports replayed in the standalone player with one skeleton, one material and about 24,000 triangles. They measured 1.851 m, 1.758 m, 1.620 m and 1.700 m, and the lowest vertex stayed on the floor in every clip. Against the two adult comparison sets, the gain is in body construction: proportion, joints and clothes that remain separate from the wearer. Likeness is still far away. Calves and knees are plain tubes, cloth has no folds, a rigid shirt body lets a lifted thigh pass through an untucked hem, and cropped hair is a smooth shell of strands with no texture and a bare patch behind the ear. No new face or cloth artwork was painted in this run because no image tool was available to the agent.</p>
         <p><a href="../examples/field-athlete.glb" data-player="field-athlete" data-clip="Reach">Play the athlete</a> · <a href="../examples/tucked-aviator.glb" data-player="tucked-aviator" data-clip="Reach">Play the aviator</a> · <a href="../examples/hooded-docker.glb" data-player="hooded-docker" data-clip="Walk">Play the dock worker</a> · <a href="../examples/figure-runner.glb" data-player="figure-runner" data-clip="Reach">Play the runner</a> · <span class="live-demo" hidden><a href="../#form=field-athlete">Edit the athlete</a> · <a href="../#form=tucked-aviator">Edit the aviator</a> · </span><a href="../examples/field-athlete.form.json">Athlete form</a> · <a href="../examples/tucked-aviator.form.json">Aviator form</a> · <a href="../examples/hooded-docker.form.json">Dock worker form</a> · <a href="../examples/figure-runner.form.json">Runner form</a> · <a href="media/figure-heldout.json">First test: proposals and readings</a> · <a href="media/figure-heldout-shorts.json">Second test: proposals, failures and readings</a> · <a href="media/figure-joints.webp">Clay, walk and base layer at the first freeze</a></p>
       </section>
       <section class="method" id="grown-armour">
@@ -273,13 +273,13 @@
         <p><a href="../examples/jointed-conductor.glb" data-player="jointed-conductor" data-clip="Reach">Play the two-arm figure</a> · <a href="../examples/festival-wardrobe.glb" data-player="festival-wardrobe" data-clip="Reach">Play the four-arm figure</a> · <span class="live-demo" hidden><a href="../#form=jointed-conductor">Edit two arms</a> · <a href="../#form=festival-wardrobe">Edit four arms</a> · </span><a href="media/arm-fitting.json">Operations, joint angles and collision counts</a></p>
         <h3 id="plated-wardrobe">The same wearer in three outfits</h3>
         <figure><a href="media/festival-armour.webp"><img src="media/festival-armour.webp" alt="The wearer in a practice layer, stage clothes and a pressure suit with ivory shoulder, chest and back plates."></a><figcaption>One editable form and one GLB with three wardrobe scenes. Each scene has its own four motion clips.</figcaption></figure>
-        <p>For the bulky suit we asked the geometry agent for repeated tooth-like plates, using Cecil_090’s Commander Gort as a construction reference. The editor drew three chest rows and warm ivory from artist-written choices. Six accepted operations produced 33 individually editable plates across chest, pack and four shoulders. A first attempt buried most of the rear plates inside the pack. Casting onto the outer surface and retaining the mounting vertices during mesh reduction kept all 33 in contact in the final suit test.</p>
-        <p><a href="../examples/festival-wardrobe.glb" data-player="festival-wardrobe" data-outfit="Layered pressure suit" data-view="back">Inspect the back of the suit</a> · <a href="../examples/festival-wardrobe.form.json">Save the editable wardrobe</a> · <a href="media/plate-coverage.webp">Visible plates at 192 pixels</a> · <a href="https://www.spore.com/what/ga_captains">Maxis challenge winners</a></p>
+        <p>For the bulky suit we asked the geometry agent for repeated tooth-like plates, using a private armour silhouette as a construction reference. The editor drew three chest rows and warm ivory from artist-written choices. Six accepted operations produced 33 individually editable plates across chest, pack and four shoulders. A first attempt buried most of the rear plates inside the pack. Casting onto the outer surface and retaining the mounting vertices during mesh reduction kept all 33 in contact in the final suit test.</p>
+        <p><a href="../examples/festival-wardrobe.glb" data-player="festival-wardrobe" data-outfit="Layered pressure suit" data-view="back">Inspect the back of the suit</a> · <a href="../examples/festival-wardrobe.form.json">Save the editable wardrobe</a> · <a href="media/plate-coverage.webp">Visible plates at 192 pixels</a></p>
       </section>
       <section class="method" id="festival-conductor">
         <h2>Can one character use all three techniques?</h2>
         <figure><a href="media/festival-conductor.webp"><img src="media/festival-conductor.webp" alt="Four exported stages of the same character. A feline four-handed merchant becomes a bespectacled conductor in a teal waistcoat and pleated skirt."></a><figcaption>Left to right, the original merchant, the first branch swap, the live agent’s shoulder cape and the finished export. The gap under the second head revealed an error in fitting whole branches.</figcaption></figure>
-        <p>In one editor session, we took the four-handed body derived from the Spore challenge, replaced its full head branch with the fitted dockworker and cut the Sims concert skirt for its torso. The first fit sized the head against a single part and discarded the old neck. Measuring both visible branches restored the connection. Recutting the skirt preserves the traced waist-to-hem proportions while grading its width, depth and length for the new wearer.</p>
+        <p>In one editor session, we took the four-handed merchant body, replaced its full head branch with the fitted dockworker and cut the concert skirt for its torso. The first fit sized the head against a single part and discarded the old neck. Measuring both visible branches restored the connection. Recutting the skirt preserves the traced waist-to-hem proportions while grading its width, depth and length for the new wearer.</p>
         <p>We asked the live geometry agent to dress the merchant to lead a lantern festival orchestra. It kept all 43 existing parts and added six, including an open shoulder cape, a rounded collar and a brass toggle. A separate image generation request repainted the torso as a teal waistcoat. We applied those same four views to eight sleeve regions, then changed satin to woven cloth and cut 14 vertical pleats. <a href="media/conductor-waistcoat-study.webp">Original generated waistcoat sheet</a></p>
         <p>Two faults only became clear in the game mesh. At 7 mm clearance the waistband crossed the coat. At 14 mm it cleared the torso, all six leg and foot regions, four hands and the jar throughout the final check. Triangle reduction also flattened the cape underneath the embroidery. The first reduced cape used 35 triangles. Retaining 412 brought both embroidered strips into contact, and the largest measured vertex-to-cape gap on either strip fell from 128 to 5 mm. The two ends of the fastening loop seat into the cloth and its middle bridges the opening.</p>
         <figure><a href="media/festival-conductor-motion.webp"><img src="media/festival-conductor-motion.webp" alt="Game playback from the front and back, followed by Reach and Crouch."></a><figcaption>The finished actor measures 1.515 m. The head, collar, embroidery, loop, toggle and carried jar retained their tested contacts at rest and at 12 samples in each of four clips. Two far hands can still overlap in profile. Deep crouches give the lower skirt a stiff circular silhouette.</figcaption></figure>
@@ -306,23 +306,12 @@
       </div>
       <article data-study="painted-ranger">
         <div>
-          <p class="game">Dragon’s Dogma 2</p>
+          <p class="game">Portrait study</p>
           <h3>Coast cartographer</h3>
           <p>
             A tall angular face, pale swept hair and worn field clothes. Compare
             the nose and brow in profile. The small scar and leather detail
             depend strongly on the surface artwork.
-          </p>
-          <p class="refs">
-            <a
-              href="https://www.reddit.com/r/DragonsDogma/comments/1b9wfdt/my_geralt_sliders_in_comments/"
-              >Terrowin23’s Geralt</a
-            >
-            ·
-            <a
-              href="https://www.gamesradar.com/the-dragons-dogma-2-character-creator-is-already-the-ultimate-rpg-crossover-with-incredibly-convincing-takes-on-the-witcher-elden-ring-and-baldurs-gate-3/"
-              >GamesRadar’s roundup</a
-            >
           </p>
         </div>
         <figure>
@@ -344,23 +333,12 @@
       </article>
       <article data-study="painted-surveyor">
         <div>
-          <p class="game">Dragon’s Dogma 2</p>
+          <p class="game">Portrait study</p>
           <h3>Dock foreman</h3>
           <p>
             A short broad adult with a projecting belly, full cheeks and
             glasses. Compare the two human profiles at one scale. The soft chin
             is visible in clay, while the fine frames rely on paint.
-          </p>
-          <p class="refs">
-            <a
-              href="https://www.reddit.com/r/fashiondogma/comments/1bbsfpn/so_anyway_i_started_casting/"
-              >badtrouble’s Danny DeVito</a
-            >
-            ·
-            <a
-              href="https://www.gamesradar.com/the-dragons-dogma-2-character-creator-is-already-the-ultimate-rpg-crossover-with-incredibly-convincing-takes-on-the-witcher-elden-ring-and-baldurs-gate-3/"
-              >GamesRadar’s roundup</a
-            >
           </p>
         </div>
         <figure>
@@ -382,23 +360,13 @@
       </article>
       <article data-study="painted-trader">
         <div>
-          <p class="game">Spore</p>
+          <p class="game">Creature study</p>
           <h3>Reed trader</h3>
           <p>
             Four independent arms with separate hands, a long muzzle and a
-            travelling coat. Maxis singled out the extra hands. Count all four
+            travelling coat. Count all four
             in three-quarter view, then orbit to see where the lower pair meet
             the trunk.
-          </p>
-          <p class="refs">
-            <a
-              href="https://www.spore.com/static/war/images/community/500297662577.png"
-              >Karl-EL’s Sanu-Kish Merchant</a
-            >
-            ·
-            <a href="https://www.spore.com/what/ga_captains"
-              >Maxis competition winners</a
-            >
           </p>
         </div>
         <figure>
@@ -412,22 +380,12 @@
       </article>
       <article data-study="painted-porter">
         <div>
-          <p class="game">Spore</p>
+          <p class="game">Creature study</p>
           <h3>Plateback porter</h3>
           <p>
-            Maxis called attention to the repeated tooth-like armor. The porter
+            The porter
             carries fifteen individually selectable dorsal plates. Compare the
             rear outline in clay with the shoulder and forearm from the side.
-          </p>
-          <p class="refs">
-            <a
-              href="https://www.spore.com/static/war/images/community/500307753610.png"
-              >Cecil_090’s Commander Gort</a
-            >
-            ·
-            <a href="https://www.spore.com/what/ga_captains"
-              >Maxis competition winners</a
-            >
           </p>
         </div>
         <figure>
@@ -441,23 +399,13 @@
       </article>
       <article data-study="painted-elder">
         <div>
-          <p class="game">The Sims 4</p>
+          <p class="game">Wardrobe study</p>
           <h3>Opera conductor</h3>
           <p>
             A mature adult with lilac skin, swept hair and a long formal gown.
             The skirt has real pleats and its own rig. Base layer reveals the
             legs and body inside it. The shoulder silhouette still looks
             narrower than the brief.
-          </p>
-          <p class="refs">
-            <a
-              href="https://cdn.mos.cms.futurecdn.net/c38d266847f1f93501612b14d85bab2f.png"
-              >simcrazy5’s Lady Ursula</a
-            >
-            ·
-            <a href="https://www.pcgamer.com/the-most-fabulous-fan-made-sims/"
-              >PC Gamer’s selection</a
-            >
           </p>
         </div>
         <figure>
@@ -479,23 +427,13 @@
       </article>
       <article data-study="painted-courier">
         <div>
-          <p class="game">The Sims 4</p>
+          <p class="game">Wardrobe study</p>
           <h3>Relay scout</h3>
           <p>
             A lean runner in a dark close-cut top, pale trousers and red shoes.
             Compare the short bob and leg profile against the cartographer at
             equal height. A near-touching hand and trouser edge exposed a defect
             in automatic biped fitting.
-          </p>
-          <p class="refs">
-            <a
-              href="https://cdn.mos.cms.futurecdn.net/912c6594e92d298e0ff7544ea5027eba.png"
-              >Vesbesit’s Faith Connors</a
-            >
-            ·
-            <a href="https://www.pcgamer.com/the-most-fabulous-fan-made-sims/"
-              >PC Gamer’s selection</a
-            >
           </p>
         </div>
         <figure>
@@ -619,12 +557,12 @@
         <h2>Can an artist tell the agent exactly where two extra arms belong?</h2>
         <figure><img src="media/harbour-placements.webp" alt="Four GLB renders of the feline harbour worker. Two arms become four, then the extra pair shifts from beside the neck to the marked ribs while one hand holds a jar."/>
         <figcaption>Top left is the repaired two-armed worker. Top right is an artist-directed four-arm version. Bottom left is the first AI proposal, with the extra arms beside the neck. Bottom right is the marked correction after fitting the moving attachments. All four exports stand 1.515 m tall.</figcaption></figure>
-        <p>Maxis singled out the second pair of hands on Karl-EL’s Sanu-Kish Merchant. This experiment starts with our existing harbour worker and asks for that structural feature and a spice jar. An early copy exposed an error hidden inside the trousers. The source’s left hand contained a patch of thigh. Fitting fingers to the right hand and mirroring its complete arm restored both branches before either trial. <a href="https://www.spore.com/what/ga_captains">Maxis Captain Postcard Challenge winners</a></p>
+        <p>This experiment gives the harbour worker a second pair of hands and a spice jar. An early copy exposed an error hidden inside the trousers. The source’s left hand contained a patch of thigh. Fitting fingers to the right hand and mirroring its complete arm restored both branches before either trial. </p>
         <p>In the artist trial, two pairs of clicks placed two articulated arm copies on the sides of the worker. In the agent trial, the same starting body received a written request for arms at the lower ribs. The agent built the branches and a jar in five operations but put both shoulders beside the neck. The artist then marked two actual surface points and named them in a second request. Both requests included two renders and the world bounds of the parts. The agent used two moves and carried the jar along. Both accepted operation sequences replayed exactly.</p>
         <table><thead><tr><th>Distance from the rib mark to the nearest sleeve triangle</th><th>Character right</th><th>Character left</th></tr></thead><tbody>
           <tr><td>Before the correction</td><td>443.8 mm</td><td>422.6 mm</td></tr><tr><td>After the marked AI move</td><td>5.5 mm</td><td>4.3 mm</td></tr><tr><td>After seating the moving shoulders</td><td>8.1 mm</td><td>7.6 mm</td></tr></tbody></table>
         <p>The corrected model still lost one shoulder connection during Reach, and the jar missed its loop. The artist seated the ends of the sleeves and moved the jar rim onto the loop. All 15 arm and jar connections intersected at rest and at 12 samples in each of four exported clips, or 735 pair-and-pose checks. The four hands contain 20 articulated digits. On the 192-pixel front view, each hand retained 73–83% of its projected area. Two far hands were fully hidden in exact profile.</p>
-        <p>The trial tests one location-specific revision. The upper sleeves still show a blunt transition into the coat and the jar is a simple unlabelled prop. Visual likeness to the original Spore captain and unsampled movements remain open.</p>
+        <p>The trial tests one location-specific revision. The upper sleeves still show a blunt transition into the coat and the jar is a simple unlabelled prop. Likeness to the private reference and performance during unsampled movements remain open.</p>
         <p><a href="../examples/harbour-trader.form.json">Editable merchant</a> · <a href="../examples/harbour-trader.glb">Game GLB</a> · <span hidden class="live-demo"><a data-player="harbour-trader" data-clip="Reach">Play Reach</a> · </span><a href="media/harbour-placements.json">AI replies, measured distances and contacts</a></p>
       </section>
       <section class="method" id="quayside-merchant">
@@ -643,7 +581,7 @@
         </figure>
         <p>
           For the shopkeeper silhouette and extra hands, the artist supplied
-          Karl-EL’s Sanu-Kish Merchant as a garment reference. Two choice groups
+          a private garment reference. Two choice groups
           drew an aquatic tail and a net of yellow fruit. The first live Codex
           pass took 105 seconds and expanded the 41-region character to 69
           regions. The tail read in profile, while the fruit hung directly in
@@ -688,7 +626,6 @@
           <a href="media/quayside-reroll.json"
             >Directions, draws and measurements</a
           >
-          · <a href="https://www.spore.com/what/ga_captains">Maxis selection</a>
         </p>
       </section>
       <section class="method" id="surface-attachments">
@@ -716,8 +653,7 @@
           </figcaption>
         </figure>
         <p>
-          The Spore target is Karl-EL’s four-handed Sanu-Kish Merchant, a Maxis
-          community winner. The workshop study has four hands attached in two
+          The workshop merchant has four hands attached in two
           pairs. Starting from its rest shape, the artist turned four joints
           with relative nudges, saved the stance, reopened the recipe and
           exported the model. The saved form’s geometry and materials were
@@ -740,20 +676,17 @@
             data-clip="Pose · Greet and offer"
             >Play the four-handed pose</a
           >
-          · <a href="../examples/merchant-gesture.form.json">Editable form</a> ·
-          <a href="https://www.spore.com/what/ga_captains"
-            >Maxis community winners</a
-          >
+          · <a href="../examples/merchant-gesture.form.json">Editable form</a>
         </p>
       </section>
       <section class="method" id="traced-wardrobe">
-        <h2>Can the relay runner wear Lady Ursula’s skirt?</h2>
+        <h2>Can the relay runner wear a traced concert skirt?</h2>
         <figure><img src="media/relay-wardrobe.webp" alt="One runner on the same floor in a training layer, pale running trousers, a dark concert skirt and a pressure suit." />
           <figcaption>Four reduced GLBs, rendered in a separate Three.js player with the same camera. All measure 1.764 m. The source form retains its original 14 body regions and their paint. The concert outfit adds a single editable skirt.</figcaption></figure>
-        <p>The running outfit uses Vesbesit’s Faith Connors as its target. The concert skirt takes its outline from simcrazy5’s Lady Ursula. Both players’ creations were selected by PC Gamer. In the workshop, mark the waist centre, one waistband edge and that side of the garment down to the floor. This trial used 18 clicks on the published screenshot of the Sim. Only the normalized trace is saved. <a href="https://www.pcgamer.com/the-most-fabulous-fan-made-sims/">PC Gamer selection</a> · <a href="https://cdn.mos.cms.futurecdn.net/912c6594e92d298e0ff7544ea5027eba.png">Faith by Vesbesit</a> · <a href="https://cdn.mos.cms.futurecdn.net/c38d266847f1f93501612b14d85bab2f.png">Lady Ursula by simcrazy5</a></p>
+        <p>The outfit study used a running silhouette and a floor-length concert skirt as private references. In the workshop, mark the waist centre, one waistband edge and that side of the garment down to the floor. This trial used 18 clicks on a private comparison image. Only the normalized trace is saved. </p>
         <figure><img src="media/relay-drape.webp" alt="Front and unpainted oblique views reveal diagonal satin folds and three bands above the hem. A step and side crouch show the cloth lifting over the legs." />
           <figcaption>Front, clay three-quarter, walk and crouch. The first reduced model lost the diagonal gathers. Giving the two cloth surfaces 7,680 of the final 23,996 triangles recovered the diagonal ridges and tiered hem.</figcaption></figure>
-        <table><thead><tr><th>Front silhouette</th><th>Ursula’s traced skirt</th><th>Runner’s exported skirt</th></tr></thead><tbody>
+        <table><thead><tr><th>Front silhouette</th><th>Reference skirt</th><th>Runner’s exported skirt</th></tr></thead><tbody>
           <tr><td>Knee width ÷ hip width</td><td>0.87</td><td>0.88</td></tr>
           <tr><td>Lower hem width ÷ hip width</td><td>1.18</td><td>1.21</td></tr>
         </tbody></table>
@@ -1004,7 +937,7 @@
       <section class="method" id="paired-portrait">
         <h2>Can two original portraits steer one game head?</h2>
         <figure><a href="media/portrait-dockworker.webp"><img src="media/portrait-dockworker.webp" alt="The earlier and revised dockworker in three matching camera angles. The revised man has receding strands, tapered spectacles and a rounded facial profile."></a><figcaption>Both rows come from exported GLBs opened in a separate Three.js player. The body, height and wardrobe carry over.</figcaption></figure>
-        <p>The starting study took its broad build and receding hair from badtrouble’s Dragon’s Dogma 2 pawn. The creator supplied a front and a low-angle view. For the missing profile we used ImageGen to design an original dockworker, then requested the same person facing forward. The generated views define a new art direction. <a href="https://www.reddit.com/r/fashiondogma/comments/1bj09z1/frank_reynolds_v2/">Creator’s two views</a> · <a href="media/dockworker-front-study.webp">Original frontal study</a> · <a href="media/dockworker-profile-study.webp">Original profile study</a></p>
+        <p>The starting study took its broad build and receding hair from a privately studied character. The creator supplied a front and a low-angle view. For the missing profile we used ImageGen to design an original dockworker, then requested the same person facing forward. The generated views define a new art direction.  · <a href="media/dockworker-front-study.webp">Original frontal study</a> · <a href="media/dockworker-profile-study.webp">Original profile study</a></p>
         <p>In the editor we traced 33 points from brow to chin, marked the ear opening and paired 27 frontal features. A finishing depth fit lets the artist shape the cheek below the eye independently of the nose outline. The selected colours bake into the face texture and follow subsequent edits. Both ears use the same side image. The iris patches take their fit from the finished face.</p>
         <p>On 458 horizontal rows between the traced points, the mean depth error against the generated profile fell from 18.42 to 0.74 mm. The 95th percentile fell from 36.20 to 2.00 mm. The commercial-game comparison gives a different result. Against the original pawn, the seven frontal points improved from 7.36 to 6.65 mm and the four additional low-angle points worsened from 6.36 to 18.62 mm. The rows test interpolation within one image. Neither comparison measures recognition by a player.</p>
         <figure><a href="media/portrait-dockworker-shape.webp"><img src="media/portrait-dockworker-shape.webp" alt="The new dockworker without glasses from the front and in profile, beside a clay view of the exported head."></a><figcaption>Removing the five spectacle regions exposes the nose and eyelids. The clay view shows how much skin detail and character still depend on the paint.</figcaption></figure>
@@ -1014,38 +947,38 @@
       </section>
       <section class="method" id="angled-portrait">
         <h2>Can a second view shorten the nose and keep the glasses on?</h2>
-        <figure><img src="media/oblique-dockworker.webp" alt="Two rows of dockworker portraits, each viewed from the front, from below, at three-quarter and in profile. The updated head has a shorter nose and continuous squared rims." /><figcaption>Top is the earlier fitted dockworker. Bottom is the new game export. The second column looks up at the head from the estimated angle of badtrouble’s full-body screenshot.</figcaption></figure>
-        <p>Badtrouble’s final Frank Reynolds pawn appears in a near-frontal portrait and a low-angle full-body view. The head in the latter is about 100 pixels high. We matched its pose by eye at −24° turn and −15° elevation, registered the pupils, and paired six locations on the nose. The depth fit moves the mesh forward or backward and can mirror the correction across the nose. <a href="https://www.reddit.com/r/fashiondogma/comments/1bj09z1/frank_reynolds_v2/">Creator’s final two-view showcase</a></p>
+        <figure><img src="media/oblique-dockworker.webp" alt="Two rows of dockworker portraits, each viewed from the front, from below, at three-quarter and in profile. The updated head has a shorter nose and continuous squared rims." /><figcaption>Top is the earlier fitted dockworker. Bottom is the new game export. The second column looks up at the head from the estimated angle of the full-body reference.</figcaption></figure>
+        <p>The privately studied character appears in a near-frontal portrait and a low-angle full-body view. The head in the latter is about 100 pixels high. We matched its pose by eye at −24° turn and −15° elevation, registered the pupils, and paired six locations on the nose. The depth fit moves the mesh forward or backward and can mirror the correction across the nose. </p>
         <table><thead><tr><th>Mean projected error at model scale</th><th>Earlier GLB</th><th>Revised GLB</th></tr></thead><tbody>
           <tr><td>Six points used to steer depth</td><td>30.76 mm</td><td>7.16 mm</td></tr>
           <tr><td>Four more points in the low-angle image</td><td>29.66 mm</td><td>6.36 mm</td></tr>
           <tr><td>Seven points in the separate near-frontal portrait</td><td>7.23 mm</td><td>7.36 mm</td></tr>
         </tbody></table>
         <p>Each measurement follows the same skin location through the reduced meshes using its texture coordinates. The near-frontal portrait supplied no points to the depth fit. Its small increase in error is below one source pixel. The actual camera calibration and physical facial measurements are unknown.</p>
-        <p>The first live AI edit used the original portrait to revise seven accessory parts and add six hair pieces. The soft fit bent the frames into the cheeks. Fitting them rigidly and clearing the cheeks exposed another error. The front was 225 mm wide. A second AI direction requested 145–155 mm overall and a 9–13 mm inner gap. Its five edits produced 151.7 mm and 11.1 mm. The artist then seated each temple end on the head. <a href="https://www.reddit.com/r/fashiondogma/comments/1bbsfpn/so_anyway_i_started_casting/">Original reference for the accessory edits</a></p>
+        <p>The first live AI edit used the original portrait to revise seven accessory parts and add six hair pieces. The soft fit bent the frames into the cheeks. Fitting them rigidly and clearing the cheeks exposed another error. The front was 225 mm wide. A second AI direction requested 145–155 mm overall and a 9–13 mm inner gap. Its five edits produced 151.7 mm and 11.1 mm. The artist then seated each temple end on the head. </p>
         <p>At rest and six phases of each of four clips, both rims joined the bridge and temples, both temples met the head, and no front rim or bridge triangle crossed the facial mesh. The nose retains a sharp lower edge in profile. The side hair reads as thick clumps, and the game frames have more slanted sides. Full likeness remains open.</p>
         <p><a href="../examples/oblique-dockworker.glb" data-player="oblique-dockworker" data-view="portrait-angle" data-yaw="-24" data-pitch="-15">Inspect the angled export</a> · <a href="../examples/oblique-dockworker.form.json">Edit the head and mounts</a> · <a href="media/oblique-dockworker.json">Click locations, AI operations and measurements</a></p>
       </section>
       <section class="method" id="paired-faces">
         <h2>What changes when the artist pairs features on two faces?</h2>
         <figure><img src="media/paired-faces.webp" alt="Two rows of exported ranger and dockworker faces. Each shows color before and after, clay before and after, then the fitted clay face turned three-quarter." />
-        <figcaption>Top is the profile-fitted ranger, steered with a second photograph of Lincoln. Bottom is the dockworker, steered with badtrouble’s Dragon’s Dogma 2 screenshot. Each row shows the original and fitted front in color, the same two in clay, then the fitted head in three-quarter.</figcaption></figure>
+        <figcaption>Top is the profile-fitted ranger, steered with a second photograph of Lincoln. Bottom is the dockworker, steered with the game reference. Each row shows the original and fitted front in color, the same two in clay, then the fitted head in three-quarter.</figcaption></figure>
         <p>Select a head and open <strong>Match facial landmarks</strong>. Pair two points to register the images, then mark features such as pupils, nostrils, mouth corners and the scalp contour. The fit moves nearby geometry, its surface paint, fitted eye patches and attached pieces. The first prototype left the dockworker’s glasses and side hair behind. Carrying those meshes through the same deformation brought them back onto the head. The artist can stack passes and remove the latest one.</p>
         <table><thead><tr><th>Input head and reference</th><th>Selected features, mean error</th><th>Five additional features</th></tr></thead><tbody>
           <tr><td>Ranger and Gardner’s frontal Lincoln portrait</td><td>8.74 → 0.66 mm (14)</td><td>6.52 → 8.23 mm</td></tr>
-          <tr><td>Dockworker and the Frank Reynolds pawn</td><td>30.48 → 1.18 mm (28)</td><td>18.55 → 5.66 mm</td></tr>
+          <tr><td>Dockworker and the reference portrait</td><td>30.48 → 1.18 mm (28)</td><td>18.55 → 5.66 mm</td></tr>
         </tbody></table>
         <p>The two alignment points are excluded. The measurement follows each material location by its texture coordinates through two separately reduced GLBs and measures the distance in the frontal plane. The five additional locations on each reference were annotated separately from the steering points. The ranger’s earlier profile error across 17 heights changed from 1.32 to 1.38 mm.</p>
         <p>The dockworker acquired a taller bald dome and narrower jaw. Its oval frames, pointed nose and face paint still differ visibly from the game screenshot. The ranger’s intermediate frontal points grew less accurate. A good score at the chosen points gives limited evidence about the features between them. Both exports keep four motion clips and pass Khronos validation with zero errors or warnings.</p>
         <p><a href="../examples/landmark-surveyor.glb" data-player="landmark-surveyor" data-view="portrait">Inspect the dockworker</a> · <a href="../examples/landmark-ranger.glb" data-player="landmark-ranger" data-view="portrait-oblique">Inspect the ranger</a> · <a href="../examples/landmark-surveyor.form.json">Editable dockworker</a> · <a href="../examples/landmark-ranger.form.json">Editable ranger</a> · <a href="media/paired-faces.json">Source points and errors</a></p>
-        <p>References are <a href="https://www.reddit.com/r/fashiondogma/comments/1bbsfpn/so_anyway_i_started_casting/">badtrouble’s original showcase</a> and <a href="https://www.loc.gov/resource/ppmsca.19301/">Alexander Gardner’s 1863 portrait at the Library of Congress</a>. The deformation adapts the <a href="https://people.engr.tamu.edu/schaefer/research/mls.pdf">moving least squares method of Schaefer, McPhail and Warren</a>.</p>
+        <p>The photographic reference is <a href="https://www.loc.gov/resource/ppmsca.19301/">Alexander Gardner’s 1863 portrait at the Library of Congress</a>. The deformation adapts the <a href="https://people.engr.tamu.edu/schaefer/research/mls.pdf">moving least squares method of Schaefer, McPhail and Warren</a>.</p>
       </section>
       <section class="method" id="traced-profile">
         <h2>Can a ranger inherit the contour of a real face?</h2>
         <figure><img src="media/traced-profile.webp" alt="Lincoln in profile, the original and fitted 3D ranger in profile, and the same two heads at three-quarter. The fitted nose has a lower tip and the lips and chin project." />
           <figcaption>Left is Anthony Berger’s February 1864 photograph of Abraham Lincoln. The four clay views are the two reduced game exports under the same lighting. Profile and three-quarter views each show the original followed by the fit.</figcaption>
         </figure>
-        <p>The Geralt benchmark calls for control over an angular brow, nose and jaw. Here the editor starts with the original scarred ranger. The artist traced 26 points from the brow ridge to the lower chin in a cropped photograph. The fit uses the depth of the triangle surface at each height and tapers the change across the face. Only the head region acquired a new instruction. Shape from a side portrait lets an artist scale or release the fit later.</p>
+        <p>The angular portrait study calls for control over an angular brow, nose and jaw. Here the editor starts with the original scarred ranger. The artist traced 26 points from the brow ridge to the lower chin in a cropped photograph. The fit uses the depth of the triangle surface at each height and tapers the change across the face. Only the head region acquired a new instruction. Shape from a side portrait lets an artist scale or release the fit later.</p>
         <p>At 17 intermediate heights read separately from the same photograph, mean absolute depth error fell from <strong>15.07 mm to 1.32 mm</strong>. The largest intermediate error fell from 40.20 to 5.26 mm. The 26 traced heights went from 15.57 to 1.58 mm on average. Distances use the model’s 191 mm brow-to-lower-chin interval. They measure its profile after alignment to the image, whose physical scale is unknown.</p>
         <p>The head acquired a clearer nose tip, upper lip and chin in profile. An early version also pushed the outer cheeks forward at lip height. Tapering each displacement towards the cheek improved the oblique view. The ranger still has the original hair, eyes and overall head shape. Recognizability as Lincoln and agreement with a second photograph remain untested.</p>
         <p><a href="../examples/traced-ranger.glb" data-player="traced-ranger" data-view="portrait-side">Inspect the fitted head</a> · <a href="../examples/traced-ranger.form.json">Editable ranger</a> · <a href="media/traced-profile.json">Profile measurements</a> · <a href="https://www.loc.gov/item/2013645981/">Library of Congress photograph and rights record</a></p>
@@ -1334,13 +1267,9 @@
         </p>
         <h3>A hooked tail and two thin fins</h3>
         <p>
-          Maxis selected Himmelslaub’s Lok-nau-tan for its graceful aquatic
-          build. We used that quality as a held-out target for an original reef
-          cartographer. A single ellipsoid, written instructions and a direction
+          An aquatic body plan supplied the held-out target for the original reef cartographer. A single ellipsoid, written instructions and a direction
           draw produced the first painted model in 219 seconds.
-          <a href="https://www.spore.com/what/ga_captains"
-            >Maxis Captain Postcard Challenge winners</a
-          >
+
         </p>
         <figure>
           <img
@@ -1409,16 +1338,12 @@
           </figcaption>
         </figure>
         <p>
-          The six Beastren shared by Exciting-Ebb-4205 suggested a species
-          change. We selected the human foreman’s head and asked for an elderly
+          A private reference suggested a species change. We selected the human foreman’s head and asked for an elderly
           snow leopard. In 99 seconds the editor returned eight editable
           regions, including a muzzle, jaw, ear pair and cheek ruffs. The other
           13 original regions, wardrobe and appearance settings matched the
           starting recipe.
-          <a
-            href="https://www.reddit.com/r/fashiondogma/comments/1bc13xy/dragons_dogma_2_character_creator_beastren/"
-            >Community target</a
-          >
+
           ·
           <a href="../examples/feline-worker.form.json" download
             >Open the worker recipe in the workshop</a

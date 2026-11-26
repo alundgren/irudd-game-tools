@@ -1,6 +1,6 @@
 {
-  "source": "https://www.spore.com/what/ga_captains",
-  "goal": "Reproduce the extra pair of articulated hands praised in the Sanu-Kish Merchant. Start from the two-armed feline harbour worker.",
+  "source": "Private four-armed merchant comparison",
+  "goal": "Reproduce the extra pair of articulated hands in the privately studied merchant. Start from the two-armed feline harbour worker.",
   "originalForm": "examples/feline-worker.form.json",
   "sourcePreparation": [
     "Fit fingers to right hand",

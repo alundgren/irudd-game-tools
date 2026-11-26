@@ -1,0 +1,126 @@
+{
+  "note": "Expected outcome of readDocument for each fixture. 'store' names the environment: full (all blobs and the catalog), none (structure only), no-occluder-blob, changed-catalog.",
+  "fixtures": [
+    {
+      "file": "valid-manual.json",
+      "store": "full",
+      "expect": "valid"
+    },
+    {
+      "file": "valid-generated.json",
+      "store": "full",
+      "expect": "valid"
+    },
+    {
+      "file": "valid-unsorted.json",
+      "store": "full",
+      "expect": "valid",
+      "canonicalEquals": "valid-manual.json"
+    },
+    {
+      "file": "valid-manual.json",
+      "store": "no-occluder-blob",
+      "expect": "missing-asset",
+      "path": ["assets", "sha256:2008d1ae5bb81334b00a3b852d3dbc3eccff8ed68a0979bb3fe7bb5765acc358"]
+    },
+    {
+      "file": "valid-manual.json",
+      "store": "changed-catalog",
+      "expect": "catalog-mismatch",
+      "path": ["catalog", "irudd.parts"]
+    },
+    {
+      "file": "invalid-missing-parent.json",
+      "store": "none",
+      "expect": "missing-reference",
+      "path": ["parts", 1, "parent"]
+    },
+    {
+      "file": "invalid-parent-cycle.json",
+      "store": "none",
+      "expect": "reference-cycle"
+    },
+    {
+      "file": "invalid-missing-paint-atlas.json",
+      "store": "none",
+      "expect": "missing-reference",
+      "path": ["parts", 0, "paint", "atlas"]
+    },
+    {
+      "file": "invalid-missing-occluder-atlas.json",
+      "store": "none",
+      "expect": "missing-reference",
+      "path": ["parts", 0, "paint", "occluder"]
+    },
+    {
+      "file": "invalid-missing-pose-target.json",
+      "store": "none",
+      "expect": "missing-reference",
+      "path": ["poses", 0, "joints", 0, "part"]
+    },
+    {
+      "file": "invalid-unknown-required-feature.json",
+      "store": "none",
+      "expect": "unknown-feature",
+      "path": ["requires", 4]
+    },
+    {
+      "file": "invalid-newer-feature-version.json",
+      "store": "none",
+      "expect": "unsupported-feature-version",
+      "path": ["requires", 0]
+    },
+    {
+      "file": "invalid-newer-format.json",
+      "store": "none",
+      "expect": "unsupported-format",
+      "path": ["version"]
+    },
+    {
+      "file": "invalid-undeclared-feature.json",
+      "store": "none",
+      "expect": "feature-not-declared",
+      "path": ["requires"]
+    },
+    {
+      "file": "invalid-duplicate-part.json",
+      "store": "none",
+      "expect": "duplicate-id"
+    },
+    {
+      "file": "invalid-non-unit-rotation.json",
+      "store": "none",
+      "expect": "schema",
+      "path": ["parts", 0, "rotation"]
+    },
+    {
+      "file": "invalid-excess-property.json",
+      "store": "none",
+      "expect": "schema",
+      "path": ["parts", 0, "scale"]
+    },
+    {
+      "file": "invalid-part-id.json",
+      "store": "none",
+      "expect": "schema",
+      "path": ["parts", 0, "id"]
+    },
+    {
+      "file": "invalid-tampered-base.json",
+      "store": "none",
+      "expect": "base-mismatch",
+      "path": ["generation", "base", "digest"]
+    },
+    {
+      "file": "invalid-unknown-generator.json",
+      "store": "none",
+      "expect": "unsupported-generator",
+      "path": ["generation", "generator"]
+    },
+    {
+      "file": "invalid-unknown-slot.json",
+      "store": "none",
+      "expect": "missing-reference"
+    }
+  ]
+}

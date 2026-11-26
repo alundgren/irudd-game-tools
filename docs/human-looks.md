@@ -69,7 +69,7 @@ some separates had visible defects. The fixes were quieter everyday colour with 
 wash, fewer separates (about 23% of looks), better cuts, and boots kept close under trouser legs. Each set
 stopped counting as held out once it had informed a fix.
 
-Both later reviewers said neither generator reaches a shipped Sims 4 or Dragon's Dogma 2 randomise button. The
+Both later reviewers said neither generator reaches the random characters in the two commercial reference editors. The
 cloth wash was softened once more after the last review, because that review called some trousers blotchy;
 that last change has not been reviewed blind.
 
