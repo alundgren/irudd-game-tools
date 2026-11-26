@@ -49,6 +49,9 @@ install_workshop() (
   ln -s "$build/Irudd Workshop.app" "$temp_link"
   mv -fh "$temp_link" "$link"
   if [[ ! -L "$command" ]]; then ln -s "$target" "$command"; fi
+  if [[ "${IRUDD_NO_AGENTS:-0}" != 1 ]]; then
+    "$command" agents connect || echo "Some agents could not be connected. Run irudd agents connect to retry." >&2
+  fi
   echo "Installed $link. The command line tool is $command."
   if [[ "${IRUDD_NO_LAUNCH:-0}" != 1 ]]; then open "$link"; fi
 )

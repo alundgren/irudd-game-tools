@@ -562,24 +562,38 @@ async function renderAgents(): Promise<void> {
     id.placeholder = "agent id, e.g. claude";
     id.setAttribute("aria-label", "Agent ID");
     const result = el("p", { className: "muted", text: pairingNote });
+    const manual = el("details", {}, el("summary", { text: "Pair another agent by hand" }));
+    manual.open = pairingNote !== "";
     agents.append(
-      el(
-        "ul",
-        { className: "entries" },
-        ...paired.map((p) =>
-          el(
-            "li",
-            {},
-            el("span", { text: p.name ?? p.agent }),
-            button("Revoke", () => {
-              void host
-                .call("pair.revoke", { agent: p.agent })
-                .then(renderAgents)
-                .then(() => Promise.all([steering.refresh(), art.refresh()]));
-            }),
-          ),
-        ),
-      ),
+      paired.length
+        ? el(
+            "ul",
+            { className: "entries" },
+            ...paired.map((p) =>
+              el(
+                "li",
+                {},
+                el("span", { text: p.name ?? p.agent }),
+                button(
+                  "Disconnect",
+                  () => {
+                    void host
+                      .call("pair.revoke", { agent: p.agent })
+                      .then(renderAgents)
+                      .then(() => Promise.all([steering.refresh(), art.refresh()]));
+                  },
+                  "Stops this agent and keeps it from reconnecting on its own until you pair it again.",
+                ),
+              ),
+            ),
+          )
+        : el("p", {
+            className: "muted",
+            text: "Claude Code and Codex on this computer connect on their own. Ask one to look at the workshop and it shows up here.",
+          }),
+      manual,
+    );
+    manual.append(
       el(
         "div",
         { className: "props" },
@@ -633,6 +647,12 @@ const art = mountArt(byId("art", HTMLDivElement), {
   failure,
 });
 api.onSteer((notice) => art.notice(notice));
+window.addEventListener("focus", () => {
+  if (!project) return;
+  void renderAgents();
+  void steering.refresh();
+  void art.refresh();
+});
 api.onCommit((notice) => {
   if (notice.documentId === documentId) void art.refresh();
 });

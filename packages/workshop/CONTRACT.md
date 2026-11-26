@@ -253,6 +253,11 @@ if (opened.mode === "host") {
   - The person's key (`human.key`) is regenerated each time the host starts.
   - An agent's key comes from pairing. `irudd pair <id>` (person only) writes
     `agents/<id>.json` and records the derived key in `pairings.json`.
+  - `pair.agent` with `auto: true` reuses a pairing whose credential file
+    still matches, so concurrent sessions of one agent share it. It is
+    refused with `Forbidden` for an agent a person revoked, until a person
+    pairs it again without `auto`. An unconfigured `irudd mcp` pairs this
+    way over the person's key.
   - Pairings survive restarts. Re-pairing rotates the key, and revoking it
     applies to the next handshake. Pairings for a project replaced at the
     same path do not carry over.

@@ -201,7 +201,17 @@ export class Dispatcher {
         return { ok: true, value: { subscribed: true } };
       case "pair.agent": {
         const name = params["name"];
-        const paired = credentials.pair(text("agent"), typeof name === "string" ? name : undefined);
+        const paired = credentials.pair(
+          text("agent"),
+          typeof name === "string" ? name : undefined,
+          params["auto"] === true,
+        );
+        if (paired === "revoked")
+          return error(
+            "Forbidden",
+            `${text("agent")} was disconnected in the workshop, so it does not reconnect on its own. Pair it again from the Agents panel or with "irudd pair ${text("agent")}".`,
+            { agent: text("agent") },
+          );
         steering.pairingChanged(paired.agent);
         return { ok: true, value: paired };
       }

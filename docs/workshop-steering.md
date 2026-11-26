@@ -1,6 +1,6 @@
 # Steering a connected agent
 
-Pair the agent in the workshop and connect its MCP server with the issued credential. Call `workshop_status` from the agent session to establish the project connection. In the desktop Agents panel, bind its inbox and send a message. The same commands in the CLI are:
+A Claude Code or Codex session connects on its first workshop tool call and gets an inbox (see [Connect an agent](workshop-clients.md#connect-an-agent)). An agent paired by hand calls `workshop_status` from its session to connect, and a person binds its inbox. Then send a message from the desktop Steer panel. The same commands in the CLI are:
 
 ```sh
 irudd route artist --inbox agent

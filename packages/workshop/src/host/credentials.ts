@@ -25,6 +25,7 @@ const PairingsFile = Schema.Struct({
   version: Schema.Literal(1),
   projectId: Schema.String,
   agents: Schema.Array(PairingRow),
+  revoked: Schema.optionalKey(Schema.Array(AgentId)),
 });
 type PairingsFile = typeof PairingsFile.Type;
 
@@ -88,7 +89,27 @@ export class Credentials {
     }));
   }
 
-  pair(agent: string, name: string | undefined): PairResult {
+  pair(agent: string, name: string | undefined, auto = false): PairResult | "revoked" {
+    const current = this.read();
+    if (auto) {
+      if (current.revoked?.includes(agent)) return "revoked";
+      const row = current.agents.find((a) => a.agent === agent);
+      const credentialFile = agentCredentialPath(this.files, agent);
+      const existing = row ? readJsonFile(credentialFile, AgentCredential) : undefined;
+      if (
+        row &&
+        existing?.ok &&
+        existing.value.projectId === this.project.projectId &&
+        deriveKey(existing.value.secret).toString("base64url") === row.key
+      )
+        return {
+          agent,
+          pairingId: pairingIdOf(row.key),
+          name: row.name ?? null,
+          createdAt: row.createdAt,
+          credentialFile,
+        };
+    }
     const secret = newSecret();
     const createdAt = Date.now();
     const credential: AgentCredential = {
@@ -103,9 +124,11 @@ export class Credentials {
     const credentialFile = agentCredentialPath(this.files, agent);
     const key = deriveKey(secret).toString("base64url");
     writePrivateFile(credentialFile, JSON.stringify(credential, null, 2) + "\n");
-    const current = this.read();
+    const { revoked, ...rest } = current;
+    const stillRevoked = (revoked ?? []).filter((a) => a !== agent);
     this.write({
-      ...current,
+      ...rest,
+      ...(stillRevoked.length > 0 ? { revoked: stillRevoked } : {}),
       agents: [
         ...current.agents.filter((a) => a.agent !== agent),
         {
@@ -122,7 +145,8 @@ export class Credentials {
   revoke(agent: string): boolean {
     const current = this.read();
     const remaining = current.agents.filter((a) => a.agent !== agent);
-    if (remaining.length !== current.agents.length) this.write({ ...current, agents: remaining });
+    const revoked = [...(current.revoked ?? []).filter((a) => a !== agent), agent];
+    this.write({ ...current, agents: remaining, revoked });
     fs.rmSync(agentCredentialPath(this.files, agent), { force: true });
     return remaining.length !== current.agents.length;
   }

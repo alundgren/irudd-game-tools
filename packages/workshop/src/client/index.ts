@@ -27,6 +27,7 @@ import {
   proof,
   readJsonFile,
   sameProof,
+  stateRoot,
   type LocationOptions,
 } from "../wire/local.js";
 import { resultGuards } from "./results.js";
@@ -144,6 +145,23 @@ export function readEndpoint(project: string, options: LocationOptions = {}): En
       },
     );
   return read.value;
+}
+
+export function runningHosts(options: LocationOptions = {}): ReadonlyArray<Endpoint> {
+  const hosts = path.join(stateRoot(options), "hosts");
+  let entries: string[];
+  try {
+    entries = fs.readdirSync(hosts);
+  } catch {
+    return [];
+  }
+  const found: Endpoint[] = [];
+  for (const entry of entries) {
+    const read = readJsonFile(path.join(hosts, entry, "endpoint.json"), Endpoint);
+    if (read?.ok && processAlive(read.value.host.pid)) found.push(read.value);
+  }
+  const desktop = (e: Endpoint) => (e.host.kind === "desktop" ? 1 : 0);
+  return found.sort((a, b) => desktop(b) - desktop(a) || b.host.startedAt - a.host.startedAt);
 }
 
 function processAlive(pid: number): boolean {

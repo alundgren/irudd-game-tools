@@ -117,6 +117,10 @@ function Install-IruddWorkshop {
         $integration = @('-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $build "$app\resources\app\bin\integration.ps1"), '-Root', $root, '-Programs', $programs, '-Action', 'apply')
         if ($env:IRUDD_NO_PATH -eq '1') { $integration += '-NoPath' }
         Invoke-Native $powerShell $integration
+        if ($env:IRUDD_NO_AGENTS -ne '1') {
+            & (Join-Path $root 'bin\irudd.exe') agents connect
+            if ($LASTEXITCODE -ne 0) { Write-Warning 'Some agents could not be connected. Run "irudd agents connect" to retry.' }
+        }
         Write-Host "Installed Irudd Workshop $($Commit.Substring(0, 12)). Open it from the Start menu; agents can run irudd from a new terminal."
         if ($env:IRUDD_NO_LAUNCH -ne '1') { Start-Process -FilePath (Join-Path $root "$app.exe") }
     } finally {

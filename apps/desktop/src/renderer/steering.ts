@@ -140,7 +140,7 @@ export function mountSteering(root: HTMLElement, options: SteeringOptions): Stee
       root.append(
         el("p", {
           className: "muted",
-          text: "Pair an agent under Agents to steer it. Editing works the same without one.",
+          text: "Ask Claude Code or Codex to look at the workshop and it shows up here to steer. Editing works the same without one.",
         }),
       );
       if (note) root.append(el("p", { className: "muted", text: note }));
@@ -479,7 +479,11 @@ export function mountSteering(root: HTMLElement, options: SteeringOptions): Stee
           "div",
           { className: "steer-track" },
           inbox
-            ? step("In inbox (no push)", true, "The agent reads its inbox in the paired session.")
+            ? step(
+                "In inbox (no push)",
+                true,
+                "The agent reads it the next time you talk to it in its conversation.",
+              )
             : step(
                 "Host accepted",
                 accepted,

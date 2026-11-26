@@ -197,7 +197,11 @@ export const methodParams = {
     params: Schema.optionalKey(JsonValue),
   }),
   subscribe: Empty,
-  "pair.agent": Schema.Struct({ agent: AgentId, name: Schema.optionalKey(Schema.String) }),
+  "pair.agent": Schema.Struct({
+    agent: AgentId,
+    name: Schema.optionalKey(Schema.String),
+    auto: Schema.optionalKey(Schema.Boolean),
+  }),
   "pair.list": Empty,
   "pair.revoke": Schema.Struct({ agent: AgentId }),
   verify: Empty,

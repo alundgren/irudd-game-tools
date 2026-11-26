@@ -2,9 +2,10 @@
 
 ## Working with a person in the desktop workshop
 
-Use the workshop tools in the conversation the person paired. They connect to the project open in the desktop app. The person can keep sculpting while you work.
+Use the workshop tools in your conversation. The installer registers them with Claude Code and Codex, and they connect to the project open in the desktop app on the first call; if it is closed, ask the person to open it. The person can keep sculpting while you work.
 
 - Call `workshop_status` and `list_documents` to find the shared character. To create one, use `list_starters` and pass the chosen starter ID to `create_document`.
+- When the person mentions something they sent from the workshop, call `read_inbox`.
 - When a steering message arrives, acknowledge it and read the person's changes since its cursor with `read_changes` and `by: "human"`. Read the current document before proposing an edit. Link your proposal or edit receipt to the steering message.
 - For an artwork request, use `art_brief` to read the direction, target revision and attached images. Check `art_capabilities` for the kinds of replies the host can apply. Use the current conversation's image tools when available and return the result with `art_submit`. If the conversation lacks the required tool, the person can save the brief and import the result. [Artwork commands](docs/workshop-clients.md#ask-for-artwork)
 - To judge the result, call `review_capabilities`, then `inspect_character` with the document ID, committed revision and export preset. It returns actual GLB renders plus geometry, texture and rig measurements. Use `review_image` for additional views. The person's camera stays available throughout.
