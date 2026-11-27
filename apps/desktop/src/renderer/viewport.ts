@@ -4,6 +4,8 @@ import { TransformControls } from "three/addons/controls/TransformControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import {
   buildCharacter,
+  clayMaterials,
+  graftComponent,
   previewPull,
   mirrorCentre,
   startSkinStroke,
@@ -23,14 +25,20 @@ import {
   surfaceMaterials,
   type SurfaceKit,
 } from "@irudd/character";
+import { currentCreature, creatureEdits } from "@irudd/character/creature";
 import type { HumanBody } from "@irudd/character/human";
 import {
+  applyOperations,
+  decodeOperations,
+  derivePartId,
+  type CreaturePlan,
   figureLocations,
   humanCorrections,
   worldDeltaInParent,
   type CharacterDocument,
   type Registry,
   type Vec3,
+  type Part,
 } from "@irudd/document";
 
 export const tools = ["select", "translate", "rotate", "scale"] as const;
@@ -364,6 +372,51 @@ export class EditorViewport {
     this.select(this.selected);
   }
 
+  private planPreview: BuiltCharacter | undefined;
+  private buildOptions: (() => BuildOptions) | undefined;
+  private previewMaterials = new Map<T.Mesh, T.Material | T.Material[]>();
+  handleAxes() {
+    return {
+      forward: this.camera.getWorldDirection(new T.Vector3()).toArray(),
+      up: new T.Vector3(0, 1, 0).applyQuaternion(this.camera.quaternion).toArray(),
+    };
+  }
+  previewPlan(next?: CreaturePlan) {
+    if (this.planPreview) {
+      this.planPreview.group.removeFromParent();
+      for (const [mesh, material] of this.previewMaterials) mesh.material = material;
+      this.previewMaterials.clear();
+      this.planPreview.dispose();
+      this.planPreview = undefined;
+    }
+    if (this.built) this.built.group.visible = true;
+    this.request();
+    const doc = this.doc,
+      registry = this.registry;
+    if (!next || !doc || !registry || !this.buildOptions || !this.built) return;
+    const plan = currentCreature(doc);
+    if (!plan) return;
+    const ops = decodeOperations(creatureEdits(doc, plan, next));
+    if (!ops.ok) throw new Error(ops.diagnostics.map((d) => d.message).join(" "));
+    const result = applyOperations(doc, ops.value, {
+      registry,
+      retired: new Set(),
+      idFor: (slot) => derivePartId(doc.id, "handle-preview", slot),
+    });
+    if (!result.ok) throw new Error(result.diagnostics.map((d) => d.message).join(" "));
+    const preview = buildCharacter(result.value, this.buildOptions());
+    if (this.mode !== "studio")
+      preview.group.traverse((n) => {
+        if (isMesh(n)) {
+          this.previewMaterials.set(n, n.material);
+          n.material = this.mode === "clay" ? this.clay : this.silhouette;
+        }
+      });
+    this.built.group.visible = false;
+    this.scene.add(preview.group);
+    this.planPreview = preview;
+  }
+
   human: HumanBody | undefined;
 
   show(
@@ -372,6 +425,7 @@ export class EditorViewport {
     studio?: { readonly kit: SurfaceKit; readonly finish: NonNullable<BuildOptions["finish"]> },
     humanPaint?: BuildOptions["humanPaint"],
   ): void {
+    this.previewPlan();
     this.closeMotion();
     this.dragStart = undefined;
     this.gizmo.detach();
@@ -385,15 +439,18 @@ export class EditorViewport {
     this.doc = doc;
     this.registry = registry;
     if (doc && studio) {
-      const materials = surfaceMaterials(studio.kit);
-      this.built = buildCharacter(doc, {
-        materials,
-        groomMaterials: materials,
-        wingMaterials: materials,
-        human: this.human,
-        humanPaint,
-        finish: studio.finish,
-      });
+      this.buildOptions = () => {
+        const materials = surfaceMaterials(studio.kit);
+        return {
+          materials,
+          groomMaterials: materials,
+          wingMaterials: materials,
+          human: this.human,
+          humanPaint,
+          finish: studio.finish,
+        };
+      };
+      this.built = buildCharacter(doc, this.buildOptions());
       this.built.group.traverse((node) => {
         if (isMesh(node)) {
           node.castShadow = true;
@@ -626,13 +683,32 @@ export class EditorViewport {
     return [radius(s.x), radius(s.y), radius(s.z)];
   }
 
-  graftPoint(id: string): Vec3 {
-    const b = this.built?.parts.get(id);
-    if (!b) throw new Error("Select a destination part.");
-    const box = partBounds(b.object),
-      at = box.getCenter(new T.Vector3());
-    at.y = box.max.y;
-    return b.mount.worldToLocal(at).toArray();
+  graft(
+    donor: CharacterDocument,
+    root: Part,
+    target: Part,
+    mode: Parameters<typeof graftComponent>[6],
+    fit: boolean,
+    shelfChildren?: boolean,
+  ) {
+    if (!this.doc || !this.built) throw new Error("Select a destination part.");
+    const built = buildCharacter(donor, { materials: clayMaterials(), human: this.human });
+    try {
+      return graftComponent(
+        donor,
+        root,
+        built,
+        this.doc,
+        target,
+        this.built,
+        mode,
+        fit,
+        this.human,
+        shelfChildren,
+      );
+    } finally {
+      built.dispose();
+    }
   }
 
   private sizePreview: { doc: CharacterDocument; image: string } | undefined;

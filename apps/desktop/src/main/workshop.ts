@@ -26,7 +26,7 @@ export interface WorkshopLink {
   call(method: WindowMethod, params: unknown): Promise<CallOutcome>;
   onCommit(listener: (notice: CommitNotice) => void): () => void;
   onSteer(listener: (notice: SteerNotice) => void): () => void;
-  characterFile<M extends "document.save" | "document.open">(
+  characterFile<M extends "document.save" | "document.open" | "document.donor">(
     method: M,
     params: MethodParams[M],
   ): Promise<MethodResults[M]>;

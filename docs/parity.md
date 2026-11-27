@@ -71,7 +71,7 @@ Posture, arm edits and named poses have History entries and travel with the char
 | 18 | Add freckles, scars or moles | done | 5 |
 | 19 | Apply a portrait to an adult's own head | done | 8b |
 | 20 | Mount a pair of wings on an adult | done | 6 |
-| 21 | Edit a creature's body plan with drag handles | done | 6, 7 |
+| 21 | Edit a creature's body plan with drag handles | done | 6, 7, 9-2 |
 | 22 | Shuffle a chosen part of a creature's plan | done | 6 |
 | 23 | Choose a creature's coat and markings | done | 5, 6 |
 | 24 | Match a face to portrait landmarks | done | 8b |
@@ -88,8 +88,8 @@ Posture, arm edits and named poses have History entries and travel with the char
 | 35 | Bend an elbow, recut sleeves or set a carry pose | done | 7 |
 | 36 | Adjust a hand's finger count, curl and spread | done | 5 |
 | 37 | Seat a surface on its parent or release it | done | 5 |
-| 38 | Grow a field of plates | partly (adjustable fields of editable cage plates) | 8a |
-| 39 | Repeat plates along a spine | done | 8a |
+| 38 | Grow a field of plates | done | 8a, 9-2 |
+| 39 | Repeat plates along a spine | done | 8a, 9-2 |
 | 40 | Set a part's clothing region, movement role, finish and colour | done | 5 |
 | 41 | Choose an outfit in the wardrobe | done | 4 |
 | 42 | Cut a cape, poncho, tabard or skirt | done | 4 |
@@ -114,7 +114,7 @@ Posture, arm edits and named poses have History entries and travel with the char
 | 61 | Trace artwork manually to build a character | partly (manual lofts, hulls and membranes from two traced outlines) | 8b |
 | 62 | Reuse a turnaround on other regions | done | 8b |
 | 63 | Save and open form files and choose export options | done | 8b |
-| 64 | Graft a part from a saved form | partly (independent part branches) | 8a |
+| 64 | Graft a part from a saved form | done | 8a, 9-2 |
 | 65 | Save and revisit variations and alternates | done | 8b |
 | 66 | Open reference studies | partly (shipped editable studies) | 8b |
 
@@ -136,17 +136,21 @@ Use **Pull** to shape one part, or **Sculpt skin** to brush across connected reg
 
 In **Draw**, choose a horn, tail, fin or walking limb, set its radius and colour, then drag outward from the model. Mirroring adds its twin on the opposite side. In **Place branch**, pick an anchor on the selected branch or one of its children, then click its destination. With the selection cleared, the first click chooses the source. Choose **Copy branch** or **Move branch** and adjust size, turn axis, angle and seating depth before the second click.
 
-In Mark mode, click to place a named location. Enter the same name on the same part to move it. Under **Spine plates**, set the run, coverage, spacing and colour to grow editable cage plates or repeat scutes.
+In Mark mode, click to place a named location. Enter the same name on the same part to move it. Under **Spine plates**, grow a field of editable horn cages on a sweep. Select the carrier or a plate to adjust the field or reroll its layout and tips. Dragging a carrier spine point refits the field in the same History entry. **Refit to spine** seats a saved field on an altered carrier. Rerolling one tip pins its shape until you unpin it. **Repeat plates** fits scutes to painted carriers and can equip rigid armour in the active outfit.
 
-**World scale** measures the visible character in metres. Pin a height, switch characters or set a new height to see both figures at the same scale. To graft a branch, open the saved source and destination in one project, select the destination part and choose the source character and part.
+**World scale** measures the visible character in metres. Pin a height, switch characters or set a new height to see both figures at the same scale. Under **Graft a saved part**, select the destination and choose a project character, component from the shelf or saved character file. Choose a donor branch and attach it, replace the selected part or its whole branch, wear it in the current outfit or recut its garment pattern. Adult regions carry their donor's measurements, skin and sculpt corrections.
 
-Plate fields support placement, crest height and overlap. Individual random tip variants remain open. Adjusting a field preserves edits on its surviving plates. Armour layers support fit and finish controls. The browser's embossed devices, asymmetric armour variants and specialised cuts remain open. Grafting supports independent part hierarchies. Native adult rig regions depend on their original body generator.
+Armour layers support fit and finish controls. The browser's embossed devices, asymmetric armour variants and specialised cuts remain open.
 
 The packaged `qa:character` check uses real pointer strokes and control-point drags, compares the rendered results, undoes and redoes a plate arrangement, and reopens the saved studies in a fresh project. The shape sequence took 3 minutes 19 seconds on the first run and 3 minutes 11 seconds on repeat on an RTX 5070 Ti. Its before and after images and contact sheet are in `.reference-cache/phase8a/`.
 
 Build the browser workshop with `pnpm build`, then build the desktop app with `pnpm --filter @irudd/desktop build`. Run `pnpm --filter @irudd/desktop qa:shape-parity` after changing surface pulls, connected adult skin, appendages or branch placement. It uses hardware WebGL in Chrome and Electron, exercises matched pointer gestures on the same character and checks one-step undo, redo and character-file reopening. Its before-and-after comparisons use fixed cameras and magnify the most changed area in each render. Find the comparisons and contact sheet in `.reference-cache/phase9-1/`. On the conductor, changing the jaw moved vertices by 15.6 mm, changing body mass moved them by 57.3 mm and dragging a cape corner moved them by 120 mm in both workshops. Repeating four rows of three plates added twelve visible scutes to the forearm. The repeated plate width is adjustable in centimetres. Plates mounted on a painted sweep refit to the carrier and pick up its paint when moved.
 
 For a focused GPU check, append a group name such as `mirroredAttachments` to the QA command. This group catches a mirrored appendage attaching to the wrong forearm. On an RTX 5070 Ti the exercise took 46 seconds cold and 45 seconds warm (59 and 65 seconds including startup and reopening). [Behavior checklist and screenshot filenames](shape-parity-checklist.md)
+
+The creature workshop's **Body plan** section has drag handles for girth and limb placement. Drag a diamond to reshape a cross section or a round handle to slide a limb group. The viewport previews the edit while the pointer is held. Escape cancels it.
+
+Run `pnpm --filter @irudd/desktop qa:field-parity` for the matching plate, graft and spine-handle exercises. The paired images and contact sheet are written to `.reference-cache/phase9-2/`. Append `shelf` to check that all thirteen donor components load and a graft survives reopening. This took 49 seconds on the first run and 64 seconds on repeat on an RTX 5070 Ti. [Behaviour checklist and screenshot filenames](field-parity-checklist.md)
 
 ### Portraits, artwork and files
 

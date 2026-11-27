@@ -179,14 +179,21 @@ export async function verifyShapes(
   await pair("02-spine", () => handle("Spine"));
   await mode("Select");
   await open(sub("Spine plates"));
+  await shape.getByLabel("Field rows").fill("3");
+  await shape.getByLabel("Field columns").selectOption("1");
   await pair("38-field", () => edit(() => action("Grow plate field")));
   await shape.getByLabel("Plate face").selectOption("Left");
+  await shape.getByLabel("Plate rows", { exact: true }).fill("4");
+  await shape.getByLabel("Plate columns", { exact: true }).fill("3");
+  const carrierId = await page.locator("#outliner .selected").getAttribute("data-part");
+  assert.ok(carrierId);
   await pair("39-repeated-plates", () => edit(() => action("Repeat plates")));
   const platedCount = await page.locator("#outliner .row").count();
   await edit(() => page.click("#undo"));
   assert.equal(await page.locator("#outliner .row").count(), platedCount - 12);
   await edit(() => page.click("#redo"));
   assert.equal(await page.locator("#outliner .row").count(), platedCount);
+  await page.locator('#outliner [data-part="' + carrierId + '"]').click();
   const source = await page.inputValue("#document"),
     part = await page.locator("#outliner .selected").getAttribute("data-part");
   assert.ok(part);

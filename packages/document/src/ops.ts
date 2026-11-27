@@ -75,6 +75,7 @@ export const PartChanges = Schema.Struct({
 
 export const Operation = Schema.Union([
   op("part.add", { part: Part }),
+  op("part.replace", { part: Part }),
   op("part.remove", { part: PartId, cascade: Schema.Boolean }),
   op("part.set", { part: PartId, set: PartChanges }),
   op("part.rename", { part: PartId, label: Label }),
@@ -259,6 +260,15 @@ function applyOne(
           diagnostic("schema", at("part", "slot"), "Only the generator assigns slots."),
         ]);
       return ok({ ...doc, parts: [...doc.parts, o.part] });
+    }
+    case "part.replace": {
+      const index = partIndex(doc, o.part.id, at("part", "id"));
+      if (!index.ok) return index;
+      if (o.part.slot !== undefined)
+        return fail([
+          diagnostic("schema", at("part", "slot"), "Only the generator assigns slots."),
+        ]);
+      return ok(replacePart(doc, index.value, o.part));
     }
     case "part.remove": {
       const index = partIndex(doc, o.part, at("part"));

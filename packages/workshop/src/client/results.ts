@@ -40,6 +40,7 @@ export const resultGuards: { readonly [M in MethodName]: Guard<MethodResults[M]>
   "pair.revoke": has("agent", "revoked"),
   verify: has("ok", "documents", "blobs"),
   "document.save": has("path", "bytes", "sha256", "documentId", "revision"),
+  "document.donor": has("document", "revision"),
   "document.open": has("documentId", "revision", "journal", "blobs"),
   "recipient.bind": has("agent", "pairingId", "route"),
   "recipient.unbind": has("agent", "unbound"),

@@ -1,5 +1,4 @@
 import {
-  arrangePlates,
   branchKinds,
   branchStroke,
   cageFace,
@@ -8,7 +7,7 @@ import {
   faceAxes,
   drapeSweep,
   foldCloth,
-  graftBranch,
+  graftModes,
   markLocation,
   moveControl,
   moveSpine,
@@ -22,23 +21,28 @@ import {
   descendants,
   humanCorrections,
   jsonEqual,
+  isJson,
+  isJsonObject,
+  isJsonArray,
+  readDocument,
+  type Registry,
   figureAnatomy,
   figureBuild,
   figureCage,
   figureDrape,
   figureMantle,
   figurePiece,
-  figurePlateField,
   figureSculpt,
   figureSweep,
-  plateFaces,
   type CharacterDocument,
   type Vec3,
 } from "@irudd/document";
 import { byId, el } from "../dom.js";
 import type { EditorViewport } from "../viewport.js";
+import { stagePicture } from "../art-files.js";
 import { failure, type PanelContext } from "./context.js";
 import { choices, field } from "./garment-fields.js";
+import { spinePlates } from "./spine-plates.js";
 import { surfaceFields } from "./surface-fields.js";
 
 const modes = [
@@ -60,6 +64,7 @@ export function mountShape(
   ctx: PanelContext,
   viewport: EditorViewport,
   read: (id: string) => Promise<CharacterDocument>,
+  registry: () => Registry,
 ) {
   const panel = byId("shape-editor", HTMLDetailsElement),
     body = panel.querySelector("div");
@@ -73,6 +78,42 @@ export function mountShape(
     request = 0,
     pending = false;
   let pinned: { label: string; height: number; image: string } | undefined;
+  let graftMode: (typeof graftModes)[number] = graftModes[0],
+    matchHeight = true;
+  let sourcePart = "",
+    shelfKey = "";
+  const shelf = new Map<
+    string,
+    { label: string; doc: CharacterDocument; root: string; children: boolean }
+  >();
+  let loadingShelf: Promise<void> | undefined;
+  function loadShelf() {
+    loadingShelf ??= fetch(new URL("../graft-shelf.json", import.meta.url))
+      .then((r) => r.json())
+      .then((raw: unknown) => {
+        if (!isJson(raw) || !isJsonArray(raw)) throw new Error("Invalid graft shelf.");
+        for (const row of raw) {
+          if (
+            !isJsonObject(row) ||
+            typeof row["key"] !== "string" ||
+            typeof row["label"] !== "string" ||
+            typeof row["root"] !== "string" ||
+            typeof row["children"] !== "boolean"
+          )
+            throw new Error("Invalid shelf component.");
+          const doc = readDocument(row["document"], { registry: registry() });
+          if (!doc.ok) throw new Error("Invalid shelf donor " + row["label"]);
+          shelf.set(row["key"], {
+            label: row["label"],
+            doc: doc.value,
+            root: row["root"],
+            children: row["children"],
+          });
+        }
+        render();
+      })
+      .catch((e) => ctx.showBanner("error", failure(e)));
+  }
   let projectHandle: (() => void)[] = [];
   let startStroke: ((e: PointerEvent) => void) | undefined;
   let active:
@@ -197,6 +238,7 @@ export function mountShape(
       request++;
       mode = "Select";
       donor = undefined;
+      shelfKey = "";
       pin = undefined;
       lastId = doc?.id;
     }
@@ -257,7 +299,7 @@ export function mountShape(
       };
     }
     if (!panel.open) return;
-    function edit(summary: string, make: () => readonly object[], select?: () => string) {
+    function edit(summary: string, make: () => readonly object[], select?: () => string | null) {
       if (pending) return;
       try {
         const ops = make();
@@ -682,42 +724,7 @@ export function mountShape(
         };
       };
     }
-    if (p && figureSweep.read(p.features)) {
-      const plates = section("Spine plates"),
-        settings = figurePlateField.read(p.features);
-      const rows = plates.numeric("Plate rows", settings?.rows ?? 4, 2, 12, 1),
-        cols = plates.choose(
-          "Plate columns",
-          ["1", "3", "5", "7"] as const,
-          String(settings?.columns ?? 3),
-        ),
-        start = plates.numeric("Start along spine", settings?.start ?? 0.1, 0, 0.96),
-        end = plates.numeric("End along spine", settings?.end ?? 0.9, 0.04, 1),
-        wrap = plates.numeric("Wrap (degrees)", settings?.wrap ?? 95, 20, 165, 1),
-        overlap = plates.numeric("Plate overlap", settings?.overlap ?? 0.25, 0, 0.8),
-        crest = plates.numeric("Crest height", settings?.crest ?? 0.5, 0, 1),
-        face = plates.choose("Plate face", plateFaces, settings?.face ?? "Front"),
-        color = plates.color("Plate colour", settings?.color ?? "#bcaa84");
-      const width = plates.numeric("Repeated plate width (cm)", 12, 1, 100);
-      for (const isField of [true, false]) {
-        const title = isField ? "Grow plate field" : "Repeat plates";
-        plates.action(title, () =>
-          edit(title, () =>
-            arrangePlates(
-              doc,
-              p.id,
-              rows(),
-              ([1, 3, 5, 7] as const).find((n) => String(n) === cols()) ?? 3,
-              face(),
-              color(),
-              isField,
-              { start: start(), end: end(), wrap: wrap(), overlap: overlap(), crest: crest() },
-              isField ? undefined : width() / 100,
-            ),
-          ),
-        );
-      }
-    }
+    if (p) spinePlates(doc, p, section, edit);
     const scale = section("World scale"),
       height = viewport.height();
     scale.rows.append(el("p", { text: "Height " + height.toFixed(3) + " m" }));
@@ -758,18 +765,39 @@ export function mountShape(
     );
     const graft = section("Graft a saved part"),
       source = el("select");
+    loadShelf();
     source.append(new Option("Choose a character", ""));
+    for (const [key, entry] of shelf) source.append(new Option(entry.label, "shelf-" + key));
     for (const option of byId("document", HTMLSelectElement).options)
       if (option.value !== doc.id) source.append(new Option(option.text, option.value));
-    source.value = donor?.id ?? "";
+    if (donor && !shelfKey && !Array.from(source.options).some((o) => o.value === donor?.id))
+      source.add(new Option(donor.label, donor.id));
+    source.value = shelfKey ? "shelf-" + shelfKey : (donor?.id ?? "");
     graft.rows.append(field("Source character", source));
     source.onchange = () => {
       const seq = ++request;
       donor = undefined;
-      if (!source.value) {
-        render();
+      sourcePart = "";
+      shelfKey = source.value.startsWith("shelf-") ? source.value.slice(6) : "";
+      const entry = shelf.get(shelfKey);
+      render();
+      if (entry) {
+        void Promise.all(
+          entry.doc.assets.map(async (a) =>
+            stagePicture(ctx.host, await ctx.api.bundledImage(a.digest)),
+          ),
+        )
+          .then(() => {
+            if (seq === request) {
+              donor = entry.doc;
+              sourcePart = entry.root;
+              render();
+            }
+          })
+          .catch((e) => ctx.showBanner("error", failure(e)));
         return;
       }
+      if (!source.value) return;
       void read(source.value)
         .then((d) => {
           if (seq === request) {
@@ -779,24 +807,73 @@ export function mountShape(
         })
         .catch((e) => ctx.showBanner("error", failure(e)));
     };
+    graft.action("Use a saved form", () => {
+      const seq = ++request;
+      void ctx.api
+        .openCharacter(true)
+        .then((opened) => {
+          if (!opened.ok) {
+            if (!opened.canceled) throw new Error(opened.error.message);
+            return;
+          }
+          if (opened.action !== "opened") throw new Error("Expected a donor character.");
+          const result = readDocument(opened.document, { registry: registry() });
+          if (!result.ok) throw new Error("The donor character is invalid.");
+          const d = result.value;
+          if (seq === request) {
+            donor = d;
+            sourcePart = "";
+            shelfKey = "";
+            render();
+          }
+        })
+        .catch((e) => ctx.showBanner("error", failure(e)));
+    });
     if (donor && p) {
       const selected = donor,
-        parts = selected.parts.filter(
-          (q) => !(selected.generation?.generator === "irudd.human-adult" && q.slot),
-        ),
         list = el("select");
-      for (const q of parts) list.append(new Option(q.label, q.id));
-      graft.rows.append(field("Source part", list));
-      graft.action(
-        "Graft branch",
-        () =>
-          edit("Graft saved branch", () => {
-            const root = parts.find((q) => q.id === list.value);
+      for (const q of selected.parts) list.append(new Option(q.label, q.id));
+      if (selected.parts.some((q) => q.id === sourcePart)) list.value = sourcePart;
+      list.onchange = () => {
+        sourcePart = list.value;
+      };
+      if (!shelfKey) graft.rows.append(field("Source part", list));
+      const which = choices(graftModes, graftMode);
+      graft.rows.append(field("Attachment", which.input));
+      which.input.onchange = () => {
+        sourcePart = list.value;
+        graftMode = which.read();
+        render();
+      };
+      const fit =
+        graftMode === "Recut garment pattern"
+          ? undefined
+          : graft.check("Match destination height", matchHeight);
+      graft.action("Graft branch", () => {
+        let id: string | null = null;
+        edit(
+          "Graft saved branch",
+          () => {
+            const root = selected.parts.find((q) => q.id === list.value);
             if (!root) throw new Error("Choose a source part.");
-            return graftBranch(selected, root, doc, p, viewport.graftPoint(p.id));
-          }),
-        !!parts.length,
-      );
+            matchHeight = fit?.() ?? matchHeight;
+            const result = viewport.graft(
+              selected,
+              root,
+              p,
+              graftMode,
+              matchHeight,
+              shelf.get(shelfKey)?.children,
+            );
+            id = result.id;
+            return result.ops;
+          },
+          () => {
+            viewport.setAngle("threequarter");
+            return id;
+          },
+        );
+      });
     } else
       graft.rows.append(
         el("p", {

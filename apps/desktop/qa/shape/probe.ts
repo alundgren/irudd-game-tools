@@ -154,6 +154,20 @@ const probe = {
       }
     throw new Error("No exposed surface for " + wanted + " at " + u + "," + v);
   },
+  uvSpan(id: string) {
+    const min = new T.Vector2(Infinity, Infinity),
+      max = new T.Vector2(-Infinity, -Infinity);
+    for (const mesh of visible().meshes.filter((m) => owner(m) === id)) {
+      const uv = mesh.geometry.getAttribute("uv");
+      if (!uv) continue;
+      for (let i = 0; i < uv.count; i++) {
+        const p = new T.Vector2(uv.getX(i), uv.getY(i));
+        min.min(p);
+        max.max(p);
+      }
+    }
+    return max.sub(min).toArray();
+  },
   geometry(id: string) {
     const data: number[] = [];
     for (const mesh of visible().meshes.filter((m) => owner(m) === id)) {

@@ -11,8 +11,9 @@ import { appDir, electronExecutable, appEnvironment } from "./electron.js";
 import { contactSheet } from "./contact-sheet.js";
 import type {} from "../qa/shape/probe.js";
 
+const fieldPhase = process.argv[2] === "phase9-2";
 const root = resolve(appDir, "../.."),
-  dir = join(root, ".reference-cache/phase9-1"),
+  dir = join(root, fieldPhase ? ".reference-cache/phase9-2" : ".reference-cache/phase9-1"),
   work = mkdtempSync(join(tmpdir(), "shape-parity-"));
 mkdirSync(dir, { recursive: true });
 const problems: string[] = [];
@@ -438,7 +439,7 @@ async function highlightDetail(id: string) {
         const x = left + 45 + index * 248;
         ctx.fillStyle = "white";
         ctx.font = "16px sans-serif";
-        ctx.fillText("Detail ? " + label, x, 858);
+        ctx.fillText("Detail " + label, x, 858);
         ctx.drawImage(input, left + cropX, 65 + 400 * index + cropY, size, size, x, 866, 202, 202);
       }
     }
@@ -854,6 +855,8 @@ async function capacity() {
   assert.match(await desk.locator("#banner").innerText(), /128/);
   await part(arm, false);
   await activate("Place branch", "#place-branch");
+  await stud.getByLabel("Placement", { exact: true }).selectOption("Copy branch");
+  await web.selectOption("#place-mode", "copy");
   for (const p of [web, desk]) {
     await frame(p);
     await pick(p, arm, 0.5, 0.5);
@@ -1230,9 +1233,9 @@ async function cageAndPlates() {
     await web.fill("#repeat-cols", "3");
     await web.fill("#repeat-width", "10");
     await stud.getByLabel("Repeated plate width (cm)").fill("10");
-    await stud.getByLabel("Start along spine").fill("0.18");
-    await stud.getByLabel("End along spine").fill("0.88");
-    await stud.getByLabel("Plate colour").fill("#d4c6a7");
+    await stud.getByLabel("Plate rows", { exact: true }).fill("4");
+    await stud.getByLabel("Plate columns", { exact: true }).fill("3");
+    await stud.getByLabel("Plate face", { exact: true }).selectOption("Front");
     await web.click("#repeat");
     await checkHistory(() =>
       stud.getByRole("button", { name: "Repeat plates", exact: true }).click(),
@@ -1275,22 +1278,48 @@ try {
     rechecks,
     cageAndPlates,
   };
-  if (process.argv[2] && process.argv[2] !== "sheet" && !Object.hasOwn(suites, process.argv[2]))
-    throw new Error("Unknown shape QA group " + process.argv[2]);
-  for (const [name, run] of Object.entries(suites)) {
-    if (process.argv[2] && process.argv[2] !== name) continue;
-    const begin = performance.now();
-    await run();
-    console.log(name + " passed in " + Math.round((performance.now() - begin) / 1000) + " s");
-  }
-  if (!process.argv[2] || process.argv[2] === "sheet") {
-    const ids =
-      "P1 P1-live P2 P3 P4 S1 S2 S2-ring S3 S3-posed S4 S5 S6 D1 D1-live D2 D2-fin D2-limb D3 D3-opposite B1 B1-pin B2 B2-mounted B3 B4 B5 B5-view B6 V1 V2 V3 V4 V5".split(
-        " ",
-      );
-    const images = [];
-    for (const id of ids) images.push(await highlightDetail(id));
-    await contactSheet(web, dir, images, 2);
+  if (fieldPhase) {
+    const { fieldParity } = await import("./qa-field-parity.js");
+    await fieldParity({
+      desk,
+      web,
+      editor,
+      stud,
+      fresh,
+      part,
+      nativeId,
+      checkHistory,
+      revision,
+      ready,
+      frame,
+      save,
+      writePair,
+      highlightDetail,
+      geom,
+      digest,
+      root,
+      work,
+      adultFile,
+      dir,
+    });
+  } else {
+    if (process.argv[2] && process.argv[2] !== "sheet" && !Object.hasOwn(suites, process.argv[2]))
+      throw new Error("Unknown shape QA group " + process.argv[2]);
+    for (const [name, run] of Object.entries(suites)) {
+      if (process.argv[2] && process.argv[2] !== name) continue;
+      const begin = performance.now();
+      await run();
+      console.log(name + " passed in " + Math.round((performance.now() - begin) / 1000) + " s");
+    }
+    if (!process.argv[2] || process.argv[2] === "sheet") {
+      const ids =
+        "P1 P1-live P2 P3 P4 S1 S2 S2-ring S3 S3-posed S4 S5 S6 D1 D1-live D2 D2-fin D2-limb D3 D3-opposite B1 B1-pin B2 B2-mounted B3 B4 B5 B5-view B6 V1 V2 V3 V4 V5".split(
+          " ",
+        );
+      const images = [];
+      for (const id of ids) images.push(await highlightDetail(id));
+      await contactSheet(web, dir, images, 2);
+    }
   }
   for (const [i, study] of saved.entries()) {
     const loaded = await launch("reload-" + i);

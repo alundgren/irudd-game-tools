@@ -330,7 +330,7 @@ export function skinCharacter(character: BuiltCharacter): Rig {
   const bones: T.Bone[] = [root];
   const index = new Map<T.Bone, number>([[root, 0]]);
   const boneIndex = (bone: T.Bone | undefined): number => (bone && index.get(bone)) ?? 0;
-  const human = character.human;
+  const human = character.regionRig ?? character.human;
   for (const s of regions.values()) {
     s.points = (human && humanCentres(s, regions, human)) ?? centres(s, regions);
     const [p0, p1, p2] = s.points;
@@ -531,7 +531,7 @@ export function skinCharacter(character: BuiltCharacter): Rig {
   const poses = authoredClips(bindings, character.view.poses);
   const offer = character.view.offer && offerClip(bindings, character.view.offer.pose);
   if (offer) clips.push(offer);
-  const posture = human?.params.posture;
+  const posture = character.human?.params.posture;
   if (human && posture && skinned)
     applyHumanPosture({
       regions,

@@ -193,6 +193,7 @@ const handledPartFields = new Set([
   "eyeSurface",
   "wing",
   "seamGroup",
+  "drape",
   "pulls",
   "footSection",
 ]);
@@ -208,6 +209,7 @@ const handledFormFields = new Set([
   "build",
   "artwork",
   "occluders",
+  "referenceRigs",
   "layerStyles",
   "outfitSets",
 ]);
@@ -670,6 +672,13 @@ export function prepareForm(name: string, raw: unknown): Prepared {
       features["figure.join"] = asJson(p["surfaceJoin"], `parts[${legacyId}].surfaceJoin`);
     if (p["seamGroup"] !== undefined)
       features["figure.seam"] = { group: str(p["seamGroup"], `parts[${legacyId}].seamGroup`) };
+    if (p["drape"] !== undefined)
+      features["figure.drape"] = asJson(
+        isRecord(p["drape"])
+          ? { folds: 12, depth: 0.09, twist: 0.25, slit: 0, slitHeight: 0.6, ...p["drape"] }
+          : p["drape"],
+        `parts[${legacyId}].drape`,
+      );
     const pulls = p["pulls"];
     if (!Array.isArray(pulls) && pulls !== undefined)
       throw new Error(`parts[${legacyId}].pulls is not a list.`);
@@ -818,6 +827,10 @@ export function prepareForm(name: string, raw: unknown): Prepared {
     features["character.origin"] = asJson(provenance, "origin");
     if (isRecord(plan)) features["creature.plan"] = asJson(plan, "origin.plan");
   }
+  if (Array.isArray(form["referenceRigs"]))
+    features["human.reference-rigs"] = {
+      rigs: form["referenceRigs"].filter((v): v is string => typeof v === "string"),
+    };
   if (occluders.length)
     features["figure.occluders"] = {
       sources: occluders

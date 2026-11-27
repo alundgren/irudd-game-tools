@@ -286,12 +286,17 @@ async function createCopy(source: CharacterDocument, label: string) {
 }
 const portrait = mountPortrait(panels, viewport, createCopy);
 const history = mountHistory(panels);
-const shape = mountShape(panels, viewport, async (id) => {
-  const view = await host.call("inspect", { documentId: id });
-  const result = readDocument(view.document, { registry });
-  if (!result.ok) throw new Error(describe(result.diagnostics));
-  return result.value;
-});
+const shape = mountShape(
+  panels,
+  viewport,
+  async (id) => {
+    const view = await host.call("inspect", { documentId: id });
+    const result = readDocument(view.document, { registry });
+    if (!result.ok) throw new Error(describe(result.diagnostics));
+    return result.value;
+  },
+  () => registry,
+);
 const surface = mountSurface(
   panels,
   (face, pivot) => viewport.accessoryAnchor(face, pivot),
@@ -302,7 +307,7 @@ const wardrobe = mountWardrobe(panels, (host, kind, color) => viewport.cut(host,
 const creature = mountCreature(
   panels,
   () => variation.current()?.direction,
-  (p) => viewport.project(p),
+  viewport,
   (p, label) => start.fromPlan(p, label),
 );
 viewport.onFrame = () => {
@@ -444,7 +449,9 @@ async function displayDocument(character: CharacterDocument | undefined): Promis
     const finish = preparing ? await preparing : undefined;
     const body = viewport.human;
     const paint =
-      body && character?.generation?.generator === humanAdultId
+      body &&
+      (character?.generation?.generator === humanAdultId ||
+        character?.parts.some((p) => p.features["human.region-copy"]))
         ? await (adultPaint ??= loadHumanPaint((file) => api.humanPack(file))
             .then((pack) => prepareHumanPaint(domRaster(), pack, body))
             .catch((error: unknown) => {

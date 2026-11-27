@@ -1,3 +1,5 @@
+import { isMesh } from "../src/mesh.js";
+import { graftComponent } from "../src/graft.js";
 import assert from "node:assert/strict";
 import * as T from "three";
 import { buildCharacter, clayMaterials } from "../src/build.js";
@@ -262,5 +264,150 @@ test("figure, humanoid and hybrid starting forms contain fitted library pieces",
       slots.some((p) => p.features?.["figure.wing"] !== undefined),
       kind === "Hybrid",
     );
+  }
+});
+
+test("a saved adult head rebuilds with donor skin geometry on a non-adult and survives a second graft", async () => {
+  const body = await loadHumanPacks((file) =>
+    readFileSync(new URL("../assets/human/" + file, import.meta.url)),
+  );
+  const source = generatedDocument(humanAdultGenerator(body), {
+    ...seededHumanAdult(body, 491, "neutral", "Natural"),
+    outfit: "Anatomy",
+  });
+  const doc = source.doc,
+    head = doc.parts.find((p) => p.slot === "head");
+  assert.ok(head);
+  const settings = { human: body, materials: clayMaterials() },
+    donor = buildCharacter(doc, settings);
+  const host = addDetail(undefined, "sweep"),
+    recipient = { ...doc, generation: undefined, parts: [host] };
+  const { generation: _generation, ...base } = recipient;
+  const dest = buildCharacter(base, settings);
+  const vertices = (entry: typeof donor, id: string) => {
+    const mesh = entry.parts.get(id)?.object.children.find(isMesh);
+    assert.ok(mesh);
+    return Array.from(mesh.geometry.getAttribute("position").array);
+  };
+  const expected = vertices(donor, head.id);
+  let current = doc,
+    currentHead = head,
+    built = donor;
+  try {
+    const entry = donor.parts.get(head.id);
+    assert.ok(entry);
+    entry.object.visible = false;
+    assert.throws(
+      () => graftComponent(doc, head, donor, base, host, dest, "Replace whole branch", true, body),
+      /no visible geometry/,
+    );
+    assert.ok(
+      graftComponent(doc, head, donor, base, host, dest, "Replace whole branch", true, body, false)
+        .ops.length,
+    );
+    entry.object.visible = true;
+    const full = { ...base, parts: Array.from({ length: 128 }, () => host) };
+    assert.throws(
+      () =>
+        graftComponent(doc, head, donor, full, host, dest, "Attach above selection", false, body),
+      /128/,
+    );
+    for (let i = 0; i < 2; i++) {
+      const added = graftComponent(
+        current,
+        currentHead,
+        built,
+        base,
+        host,
+        dest,
+        "Attach above selection",
+        false,
+        body,
+      );
+      const ops = decodeOperations(added.ops);
+      assert.ok(ops.ok, JSON.stringify(ops));
+      const result = applyOperations(base, ops.value, {
+        registry: source.registry,
+        idFor: source.idFor,
+        retired: new Set(),
+      });
+      assert.ok(result.ok, JSON.stringify(result));
+      current = result.value;
+      const selected = current.parts.find((p) => p.id === added.id);
+      assert.ok(selected);
+      assert.deepEqual(
+        humanRegionCopy.read(selected.features)?.source?.params,
+        doc.generation?.params,
+      );
+      if (built !== donor) built.dispose();
+      built = buildCharacter(current, settings);
+      assert.deepEqual(vertices(built, added.id), expected);
+      currentHead = selected;
+    }
+  } finally {
+    if (built !== donor) built.dispose();
+    donor.dispose();
+    dest.dispose();
+  }
+});
+
+test("replacing a part with a clothed adult limb keeps its identity, child placement and donor joint weights", async () => {
+  const body = await loadHumanPacks((file) =>
+    readFileSync(new URL("../assets/human/" + file, import.meta.url)),
+  );
+  const params = seededHumanAdult(body, 491, "neutral", "Natural");
+  const { tailor: _tailor, cast: _cast, ...style } = params.style;
+  const source = generatedDocument(humanAdultGenerator(body), {
+    ...params,
+    outfit: "Work clothes",
+    style: { ...style, outfit: "None" },
+  });
+  const root = source.doc.parts.find((p) => p.slot === "calf.l");
+  assert.ok(root);
+  const host = addDetail(undefined, "sweep"),
+    child = addDetail(host, "cage");
+  const { generation: _generation, ...base } = source.doc;
+  const dst = { ...base, parts: [host, child] };
+  const options = { human: body, materials: clayMaterials() },
+    donor = buildCharacter(source.doc, options),
+    before = buildCharacter(dst, options);
+  const childPos = before.parts.get(child.id)?.object.getWorldPosition(new T.Vector3());
+  assert.ok(childPos);
+  try {
+    const edit = graftComponent(
+      source.doc,
+      root,
+      donor,
+      dst,
+      host,
+      before,
+      "Replace part, keep children",
+      true,
+      body,
+    );
+    assert.equal(edit.id, host.id);
+    const ops = decodeOperations(edit.ops);
+    assert.ok(ops.ok, JSON.stringify(ops));
+    const done = applyOperations(dst, ops.value, {
+      registry: source.registry,
+      idFor: source.idFor,
+      retired: new Set(),
+    });
+    assert.ok(done.ok, JSON.stringify(done));
+    const after = buildCharacter(done.value, options);
+    try {
+      const calf = after.parts.get(host.id);
+      assert.equal(after.regionRig?.bones.get(host.id), "calf_l");
+      const meshes = calf?.object.children.filter(isMesh).filter((m) => !m.userData["partId"]);
+      assert.ok(meshes && meshes.length >= 2);
+      assert.ok(meshes.every((m) => after.regionRig?.weights(m)));
+      const moved = after.parts.get(child.id)?.object.getWorldPosition(new T.Vector3());
+      assert.ok(moved && moved.distanceTo(childPos) < 1e-6);
+    } finally {
+      after.dispose();
+    }
+  } finally {
+    donor.dispose();
+    before.dispose();
   }
 });

@@ -1,8 +1,14 @@
 import * as T from "three";
 import {
   familyFeatures,
+  humanReferenceRigs,
+  assetCredits,
+  mergeAssetCredits,
+  assetCreditsNamespace,
   quatNormalize,
   figureAssembly,
+  figurePlateField,
+  figurePlateSite,
   figureBuild,
   figureCage,
   figureDrape,
@@ -14,8 +20,9 @@ import {
   figureScute,
   figurePaint,
   figureSweep,
-  figurePlateField,
-  figurePlateSite,
+  figureJoin,
+  outfitWear,
+  outfitWardrobe,
   figureFinish,
   figureLocations,
   motionRole,
@@ -30,8 +37,8 @@ import {
   type PlateField,
   type FigureCage,
 } from "@irudd/document";
-import { grownPlateCage } from "./surfaces/plate-growth.js";
-import { addDetail, copyDetailBranch, removeDetailBranch } from "./surface-edit.js";
+import { growPlateField } from "./plate-field.js";
+import { addDetail, copyDetailBranch } from "./surface-edit.js";
 
 const feature = (part: Part, id: string, value: Json) => ({
   op: "feature.set",
@@ -110,10 +117,13 @@ export function moveSpine(doc: CharacterDocument, p: Part, index: number, to: Ve
     after = new T.CatmullRomCurve3(next);
   const assembly = figureAssembly.read(p.features);
   const basis = vector(assembly ? (assembly.frameSize ?? [1, 1, 1]) : p.size);
-  const samples = before.getPoints(64);
+  const samples = before.getPoints(Math.max(48, old.knots.length * 8));
+  const paint = figurePaint.read(p.features);
+  const horizontal = paint && paint.frame !== "path";
+  const field = figurePlateField.read(p.features);
   const ops: object[] = [op];
-  for (const child of doc.parts.filter((q) => q.parent === p.id)) {
-    const position = vector(child.position).divide(basis);
+  function follow(pose: Pick<Part, "position" | "rotation">) {
+    const position = vector(pose.position).divide(basis);
     let best = Infinity,
       station = 0;
     for (let i = 1; i < samples.length; i++) {
@@ -128,17 +138,29 @@ export function moveSpine(doc: CharacterDocument, p: Part, index: number, to: Ve
         station = (i - 1 + t) / (samples.length - 1);
       }
     }
-    const delta = new T.Quaternion().setFromUnitVectors(
-      before.getTangent(station),
-      after.getTangent(station),
-    );
+    const delta = new T.Quaternion();
+    if (!horizontal)
+      delta.setFromUnitVectors(before.getTangent(station), after.getTangent(station));
     const moved = position
       .sub(before.getPoint(station))
       .applyQuaternion(delta)
       .add(after.getPoint(station))
       .multiply(basis);
-    const rotation = quatNormalize(delta.multiply(new T.Quaternion(...child.rotation)).toArray());
-    ops.push({ op: "part.set", part: child.id, set: { position: moved.toArray(), rotation } });
+    const rotation = quatNormalize(delta.multiply(new T.Quaternion(...pose.rotation)).toArray());
+    return { position: moved.toArray(), rotation };
+  }
+  for (const child of doc.parts.filter((q) => q.parent === p.id)) {
+    if (field && figurePlateSite.read(child.features)) continue;
+    ops.push({ op: "part.set", part: child.id, set: follow(child) });
+    const mount = figureScute.read(child.features)?.mount;
+    if (mount)
+      ops.push(
+        feature(child, figureScute.id, figureScute.json({ mount: { ...mount, ...follow(mount) } })),
+      );
+  }
+  if (field) {
+    const changed = { ...p, features: { ...p.features, [figureSweep.id]: op.value } };
+    ops.push(...growPlateField(doc, changed, {}, p));
   }
   return ops;
 }
@@ -323,16 +345,34 @@ export function drawAppendage(
     },
   };
 }
-type PlateLayout = Pick<
-  PlateField,
-  "rows" | "columns" | "face" | "start" | "end" | "wrap" | "overlap" | "crest"
->;
-function plateLayout(p: Part, shape: PlateLayout, paintedRows = false) {
-  const { rows, columns, face } = shape;
-  const sites = new Map<
-    string,
-    { row: number; col: number; position: Vec3; rotation: Part["rotation"]; size: Vec3 }
-  >();
+export function repeatedPlates(
+  doc: CharacterDocument,
+  p: Part,
+  rows: number,
+  columns: number,
+  face: PlateField["face"],
+  width: number,
+  equipped = false,
+  color = "#d4c6a7",
+  start = equipped ? 0.15 : 0.18,
+  end = equipped ? 0.9 : 0.88,
+) {
+  if (
+    !Number.isInteger(rows) ||
+    rows < 1 ||
+    rows > 16 ||
+    !Number.isInteger(columns) ||
+    columns < 1 ||
+    columns > 7 ||
+    doc.parts.length + rows * columns > 128
+  )
+    throw new Error("This arrangement exceeds the part limit.");
+  if (!(width >= 0.01 && width <= 1)) throw new Error("Use a width from 1 to 100 cm.");
+  const paintedRows = Boolean(figurePaint.read(p.features));
+  const fitted = paintedRows && !equipped;
+  const outfit = outfitWardrobe.read(doc.features)?.outfit ?? "Anatomy";
+  const parts: Part[] = [];
+  const labels = new Set(doc.parts.map((part) => part.label));
   const sweep = figureSweep.read(p.features);
   if (!sweep) throw new Error("Select a swept part for the plate path.");
   const path = new T.CatmullRomCurve3(sweep.knots.map(vector));
@@ -343,19 +383,17 @@ function plateLayout(p: Part, shape: PlateLayout, paintedRows = false) {
     Right: [-1, 0, 0],
     Top: [0, 1, 0],
   };
-  if (shape.end - shape.start < 0.04)
-    throw new Error("The end of the plate run must follow its start by at least 4%.");
-  const span = (path.getLength() * (shape.end - shape.start)) / (rows - 1);
   const assembly = figureAssembly.read(p.features);
   const mountBasis = vector(assembly ? (assembly.frameSize ?? [1, 1, 1]) : p.size);
 
   for (let row = 0; row < rows; row++) {
-    const t = shape.start + ((shape.end - shape.start) * row) / (rows - 1),
+    const u = rows === 1 ? 0.5 : row / (rows - 1);
+    const t = start + (end - start) * u,
       centre = path.getPoint(t),
       along = paintedRows ? new T.Vector3(0, 1, 0) : path.getTangent(t);
     const axis = vector(directions[face]);
-    if (Math.abs(axis.dot(along)) > 0.98) axis.set(0, 0, 1);
-    if (Math.abs(axis.dot(along)) > 0.98) axis.set(1, 0, 0);
+    if (axis.clone().cross(along).lengthSq() < 0.001)
+      axis.set(Math.abs(along.z) < 0.8 ? 0 : 1, 0, Math.abs(along.z) < 0.8 ? 1 : 0);
     axis.addScaledVector(along, -axis.dot(along)).normalize();
     const f = t * (sweep.knots.length - 1),
       i = Math.min(sweep.knots.length - 2, Math.floor(f)),
@@ -365,8 +403,7 @@ function plateLayout(p: Part, shape: PlateLayout, paintedRows = false) {
     const w = T.MathUtils.lerp(a[3], b[3], f - i),
       d = T.MathUtils.lerp(a[4], b[4], f - i);
     for (let col = 0; col < columns; col++) {
-      const angle =
-        columns === 1 ? 0 : (col / (columns - 1) - 0.5) * T.MathUtils.degToRad(shape.wrap);
+      const angle = columns === 1 ? 0 : (col / (columns - 1) - 0.5) * 1.65;
       const outward = axis.clone().applyAxisAngle(along, angle),
         across = along.clone().cross(outward);
       const radius = 1 / Math.hypot(outward.x / w, Math.hypot(outward.y, outward.z) / d);
@@ -377,18 +414,50 @@ function plateLayout(p: Part, shape: PlateLayout, paintedRows = false) {
         .toArray();
       const rotation = quatNormalize(
         new T.Quaternion()
-          .setFromRotationMatrix(new T.Matrix4().makeBasis(across, along, outward))
+          .setFromRotationMatrix(
+            new T.Matrix4()
+              .makeBasis(across, along, outward)
+              .multiply(new T.Matrix4().makeRotationX(-0.15)),
+          )
           .toArray(),
       );
-      const size: Vec3 = [
-        Math.max(0.008, Math.min(w * 1.35, span) * 1.15),
-        Math.max(0.008, span * (1 + shape.overlap)),
-        Math.max(0.006, span * (0.15 + shape.crest * (1 - Math.abs(angle) / Math.PI) * 0.4)),
-      ];
-      sites.set(row + "/" + col, { row, col, position, rotation, size });
+      const plateWidth = width * (0.8 + 0.2 * u),
+        size: Vec3 = [plateWidth, plateWidth * 1.18, plateWidth * 0.34];
+      const plate = addDetail(p, "scute");
+      const base =
+        (equipped ? "armour scale " : "plate ") + (row + 1) + (columns > 1 ? "/" + (col + 1) : "");
+      let label = base;
+      for (let i = 2; labels.has(label); i++) label = base + " " + i;
+      labels.add(label);
+      parts.push({
+        ...plate,
+        label,
+        position,
+        rotation,
+        size,
+        color: fitted ? "#f9f5e9" : equipped ? color : "#ab9877",
+        features: {
+          ...plate.features,
+          [figureAssembly.id]: figureAssembly.json({ order: 0 }),
+          [figureFinish.id]: figureFinish.json({ surface: equipped ? "plain" : "scales" }),
+          ...(fitted
+            ? { [figureScute.id]: figureScute.json({ mount: { position, rotation, size } }) }
+            : {}),
+          ...(equipped
+            ? {
+                [motionRole.id]: motionRole.json({ role: "rigid" }),
+                [outfitWear.id]: outfitWear.json({ visibleIn: [outfit] }),
+                [figureJoin.id]: figureJoin.json({
+                  end: "base",
+                  depth: T.MathUtils.clamp(width * 0.34 * 0.14, 0.001, 0.008),
+                }),
+              }
+            : {}),
+        },
+      });
     }
   }
-  return sites;
+  return parts;
 }
 export function arrangePlates(
   doc: CharacterDocument,
@@ -398,122 +467,24 @@ export function arrangePlates(
   face: PlateField["face"],
   color: string,
   field: boolean,
-  shape: Pick<PlateField, "start" | "end" | "wrap" | "overlap" | "crest"> = {
-    start: 0.1,
-    end: 0.9,
-    wrap: 95,
-    overlap: 0.25,
-    crest: 0.5,
-  },
-  repeatWidth?: number,
+  shape?: Pick<PlateField, "start" | "end" | "wrap" | "overlap" | "crest">,
+  repeatWidth = 0.12,
 ) {
-  const p = doc.parts.find((part) => part.id === carrierId);
-  if (!p) throw new Error("Select a plate carrier.");
-  const previousField = figurePlateField.read(p.features);
-  const ops: object[] = [];
-  const existing = new Map<string, Part>();
-  for (const q of doc.parts) {
-    if (q.parent !== p.id) continue;
-    const site = figurePlateSite.read(q.features);
-    if (site) existing.set(site.row + "/" + site.column, q);
-  }
-  const old = field && previousField ? plateLayout(p, previousField) : undefined;
-
-  if (field)
-    ops.push(
-      feature(
-        p,
-        figurePlateField.id,
-        figurePlateField.json({
-          ...previousField,
-          seed: previousField?.seed ?? 0,
-          tipSeed: previousField?.tipSeed ?? 0,
-          rows,
-          columns,
-          face,
-          direction: previousField?.direction ?? "last",
-          ...shape,
-          color,
-          mirrored: previousField?.mirrored ?? false,
-        }),
-      ),
-    );
-  const fitted = !field && Boolean(figurePaint.read(p.features));
-  for (const [key, site] of plateLayout(p, { rows, columns, face, ...shape }, fitted)) {
-    const { row, col, position, rotation, size } = site,
-      transform = { position, rotation, size, color };
-    const previous = field && existing.get(key),
-      baseline = old?.get(key);
-    if (previous && baseline) {
-      const turn = new T.Quaternion(...rotation).multiply(
-        new T.Quaternion(...baseline.rotation).invert(),
-      );
-      ops.push({
-        op: "part.set",
-        part: previous.id,
-        set: {
-          color,
-          position: vector(previous.position)
-            .sub(vector(baseline.position))
-            .applyQuaternion(turn)
-            .add(vector(position))
-            .toArray(),
-          size: vector(previous.size)
-            .multiply(vector(size))
-            .divide(vector(baseline.size))
-            .toArray(),
-          rotation: quatNormalize(turn.multiply(new T.Quaternion(...previous.rotation)).toArray()),
-        },
-      });
-      continue;
-    }
-    if (!field && repeatWidth !== undefined) {
-      const width = repeatWidth * (0.8 + (0.2 * row) / (rows - 1));
-      transform.size = [width, width * 1.18, width * 0.34];
-      transform.rotation = quatNormalize(
-        new T.Quaternion(...rotation)
-          .multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(1, 0, 0), -0.15))
-          .toArray(),
-      );
-    }
-    const plate = addDetail(p, field ? "cage" : "scute");
-    ops.push({
-      op: "part.add",
-      part: {
-        ...plate,
-        ...transform,
-        ...(fitted ? { color: "#f9f5e9" } : {}),
-        label: (field ? "Field plate " : "Spine plate ") + (row + 1) + "." + (col + 1),
-        features: {
-          ...plate.features,
-          ...(fitted
-            ? {
-                [figureScute.id]: figureScute.json({
-                  mount: { position, rotation: transform.rotation, size: transform.size },
-                }),
-              }
-            : {}),
-          [figureFinish.id]: figureFinish.json({ surface: field ? "horn" : "scales" }),
-          ...(field
-            ? {
-                [figureCage.id]: figureCage.json(grownPlateCage(row, col)),
-                [figurePlateSite.id]: figurePlateSite.json({ row, column: col }),
-              }
-            : {}),
-        },
-      },
-    });
-  }
-  if (field)
-    for (const q of existing.values()) {
-      const site = figurePlateSite.read(q.features);
-      if (site && (site.row >= rows || site.column >= columns)) {
-        if (doc.parts.some((child) => child.parent === q.id))
-          throw new Error("Move attachments off surplus plates before shrinking the field.");
-        ops.push(...removeDetailBranch(doc, q));
-      }
-    }
-  return ops;
+  const host = doc.parts.find((p) => p.id === carrierId);
+  if (!host) throw new Error("Select a plate carrier.");
+  if (field) return growPlateField(doc, host, { rows, columns, face, color, ...shape });
+  return repeatedPlates(
+    doc,
+    host,
+    rows,
+    columns,
+    face,
+    repeatWidth,
+    false,
+    color,
+    shape?.start,
+    shape?.end,
+  ).map((part) => ({ op: "part.add", part }));
 }
 export function resizeCharacter(doc: CharacterDocument, height: number, target: number) {
   const factor = target / height;
@@ -538,6 +509,20 @@ export function graftBranch(
   position: Vec3,
 ) {
   const copies = copyDetailBranch(source, root, false);
+  return [
+    ...graftDependencies(source, destination, copies),
+    ...copies.map((p, i) => ({
+      op: "part.add",
+      part: i === 0 ? { ...p, parent: target.id, position, label: root.label } : p,
+    })),
+  ];
+}
+
+export function graftDependencies(
+  source: CharacterDocument,
+  destination: CharacterDocument,
+  copies: readonly Part[],
+) {
   const catalogs = new Set(copies.map((p) => p.component?.catalog));
   const assets = new Set<string>();
   for (const p of copies) {
@@ -561,11 +546,24 @@ export function graftBranch(
   for (const asset of source.assets)
     if (assets.has(asset.digest) && !destination.assets.some((a) => a.digest === asset.digest))
       ops.push({ op: "asset.add", asset });
-  return [
-    ...ops,
-    ...copies.map((p, i) => ({
-      op: "part.add",
-      part: i === 0 ? { ...p, parent: target.id, position, label: root.label } : p,
-    })),
-  ];
+  const sourceRigs = humanReferenceRigs.read(source.features);
+  if (sourceRigs) {
+    const rigs = Array.from(
+      new Set([...(humanReferenceRigs.read(destination.features)?.rigs ?? []), ...sourceRigs.rigs]),
+    );
+    ops.push({
+      op: "feature.set",
+      feature: humanReferenceRigs.id,
+      value: humanReferenceRigs.json({ rigs }),
+    });
+  }
+  const credits = Array.from(assetCredits(source).values()).filter((c) => assets.has(c.digest));
+  if (credits.length) {
+    const declared = new Set([...destination.assets.map((a) => a.digest), ...assets]);
+    const merged = mergeAssetCredits(destination, declared, credits);
+    if (!merged.ok) throw new Error(merged.diagnostics.map((d) => d.message).join(" "));
+    if (merged.value)
+      ops.push({ op: "extension.set", namespace: assetCreditsNamespace, value: merged.value });
+  }
+  return ops;
 }

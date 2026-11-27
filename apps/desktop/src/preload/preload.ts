@@ -35,7 +35,7 @@ const api: PreloadApi = {
   saveExport: (request) => invoke(channels.saveExport, request),
   saveInspection: (request) => invoke(channels.saveInspection, request),
   saveCharacter: (documentId) => invoke(channels.saveCharacter, documentId),
-  openCharacter: () => invoke(channels.openCharacter),
+  openCharacter: (donor) => invoke(channels.openCharacter, donor),
   update: (action) => invoke(channels.update, action),
   onUpdate(listener) {
     const forward = (_event: unknown, status: unknown): void => listener(status);

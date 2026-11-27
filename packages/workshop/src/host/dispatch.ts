@@ -225,6 +225,7 @@ export class Dispatcher {
       case "verify":
         return run(project.verify);
       case "document.save":
+      case "document.donor":
       case "document.open": {
         const file = text("path");
         if (!path.isAbsolute(file))
@@ -232,6 +233,7 @@ export class Dispatcher {
             path: ["params", "path"],
           });
         if (method === "document.save") return run(project.saveCharacter(text("documentId"), file));
+        if (method === "document.donor") return run(caller.session.donorCharacter(file));
         const announce = (report: ImportReport) =>
           this.context.emit({
             t: "event",
