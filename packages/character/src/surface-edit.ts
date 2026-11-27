@@ -182,9 +182,13 @@ function mirrorPart(part: Part): Part {
   };
 }
 
-export function copyDetailBranch(doc: CharacterDocument, root: Part, mirror: boolean): Part[] {
+export function copyDetailBranch(
+  doc: CharacterDocument,
+  root: Part,
+  mirror: boolean,
+  ids = new Map<PartId, PartId>(),
+): Part[] {
   const result: Part[] = [];
-  const ids = new Map<PartId, PartId>();
   const visit = (p: Part, parent: Part["parent"]) => {
     const { slot: _slot, ...source } = p;
     const copy = mirror ? mirrorPart(source) : source;

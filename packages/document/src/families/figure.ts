@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 import type { Vec3 } from "../geometry.js";
-import { PartId } from "../schema.js";
+import { PartId, Position, Rotation, Size } from "../schema.js";
 import { bounded, family, Hex, Vec3Between } from "./family.js";
 
 export const finishes = [
@@ -41,8 +41,8 @@ export const Knot = Schema.Tuple([
   bounded(-8, 8),
   bounded(-8, 8),
   bounded(-8, 8),
-  bounded(0.0005, 4),
-  bounded(0.0005, 4),
+  bounded(0.0001, 4),
+  bounded(0.00005, 4),
 ]);
 export type Knot = typeof Knot.Type;
 
@@ -104,7 +104,9 @@ export const figureFinish = family({
   toJson: (v) => v,
 });
 
-export const FigureScute = Schema.Struct({});
+export const FigureScute = Schema.Struct({
+  mount: Schema.optionalKey(Schema.Struct({ position: Position, rotation: Rotation, size: Size })),
+});
 export type FigureScute = typeof FigureScute.Type;
 
 export const figureScute = family({

@@ -1,3 +1,6 @@
+import { correctedSurface } from "./brush.js";
+import type { SkinCorrections } from "@irudd/document";
+import { skinMeshData } from "./brush-preview.js";
 import { studioMeshes, studioCollar } from "./studio.js";
 import * as T from "three";
 import {
@@ -157,6 +160,7 @@ export interface HumanRegions {
 }
 
 export interface HumanRegionOptions {
+  readonly corrections?: SkinCorrections | undefined;
   readonly studio?: { hair: string; familyHair: boolean } | undefined;
   readonly material: (color: string) => T.Material;
   readonly dressMaterial?: (color: string, type: string) => T.Material;
@@ -333,7 +337,8 @@ export function humanRegions(
   color: (bone: BoneName) => string,
   options: HumanRegionOptions,
 ): HumanRegions {
-  const cage = evaluateHuman(body, measurements);
+  const bare = evaluateHuman(body, measurements);
+  const cage = correctedSurface(body, bare, options.corrections);
   const s = refineFaceForm(body, smoothHumanSurface(body, cage));
   const member = options.cast;
   if (member)
@@ -526,6 +531,15 @@ export function humanRegions(
           }
         }
         const mesh = new T.Mesh(piece.geometry, skin);
+        skinMeshData.set(mesh, {
+          body,
+          bare,
+          cage,
+          surface: s,
+          origin,
+          corners,
+          vertices: piece.vertexIds,
+        });
         if (paint) skin.vertexColors = true;
         humanWeightsOf.set(mesh, piece.humanWeights);
         if (bone === "head") {

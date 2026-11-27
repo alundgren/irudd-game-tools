@@ -647,3 +647,20 @@ h2 {
 .protected-warning {
   color: #ffbd79;
 }
+
+.skin-brush-ring,
+.branch-anchor {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+.skin-brush-ring {
+  border: 1.5px solid #214a3f;
+  box-shadow: 0 0 0 1px #f4f4ec;
+}
+.branch-anchor {
+  width: 12px;
+  height: 12px;
+  background: #f19544;
+}

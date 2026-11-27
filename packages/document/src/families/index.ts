@@ -7,7 +7,12 @@ import { creatureCoatZone, creatureEyeSurface, figureUndercoat } from "./creatur
 import { figureWing } from "./wing.js";
 import { creatureLimbChain, creatureOrgan } from "./creature-organ.js";
 import { motionOffer } from "./motion-offer.js";
-import { figureNativePortrait, figureScapulaMount } from "./human.js";
+import {
+  humanCorrections,
+  humanRegionCopy,
+  figureNativePortrait,
+  figureScapulaMount,
+} from "./human.js";
 import {
   figureAssembly,
   figureBuild,
@@ -68,6 +73,8 @@ export * from "./motion-offer.js";
 export * from "./human.js";
 
 export const familyFeatures: ReadonlyArray<FeatureDefinition> = [
+  humanCorrections.definition,
+  humanRegionCopy.definition,
   figureAssembly.definition,
   figureDrape.definition,
   figureSweep.definition,

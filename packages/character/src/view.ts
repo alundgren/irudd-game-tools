@@ -90,6 +90,7 @@ import {
   type FigureCage,
   type FigureMarkings,
   type FigureDrape,
+  type FigureScute,
   type FigureSweep,
   type MotionRoleName,
   type OutfitName,
@@ -118,7 +119,7 @@ export interface BuildPart {
   readonly drape: FigureDrape | undefined;
   readonly sweep: FigureSweep | undefined;
   readonly cage: FigureCage | undefined;
-  readonly scute: boolean;
+  readonly scute: FigureScute | undefined;
   readonly markings: FigureMarkings | undefined;
   readonly undercoat: FigureMarkings | undefined;
   readonly coatZone: CoatZone["zone"] | undefined;
@@ -281,7 +282,7 @@ export function viewPart(part: Part): BuildPart {
     sweep,
     drape: figureDrape.read(part.features),
     cage: figureCage.read(part.features),
-    scute: figureScute.read(part.features) !== undefined,
+    scute: figureScute.read(part.features),
     markings: figureMarkings.read(part.features),
     undercoat: figureUndercoat.read(part.features),
     coatZone: creatureCoatZone.read(part.features)?.zone,

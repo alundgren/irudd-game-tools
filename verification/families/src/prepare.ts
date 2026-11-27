@@ -154,6 +154,7 @@ const handledPartFields = new Set([
   "color",
   "knots",
   "frameSize",
+  "mount",
   "surface",
   "motionRole",
   "outfitRole",
@@ -432,6 +433,8 @@ export function prepareForm(name: string, raw: unknown): Prepared {
       if (!handledPartFields.has(key) && !(adult && adultPartFields.has(key)))
         unsupported.push(`parts[${legacyId}].${key}`);
     const shape = str(p["shape"], "shape");
+    if (p["mount"] !== undefined && (shape !== "scute" || !isRecord(p["mount"])))
+      unsupported.push(`parts[${legacyId}].mount`);
     if (
       !figureShapes.has(shape) &&
       !coreShapes.has(shape) &&
@@ -576,7 +579,18 @@ export function prepareForm(name: string, raw: unknown): Prepared {
       ...(frame === undefined ? {} : { frameSize: nums(frame, "frameSize") }),
     };
     if (shape === "sweep") features["figure.sweep"] = { knots: asJson(p["knots"], "knots") };
-    if (shape === "scute") features["figure.scute"] = {};
+    if (shape === "scute") {
+      const m = p["mount"];
+      features["figure.scute"] = isRecord(m)
+        ? {
+            mount: {
+              position: nums(m["position"], "mount position"),
+              rotation: quaternionFromDegrees(nums(m["rotation"], "mount rotation")),
+              size: nums(m["size"], "mount size"),
+            },
+          }
+        : {};
+    }
     if (anatomyShapes.has(shape))
       features["figure.piece"] = {
         piece: shape,

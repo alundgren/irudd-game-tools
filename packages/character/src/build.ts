@@ -169,6 +169,7 @@ function capsuleGeometry([x, y, z]: BuildPart["size"]): T.BufferGeometry {
 }
 
 interface SurfaceNotes {
+  readonly carrier: BuildPart | undefined;
   readonly cageFaces: WeakMap<T.BufferGeometry, ReadonlyArray<number>>;
   readonly reliefs: WeakMap<T.BufferGeometry, Float32Array>;
   readonly game: boolean;
@@ -221,7 +222,7 @@ function authoredGeometry(
     return surface.geometry;
   }
   if (part.wing) return wingGeometry(part.wing, part.color, { game: surfaces.game });
-  if (part.scute) return scuteGeometry();
+  if (part.scute) return scuteGeometry(part.scute.mount, surfaces.carrier?.sweep?.knots);
   if (part.volume) return volumeGeometry(part.volume.hull);
   if (part.mantle?.kind === "Skirt") {
     const skirt = skirtGeometry(part.mantle);
@@ -440,10 +441,6 @@ function withHandMadeParts(
   const handMade = doc.parts.filter((p) => !human.parts.has(p.id));
   if (!handMade.length) return human;
   const ids = new Set<string>(handMade.map((p) => p.id));
-  const stray = doc.parts.find(
-    (p) => human.parts.has(p.id) && p.parent !== null && ids.has(p.parent),
-  );
-  if (stray) throw new Error(`The adult's region ${stray.label} hangs from a part added by hand.`);
   const full = buildView(doc);
   const byId = new Map([...full.byId, ...human.view.byId]);
   const added = buildFigure(
@@ -452,6 +449,10 @@ function withHandMadeParts(
     human,
   );
   const parts = new Map([...human.parts, ...added.parts]);
+  for (const { part, object } of human.parts.values()) {
+    const parent = part.parent && added.parts.get(part.parent);
+    if (parent) parent.mount.add(object);
+  }
   const viewParts = [...human.view.parts, ...handMade.flatMap((p) => full.byId.get(p.id) ?? [])];
   return {
     ...human,
@@ -608,7 +609,10 @@ function buildFigure(
   const partMesh = (part: BuildPart, fit: RegionFit | undefined): T.Mesh => {
     let digits: ReadonlyArray<Digit> | undefined;
     const bill = plan && creatureRaster ? billChart(part, plan.head) : undefined;
+    const parent = part.parent === null ? undefined : view.byId.get(part.parent);
+    const carrier = part.scute?.mount && parent?.paint ? parent : undefined;
     const geometry = partGeometry(part, fit, (d) => (digits = d), {
+      carrier,
       cageFaces,
       reliefs,
       game: Boolean(options.game),
@@ -622,7 +626,13 @@ function buildFigure(
       ),
     });
     if (options.game && options.finish) retainSections(view, part, geometry);
-    const object = new T.Mesh(geometry, materialOf(part, fit));
+    const material =
+      carrier && options.finish
+        ? materialOf({ ...carrier, color: part.color }, undefined).clone()
+        : materialOf(part, fit);
+    if (options.finish && carrier && material instanceof T.MeshStandardMaterial)
+      material.emissiveIntensity = 0.24;
+    const object = new T.Mesh(geometry, material);
     if (digits) hands.set(object, digits);
     if (part.mantle) {
       if (options.finish) {

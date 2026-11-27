@@ -1,10 +1,17 @@
 import assert from "node:assert/strict";
+import * as T from "three";
+import { buildCharacter, clayMaterials } from "../src/build.js";
+import { addDetail } from "../src/surface-edit.js";
+import { placeBranch } from "../src/place-branch.js";
 import { readFileSync } from "node:fs";
 import { humanAdultGenerator, loadHumanPacks, seededHumanAdult } from "../src/human/index.js";
 import { test } from "node:test";
 import {
   CharacterDocument,
   regenerate,
+  applyOperations,
+  decodeOperations,
+  humanRegionCopy,
   createRegistry,
   CreaturePlan,
   creatureFamilies,
@@ -88,6 +95,80 @@ test("steering generated surfaces preserves hand edits and detects competing sur
   assert.equal(regenerate(sculpted, registry, change, idFor).ok, false);
 });
 
+test("placing native adult regions under an independently drawn part rebuilds the correct mesh and hierarchy", async () => {
+  const body = await loadHumanPacks((file) =>
+    readFileSync(new URL("../assets/human/" + file, import.meta.url)),
+  );
+  const { doc, registry, idFor } = generatedDocument(humanAdultGenerator(body), {
+    ...seededHumanAdult(body, 491, "neutral", "Natural"),
+    outfit: "Anatomy",
+  });
+  const hand = doc.parts.find((p) => p.label.toLowerCase() === "left hand"),
+    head = doc.parts.find((p) => p.label.toLowerCase() === "head");
+  assert.ok(hand && head);
+  const mount = addDetail(head, "sweep");
+  const initial = { ...doc, parts: [...doc.parts, mount] };
+  const settings = { human: body, materials: clayMaterials() };
+  const before = buildCharacter(initial, settings);
+  try {
+    before.group.updateMatrixWorld(true);
+    const a = before.parts.get(hand.id),
+      b = before.parts.get(mount.id);
+    assert.ok(a && b);
+    for (const copy of [true, false]) {
+      const proposed = placeBranch(
+        initial,
+        hand,
+        mount,
+        a.object.matrixWorld,
+        b.mount.matrixWorld,
+        {
+          anchor: a.object.getWorldPosition(new T.Vector3()).toArray(),
+          point: [0, 1.5, 0.2],
+          normal: [0, 0, 1],
+          axis: [0, 1, 0],
+          twist: 32,
+          depth: 0.01,
+          scale: 1.25,
+          copy,
+        },
+      );
+      const operations = decodeOperations(proposed.ops);
+      assert.ok(operations.ok);
+      const result = applyOperations(initial, operations.value, {
+        registry,
+        retired: new Set(),
+        idFor,
+      });
+      assert.ok(result.ok, JSON.stringify(result));
+      const built = buildCharacter(result.value, settings);
+      try {
+        const placed = built.parts.get(proposed.id);
+        assert.ok(placed);
+        assert.equal(placed.object.parent, built.parts.get(mount.id)?.mount);
+        assert.equal(
+          placed.object.children.filter((c) => c instanceof T.Mesh).length,
+          a.object.children.filter((c) => c instanceof T.Mesh).length,
+        );
+        assert.ok(
+          placed.object.getWorldPosition(new T.Vector3()).distanceTo(new T.Vector3(0, 1.5, 0.19)) <
+            1e-4,
+        );
+        if (copy)
+          assert.equal(
+            humanRegionCopy.read(
+              result.value.parts.find((p) => p.id === proposed.id)?.features ?? {},
+            )?.slot,
+            hand.slot,
+          );
+      } finally {
+        built.dispose();
+      }
+    }
+  } finally {
+    before.dispose();
+  }
+});
 test("adult wings occupy opposite scapula sockets and refitting reuses their parts", async () => {
   const body = await loadHumanPacks((file) =>
     readFileSync(new URL("../assets/human/" + file, import.meta.url)),

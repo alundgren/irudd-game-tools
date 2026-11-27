@@ -5,6 +5,7 @@ import { chromium, type Browser, type BrowserContext, type Page } from "@playwri
 export interface Running {
   readonly page: Page;
   readonly browser: Browser;
+  capture(rect: { x: number; y: number; width: number; height: number }): Promise<Buffer>;
   answerDialogs(answers: { save?: string; open?: string }): Promise<void>;
   close(): Promise<void>;
 }
@@ -114,6 +115,21 @@ export async function launchEditor(
     return {
       page,
       browser,
+      async capture(rect) {
+        const png = await evaluateInMain(
+          inspector,
+          `(async()=>{
+          const window=require("electron").BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().endsWith("/renderer/index.html"));
+          const image=await window.webContents.capturePage(${JSON.stringify(rect)},{stayHidden:true,stayAwake:true});
+          return image.toPNG().toString("base64");
+        })()`,
+        );
+        assert.ok(
+          typeof png === "string" && png.length > 64,
+          "The desktop window must have a rendered frame.",
+        );
+        return Buffer.from(png, "base64");
+      },
       answerDialogs: (answers) => answerFileDialogs(inspector, answers),
       async close() {
         await page.evaluate(() => window.close()).catch(() => undefined);
