@@ -216,6 +216,23 @@ interface Chart {
   readonly yoke: number;
 }
 
+function patternChart(mesh: T.Mesh, m: Landmarks): Chart | null {
+  const chart: unknown = mesh.userData["patternChart"],
+    uv = mesh.geometry.getAttribute("uv");
+  if (!(uv instanceof T.Float32BufferAttribute) || typeof chart !== "object" || chart === null)
+    return null;
+  const field = (name: string) => {
+    const value: unknown = Reflect.get(chart, name);
+    return typeof value === "number" ? value : null;
+  };
+  const u0 = field("u0"),
+    v0 = field("v0"),
+    du = field("du"),
+    dv = field("dv");
+  if (u0 === null || v0 === null || du === null || dv === null) return null;
+  return { uv, u0, v0, du, dv, yoke: m.shoulder - m.waist };
+}
+
 export function clothChart(
   positions: T.BufferAttribute | T.InterleavedBufferAttribute,
   m: Landmarks,
@@ -700,7 +717,7 @@ function weave(
   material.metalness = 0;
   material.name = mesh.name + " · " + fabric;
   const position = mesh.geometry.getAttribute("position");
-  const chart = clothChart(position, m);
+  const chart = patternChart(mesh, m) ?? clothChart(position, m);
   const { texture, surface } = swatchMap(
     raster,
     chart,
