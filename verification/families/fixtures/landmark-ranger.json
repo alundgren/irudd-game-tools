@@ -909,7 +909,7 @@
     },
     {
       "feature": "figure.front-fit",
-      "version": 1
+      "version": 2
     },
     {
       "feature": "figure.head-layer",
@@ -921,7 +921,7 @@
     },
     {
       "feature": "figure.profile-fit",
-      "version": 1
+      "version": 2
     },
     {
       "feature": "figure.sweep",

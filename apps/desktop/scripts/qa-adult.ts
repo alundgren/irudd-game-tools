@@ -29,7 +29,7 @@ const { values } = parseArgs({
 });
 const keep = values.keep === true;
 const repository = resolve(appDir, "..", "..");
-const outDir = resolve(values.out ?? join(repository, ".reference-cache", "g4a", "human-desktop"));
+const outDir = resolve(values.out ?? join(repository, ".reference-cache", "qa-adult"));
 const scratch = mkdtempSync(join(tmpdir(), "irudd-desktop-adult-"));
 const projectDir = join(scratch, "project");
 const userData = join(scratch, "user-data");

@@ -1,13 +1,6 @@
 import { defineConfig } from "vite-plus";
 
-const legacy = [
-  "character-view/**",
-  "scripts/**",
-  "examples/**",
-  "docs/**",
-  "dist/**",
-  "verification/baseline/**",
-];
+const legacy = ["character-view/**", "scripts/**", "examples/**", "docs/**", "dist/**"];
 
 const generated = [
   "pnpm-lock.yaml",

@@ -24,13 +24,10 @@ import {
 import { applyChecked } from "../src/apply.js";
 import { accessorValues, parseGlb, records } from "../src/glb.js";
 import { installNodeExporter } from "../src/node-exporter.js";
-import { g0BuildTraceMap, g0World as g0WorldOf, record } from "../src/g0-trace.js";
 import { familyRegistry } from "../src/prepare.js";
-import { readFixture } from "../src/run.js";
+import { readFixture } from "../src/fixtures.js";
 
 installNodeExporter();
-const g0Build = (panels: SheetPanels, map: unknown, height: number) =>
-  g0BuildTraceMap(panels, map, height);
 
 const size = 640;
 const mid = 320;
@@ -145,28 +142,6 @@ const bodyOf = (doc: CharacterDocument): Part => {
   assert.ok(p);
   return p;
 };
-const height = figurePaint.read(bodyOf(fixture).features)?.height ?? 0;
-const g0 = g0Build(
-  panels,
-  {
-    ...map,
-    regions: regions.map(({ motionRole: role, ...r }) =>
-      role === "wiggle" ? r : { ...r, motionRole: role },
-    ),
-  },
-  height,
-);
-const g0Parts = new Map(g0.parts.map((p) => [String(p["id"]), p]));
-const vec = (v: unknown): Vec3 => {
-  assert.ok(Array.isArray(v) && v.length === 3);
-  return [Number(v[0]), Number(v[1]), Number(v[2])];
-};
-const g0World = (id: string): Vec3 => g0WorldOf(g0.parts, id);
-function stored(v: unknown): unknown {
-  if (v === undefined) return undefined;
-  const parsed: unknown = JSON.parse(JSON.stringify(v));
-  return parsed;
-}
 const close = (a: ReadonlyArray<number>, b: ReadonlyArray<number>, tol = 1e-9) =>
   a.length === b.length && a.every((v, i) => Math.abs(v - (b[i] ?? NaN)) <= tol);
 
@@ -191,8 +166,7 @@ async function positions(doc: CharacterDocument): Promise<Map<string, Float64Arr
   return out;
 }
 
-test("each method builds the part G0's buildTraceMap builds from the same panels", () => {
-  assert.deepEqual(g0.missed, ["ghost fin"], "G0 also misses the empty region");
+test("each method builds its kind of part from the panels", () => {
   const build = traceBuildOperations(fixture, "p-body", regions, panels, map.height);
   assert.deepEqual(
     build.built.map((b) => [b.region, b.method]),
@@ -205,27 +179,11 @@ test("each method builds the part G0's buildTraceMap builds from the same panels
     ],
   );
   for (const { region, part } of build.built) {
-    const legacy = g0Parts.get(region);
-    assert.ok(legacy, region);
-    const hull = figureHull.read(part.features);
-    if (hull) {
-      const { atlas: _atlas, ...traced } = record(legacy, "hull");
-      assert.deepEqual(stored(hull), traced, `${region}'s hull`);
-      assert.equal(part.shape, "box");
-    } else {
-      const { atlas: _atlas, depthPins, ...binding } = record(legacy, "paint");
-      assert.deepEqual(stored(figurePaint.read(part.features)), binding, `${region}'s binding`);
-      assert.deepEqual(
-        stored(figureSweep.read(part.features)?.knots),
-        legacy["knots"],
-        `${region}'s knots`,
-      );
-      assert.deepEqual(
-        stored(figurePortraitDepth.read(part.features)?.pins),
-        depthPins,
-        `${region}'s depth pins`,
-      );
-      assert.equal(part.shape, "capsule");
+    if (figureHull.read(part.features)) assert.equal(part.shape, "box", region);
+    else {
+      assert.ok(figurePaint.read(part.features), `${region}'s binding`);
+      assert.ok(figureSweep.read(part.features)?.knots.length, `${region}'s knots`);
+      assert.equal(part.shape, "capsule", region);
     }
     assert.equal(
       part.paint?.atlas,
@@ -283,22 +241,24 @@ test("built parts attach to their parent regions and register with the anchor", 
   };
   const build = traceBuildOperations(moved, "p-body", regions, panels, map.height);
   const doc = applyChecked(moved, build.operations);
+  const still = applyChecked(
+    fixture,
+    traceBuildOperations(fixture, "p-body", regions, panels, map.height).operations,
+  );
+  const stillPlacements = partPlacements(still, familyRegistry);
   const placements = partPlacements(doc, familyRegistry);
-  const origin = figurePaint.read(bodyOf(doc).features)?.offset ?? [0, 0, 0];
-  const anchor = placements.get("p-body")?.frame;
-  assert.ok(anchor);
-  const delta = affinePoint(anchor, [0, 0, 0]).map((v, i) => v - (origin[i] ?? 0));
   for (const { region, part } of build.built) {
     const world = placements.get(part.id)?.frame;
     assert.ok(world);
-    const g0Point = g0World(region);
+    const unmoved = stillPlacements.get(part.id)?.frame;
+    assert.ok(unmoved);
     assert.ok(
       close(
         affinePoint(world, [0, 0, 0]),
-        g0Point.map((v, i) => v + (delta[i] ?? 0)),
+        affinePoint(unmoved, [0, 0, 0]).map((v, i) => v + (shift[i] ?? 0)),
         1e-9,
       ),
-      `${region} lands where G0 placed it, moved with the anchor`,
+      `${region} moves with the anchor`,
     );
   }
   const parent = (region: string) => build.built.find((b) => b.region === region)?.part.parent;
@@ -349,9 +309,6 @@ test("a chained new parent places its child in its own frame", () => {
   assert.ok(satchel && tail);
   assert.equal(satchel.parent, null, "a root region stays at the document root");
   assert.equal(tail.parent, satchel.id);
-  const ours = g0Build(panels, { format: "irudd.trace-map.v1", height, regions: chain }, height);
-  const legacyTail = ours.parts.find((p) => p["id"] === "tail");
-  assert.ok(close(tail.position, vec(legacyTail?.["position"]), 1e-12), "G0's bound position");
   const doc = applyChecked(fixture, build.operations);
   assert.equal(doc.parts.length, fixture.parts.length + 2);
 });

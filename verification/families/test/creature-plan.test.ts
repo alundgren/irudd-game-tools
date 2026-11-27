@@ -60,7 +60,7 @@ test("a previous reader diagnoses creature plans and their part features as capa
   );
 });
 
-test("preparing a plan form resolves G0's organ names once", () => {
+test("preparing a plan form resolves its organ names once", () => {
   assert.deepEqual(creatureOrgan("head 2"), {
     hide: "core",
     rank: "head",

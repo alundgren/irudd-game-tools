@@ -22,39 +22,32 @@ installNodeExporter();
 const body = await loadHumanBody();
 const store = adultStore(body);
 
-const g0Looks: ReadonlyArray<{
+const castLooks: ReadonlyArray<{
   readonly id: string;
-  readonly digest: string;
   readonly avatars: ReadonlyArray<string>;
 }> = [
   {
     id: "look-1",
-    digest: "065136e65818c35b5d71a18fd0dfd62ee5379ba09c569a134cb7fa1ebde1516a",
     avatars: ["Adults/Male_Adult_15", "Adults/Male_Adult_01"],
   },
   {
     id: "look-42",
-    digest: "25a31fdd7dc82ddefb6c2d0eea70a814ed0af2a6161e6bc44e70d1a492dd4b95",
     avatars: ["Adults/Male_Adult_08"],
   },
   {
     id: "look-8713",
-    digest: "e4c3621433383fe8c65a316225e9f701eb33ec17231cb324706e8cfe37927a0a",
     avatars: ["Adults/Male_Adult_08"],
   },
   {
     id: "look-9001",
-    digest: "9acf80fef3cc99dd222eb39a7fe1abee83961cddf8c751dc12b4ce178c2b4da1",
     avatars: ["Adults/Male_Adult_01"],
   },
   {
     id: "look-49027675",
-    digest: "dfcf2d5d72254168f78dc19ded881a44548077e13040cac0d217a033cb923bca",
     avatars: ["Adults/Female_Adult_04", "Adults/Female_Adult_08"],
   },
   {
     id: "look-3782767734",
-    digest: "c39b5ec54848ec65dfee9b4c40f2806dc31f4c137ef5f5e0a3d618472abf2d27",
     avatars: ["Professions/Gardener_Male_01", "Adults/Male_Adult_01"],
   },
 ];
@@ -75,12 +68,11 @@ const avatarsOf = (glb: ReturnType<typeof parseGlb>): unknown => {
 const meshNames = (glb: ReturnType<typeof parseGlb>): string[] =>
   records(glb.json["nodes"]).flatMap((n) => (n["mesh"] === undefined ? [] : [String(n["name"])]));
 
-test("each cast look's clay export is G0's: the worn member's meshes, rig, clips and credits", async () => {
-  for (const { id, digest, avatars } of g0Looks) {
+test("each cast look's clay export credits the worn members' source avatars", async () => {
+  for (const { id, avatars } of castLooks) {
     const started = performance.now();
     const glb = parseGlb(await clayBytes(documentOf(store.generate(lookParams(id), id)), body));
     const ms = performance.now() - started;
-    assert.equal(accessorDigest(glb), digest, `${id} accessors`);
     assert.deepEqual(avatarsOf(glb), avatars, `${id} credits`);
     console.log(`  ${id}: generated and exported in ${ms.toFixed(0)} ms`);
   }

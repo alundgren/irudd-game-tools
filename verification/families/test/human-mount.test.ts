@@ -18,7 +18,7 @@ import { compareGlb } from "../src/compare.js";
 import { loadHumanBody } from "../src/human-assets.js";
 import { installNodeExporter } from "../src/node-exporter.js";
 import { familyRegistry, preparePacks } from "../src/prepare.js";
-import { readFixture } from "../src/run.js";
+import { readFixture } from "../src/fixtures.js";
 
 installNodeExporter();
 await preparePacks();

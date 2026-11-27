@@ -172,7 +172,7 @@ test("the seat binds the torso and both joined thighs with shared weights", () =
   });
 });
 
-test("seam groups, pulls and foot sections G0 refused are refused", () => {
+test("unsupported seam groups, pulls and foot sections are refused", () => {
   const refuse = (edit: (f: Mutable, label: string) => void, pattern: RegExp, what: string) =>
     assert.throws(() => buildView(figure(leg, edit)), pattern, what);
   const unread = (edit: (f: Mutable, label: string) => void, what: string) =>
