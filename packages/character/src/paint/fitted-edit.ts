@@ -116,6 +116,7 @@ export function fittedPaintOperations(
   coverage: "open" | "closed",
   protectedIds: readonly string[],
   human?: HumanBody,
+  manual?: "map" | "biped",
 ) {
   const refusal = fittedEditRefusal(action, target, protectedIds);
   if (refusal) throw new Error(refusal);
@@ -142,9 +143,13 @@ export function fittedPaintOperations(
     const shape = regionGeometry(r, panels, asset.digest, height);
     const features = { ...shape.features };
     const binding = figurePaint.read(features);
-    if (binding?.portrait && action !== "scalp" && portrait && portrait.id === r.id) {
+    if (
+      binding?.portrait &&
+      action !== "scalp" &&
+      ((portrait && portrait.id === r.id) || manual === "map")
+    ) {
       const shapes =
-        portrait.hairRegions ??
+        r.hairRegions ??
         map.flatMap((region) =>
           region.front?.length &&
           region.side?.length &&
@@ -179,6 +184,7 @@ export function fittedPaintOperations(
     try {
       return [trace(r)];
     } catch (error) {
+      if (manual) throw error;
       notes.push(r.id + ": " + (error instanceof Error ? error.message : String(error)));
       return [];
     }
@@ -190,6 +196,8 @@ export function fittedPaintOperations(
     needsRepair: !map.length || automatic || traced.length !== regions.length || uncalibrated > 0,
     score: automatic ? -1 : mapped * 100 - uncalibrated,
   };
+  if (manual === "map" && notes.some((note) => !note.includes("depthPairs")))
+    throw new Error(notes.join(" "));
   if (automatic) {
     if (protectedIds.length && action === "whole")
       throw new Error("The map could not match the protected regions.");
@@ -244,7 +252,8 @@ export function fittedPaintOperations(
         traced.unshift(shell);
       }
       notes.push("Used the automatic biped fit.");
-    } catch {
+    } catch (error) {
+      if (manual) throw error;
       traced.splice(
         0,
         traced.length,
@@ -316,7 +325,7 @@ export function fittedPaintOperations(
     for (const p of doc.parts)
       if (!saved.has(p.id) && (!p.parent || saved.has(p.parent)))
         operations.push({ op: "part.remove", part: p.id, cascade: true });
-    return { operations, notes, fit };
+    return { operations, notes, fit, source };
   }
   if (!target) throw new Error("Select the receiving part.");
   const donor = buildCharacter(source, { materials: clayMaterials() });
@@ -341,7 +350,7 @@ export function fittedPaintOperations(
         scalp,
       );
       if (scalp && world) graft.ops.push({ op: "part.add", part: hairChild(target, scalp, world) });
-      return { operations: graft.ops, notes, fit };
+      return { operations: graft.ops, notes, fit, source };
     } finally {
       dest.dispose();
     }

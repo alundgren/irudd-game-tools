@@ -134,9 +134,9 @@ interface Upload {
   received: number;
 }
 
-type ArtRoute = ArtKind | "trace:build";
+type ArtRoute = ArtKind | "trace:build" | "trace:character";
 const route = (kind: ArtKind, intent: TraceIntent | undefined): ArtRoute =>
-  kind === "trace" && intent === "build" ? "trace:build" : kind;
+  kind === "trace" && (intent === "build" || intent === "character") ? `trace:${intent}` : kind;
 const briefRoute = (brief: ArtBrief): ArtRoute => route(brief.kind, briefIntent(brief));
 
 const unavailable: Record<Exclude<ArtRoute, "variation">, ArtApply> = {
@@ -156,6 +156,12 @@ const unavailable: Record<Exclude<ArtRoute, "variation">, ArtApply> = {
       "Open the project in the desktop app so it owns the project, then submit again.",
       "Keep the recorded trace map; save it with art show --out.",
     ],
+  },
+  "trace:character": {
+    available: false,
+    translator: null,
+    reason: "The open tracing dialog builds a new character from the returned map.",
+    actions: ["Return a trace map to the tracing dialog."],
   },
   "trace:build": {
     available: false,
@@ -250,6 +256,9 @@ const kindInstructions: Record<ArtRoute, ReadonlyArray<string>> = {
   trace: [
     "Trace corresponding visible volumes in the attached front and left-facing profile views. Use no image generation.",
     `Return an ${traceMapFormat} map: height, and 5-12 regions with id, optional parent, method (loft, volume, path or membrane), front and side outlines of 4-12 normalised [x,y] points (0,0 top left), a spine for a path, optional faceLandmarks and depthPairs.`,
+  ],
+  "trace:character": [
+    "Return an irudd.trace-map.v1 map for a new editable character at the requested height. Use the attached front and profile pictures, normalized coordinates and separate parented loft, volume, membrane or path regions.",
   ],
   "trace:build": [
     "Trace corresponding visible volumes in the attached front and left-facing profile views. Use no image generation.",

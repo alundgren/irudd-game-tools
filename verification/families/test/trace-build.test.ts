@@ -4,7 +4,13 @@ import { exportCharacter } from "@irudd/character";
 import type { Panel } from "@irudd/character/art-fit";
 import {
   buildAnchorRefusal,
+  manualRegion,
+  decodeManualTraceMap,
+  traceRoot,
+  attachManualRegion,
+  checkImportedTurnaround,
   traceBuildOperations,
+  turnaroundImportSize,
   type SheetPanels,
   type TraceBuildRegion,
 } from "@irudd/character/trace-build";
@@ -364,4 +370,72 @@ test("a map with nothing to build is refused with every reason", () => {
     () => traceBuildOperations(unpainted, "p-body", regions, panels),
     /not painted from a turnaround sheet/,
   );
+});
+
+test("a hand-drawn centreline uses paired view heights, tapers, and attaches in world space", () => {
+  const a = [at(0, 0.8), at(0.15, 0.55), at(0.2, 0.3)],
+    b = [at(-0.1, 0.8), at(0, 0.55), at(0.22, 0.3)];
+  const region = manualRegion("body", "path", a, b, 0.08, "same");
+  const asset = fixture.assets.find((item) => item.digest === bodyOf(fixture).paint?.atlas);
+  assert.ok(asset);
+  const doc = traceRoot(fixture.id, "body", asset, panels, [a, b], 2, region);
+  const root = doc.parts[0];
+  assert.ok(root);
+  const binding = figurePaint.read(root.features);
+  assert.ok(binding);
+  assert.equal(binding.frame, "path");
+  assert.ok(close(root.position, [0, 1.6, 0.2]));
+  assert.ok(close(binding.rest[0] ?? [], [0, 0, 0, 0.16, 0.16]));
+  assert.ok(close(binding.rest[2] ?? [], [0.4, -1, -0.64, 0.016, 0.016]));
+  const ops = attachManualRegion(fixture, bodyOf(fixture), root, asset);
+  const after = applyChecked(fixture, ops);
+  const child = after.parts.find((p) => p.label === "body 2");
+  assert.ok(child);
+  assert.equal(child.parent, bodyOf(fixture).id);
+  const placement = partPlacements(after, familyRegistry).get(child.id);
+  assert.ok(placement);
+  assert.ok(close(affinePoint(placement.frame, [0, 0, 0]), root.position));
+  assert.throws(() => manualRegion("bad", "path", a, b.slice(1), 0.08, "same"), /matching/);
+  assert.throws(() => manualRegion("bad", "loft", a, b.slice(1), 0.08, "same"), /three/);
+  assert.throws(() => traceRoot(fixture.id, "bad", asset, panels, [a, b], 12, region), /height/);
+});
+
+test("manual map import accepts two-point paths and empty outlines, and rejects broken attachments", () => {
+  const polygon = { id: "Hull", method: "volume", front: [], side: [] };
+  const path = {
+    id: "Ribbon",
+    parent: "Hull",
+    method: "path",
+    spine: [
+      [0.4, 0.5, 0.6, 0.5, 0.59, 0.2],
+      [0.2, 0.1, 0.3, 0.1, 0.05, 0.01],
+    ],
+  };
+  const read = (regions: unknown[]) =>
+    decodeManualTraceMap({ format: "irudd.trace-map.v1", height: 1.8, regions });
+  assert.deepEqual(read([path, polygon]).regions, [path, polygon]);
+  assert.throws(() => read([polygon, polygon]), /unique/);
+  assert.throws(() => read([path]), /Unknown parent/);
+  assert.throws(() => read([path, { ...polygon, parent: "Ribbon" }]), /Cycle/);
+  assert.throws(() =>
+    read([
+      {
+        ...polygon,
+        front: [
+          [0, 0],
+          [1, 1],
+        ],
+      },
+    ]),
+  );
+  assert.throws(() => read([{ ...polygon, motionRole: "unknown" }]));
+});
+
+test("an imported turnaround is limited to 12 MB, scaled to 1800 pixels and stored under 2.4 MB", () => {
+  assert.deepEqual(turnaroundImportSize(5_000_000, 4000, 2000), { width: 1800, height: 900 });
+  assert.deepEqual(turnaroundImportSize(80_000, 1024, 1024), { width: 1024, height: 1024 });
+  assert.throws(() => turnaroundImportSize(12_000_001, 1024, 1024), /12 MB/);
+  assert.throws(() => turnaroundImportSize(1000, 0, 1024), /readable/);
+  checkImportedTurnaround(2_400_000);
+  assert.throws(() => checkImportedTurnaround(2_400_001), /2\.4 MB/);
 });

@@ -39,6 +39,22 @@ import { ArtFitError, pairDepth, registerFace, type TraceRegionInput } from "./a
 import type { Panel } from "./panel.js";
 import { traceRegion, type TrackRow } from "./trace.js";
 
+export { decodeManualTraceMap } from "./manual-map.js";
+
+export const turnaroundQuality = 0.92;
+
+export function turnaroundImportSize(bytes: number, width: number, height: number) {
+  if (bytes > 12_000_000) throw new ArtFitError("Choose an image smaller than 12 MB.");
+  if (!(width > 0 && height > 0)) throw new ArtFitError("Choose a readable turnaround image.");
+  const factor = Math.min(1, 1800 / Math.max(width, height));
+  return { width: Math.round(factor * width), height: Math.round(factor * height) };
+}
+
+export function checkImportedTurnaround(bytes: number) {
+  if (!(bytes > 0) || bytes > 2_400_000)
+    throw new ArtFitError("Resize this turnaround to fit the 2.4 MB image limit.");
+}
+
 export type SheetPanels = readonly [Panel, Panel, Panel, Panel];
 
 export interface HairOutline {
@@ -444,19 +460,73 @@ export function regionGeometry(
   return { shape, position, features, notes };
 }
 
+export function manualRegion(
+  name: string,
+  method: string,
+  front: readonly Point[],
+  side: readonly Point[],
+  radius: number,
+  correspondence: "same" | "opposite",
+): TraceBuildRegion {
+  if (method === "path") {
+    if (front.length !== side.length || front.length < 2 || front.length > 48)
+      throw new ArtFitError("Mark 2 to 48 matching centreline points in each view.");
+    if (!Number.isFinite(radius) || radius <= 0 || radius > 0.6)
+      throw new ArtFitError("Choose a positive root radius up to 60% of height.");
+    const spine = front.map(([x, y], i) => {
+      const profile = side[i];
+      if (!profile) throw new ArtFitError("Missing profile point.");
+      const r = radius * (1 - (0.9 * i) / (front.length - 1));
+      return [x, y, ...profile, r, r] as const;
+    });
+    return { id: name, method, spine };
+  }
+  if ([front, side].some((p) => p.length > 0 && p.length < 3))
+    throw new ArtFitError(
+      "Close each outline with at least three points or clear it for the full silhouette.",
+    );
+  return { id: name, method, front, side, correspondence };
+}
+
+export function attachManualRegion(
+  doc: CharacterDocument,
+  parent: Part | undefined,
+  root: Part,
+  asset: AssetEntry,
+): Operation[] {
+  let label = root.label;
+  for (let n = 2; doc.parts.some((p) => p.label === label); n++) label = root.label + " " + n;
+  const placement = parent && partPlacements(doc, registry).get(parent.id);
+  if (parent && !placement) throw new ArtFitError("Cannot locate the selected attachment.");
+  const inverse = invertAffine(placement?.children ?? identityAffine);
+  const local =
+    inverse &&
+    decomposeAffine(composeAffine(inverse, affineFromTrs(root.position, root.rotation)), 1e-6);
+  if (!local) throw new ArtFitError("This attachment would shear the traced region.");
+  const id = newId(label, new Set(doc.parts.map((p) => p.id)));
+  return [
+    ...(doc.assets.some((a) => a.digest === asset.digest)
+      ? []
+      : [{ op: "asset.add" as const, asset }]),
+    {
+      op: "part.add",
+      part: { ...root, ...local, id: partId(id), label, parent: parent?.id ?? null },
+    },
+  ];
+}
+
 export function traceRoot(
   id: DocumentId,
   label: string,
   asset: AssetEntry,
   panels: SheetPanels,
   outlines: readonly [readonly Point[], readonly Point[]],
+  height = 1.72,
+  region: TraceBuildRegion = { id: label, method: "loft", front: outlines[0], side: outlines[1] },
 ): CharacterDocument {
-  const g = regionGeometry(
-    { id: label, method: "loft", front: outlines[0], side: outlines[1] },
-    panels,
-    asset.digest,
-    1.72,
-  );
+  if (!Number.isFinite(height) || height < 0.15 || height > 6)
+    throw new ArtFitError("Enter a standing height between 0.15 and 6 metres.");
+  const g = regionGeometry(region, panels, asset.digest, height);
   return requireDeclaredFeatures(
     {
       format: "irudd.character",

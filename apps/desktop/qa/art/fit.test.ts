@@ -549,6 +549,7 @@ test("a trace brief that builds adds the map's regions as parts on the anchor's 
       [
         ["fit", "trace-fit"],
         ["build", "trace-build"],
+        ["character", null],
       ],
     );
     const send = (part: string, requestId: string) =>
