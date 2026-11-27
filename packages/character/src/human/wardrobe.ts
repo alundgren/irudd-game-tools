@@ -60,6 +60,16 @@ const outfitsByDirection: Record<LookDirection, readonly PresetOutfit[]> = {
   Adventure: ["Traveller", "Explorer", "Leather armour"],
 };
 
+const framedLook = 0.5;
+const skirtedOutfits: readonly string[] = ["Day dress", "Sweater and skirt"];
+const clippedHair: readonly string[] = [
+  "Horseshoe crop",
+  "Receding short",
+  "Buzz cut",
+  "Close crop",
+  "Tapered crop",
+];
+
 export function showOutfit(params: HumanAdultParams, show: boolean): HumanAdultParams {
   const style = params.style;
   const needsClothes =
@@ -137,8 +147,22 @@ export function newHumanLook(
     cast &&
     ["Any", "Everyday", "Workwear", "Outdoors"].includes(direction) &&
     (fits.length > 0 || params.outfit !== "Work clothes");
-  const clothing = outfitsByDirection[direction].filter((name) => name !== style.outfit);
-  const hair = adultStyleOptions.hair.filter((name) => name !== style.hair);
+  const frame = params.human["frame"] ?? 0;
+  const fitting = <T extends string>(
+    all: readonly T[],
+    current: string | undefined,
+    avoid: readonly string[],
+  ) => {
+    const fresh = all.filter((name) => name !== current);
+    const framed = fresh.filter((name) => !avoid.includes(name));
+    return framed.length ? framed : fresh;
+  };
+  const clothing = fitting(
+    outfitsByDirection[direction],
+    style.outfit,
+    frame >= framedLook ? skirtedOutfits : [],
+  );
+  const hair = fitting(adultStyleOptions.hair, style.hair, frame <= -framedLook ? clippedHair : []);
   return {
     ...params,
     ...(cast && !keepCast && style.castSkin && params.outfit === "Work clothes"

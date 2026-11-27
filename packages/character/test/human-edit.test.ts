@@ -21,6 +21,9 @@ import {
   lookDirections,
   measurementGroups,
   newHumanLook,
+  portraitAxes,
+  portraitFrames,
+  randomDressedAdult,
   rerollRegion,
   restoreSkin,
   seededHumanAdult,
@@ -114,6 +117,24 @@ test("a seeded start honours the chosen frame and colour range", () => {
     assert.notEqual(fantasy.skin, natural.skin);
     assert.ok((fantasy.human["earTip"] ?? 0) > 0.45);
     assert.equal(natural.skin, drawAdult(body, 491, archetype, "Natural").skin);
+  }
+});
+
+test("a chosen archetype keeps the head foundation and look consistent with its frame", () => {
+  for (const [archetype, sign] of [
+    ["female", -1],
+    ["male", 1],
+  ] as const) {
+    for (let seed = 1; seed <= 40; seed++) {
+      const params = randomDressedAdult(body, seed * 7919, archetype, "Natural");
+      for (const axis of portraitAxes)
+        if ((params.human[axis] ?? 0) > 0) assert.ok(sign * portraitFrames[axis] > 0, axis);
+      assert.ok(sign * ((params.human["height"] ?? 0) - 1.705) > -0.21);
+      const look = params.style;
+      if (archetype === "female")
+        assert.ok(!["Horseshoe crop", "Receding short", "Buzz cut"].includes(look.hair ?? ""));
+      else assert.ok(!["Day dress", "Sweater and skirt"].includes(look.outfit ?? ""));
+    }
   }
 });
 
