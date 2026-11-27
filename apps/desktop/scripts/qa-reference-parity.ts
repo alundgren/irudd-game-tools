@@ -126,6 +126,65 @@ async function expand(p: Page, id: string) {
     await el.locator(":scope > summary").click();
 }
 const captures: { id: number; name: string }[] = [];
+async function desktopFrame() {
+  const modal = desk.locator("#hfit-room[open]");
+  const box = await modal.boundingBox();
+  assert.ok(box);
+  const clip = {
+    x: Math.round(box.x),
+    y: Math.round(box.y),
+    width: Math.floor(box.width),
+    height: Math.floor(box.height),
+  };
+  const position = await modal.evaluate((dialog) => {
+    const marker = document.createElement("span");
+    marker.id = "qa-frame-marker";
+    marker.style.cssText =
+      "position:absolute;top:8px;left:50%;width:16px;height:16px;background:#ff00ff;z-index:9999;pointer-events:none";
+    dialog.append(marker);
+    const rect = marker.getBoundingClientRect();
+    return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+  });
+  for (const marked of [true, false]) {
+    if (!marked) await modal.locator("#qa-frame-marker").evaluate((el) => el.remove());
+    const deadline = Date.now() + 30000;
+    for (;;) {
+      const shot = (await editor.capture(clip)).toString("base64");
+      const visible = await web.evaluate(
+        async ({ shot, x, y }) => {
+          const bitmap = await createImageBitmap(
+            new Blob([Uint8Array.from(atob(shot), (c) => c.charCodeAt(0))]),
+          );
+          const context = new OffscreenCanvas(1, 1).getContext("2d");
+          if (!context) throw new Error("Cannot read desktop frame");
+          context.drawImage(
+            bitmap,
+            Math.floor(x * bitmap.width),
+            Math.floor(y * bitmap.height),
+            1,
+            1,
+            0,
+            0,
+            1,
+            1,
+          );
+          bitmap.close();
+          const [r, g, b] = context.getImageData(0, 0, 1, 1).data;
+          return Number(r) > 230 && Number(g) < 30 && Number(b) > 230;
+        },
+        { shot, x: (position.x - clip.x) / clip.width, y: (position.y - clip.y) / clip.height },
+      );
+      if (visible === marked) {
+        if (!marked) return shot;
+        break;
+      }
+      if (Date.now() >= deadline)
+        throw new Error("The desktop compositor did not present the requested fitting frame.");
+      await new Promise((done) => setTimeout(done, 100));
+    }
+  }
+  throw new Error("Missing desktop fitting frame");
+}
 async function capture(
   id: number,
   title: string,
@@ -149,17 +208,7 @@ async function capture(
       pages.map(async (p) => {
         const modal = p.locator("#hfit-room[open]");
         const area = (await modal.count()) ? modal : p.locator("body");
-        if (p === desk) {
-          const box = await area.boundingBox();
-          assert.ok(box);
-          const clip = {
-            x: Math.round(box.x),
-            y: Math.round(box.y),
-            width: Math.floor(box.width),
-            height: Math.floor(box.height),
-          };
-          return (await editor.capture(clip)).toString("base64");
-        }
+        if (p === desk) return desktopFrame();
         return (await area.screenshot({ timeout: 120000 })).toString("base64");
       }),
     ));
@@ -609,7 +658,9 @@ async function studio() {
                 }
               }
             }
-            const center = hi > lo ? (lo + hi) / 2 : bitmap.width / 2;
+            if (hi - lo < bitmap.width * 0.04)
+              throw new Error("The workshop portrait has no visible face.");
+            const center = (lo + hi) / 2;
             const scale = 640 / bitmap.height;
             canvas.width = canvas.height = 640;
             ctx.fillStyle =
@@ -689,7 +740,7 @@ async function studio() {
   assert.equal(await desk.locator("#human-faceFamily:enabled").count(), 0);
   await style("cast", "None");
   const saved = join(work, "studio.glb");
-  async function exportGlb() {
+  async function exportGlb(key: "faceFamily" | "studioHair") {
     const dl = web.waitForEvent("download", { timeout: 180000 });
     await web.locator("#glb").evaluate((b: HTMLButtonElement) => b.click());
     await (await dl).saveAs(saved);
@@ -710,17 +761,25 @@ async function studio() {
     for (const f of [saved, join(exportsDir, glbs.at(-1) ?? "")]) {
       const data = readFileSync(f),
         header = data.toString("utf8", 20, 20 + data.readUInt32LE(12));
-      assert.match(header, /Blender Foundation/i);
-      assert.match(header, /CC BY|creativecommons.org/i);
-      credits.push(
-        "Exported GLB · Rain Rig · " +
-          (header.match(/Blender Foundation/i)?.[0] ?? "") +
-          " · CC BY 4.0",
+      const json: unknown = JSON.parse(header);
+      const asset: unknown = Reflect.get(Object(json), "asset");
+      const extras: unknown = Reflect.get(Object(asset), "extras");
+      const info: unknown = Reflect.get(Object(extras), key);
+      const credit: unknown = Reflect.get(Object(info), "credit");
+      const license: unknown = Reflect.get(Object(info), "license");
+      assert.equal(
+        Reflect.get(Object(info), "name"),
+        key === "faceFamily" ? "Studio Rain" : "Ribbon ponytail",
       );
+      assert.equal(typeof credit, "string");
+      assert.match(String(credit), /Blender Foundation/);
+      assert.equal(license, "https://creativecommons.org/licenses/by/4.0/");
+      assert.ok(String(Reflect.get(Object(asset), "copyright")).includes(String(credit)));
+      credits.push(String(credit) + " · " + String(license));
     }
     return credits;
   }
-  await exportGlb();
+  await exportGlb("studioHair");
   await desk.click("#tab-workshop");
   await web.click('[data-tab="sculpt"]');
   const clothing = "Hoodie and joggers";
@@ -735,9 +794,10 @@ async function studio() {
   });
   for (const p of pages)
     assert.equal(await p.inputValue(p === web ? "#adult-outfit" : "#human-outfit"), clothing);
-  const shots = await artwork(66, "Start a Studio Rain person", "faceFamily");
-  const credits = await exportGlb();
-  await capture(67, "Export studio artwork attribution", undefined, credits, shots);
+  await artwork(66, "Start a Studio Rain person", "faceFamily");
+  const exportPortraits = await portraits(-0.4, true);
+  const credits = await exportGlb("faceFamily");
+  await capture(67, "Export studio artwork attribution", undefined, credits, exportPortraits);
 }
 async function sheet() {
   const run = process.env["IRUDD_REFERENCE_RUN"];

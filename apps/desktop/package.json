@@ -18,7 +18,7 @@
     "qa:portraits": "node --import ../../packages/document/test/support/register.ts scripts/qa-portraits.ts",
     "qa:player": "node --import ../../packages/document/test/support/register.ts scripts/qa-player.ts",
     "qa:character": "node --import ../../packages/document/test/support/register.ts scripts/qa-character.ts",
-    "qa:adult": "node --import ../../packages/document/test/support/register.ts ../../verification/families/src/locked.ts scripts/qa-adult.ts",
+    "qa:adult": "node --import ../../packages/document/test/support/register.ts scripts/qa-adult.ts",
     "test": "node --import ../../packages/document/test/support/register.ts --test \"qa/{update,human,art}/*.test.ts\"",
     "test:recovery": "node --import ../../packages/document/test/support/register.ts --test \"qa/recovery/*.test.ts\"",
     "package": "node --import ../../packages/document/test/support/register.ts scripts/package.ts",

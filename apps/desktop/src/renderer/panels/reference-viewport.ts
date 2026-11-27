@@ -26,6 +26,13 @@ const frames: Record<FitRegion, readonly [number, number, number]> = {
   arms: [0.68, 0.56, 0.9],
   legs: [0.27, 0.62, 0.5],
 };
+export interface ReferenceMarker {
+  point: T.Vector3;
+  side: "reference" | "human" | "both";
+  color: number;
+  to?: T.Vector3;
+  radius?: number;
+}
 export function referenceViewport(
   stage: HTMLElement,
   canvas: HTMLCanvasElement,
@@ -76,6 +83,7 @@ export function referenceViewport(
     before = false,
     opacity = 0.6,
     wipe = 0.5,
+    masking = false,
     region: FitRegion = "whole",
     height = 1.72;
   let has = false,
@@ -120,7 +128,7 @@ export function referenceViewport(
       if (right <= left) continue;
       reference.visible = has && (panes === 2 ? i === 0 : mode === "overlay");
       shown.visible = panes === 1 || i === 1;
-      hidden.visible = reference.visible && mode === "side";
+      hidden.visible = masking && reference.visible && mode === "side";
       for (const dot of dots.children)
         dot.visible =
           dot.userData["side"] === "both" ||
@@ -271,14 +279,12 @@ export function referenceViewport(
     );
     return { regions, hiddenShare: totalArea ? hiddenArea / totalArea : 0 };
   }
-  function markers(
-    points: readonly { point: T.Vector3; side: "reference" | "human" | "both"; color: number }[],
-  ) {
+  function markers(points: readonly ReferenceMarker[]) {
     for (const child of dots.children) {
       if (
-        child instanceof T.Mesh &&
-        child.geometry instanceof T.SphereGeometry &&
-        child.material instanceof T.MeshBasicMaterial
+        (child instanceof T.Mesh || child instanceof T.Line) &&
+        child.geometry instanceof T.BufferGeometry &&
+        child.material instanceof T.Material
       ) {
         child.geometry.dispose();
         child.material.dispose();
@@ -286,8 +292,17 @@ export function referenceViewport(
     }
     dots.clear();
     for (const mark of points) {
+      if (mark.to) {
+        const line = new T.Line(
+          new T.BufferGeometry().setFromPoints([mark.point, mark.to]),
+          new T.LineBasicMaterial({ color: mark.color, depthTest: false }),
+        );
+        line.userData["side"] = mark.side;
+        line.renderOrder = 9;
+        dots.add(line);
+      }
       const dot = new T.Mesh(
-        new T.SphereGeometry(0.0025, 10, 8),
+        new T.SphereGeometry(mark.radius ?? 0.0025, 10, 8),
         new T.MeshBasicMaterial({ color: mark.color, depthTest: false }),
       );
       dot.position.copy(mark.point);
@@ -297,7 +312,7 @@ export function referenceViewport(
     }
     render();
   }
-  function pick(event: PointerEvent) {
+  function pick(event: PointerEvent, tool: string) {
     const rect = canvas.getBoundingClientRect(),
       x = event.clientX - rect.left,
       y = event.clientY - rect.top;
@@ -307,10 +322,16 @@ export function referenceViewport(
       new T.Vector2(2 * ((x % (rect.width / 2)) / (rect.width / 2)) - 1, 1 - (2 * y) / rect.height),
       camera,
     );
-    const hit = ray.intersectObject(
-      side === "reference" ? reference : before ? original : now,
-      false,
-    )[0];
+    const target = side === "reference" ? reference : before ? original : now;
+    const hit = ray.intersectObject(target, tool === "feature" && side === "human")[0];
+    if (hit && hit.object !== target) throw new Error("Click the bare editable skin.");
+    if (
+      side === "human" &&
+      tool === "landmarks" &&
+      hit?.faceIndex != null &&
+      !boneCorners?.[headBone]?.includes(hit.faceIndex * 3)
+    )
+      return;
     if (!hit || hit.faceIndex == null) return;
     return {
       side,
@@ -330,11 +351,18 @@ export function referenceViewport(
     pick,
     markers,
     render,
-    settings(view: string, originalShape: boolean, alpha: number, coverage: number) {
+    settings(
+      view: string,
+      originalShape: boolean,
+      alpha: number,
+      coverage: number,
+      maskActive: boolean,
+    ) {
       mode = view;
       before = originalShape;
       opacity = alpha;
       wipe = coverage;
+      masking = maskActive;
       size();
       render();
     },

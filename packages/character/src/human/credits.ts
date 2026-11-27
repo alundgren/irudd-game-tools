@@ -43,12 +43,20 @@ export function humanCredits(params: HumanAdultParams, regions?: number): HumanC
     !cast &&
     (params.style.faceFamily === "Studio Rain" || params.style.hair === "Ribbon ponytail")
   ) {
+    const head = params.style.faceFamily === "Studio Rain";
+    const studio = {
+      name: head ? "Studio Rain" : "Ribbon ponytail",
+      credit: "Rain Rig (CC) Blender Foundation | studio.blender.org",
+      source: "https://studio.blender.org/characters/rain/v3/",
+      license: "https://creativecommons.org/licenses/by/4.0/",
+      changes: head
+        ? "Head, eyes, brows, lashes and hair fitted to an editable adult; neck joined to the adult body; colour maps resized and re-tinted."
+        : "Hair fitted to an editable adult's head; colour map resized and re-tinted.",
+    };
     copyright.push(
-      (params.style.faceFamily === "Studio Rain"
-        ? "Head, eyes, brows, lashes and hair fitted to an editable adult. Neck joined to the body. Colour maps resized and re-tinted."
-        : "Hair fitted to the adult head with a resized and re-tinted colour map.") +
-        " Rain Rig (CC) Blender Foundation | studio.blender.org. https://studio.blender.org/characters/rain/v3/ | https://creativecommons.org/licenses/by/4.0/",
+      studio.credit + ", CC BY 4.0. " + studio.changes + " " + studio.source + " " + studio.license,
     );
+    extras[head ? "faceFamily" : "studioHair"] = studio;
   }
   if (scans.length) {
     const { title, author, year, license, source, changes } = captureCredit;

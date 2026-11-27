@@ -46,7 +46,7 @@ import {
 import { referenceModels } from "../../shared/reference-models.js";
 import { byId } from "../dom.js";
 import { failure, type PanelContext } from "./context.js";
-import { referenceViewport } from "./reference-viewport.js";
+import { referenceViewport, type ReferenceMarker } from "./reference-viewport.js";
 import { template } from "./reference-template.js";
 
 type Source = ReferenceMesh & { name: string; credit: string; meshes: number; id?: string };
@@ -136,6 +136,7 @@ export function mountReferenceRoom(ctx: PanelContext) {
       input("original").checked,
       input("opacity").valueAsNumber / 100,
       input("wipe").valueAsNumber / 100,
+      tool === "mask",
     );
   }
   function sync() {
@@ -187,11 +188,15 @@ export function mountReferenceRoom(ctx: PanelContext) {
             }[k] ?? label)
           : label;
     }
-    button("feature").disabled = button("prop").disabled = !aligned || tool === "landmarks";
+    button("feature").disabled = !aligned || tool === "landmarks";
+    button("mask").disabled = tool === "landmarks" || tool === "feature";
+    button("prop").disabled = button("feature").disabled || tool === "feature" || tool === "mask";
+    canvas.style.cursor = tool ? "crosshair" : "";
     show("feature-settings", tool === "feature");
     show("mask-settings", tool === "mask");
     show("prop-panel", tool === "prop");
-    button("mask-undo").disabled = button("mask-clear").disabled = !mask?.count;
+    button("mask-undo").disabled = button("mask-clear").disabled =
+      button("mask").disabled || !mask?.count;
     show("mask-size-field", select("mask-kind").value === "patch");
     node("mask-size-reading").textContent = input("mask-size").value + " mm";
     node("feature-size").textContent = input("feature-reach").value + " cm";
@@ -238,15 +243,23 @@ export function mountReferenceRoom(ctx: PanelContext) {
         : landmarks
           ? "Three landmarks matched. RMS placement error " + score(landmarks.rmsMm) + " mm."
           : "Match both outer eye corners and the chin.";
-    node("labels").textContent = source
-      ? (mode === "overlay"
-          ? "Reference overlay"
-          : mode === "deviation"
-            ? "Signed distance to the reference"
-            : "Reference") +
-        " · " +
-        (input("original").checked ? "Original" : steps.length ? "Fitted" : "Aligned adult")
-      : "Editable adult";
+    const shapeLabel = input("original").checked
+      ? "Original"
+      : steps.length
+        ? "Fitted"
+        : "Aligned adult";
+    node("labels").replaceChildren(
+      ...(source && (mode === "side" || mode === "wipe")
+        ? ["Reference", shapeLabel]
+        : [
+            source
+              ? (mode === "overlay" ? "Reference overlay" : "Signed distance to the reference") +
+                " · " +
+                shapeLabel
+              : "Editable adult",
+          ]
+      ).map((textContent) => Object.assign(document.createElement("span"), { textContent })),
+    );
     node("steps").replaceChildren(
       ...steps.map((s) => Object.assign(document.createElement("li"), { textContent: s.label })),
     );
@@ -255,6 +268,10 @@ export function mountReferenceRoom(ctx: PanelContext) {
     );
     node("facts").textContent =
       referenceFacts +
+      (source ? " · " : "") +
+      "Adult stature " +
+      (working.human.height ?? 1.72).toFixed(3) +
+      " m" +
       (working.corrections
         ? " · " + working.corrections.controls.length + " surface corrections"
         : "") +
@@ -263,19 +280,31 @@ export function mountReferenceRoom(ctx: PanelContext) {
         : "");
   }
   function drawMarkers() {
-    const dots: { point: Vector3; side: "both" | "reference" | "human"; color: number }[] = [];
-    if (feature) dots.push({ point: feature, side: "both", color: 0xe44230 });
+    const dots: ReferenceMarker[] = [];
+    if (feature && tool === "feature") dots.push({ point: feature, side: "both", color: 0xe44230 });
     pairs.forEach((point, i) =>
       dots.push({ point, side: i % 2 ? "human" : "reference", color: 0xfeba30 }),
     );
     if (tool === "prop") {
       const spec = proportions.find((p) => p.id === select("prop-pick").value);
       const pts = proportionPoints(body(), working);
-      if (spec)
-        for (const key of [spec.from, spec.to])
-          dots.push({ point: required(pts.get(key)), side: "human", color: 0x338552 });
-      for (const pair of marked.values())
-        for (const p of pair) dots.push({ point: p, side: "reference", color: 0xd98324 });
+      if (spec) {
+        const a = required(pts.get(spec.from)),
+          b = required(pts.get(spec.to));
+        dots.push(
+          { point: a, to: b, side: "human", color: 0x338552, radius: 0.0012 },
+          { point: b, side: "human", color: 0x338552, radius: 0.0012 },
+        );
+      }
+      for (const [key, [a, b]] of marked) {
+        const selected = key === spec?.id;
+        const style = {
+          side: "reference",
+          color: selected ? 0xd45d23 : 0xab8255,
+          radius: selected ? 0.0012 : 0.0009,
+        } as const;
+        dots.push({ point: a, ...(selected ? { to: b } : {}), ...style }, { point: b, ...style });
+      }
       if (pending) dots.push({ point: pending, side: "reference", color: 0xe44230 });
     }
     view().markers(dots);
@@ -328,6 +357,7 @@ export function mountReferenceRoom(ctx: PanelContext) {
     steps = [];
     working = original;
     feature = pending = undefined;
+    node("feature-reading").textContent = node("prop-reading").textContent = "";
     choices = [];
     warningText = [];
     referenceFacts = "";
@@ -370,13 +400,16 @@ export function mountReferenceRoom(ctx: PanelContext) {
           r.stature.toFixed(3) +
           " m · " +
           r.up +
-          " up · turn " +
+          (r.upAuto ? " up (detected)" : " up") +
+          " · turn " +
           r.turn +
-          "° · arms " +
+          "°" +
+          (r.turnReason === "feet" ? " (read from feet)" : "") +
+          " · arms reference / adult " +
           arm(result.pose.armsBelowHorizontal) +
           " / " +
           arm(mine.armsBelowHorizontal) +
-          " · feet " +
+          " · feet reference / adult " +
           feet(result.pose.footSpacing) +
           " / " +
           feet(mine.footSpacing);
@@ -556,6 +589,7 @@ export function mountReferenceRoom(ctx: PanelContext) {
       note("Reference aligned. Choose a region to fit.");
     } catch (e) {
       if (request === token) {
+        select("source").value = source?.id ?? (source ? "local" : "");
         const error = failure(e);
         note(
           /DRACO|KHR_draco/i.test(error)
@@ -613,7 +647,7 @@ export function mountReferenceRoom(ctx: PanelContext) {
   for (const b of node("views").querySelectorAll("button"))
     b.onclick = () => {
       mode = b.dataset["view"] ?? "side";
-      tool = "";
+      if (mode !== "side" && tool) chooseTool(tool);
       sync();
       angles();
       drawMarkers();
@@ -628,6 +662,7 @@ export function mountReferenceRoom(ctx: PanelContext) {
   };
   input("original").onchange = () => {
     if (input("original").checked && (tool === "feature" || tool === "prop")) chooseTool(tool);
+    sync();
     angles();
   };
   input("opacity").oninput = angles;
@@ -691,7 +726,9 @@ export function mountReferenceRoom(ctx: PanelContext) {
               score(result.metrics.before.meanMm) +
               " → " +
               score(result.metrics.after.meanMm) +
-              " mm mean"
+              " mm mean · " +
+              score(result.metrics.after.p95Mm) +
+              " mm at 95%"
             : "") +
           (result.metrics?.refinedFacialContours ? " · facial contours refined" : "") +
           (result.problem ? " · " + result.problem : "") +
@@ -753,8 +790,10 @@ export function mountReferenceRoom(ctx: PanelContext) {
     const prior = steps.pop();
     if (prior) {
       working = prior.adult;
+      feature = undefined;
+      node("feature-reading").textContent = node("prop-reading").textContent = "";
       draw(true);
-      refreshProportions();
+      refreshProportions(true);
       note("Last fit step undone.");
     }
   };
@@ -915,7 +954,16 @@ export function mountReferenceRoom(ctx: PanelContext) {
   function refreshProportions(recommend = false) {
     if (tool !== "prop") return;
     const spec = required(proportions.find((p) => p.id === select("prop-pick").value));
-    node("prop-hint").textContent = "Mark " + spec.ends[pending ? 1 : 0] + " on the reference.";
+    for (const [index, option] of Array.from(select("prop-pick").options).entries()) {
+      const item = required(proportions[index]);
+      option.textContent = item.name + (marked.has(item.id) ? " ✓" : "");
+    }
+    node("prop-hint").textContent =
+      (marked.has(spec.id) && !pending ? "Mark again to replace. " : "") +
+      "Mark " +
+      spec.ends[pending ? 1 : 0] +
+      " on the reference." +
+      (spec.kind === "height" ? " This reading is set by hand." : "");
     const current = proportionReadings(body(), working);
     const targetIds = [...marked.keys()].filter(
       (key) => proportions.find((p) => p.id === key)?.kind !== "height",
@@ -939,13 +987,19 @@ export function mountReferenceRoom(ctx: PanelContext) {
         wanted = readProportion(key, ...pair),
         mine = current.get(key) ?? 0;
       for (const val of [
-        required(proportions.find((p) => p.id === key)).name,
+        required(proportions.find((p) => p.id === key)).name +
+          (targetIds.includes(key) ? "" : " (reading)"),
         score(wanted),
         score(mine),
         score(mine - wanted),
       ])
         row.insertCell().textContent = val;
       const drop = document.createElement("button");
+      if (spec.id === key) row.setAttribute("aria-current", "true");
+      drop.setAttribute(
+        "aria-label",
+        "Remove the mark for " + required(proportions.find((p) => p.id === key)).name,
+      );
       drop.textContent = "Remove";
       row.insertCell().append(drop);
       drop.onclick = () => {
@@ -1024,7 +1078,7 @@ export function mountReferenceRoom(ctx: PanelContext) {
     });
   let down: Vector3 | undefined;
   canvas.addEventListener("pointerdown", (e) => {
-    down = new Vector3(e.clientX, e.clientY, 0);
+    down = e.button === 0 ? new Vector3(e.clientX, e.clientY, 0) : undefined;
   });
   canvas.addEventListener("pointerup", (e) => {
     if (
@@ -1036,7 +1090,7 @@ export function mountReferenceRoom(ctx: PanelContext) {
     )
       return;
     try {
-      const hit = view().pick(e);
+      const hit = view().pick(e, tool);
       if (!hit) {
         note("Click directly on the surface.");
         return;
@@ -1101,7 +1155,6 @@ export function mountReferenceRoom(ctx: PanelContext) {
           note("Click the same feature on your skin.");
         } else if (feature && hit.side === "human" && hit.latest && hit.quad !== undefined) {
           const target = feature;
-          feature = undefined;
           const r = matchReferenceFeature(
             body(),
             working,
@@ -1111,6 +1164,7 @@ export function mountReferenceRoom(ctx: PanelContext) {
             input("feature-reach").valueAsNumber / 100,
             input("feature-mirror").checked,
           );
+          feature = undefined;
           const label =
             "Matched a feature · asked " +
             score(r.requestedMm) +
@@ -1162,6 +1216,9 @@ export function mountReferenceRoom(ctx: PanelContext) {
     },
     async open(next: Opening) {
       const request = ++token;
+      const changedForm =
+        opening?.base.documentId !== next.base.documentId ||
+        opening?.base.revision !== next.base.revision;
       opening = next;
       const { params, doc } = next;
       const corrections = humanCorrections.read(doc.features),
@@ -1173,7 +1230,7 @@ export function mountReferenceRoom(ctx: PanelContext) {
       };
       tool = "";
       pairs = [];
-      landmarks = undefined;
+      if (changedForm) landmarks = undefined;
       input("original").checked = false;
       const installed = await ctx.api.referenceModels();
       if (request !== token) return;
@@ -1196,7 +1253,7 @@ export function mountReferenceRoom(ctx: PanelContext) {
       const linked = [...(humanReferenceRigs.read(doc.features)?.rigs ?? [])]
         .reverse()
         .find((k) => installed.includes(k));
-      if (linked && source?.id !== linked) {
+      if ((changedForm || !source) && linked && source?.id !== linked) {
         select("kind").value = "body";
         select("frame").value = select("region").value = "whole";
         for (const k of ["units", "up", "turn"]) select(k).value = "auto";

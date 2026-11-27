@@ -48,6 +48,7 @@ Posture, arm edits and named poses have History entries and travel with the char
 | 8a | Shape tools, individual styling and armour |
 | 8b | Portraits, references, artwork and files |
 | 9-1 | Surface sculpting and branch placement |
+| 9-4 | [3D reference fitting, registered head families and studio heads](reference-parity-checklist.md) |
 
 | # | Feature | Desktop status | Phase |
 | --- | --- | --- | --- |
