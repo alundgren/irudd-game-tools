@@ -52,7 +52,13 @@ export const Command = Schema.Union([
     proposal: ProposalId,
     version: Revision,
     summary: Summary,
-    content: ProposalContent,
+    content: Schema.Union([
+      ProposalContent,
+      Schema.Struct({
+        kind: Schema.Literal("draft-ops"),
+        ops: Schema.Union([Operations, Schema.Tuple([])]),
+      }),
+    ]),
   }),
   command("proposal.discard", { proposal: ProposalId }),
   command("proposal.accept", { proposal: ProposalId, version: Revision }),

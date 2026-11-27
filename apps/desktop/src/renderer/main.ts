@@ -1,3 +1,4 @@
+import { paintNudge } from "@irudd/character/paint-nudge";
 import { formGenerator, creatureGenerator } from "@irudd/character/creature";
 import "@irudd/player/player.css";
 import "./style.css";
@@ -11,6 +12,7 @@ import {
   type CharacterDocument,
   type Part,
 } from "@irudd/document";
+import { inspectProposalExport } from "@irudd/character/proposal-export";
 import { domRaster } from "@irudd/character";
 import { humanAdultGenerator, humanAdultId, loadHumanPacks } from "@irudd/character/human";
 import {
@@ -119,6 +121,7 @@ function selectPart(part: string | null): void {
   portrait.render();
   properties.render();
   variation.render();
+  art.redraw();
 }
 
 function requestId(): string {
@@ -139,6 +142,7 @@ async function commit(
   if (
     proposals.active &&
     command["type"] !== "proposal.accept" &&
+    command["type"] !== "proposal.refine" &&
     command["type"] !== "proposal.discard"
   ) {
     showBanner("error", "Leave the proposal preview before editing.");
@@ -151,7 +155,10 @@ async function commit(
     version: commandVersion,
     requestId: requestId(),
     documentId: base?.documentId ?? documentId,
-    expectedRevision: base?.revision ?? view.revision,
+    expectedRevision:
+      command["type"] === "proposal.refine"
+        ? (view.proposals.find((p) => p.id === command["proposal"])?.baseRevision ?? view.revision)
+        : (base?.revision ?? view.revision),
     command,
   };
   let result: ApplyResult;
@@ -253,13 +260,37 @@ const proposals = mountProposals(panels, {
     ...(variation.current()?.protected ?? []),
     ...art.protectedParts(id),
   ],
-  createCopy,
+  thumbnail: () => viewport.comparisonImage(),
+  guide: () => viewport.proposalGuide(),
+  reference: (rear) => viewport.measuredView(null, rear),
+  createCopy: (source, label) => createCopy(source, label, true),
+  enrich: variation.enrich,
+  originalBrief: (id) => art.originalBrief(id),
+  selectedAgent: () => art.selectedAgent(),
+  async inspect(doc, revision, previous) {
+    const { textures } = await viewportPaint.prepare(host, doc);
+    const human = viewport.human;
+    const humanPaint = await adultPaint;
+    return inspectProposalExport(
+      doc,
+      {
+        preset: "game",
+        revision,
+        build: "desktop",
+        textures,
+        ...(human ? { human } : {}),
+        ...(humanPaint ? { humanPaint } : {}),
+      },
+      previous,
+    );
+  },
   registry: () => registry,
   displayDocument,
   showHead,
   hideBanner,
 });
-async function createCopy(source: CharacterDocument, label: string) {
+async function createCopy(source: CharacterDocument, label: string, resumeOriginal = false) {
+  const original = documentId;
   const id = "doc-" + crypto.randomUUID().slice(0, 12),
     projectAtStart = project;
   const result = await host.call("apply", {
@@ -276,15 +307,19 @@ async function createCopy(source: CharacterDocument, label: string) {
     },
   });
   if (result.kind === "rejected") throw new Error(describe(result.diagnostics));
-  if (project !== projectAtStart) return false;
+  if (project !== projectAtStart) return undefined;
   proposals.reset();
   hideBanner();
   viewport.select(null);
-  await loadDocuments(id);
+  await loadDocuments(resumeOriginal ? original : id);
   viewport.frame();
-  return true;
+  return id;
 }
-const portrait = mountPortrait(panels, viewport, createCopy);
+const portrait = mountPortrait(
+  panels,
+  viewport,
+  async (source, label) => !!(await createCopy(source, label)),
+);
 const history = mountHistory(panels);
 const shape = mountShape(
   panels,
@@ -315,7 +350,7 @@ viewport.onFrame = () => {
   shape.place();
 };
 const human = mountHuman(panels, () => variation.current()?.direction);
-const library = mountLibrary(panels, () => viewport.request());
+const library = mountLibrary(panels, () => viewport.request(), proposals.inspectVisible);
 const start = mountStart(panels, async (id) => {
   viewport.select(null);
   await loadDocuments(id);
@@ -357,8 +392,22 @@ const art = mountArt(byId("art", HTMLDivElement), {
       ? { documentId, revision: view.revision, doc }
       : undefined,
   enrich: variation.enrich,
+  locks: () => variation.current()?.protected ?? new Set(),
   onRequests: () => proposals.render(),
   selection: () => viewport.selection,
+  measured: async (target, rear, nudge) => {
+    if (busy || proposals.active || viewport.dragging || !doc || !viewport.shows(doc))
+      throw new Error("Finish the edit before capturing the character.");
+    if (!nudge) return viewport.measuredView(target, rear);
+    const original = doc;
+    const nudged = paintNudge(original, nudge.target, nudge.amounts).document;
+    if (!(await displayDocument(nudged))) throw new Error("The character changed during capture.");
+    try {
+      return await viewport.measuredView(target, rear);
+    } finally {
+      if (doc === original && viewport.shows(nudged)) await displayDocument(original);
+    }
+  },
   capture: async (side, frameHead) => {
     if (busy || proposals.active || viewport.dragging || !doc || !viewport.shows(doc))
       throw new Error(

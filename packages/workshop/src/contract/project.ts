@@ -289,7 +289,11 @@ export interface Project {
     from: number,
     to: number,
   ) => Effect.Effect<DiffView, ReadError>;
-  readonly draft: (documentId: string, proposalId: string) => Effect.Effect<DraftView, ReadError>;
+  readonly draft: (
+    documentId: string,
+    proposalId: string,
+    version?: number,
+  ) => Effect.Effect<DraftView, ReadError>;
   readonly revision: (
     documentId: string,
     revision: number,

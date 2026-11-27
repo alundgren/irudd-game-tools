@@ -377,12 +377,13 @@ function proposalTarget(
   base: CharacterDocument,
   content: ProposalContent,
   env: Environment,
+  startingDocument = base,
 ):
   | { readonly ok: true; readonly changes: ReadonlyArray<Change> }
   | { readonly ok: false; readonly diagnostics: ReadonlyArray<Diagnostic> } {
   let candidate: CharacterDocument;
   if (content.kind === "ops") {
-    const applied = applyOperations(base, content.ops, context(state, envelope, env));
+    const applied = applyOperations(startingDocument, content.ops, context(state, envelope, env));
     if (!applied.ok) return { ok: false, diagnostics: applied.diagnostics };
     candidate = applied.value;
   } else {
@@ -680,7 +681,19 @@ export function reduce(state: DocumentState, input: unknown, env: Environment): 
       const base = documentAtRevision(state, envelope.expectedRevision);
       if (!base)
         return rejectOne(state, "unknown-revision", ["expectedRevision"], "Unknown base revision.");
-      const target = proposalTarget(state, envelope, base, c.content, env);
+      const applyingToDraft = c.content.kind === "draft-ops";
+      if (applyingToDraft && (!existing || existing.baseRevision !== envelope.expectedRevision))
+        return rejectOne(
+          state,
+          "stale-revision",
+          ["expectedRevision"],
+          "Use the base revision of the proposal being refined.",
+        );
+      const prior = applyingToDraft && existing ? applyChanges(base, existing.changes) : undefined;
+      if (prior && !prior.ok) return reject(state, prior.diagnostics);
+      const content =
+        c.content.kind === "draft-ops" ? { kind: "ops" as const, ops: c.content.ops } : c.content;
+      const target = proposalTarget(state, envelope, base, content, env, prior?.value);
       if (!target.ok) return reject(state, target.diagnostics);
       const proposal: Proposal = {
         id: c.proposal,

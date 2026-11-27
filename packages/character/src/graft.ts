@@ -205,6 +205,7 @@ export function graftComponent(
   fit: boolean,
   body?: HumanBody,
   shelfChildren?: boolean,
+  placementWorld?: T.Matrix4,
 ) {
   donor.group.updateMatrixWorld(true);
   dest.group.updateMatrixWorld(true);
@@ -265,10 +266,12 @@ export function graftComponent(
     : new T.Vector3().setScalar(ratio(to.y, extent.y));
   const centre = dst.getCenter(new T.Vector3());
   if (attach && !socket) centre.y += 0.47 * (to.y + extent.y * scale.y);
-  const world = new T.Matrix4()
-    .makeScale(...scale.toArray())
-    .setPosition(centre.sub(src.getCenter(new T.Vector3()).multiply(scale)))
-    .multiply(entry.object.matrixWorld);
+  const world =
+    placementWorld ??
+    new T.Matrix4()
+      .makeScale(...scale.toArray())
+      .setPosition(centre.sub(src.getCenter(new T.Vector3()).multiply(scale)))
+      .multiply(entry.object.matrixWorld);
   const parent = replace ? target.parent : target.id;
   const mount = parent ? dest.parts.get(parent)?.mount.matrixWorld : undefined;
   const placement = pose((mount?.clone() ?? new T.Matrix4()).invert().multiply(world));

@@ -583,3 +583,44 @@ test("requests for another document are refused", () => {
   );
   assert.equal(rejected(step.outcome).diagnostics[0]?.code, "wrong-document");
 });
+
+test("a refinement edits the visible draft and preserves earlier versions through replay", () => {
+  let state = generatedCreature(env);
+  const tail = partBySlot(state, "tail"),
+    proposal = "prop-jacket";
+  state = run(
+    state,
+    env,
+    envelope(agent, 1, {
+      type: "proposal.create",
+      proposal,
+      summary: "Name the jacket",
+      content: { kind: "ops", ops: [{ op: "part.rename", part: tail.id, label: "Work jacket" }] },
+    }),
+    envelope(agent, 1, {
+      type: "proposal.refine",
+      proposal,
+      version: 1,
+      summary: "Teal jacket",
+      content: {
+        kind: "draft-ops",
+        ops: [{ op: "part.set", part: tail.id, set: { color: "#487d80" } }],
+      },
+    }),
+  );
+  const prior = previewProposal(state, proposal, 1),
+    latest = previewProposal(state, proposal);
+  assert.ok(prior.ok && latest.ok);
+  assert.equal(prior.value.preview.parts.find((p) => p.id === tail.id)?.color, tail.color);
+  const jacket = latest.value.preview.parts.find((p) => p.id === tail.id);
+  assert.equal(jacket?.label, "Work jacket");
+  assert.equal(jacket.color, "#487d80");
+  assert.equal(state.head, 1);
+  state = run(state, env, envelope(human, 1, { type: "proposal.accept", proposal, version: 2 }));
+  assert.equal(state.head, 2);
+  const replay = openJournal(docId, state.journal, env);
+  assert.ok(replay.ok);
+  const saved = previewProposal(replay.state, proposal, 1);
+  assert.ok(saved.ok);
+  assert.deepEqual(saved.value.preview, prior.value.preview);
+});

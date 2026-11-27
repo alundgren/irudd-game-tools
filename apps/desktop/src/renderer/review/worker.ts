@@ -1,3 +1,8 @@
+import { paintNudge } from "@irudd/character/paint-nudge";
+import { fittedPaintOperations } from "@irudd/character/fitted-edit";
+import { panelCanvas, panelFromPixels } from "@irudd/character/art-fit";
+import type { CharacterDocument, AssetEntry } from "@irudd/document";
+import type { ArtBrief, ArtReply } from "@irudd/workshop/wire";
 import { formGenerator, creatureGenerator } from "@irudd/character/creature";
 import {
   assetResolver,
@@ -494,5 +499,59 @@ async function pixels(
   }
 }
 
-Object.assign(globalThis, { iruddReview: { info, run, pixels } });
+async function fit(
+  {
+    document,
+    brief,
+    reply,
+    asset,
+  }: {
+    document: CharacterDocument;
+    brief: ArtBrief;
+    reply: Extract<ArtReply, { kind: "turnaround" }>;
+    asset: AssetEntry;
+  },
+  base64: string,
+) {
+  if (!brief.paintAction) throw new Error("Choose a fitted artwork action.");
+  const image = await raster.image(
+    Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)),
+    asset.mediaType,
+  );
+  const panel = (index: number) => {
+    const ctx = raster
+      .canvas(panelCanvas, panelCanvas)
+      .getContext("2d", { willReadFrequently: true });
+    if (!ctx) throw new Error("Cannot read the turnaround.");
+    ctx.drawImage(
+      image,
+      ((index % 2) * image.width) / 2,
+      (Math.floor(index / 2) * image.height) / 2,
+      image.width / 2,
+      image.height / 2,
+      0,
+      0,
+      panelCanvas,
+      panelCanvas,
+    );
+    return panelFromPixels(ctx.getImageData(0, 0, panelCanvas, panelCanvas).data, panelCanvas);
+  };
+  const { body } = await (adult ??= loadAdult());
+  return fittedPaintOperations(
+    document,
+    brief.paintAction,
+    document.parts.find((p) => p.id === brief.parts?.[0]),
+    asset,
+    [panel(0), panel(1), panel(2), panel(3)],
+    brief.height ?? reply.traceMap?.height ?? reply.height ?? 1.72,
+    reply.traceMap?.regions ?? [],
+    reply.coverage ?? "closed",
+    brief.protected ?? [],
+    body,
+  );
+}
+
+const nudge = (doc: CharacterDocument, edit: NonNullable<ArtBrief["nudge"]>) =>
+  paintNudge(doc, edit.target, edit.amounts).operations;
+Object.assign(globalThis, { iruddReview: { info, run, pixels, fit, nudge } });
 document.title = "Irudd review worker (ready)";

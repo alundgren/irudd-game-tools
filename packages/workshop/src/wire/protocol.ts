@@ -182,7 +182,11 @@ export const methodParams = {
     by: Schema.optionalKey(Schema.Literals(["human", "agent"])),
   }),
   diff: Schema.Struct({ documentId: DocumentId, from: Revision, to: Revision }),
-  draft: Schema.Struct({ documentId: DocumentId, proposalId: ProposalId }),
+  draft: Schema.Struct({
+    documentId: DocumentId,
+    proposalId: ProposalId,
+    version: Schema.optionalKey(Schema.Int.check(Schema.isGreaterThanOrEqualTo(1))),
+  }),
   receipt: Schema.Struct({ documentId: DocumentId, requestId: RequestId }),
   apply: Schema.Struct({ request: JsonValue }),
   start: Schema.Struct({

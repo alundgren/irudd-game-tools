@@ -109,10 +109,19 @@ export function moveControl(p: Part, kind: "Spine" | "Cage", index: number, to: 
   );
 }
 export function moveSpine(doc: CharacterDocument, p: Part, index: number, to: Vec3) {
-  const op = moveControl(p, "Spine", index, to),
-    old = figureSweep.read(p.features);
+  const sweep = figureSweep.read(p.features);
+  if (!sweep?.knots[index]) throw new Error("Select a spine point.");
+  return reshapeSweep(
+    doc,
+    p,
+    sweep.knots.map((k, i) => (i === index ? [...to, k[3], k[4]] : k)),
+  );
+}
+export function reshapeSweep(doc: CharacterDocument, p: Part, knots: readonly Knot[]) {
+  const old = figureSweep.read(p.features);
   if (!old) throw new Error("Choose a swept part.");
-  const next = old.knots.map((k, i) => (i === index ? vector(to) : vector(k)));
+  const op = feature(p, figureSweep.id, figureSweep.json({ knots }));
+  const next = knots.map(vector);
   const before = new T.CatmullRomCurve3(old.knots.map(vector)),
     after = new T.CatmullRomCurve3(next);
   const assembly = figureAssembly.read(p.features);

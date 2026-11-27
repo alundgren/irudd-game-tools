@@ -6,7 +6,11 @@ import { failure } from "./context.js";
 import { byId, el } from "../dom.js";
 import type { PanelContext } from "./context.js";
 
-export function mountLibrary(ctx: PanelContext, redrawViewport: () => void) {
+export function mountLibrary(
+  ctx: PanelContext,
+  redrawViewport: () => void,
+  inspectVisible: () => Promise<void> | undefined,
+) {
   const { api, host, say, showBanner } = ctx;
   const workshopPane = byId("workshop", HTMLElement);
   const libraryPane = byId("library", HTMLElement);
@@ -185,6 +189,8 @@ export function mountLibrary(ctx: PanelContext, redrawViewport: () => void) {
   byId("inspection-close", HTMLButtonElement).onclick = () => report.close();
   const inspect = byId("inspect-game", HTMLButtonElement);
   inspect.onclick = async () => {
+    const proposal = inspectVisible();
+    if (proposal) return proposal;
     const { view, documentId, project } = ctx;
     if (!view || !documentId) return;
     results.replaceChildren(el("p", { text: "Inspecting revision " + view.revision + "..." }));

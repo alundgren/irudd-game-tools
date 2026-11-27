@@ -225,6 +225,7 @@ async function submit(context: Context, c: WorkshopClient): Promise<number> {
             kind: k,
             image: stored.digest,
             ...(height === undefined ? {} : { height: Number(height) }),
+            ...(traceMap ? { traceMap: readJson(path.resolve(traceMap), "trace map") } : {}),
             ...(coverage === undefined ? {} : { coverage }),
           };
   } else if (k === "trace") {

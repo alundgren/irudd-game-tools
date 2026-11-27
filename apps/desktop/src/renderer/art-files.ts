@@ -28,6 +28,7 @@ export function briefNeeds(
   roles: ReadonlyArray<AttachmentRole>,
   parts: ReadonlyArray<string>,
   build = false,
+  whole = false,
 ): ReadonlyArray<string> {
   const have = new Set(roles);
   const needs: string[] = [];
@@ -38,7 +39,7 @@ export function briefNeeds(
       if (!have.has(role)) needs.push(`a ${role} view`);
   }
   if (kind === "turnaround") {
-    if (parts.length === 0) needs.push("a painted region");
+    if (!whole && parts.length === 0) needs.push("a painted region");
     if (roles.length === 0) needs.push("a view of the character");
   }
   return needs;
@@ -136,7 +137,7 @@ export function importedReply(
   summary: string,
   file: { readonly digest: string } | { readonly json: unknown },
   attribution: AssetAttribution = {},
-): { readonly reply: unknown } | { readonly problem: string } {
+): { readonly reply: Record<string, unknown> } | { readonly problem: string } {
   const header = {
     format: "irudd.art-reply",
     version: 1,
@@ -165,7 +166,12 @@ export function importedReply(
 type RequestView = MethodResults["art.list"]["requests"][number];
 
 export function undelivered(r: RequestView): boolean {
-  return r.steering === null && r.closed === null && r.submissions.length === 0;
+  return (
+    r.pairingId !== "file:offline" &&
+    r.steering === null &&
+    r.closed === null &&
+    r.submissions.length === 0
+  );
 }
 
 export function resendRequest(r: RequestView): MethodParams["art.request"] {

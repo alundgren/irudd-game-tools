@@ -5,6 +5,8 @@ import {
   domRaster,
   loadSurfaces,
   type SurfaceKit,
+  exportKitSheets,
+  type Textures,
   exportPaintSheets,
   exportPortraitPlates,
   loadPaintAtlases,
@@ -17,11 +19,14 @@ import type { Workshop } from "./bridge.js";
 
 interface StudioPaint {
   readonly kit: SurfaceKit;
+  readonly textures: Textures;
   readonly finish: NonNullable<BuildOptions["finish"]>;
 }
 
 export class ViewportPaint {
   private last: { key: string; result: Promise<StudioPaint> } | undefined;
+
+  private readonly kitImages = new Map<Digest, Uint8Array>();
 
   private kit: Promise<SurfaceKit> | undefined;
 
@@ -35,14 +40,14 @@ export class ViewportPaint {
     const assets = bundledAssets.filter((asset) =>
       ["surfaces", "jacket", "horn", "faces"].includes(asset.name),
     );
-    const files = new Map(
-      await Promise.all(
-        assets.map(async (asset) => [asset.digest, await this.bundledImage(asset.digest)] as const),
+    await Promise.all(
+      assets.map(async (asset) =>
+        this.kitImages.set(asset.digest, await this.bundledImage(asset.digest)),
       ),
     );
     return loadSurfaces(
       domRaster(),
-      assetResolver({ bundled: (asset) => files.get(asset.digest) }),
+      assetResolver({ bundled: (asset) => this.kitImages.get(asset.digest) }),
     );
   }
 
@@ -56,9 +61,10 @@ export class ViewportPaint {
       (digest) => declared.has(digest) || bundledAsset(digest),
     );
     const plates = exportPortraitPlates(doc);
-    const key = JSON.stringify([paint, plates]);
+    const kit = exportKitSheets(doc);
+    const key = JSON.stringify([paint, plates, kit]);
     if (this.last?.key === key) return this.last.result;
-    const result = this.load(host, paint, plates).catch((error: unknown) => {
+    const result = this.load(host, paint, plates, kit).catch((error: unknown) => {
       if (this.last?.result === result) this.reset();
       throw error;
     });
@@ -66,9 +72,14 @@ export class ViewportPaint {
     return result;
   }
 
-  private async load(host: Workshop, sheets: Digest[], plates: Digest[]): Promise<StudioPaint> {
+  private async load(
+    host: Workshop,
+    sheets: Digest[],
+    plates: Digest[],
+    kitSheets: Digest[],
+  ): Promise<StudioPaint> {
     const files = new Map<Digest, { bytes: Uint8Array; mediaType: string }>();
-    for (const digest of new Set([...sheets, ...plates])) {
+    for (const digest of new Set([...sheets, ...plates, ...kitSheets])) {
       const asset = bundledAsset(digest);
       files.set(
         digest,
@@ -80,7 +91,7 @@ export class ViewportPaint {
       );
     }
     const resolver = assetResolver({
-      bundled: (asset) => files.get(asset.digest)?.bytes,
+      bundled: (asset) => files.get(asset.digest)?.bytes ?? this.kitImages.get(asset.digest),
       project: (digest) => files.get(digest),
     });
     const raster = domRaster();
@@ -92,6 +103,10 @@ export class ViewportPaint {
       this.kit = undefined;
       throw error;
     }));
-    return { kit, finish: { paint, faces: kit.faces, plates: portraits } };
+    return {
+      kit,
+      textures: { surfaces: kit, paint, plates: portraits, assets: resolver },
+      finish: { paint, faces: kit.faces, plates: portraits },
+    };
   }
 }

@@ -4,6 +4,11 @@
   max-height: 85vh;
   overflow: auto;
 }
+#game-results img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
 #portrait-fields .mark-picture {
   display: block;
   position: static;

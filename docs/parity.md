@@ -108,9 +108,9 @@ Posture, arm edits and named poses have History entries and travel with the char
 | 54 | Replay a direction from its code | done | 3 |
 | 55 | Mark a location on the model | done | 8a |
 | 56 | Add visual references | done | 3 |
-| 57 | Request and apply painted edits | partly (painted regions and branches, trace and depth replies) | 8b |
-| 58 | Refine a proposal, compare it or keep an alternate | done | 8b |
-| 59 | Inspect a game export | partly (renders and metrics for the current game export) | 8b |
+| 57 | Request and apply painted edits | done | 9-5 |
+| 58 | Refine a proposal, compare it or keep an alternate | done | 9-5 |
+| 59 | Inspect a game export | done | 9-5 |
 | 60 | Generate a starting form by archetype, colouring and family | done | 2, 6 |
 | 61 | Trace artwork manually to build a character | partly (manual lofts, hulls and membranes from two traced outlines) | 8b |
 | 62 | Reuse a turnaround on other regions | done | 8b |
@@ -173,6 +173,10 @@ Use individual styling for native portrait paint. Mark the eyes and lip seam on 
 
 Choose **Trace a new character** to draw front and profile outlines on a four-view sheet. Select a painted region to add a rounded loft, solid hull or thin membrane, or reuse a turnaround on that region. In **Artwork**, request a painted edit for the selected regions. Preview a reply, compare it with the current character, ask its author for a refinement, or keep the preview as a separate alternate. Named variations and alternates appear in the project's character selector and can be saved as character files. [Artwork requests and replies](artwork.md).
 
+With a part selected, **Painted edit** can repaint its registered region, redesign the part or fit an open or closed garment over it. On a calibrated head, revise the portrait or fit a clean scalp under its existing hair. Preview or restore an earlier proposal before accepting it. **Keep alternate** saves the proposal and returns to the original character.
+
+**Inspect proposal game export** reloads the game GLB. Compare a refinement with its preceding export at rest and in motion, and expand the coverage report to see where clothing layers changed or skin became visible. A refinement request can include the measured differences and paired views. Run `pnpm --filter @irudd/desktop qa:proposal-parity` after changing these paths. [Behaviour checklist and paired screenshots](proposal-parity-checklist.md)
+
 Open **Reference studies** to start an editable copy of a shipped form. Under **Game export**, inspect rendered body and portrait views and the game's mesh, texture and rig counts. Clear **Include skeleton and motion** to export static geometry. The Workshop's save and open buttons transfer a character and its referenced project assets between projects.
 
 Run `qa:portraits` and `qa:art` in `apps/desktop` after changing these workflows. They drive the desktop controls, use a local paired client for artwork, and open the saved character files in fresh projects. On an RTX 5070 Ti, the portrait and file sequence took 3 minutes 45 seconds on the first run and 3 minutes 47 seconds on repeat. The 14 before-and-after pairs and their contact sheet are in `.reference-cache/phase8b/`.
@@ -180,5 +184,4 @@ Run `qa:portraits` and `qa:art` in `apps/desktop` after changing these workflows
 ### Remaining parity gaps
 
 - **38 and 64**. Plate fields lack individual random tip variants. Grafting handles independent branches, while native adult rig regions depend on the source generator.
-- **57 and 59**. Scalp-only and isolated wearable artwork requests lack dedicated desktop actions. The game inspection shows the current revision. Cross-proposal export and coverage comparisons remain open.
 - **61 and 66**. Hand tracing supports lofts, hulls and membranes. Tracing a path from paired centreline points and opening the browser's locally prepared scan studies remain open.

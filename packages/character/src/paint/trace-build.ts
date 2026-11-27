@@ -41,7 +41,14 @@ import { traceRegion, type TrackRow } from "./trace.js";
 
 export type SheetPanels = readonly [Panel, Panel, Panel, Panel];
 
+export interface HairOutline {
+  readonly id: string;
+  readonly front: readonly (readonly [number, number])[];
+  readonly side: readonly (readonly [number, number])[];
+}
+
 export interface TraceBuildRegion extends TraceRegionInput {
+  readonly hairRegions?: readonly HairOutline[];
   readonly front?: ReadonlyArray<readonly [number, number]>;
   readonly side?: ReadonlyArray<readonly [number, number]>;
   readonly spine?: ReadonlyArray<readonly [number, number, number, number, number, number]>;
@@ -90,7 +97,7 @@ function outlineHeights(
   return [low, high];
 }
 
-function silhouetteRuns(p: Panel, height: number, bridge = 0.011): Array<[number, number]> {
+export function silhouetteRuns(p: Panel, height: number, bridge = 0.011): Array<[number, number]> {
   const y = Math.max(0, Math.min(p.size - 1, Math.round(p.feet - height * p.span)));
   const runs: Array<[number, number]> = [];
   for (let x = 0; x < p.size; x++) {
@@ -338,7 +345,7 @@ interface Geometry {
   readonly notes: string[];
 }
 
-function regionGeometry(
+export function regionGeometry(
   r: TraceBuildRegion,
   panels: SheetPanels,
   atlas: Digest,

@@ -914,6 +914,127 @@ export class EditorViewport {
     };
   }
 
+  proposalGuide() {
+    const built = this.built;
+    if (!built) throw new Error("Open the proposal before requesting a refinement.");
+    const regions: { id: string; pivot: number[]; bounds: number[][] | null }[] = [];
+    const surfaceMarks: { name: string; region: string; world: number[] }[] = [];
+    const roots = new Map([...built.parts].map(([id, p]) => [p.object, id]));
+    built.group.updateWorldMatrix(true, true);
+    for (const [id, part] of built.parts) {
+      const box = new T.Box3(),
+        round = (v: T.Vector3) => v.toArray().map((n) => Number(n.toFixed(3)));
+      function visit(node: T.Object3D) {
+        if (!node.visible || (node !== part.object && roots.has(node))) return;
+        if (isMesh(node)) {
+          if (!node.geometry.boundingBox) node.geometry.computeBoundingBox();
+          if (node.geometry.boundingBox)
+            box.union(node.geometry.boundingBox.clone().applyMatrix4(node.matrixWorld));
+        }
+        for (const child of node.children) visit(child);
+      }
+      visit(part.object);
+      regions.push({
+        id,
+        pivot: round(part.object.getWorldPosition(new T.Vector3())),
+        bounds: box.isEmpty() ? null : [round(box.min), round(box.max)],
+      });
+      const original = this.doc?.parts.find((p) => p.id === id);
+      if (original)
+        for (const mark of figureLocations.read(original.features)?.marks ?? [])
+          surfaceMarks.push({
+            name: mark.name,
+            region: id,
+            world: round(part.object.localToWorld(new T.Vector3(...mark.at))),
+          });
+    }
+    return {
+      spatialGuide: {
+        units:
+          "Metres in standing world space, +X character left, +Y up, +Z front. Bounds exclude child parts.",
+        regions,
+      },
+      surfaceMarks,
+    };
+  }
+
+  async measuredView(target: string | null, rear = false) {
+    const built = this.built;
+    const subject = target ? built?.parts.get(target)?.object : built?.group;
+    if (!built || !subject) throw new Error("Select the part to capture.");
+    subject.updateWorldMatrix(true, true);
+    const roots = new Set([...built.parts.values()].map((p) => p.object));
+    const scene = new T.Scene();
+    scene.background = this.scene.background;
+    this.scene.traverse((light) => {
+      if (light instanceof T.Light) scene.add(light.clone());
+    });
+    function collect(node: T.Object3D) {
+      if ((!node.visible && node !== subject) || (target && node !== subject && roots.has(node)))
+        return;
+      if (isMesh(node)) {
+        const clone = node.clone(false);
+        clone.matrixAutoUpdate = false;
+        clone.matrix.copy(node.matrixWorld);
+        scene.add(clone);
+      }
+      for (const child of node.children) collect(child);
+    }
+    collect(subject);
+    const box = new T.Box3().setFromObject(scene, true);
+    if (box.isEmpty()) throw new Error("This part has no visible geometry to capture.");
+    const size = box.getSize(new T.Vector3());
+    const centre = box.getCenter(new T.Vector3());
+    const radius = Math.max(0.035, size.length() * 0.56);
+    const source = this.renderer.domElement;
+    const aspect = source.width / source.height;
+    const half = radius / Math.min(aspect, 1);
+    const camera = new T.OrthographicCamera(
+      -half * aspect,
+      half * aspect,
+      half,
+      -half,
+      0.01,
+      8 * radius + 4,
+    );
+    const direction = rear
+      ? new T.Vector3(-0.7, 0.16, -1)
+      : target
+        ? new T.Vector3(0.62, 0.1, 1)
+        : new T.Vector3(0.45, 0.18, 1);
+    camera.position.copy(centre).addScaledVector(direction.normalize(), radius * 3.5 + 2);
+    camera.lookAt(centre);
+    const image = document.createElement("canvas");
+    image.width = image.height = 448;
+    const ctx = image.getContext("2d");
+    if (!ctx) throw new Error("Cannot capture a reference view.");
+    try {
+      this.renderer.render(scene, camera);
+      const side = Math.min(source.width, source.height);
+      ctx.drawImage(
+        source,
+        (source.width - side) / 2,
+        (source.height - side) / 2,
+        side,
+        side,
+        0,
+        0,
+        448,
+        448,
+      );
+    } finally {
+      this.request();
+    }
+    const blob = await new Promise<Blob>((resolve, reject) =>
+      image.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error("Could not encode the reference view."))),
+        "image/jpeg",
+        0.84,
+      ),
+    );
+    return { bytes: new Uint8Array(await blob.arrayBuffer()), height: size.y };
+  }
+
   capture(view: "current" | "front" | "side" | "back", frameHead: boolean): Promise<Uint8Array> {
     let camera: T.Camera = this.camera;
     if (view !== "current") {

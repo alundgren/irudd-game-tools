@@ -10,6 +10,7 @@
     "launch": "node --import ../../packages/document/test/support/register.ts scripts/launch.ts",
     "qa": "node --import ../../packages/document/test/support/register.ts scripts/qa.ts",
     "qa:review": "node --import ../../packages/document/test/support/register.ts scripts/qa-review.ts",
+    "qa:proposal-parity": "node --import ../../packages/document/test/support/register.ts scripts/qa-proposal-parity.ts",
     "qa:art": "node --import ../../packages/document/test/support/register.ts scripts/qa-art.ts",
     "qa:shape-parity": "node --import ../../packages/document/test/support/register.ts scripts/qa-shape-parity.ts",
     "qa:style-parity": "node --import ../../packages/document/test/support/register.ts scripts/qa-shape-parity.ts phase9-3",

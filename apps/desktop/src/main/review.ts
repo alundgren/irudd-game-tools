@@ -1,3 +1,4 @@
+import { isJson, isJsonArray } from "@irudd/document";
 import { BrowserWindow, protocol, session } from "electron";
 import fs from "node:fs";
 import path from "node:path";
@@ -247,6 +248,44 @@ export class ReviewWorker implements ReviewRenderer, ArtRaster {
       this.running = undefined;
       this.failRunning = undefined;
     }
+  }
+
+  async nudge(
+    doc: import("@irudd/document").CharacterDocument,
+    nudge: NonNullable<import("./art.js").FitInput["brief"]["nudge"]>,
+  ) {
+    const win = await this.open();
+    const result: unknown = await win.webContents.executeJavaScript(
+      `globalThis.iruddReview.nudge(${JSON.stringify(doc)},${JSON.stringify(nudge)})`,
+      true,
+    );
+    if (!isJson(result) || !isJsonArray(result))
+      throw new Error("Invalid painted nudge operations.");
+    return result;
+  }
+
+  async fit(input: import("./art.js").FitInput, bytes: Uint8Array) {
+    const win = await this.open();
+    const result: unknown = await win.webContents.executeJavaScript(
+      `globalThis.iruddReview.fit(${JSON.stringify(input)}, ${JSON.stringify(Buffer.from(bytes).toString("base64"))})`,
+      true,
+    );
+    if (
+      !isRecord(result) ||
+      !isRecord(result["fit"]) ||
+      typeof result["fit"]["needsRepair"] !== "boolean" ||
+      typeof result["fit"]["score"] !== "number" ||
+      !isJson(result["operations"]) ||
+      !isJsonArray(result["operations"]) ||
+      !Array.isArray(result["notes"]) ||
+      !result["notes"].every((n: unknown): n is string => typeof n === "string")
+    )
+      throw new Error("Invalid painted fit returned by the worker.");
+    return {
+      operations: result["operations"],
+      notes: result["notes"],
+      fit: { needsRepair: result["fit"]["needsRepair"], score: result["fit"]["score"] },
+    };
   }
 
   async pixels(
