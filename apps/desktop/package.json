@@ -11,6 +11,7 @@
     "qa": "node --import ../../packages/document/test/support/register.ts scripts/qa.ts",
     "qa:review": "node --import ../../packages/document/test/support/register.ts scripts/qa-review.ts",
     "qa:art": "node --import ../../packages/document/test/support/register.ts scripts/qa-art.ts",
+    "qa:shape-parity": "node --import ../../packages/document/test/support/register.ts scripts/qa-shape-parity.ts",
     "qa:portraits": "node --import ../../packages/document/test/support/register.ts scripts/qa-portraits.ts",
     "qa:player": "node --import ../../packages/document/test/support/register.ts scripts/qa-player.ts",
     "qa:character": "node --import ../../packages/document/test/support/register.ts scripts/qa-character.ts",

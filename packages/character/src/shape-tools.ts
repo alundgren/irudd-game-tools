@@ -11,12 +11,16 @@ import {
   figurePiece,
   figurePulls,
   figureSculpt,
+  figureScute,
+  figurePaint,
   figureSweep,
   figurePlateField,
   figurePlateSite,
   figureFinish,
   figureLocations,
   motionRole,
+  creatureBlend,
+  type SurfacePull,
   type FaceSculpt,
   type Json,
   type Knot,
@@ -215,9 +219,11 @@ export function cageFace(
   }
   return feature(p, figureCage.id, figureCage.json(next));
 }
-export function pullPart(p: Part, at: Vec3, offset: Vec3, reach: Vec3) {
+export function pullPart(p: Part, at: Vec3, offset: Vec3, reach: Vec3, mirrorX?: number) {
   const pulls = figurePulls.read(p.features)?.pulls ?? [];
-  return feature(p, figurePulls.id, figurePulls.json({ pulls: [...pulls, { at, offset, reach }] }));
+  if (pulls.length >= 64) throw new Error("This part already has 64 surface pulls.");
+  const field: SurfacePull = { at, offset, reach, ...(mirrorX === undefined ? {} : { mirrorX }) };
+  return feature(p, figurePulls.id, figurePulls.json({ pulls: [...pulls, field] }));
 }
 export function markLocation(p: Part, name: string, at: Vec3) {
   if (!name.trim() || name.trim().length > 48)
@@ -233,6 +239,31 @@ export function markLocation(p: Part, name: string, at: Vec3) {
 }
 export const branchKinds = ["Horn", "Tail", "Fin", "Walking limb"] as const;
 export type BranchKind = (typeof branchKinds)[number];
+export function branchStroke(origin: Vec3, normal: Vec3, radius: number) {
+  const start = vector(origin),
+    outward = vector(normal);
+  let points: Vec3[] = [
+    start
+      .clone()
+      .addScaledVector(outward, -radius * 0.35)
+      .toArray(),
+  ];
+  return {
+    get points(): readonly Vec3[] {
+      return points;
+    },
+    sample(plane: Vec3) {
+      const next = vector(plane),
+        distance = next.distanceTo(start),
+        last = points.at(-1);
+      next.addScaledVector(outward, Math.min(radius * 0.45, distance * 0.4));
+      if (!last || distance <= 0.0001 || next.distanceTo(vector(last)) < 0.008) return false;
+      if (points.length >= 255) points = points.filter((_, i) => i % 2 === 0);
+      points.push(next.toArray());
+      return true;
+    },
+  };
+}
 export function drawAppendage(
   p: Part,
   stroke: readonly Vec3[],
@@ -241,7 +272,16 @@ export function drawAppendage(
   color: string,
 ) {
   const start = stroke[0];
-  if (!start) throw new Error("Start the stroke on a surface.");
+  if (
+    !start ||
+    stroke.length < 2 ||
+    stroke.length > 256 ||
+    !stroke.every((pt) => pt.every(Number.isFinite)) ||
+    !Number.isFinite(radius) ||
+    radius < 0.005 ||
+    radius > 0.6
+  )
+    throw new Error("Draw a visible stroke with a valid radius.");
   const path = new T.CurvePath<T.Vector3>();
   let prev = vector(start);
   for (const pt of stroke.slice(1)) {
@@ -255,6 +295,7 @@ export function drawAppendage(
     throw new Error("Drag farther to draw an appendage.");
   const roles = { Horn: "rigid", Tail: "tail", Fin: "wing", "Walking limb": "thigh" } as const;
   const tips = { Horn: 0.025, Tail: 0.12, Fin: 0.08, "Walking limb": 0.42 };
+  const depths = { Horn: 0.86, Tail: 0.96, Fin: 0.22, "Walking limb": 0.9 };
   const count = T.MathUtils.clamp(
     Math.ceil(path.getLength() / Math.max(0.03, radius * 0.8)),
     3,
@@ -263,8 +304,8 @@ export function drawAppendage(
   const knots: Knot[] = Array.from({ length: count }, (_, i) => {
     const t = i / (count - 1),
       v = path.getPoint(t).sub(vector(start)),
-      r = radius * T.MathUtils.lerp(1, tips[kind], t);
-    return [v.x, v.y, v.z, r, Math.max(0.0005, r * (kind === "Fin" ? 0.22 : 0.9))];
+      r = radius * T.MathUtils.lerp(1, tips[kind], t ** 1.05);
+    return [v.x, v.y, v.z, r, r * depths[kind]];
   });
   const part = addDetail(p, "sweep");
   return {
@@ -274,6 +315,9 @@ export function drawAppendage(
     position: start,
     features: {
       ...part.features,
+      ...(creatureBlend.read(p.features)
+        ? { [creatureBlend.id]: p.features[creatureBlend.id] ?? {} }
+        : {}),
       [figureSweep.id]: figureSweep.json({ knots }),
       [motionRole.id]: motionRole.json({ role: roles[kind] }),
     },
@@ -283,7 +327,7 @@ type PlateLayout = Pick<
   PlateField,
   "rows" | "columns" | "face" | "start" | "end" | "wrap" | "overlap" | "crest"
 >;
-function plateLayout(p: Part, shape: PlateLayout) {
+function plateLayout(p: Part, shape: PlateLayout, paintedRows = false) {
   const { rows, columns, face } = shape;
   const sites = new Map<
     string,
@@ -308,7 +352,7 @@ function plateLayout(p: Part, shape: PlateLayout) {
   for (let row = 0; row < rows; row++) {
     const t = shape.start + ((shape.end - shape.start) * row) / (rows - 1),
       centre = path.getPoint(t),
-      along = path.getTangent(t);
+      along = paintedRows ? new T.Vector3(0, 1, 0) : path.getTangent(t);
     const axis = vector(directions[face]);
     if (Math.abs(axis.dot(along)) > 0.98) axis.set(0, 0, 1);
     if (Math.abs(axis.dot(along)) > 0.98) axis.set(1, 0, 0);
@@ -361,6 +405,7 @@ export function arrangePlates(
     overlap: 0.25,
     crest: 0.5,
   },
+  repeatWidth?: number,
 ) {
   const p = doc.parts.find((part) => part.id === carrierId);
   if (!p) throw new Error("Select a plate carrier.");
@@ -393,7 +438,8 @@ export function arrangePlates(
         }),
       ),
     );
-  for (const [key, site] of plateLayout(p, { rows, columns, face, ...shape })) {
+  const fitted = !field && Boolean(figurePaint.read(p.features));
+  for (const [key, site] of plateLayout(p, { rows, columns, face, ...shape }, fitted)) {
     const { row, col, position, rotation, size } = site,
       transform = { position, rotation, size, color };
     const previous = field && existing.get(key),
@@ -421,15 +467,32 @@ export function arrangePlates(
       });
       continue;
     }
+    if (!field && repeatWidth !== undefined) {
+      const width = repeatWidth * (0.8 + (0.2 * row) / (rows - 1));
+      transform.size = [width, width * 1.18, width * 0.34];
+      transform.rotation = quatNormalize(
+        new T.Quaternion(...rotation)
+          .multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(1, 0, 0), -0.15))
+          .toArray(),
+      );
+    }
     const plate = addDetail(p, field ? "cage" : "scute");
     ops.push({
       op: "part.add",
       part: {
         ...plate,
         ...transform,
+        ...(fitted ? { color: "#f9f5e9" } : {}),
         label: (field ? "Field plate " : "Spine plate ") + (row + 1) + "." + (col + 1),
         features: {
           ...plate.features,
+          ...(fitted
+            ? {
+                [figureScute.id]: figureScute.json({
+                  mount: { position, rotation: transform.rotation, size: transform.size },
+                }),
+              }
+            : {}),
           [figureFinish.id]: figureFinish.json({ surface: field ? "horn" : "scales" }),
           ...(field
             ? {

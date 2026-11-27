@@ -25,32 +25,83 @@ function ownedMeshes(object: T.Object3D, visit: (mesh: T.Mesh) => void, first = 
   for (const child of object.children) ownedMeshes(child, visit, false);
 }
 
-export function pullSurface(
-  root: T.Object3D,
-  pulls: ReadonlyArray<SurfacePull>,
-  replaced?: (original: T.BufferGeometry, copy: T.BufferGeometry) => void,
-): void {
-  if (!pulls.length) return;
+export function mirrorCentre(root: T.Object3D) {
   root.updateWorldMatrix(true, true);
   const inverse = root.matrixWorld.clone().invert();
-  const v = new T.Vector3();
+  const bounds = new T.Box3(),
+    v = new T.Vector3();
   ownedMeshes(root, (mesh) => {
     const local = inverse.clone().multiply(mesh.matrixWorld);
-    const back = local.clone().invert();
-    const original = mesh.geometry;
-    const geometry = original.clone();
-    mesh.geometry = geometry;
-    replaced?.(original, geometry);
-    const pos = geometry.getAttribute("position");
-    for (let i = 0; i < pos.count; i++) {
-      v.fromBufferAttribute(pos, i).applyMatrix4(local);
-      for (const pull of pulls) pullPoint(v, pull);
-      v.applyMatrix4(back);
-      pos.setXYZ(i, v.x, v.y, v.z);
-    }
-    pos.needsUpdate = true;
-    geometry.computeVertexNormals();
-    geometry.computeBoundingBox();
-    geometry.computeBoundingSphere();
+    const positions = mesh.geometry.getAttribute("position");
+    for (let i = 0; i < positions.count; i++)
+      bounds.expandByPoint(v.fromBufferAttribute(positions, i).applyMatrix4(local));
   });
+  return bounds.getCenter(v).x;
+}
+
+function pullGeometry(
+  root: T.Object3D,
+  replaced?: (original: T.BufferGeometry, copy: T.BufferGeometry) => void,
+) {
+  root.updateWorldMatrix(true, true);
+  const inverse = root.matrixWorld.clone().invert();
+  const records: {
+    mesh: T.Mesh;
+    original: T.BufferGeometry;
+    geometry: T.BufferGeometry;
+    local: T.Matrix4;
+    back: T.Matrix4;
+  }[] = [];
+  ownedMeshes(root, (mesh) => {
+    const original = mesh.geometry,
+      geometry = original.clone(),
+      local = inverse.clone().multiply(mesh.matrixWorld);
+    mesh.geometry = geometry;
+    records.push({ mesh, original, geometry, local, back: local.clone().invert() });
+  });
+  const v = new T.Vector3();
+  return {
+    apply(pulls: readonly SurfacePull[]) {
+      for (const { original, geometry, local, back } of records) {
+        const rest = original.getAttribute("position"),
+          pos = geometry.getAttribute("position");
+        for (let i = 0; i < pos.count; i++) {
+          v.fromBufferAttribute(rest, i).applyMatrix4(local);
+          for (const field of pulls) pullPoint(v, field);
+          v.applyMatrix4(back);
+          pos.setXYZ(i, v.x, v.y, v.z);
+        }
+        pos.needsUpdate = true;
+        geometry.computeVertexNormals();
+        geometry.computeBoundingBox();
+        geometry.computeBoundingSphere();
+      }
+    },
+    keep() {
+      for (const { original, geometry } of records) replaced?.(original, geometry);
+    },
+    restore() {
+      for (const { mesh, original, geometry } of records) {
+        mesh.geometry = original;
+        geometry.dispose();
+      }
+    },
+  };
+}
+export function previewPull(root: T.Object3D) {
+  const preview = pullGeometry(root);
+  return {
+    restore: () => preview.restore(),
+    apply: (field: SurfacePull) => preview.apply([field]),
+  };
+}
+export function pullSurface(
+  root: T.Object3D,
+  pulls: readonly SurfacePull[],
+  replaced?: (original: T.BufferGeometry, copy: T.BufferGeometry) => void,
+) {
+  if (!pulls.length) return;
+  const work = pullGeometry(root, replaced);
+  work.apply(pulls);
+  work.keep();
 }

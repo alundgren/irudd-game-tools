@@ -9,6 +9,8 @@ export * from "./wardrobe.js";
 export * from "./garments.js";
 export * from "./surface-edit.js";
 export * from "./shape-tools.js";
+export { mirrorCentre, previewPull } from "./surfaces/pull.js";
+export * from "./place-branch.js";
 export { fitSweptHand } from "./surfaces/fit-hand.js";
 export { fitPaintedEyes } from "./surfaces/eyes.js";
 export { expeditionAtlas, regionFit, type RegionFit } from "./dress.js";
@@ -45,3 +47,5 @@ export { skinCharacter, type Region, type Rig } from "./rig/skin.js";
 export { codeNotices, type CodeNotice } from "./notices.js";
 export { repaintOperations, RepaintError } from "./paint/repaint.js";
 export { inspectGlb, type GlbSummary, type ImageSummary, type MaterialSummary } from "./inspect.js";
+
+export { startSkinStroke, skinMeshData } from "./human/brush-preview.js";

@@ -1,6 +1,10 @@
 import * as T from "three";
+import type { FigureScute, Knot } from "@irudd/document";
 
-export function scuteGeometry(): T.BufferGeometry {
+export function scuteGeometry(
+  mount?: FigureScute["mount"],
+  knots?: readonly Knot[],
+): T.BufferGeometry {
   const pos: number[] = [];
   const uv: number[] = [];
   const idx: number[] = [];
@@ -36,6 +40,43 @@ export function scuteGeometry(): T.BufferGeometry {
   g.setAttribute("position", new T.Float32BufferAttribute(pos, 3));
   g.setAttribute("uv", new T.Float32BufferAttribute(uv, 2));
   g.setIndex(idx);
+  if (mount && knots && knots.length >= 2) {
+    const frame = new T.Matrix4().compose(
+      new T.Vector3(...mount.position),
+      new T.Quaternion(...mount.rotation),
+      new T.Vector3(...mount.size),
+    );
+    const inverse = frame.clone().invert(),
+      v = new T.Vector3(),
+      normal = new T.Vector3();
+    const points = g.getAttribute("position"),
+      coords = g.getAttribute("uv");
+    for (let i = 0; i < points.count; i++) {
+      v.fromBufferAttribute(points, i);
+      const lift = (v.z - 0.09) * mount.size[2] + 0.003;
+      v.applyMatrix4(frame);
+      let k = 1;
+      while (k < knots.length - 1 && (knots[k]?.[1] ?? v.y) < v.y) k++;
+      const a = knots[k - 1],
+        b = knots[k];
+      if (!a || !b) continue;
+      const t = a[1] === b[1] ? 0 : T.MathUtils.clamp((v.y - a[1]) / (b[1] - a[1]), 0, 1);
+      const sample = (j: 0 | 2 | 3 | 4) => T.MathUtils.lerp(a[j], b[j], t);
+      const cx = sample(0),
+        cz = sample(2),
+        w = sample(3),
+        d = sample(4);
+      const angle = Math.atan2(-(v.z - cz) / d, (v.x - cx) / w),
+        co = Math.cos(angle),
+        si = Math.sin(angle);
+      normal.set(co / w, 0, -si / d).normalize();
+      v.set(cx + w * co, v.y, cz - d * si)
+        .addScaledVector(normal, lift)
+        .applyMatrix4(inverse);
+      points.setXYZ(i, v.x, v.y, v.z);
+      coords.setXY(i, (angle / (2 * Math.PI) + 1) % 1, (k - 1 + t) / (knots.length - 1));
+    }
+  }
   g.computeVertexNormals();
   return g;
 }

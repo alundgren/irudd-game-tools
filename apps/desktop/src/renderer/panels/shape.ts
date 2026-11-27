@@ -1,8 +1,10 @@
 import {
   arrangePlates,
   branchKinds,
+  branchStroke,
   cageFace,
-  drawAppendage,
+  drawBranches,
+  placeBranch,
   faceAxes,
   drapeSweep,
   foldCloth,
@@ -17,6 +19,9 @@ import {
 } from "@irudd/character";
 import {
   buildAxes,
+  descendants,
+  humanCorrections,
+  jsonEqual,
   figureAnatomy,
   figureBuild,
   figureCage,
@@ -28,7 +33,6 @@ import {
   figureSweep,
   plateFaces,
   type CharacterDocument,
-  type Part,
   type Vec3,
 } from "@irudd/document";
 import { byId, el } from "../dom.js";
@@ -45,6 +49,8 @@ const modes = [
   "Spine",
   "Cage",
   "Pull",
+  "Sculpt skin",
+  "Place branch",
   "Draw",
   "Mark",
 ] as const;
@@ -72,8 +78,52 @@ export function mountShape(
   let active:
     | { id: number; move: (e: PointerEvent) => void; finish: (e: PointerEvent) => void }
     | undefined;
+  let brushFrame = 0;
   let trace: HTMLCanvasElement | undefined;
+  let restore: (() => void) | undefined, hover: ((e: PointerEvent) => void) | undefined;
+  let placementClick: ((e: PointerEvent) => void) | undefined;
+  let placementDown: { id: number; x: number; y: number } | undefined;
+  let pin: { source: string; world: Vec3; revision: number } | undefined;
+  const settings = new Map<string, string>();
+  const ring = el("div", { className: "skin-brush-ring" });
+  canvas.addEventListener("pointerleave", () => {
+    if (!active) ring.hidden = true;
+  });
+  canvas.addEventListener(
+    "pointerdown",
+    (e) => {
+      if (placementClick && e.isPrimary && e.button === 0)
+        placementDown = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    },
+    true,
+  );
+  canvas.addEventListener(
+    "pointerup",
+    (e) => {
+      const down = placementDown;
+      placementDown = undefined;
+      if (
+        placementClick &&
+        down?.id === e.pointerId &&
+        Math.hypot(e.clientX - down.x, e.clientY - down.y) < 5
+      ) {
+        e.preventDefault();
+        try {
+          placementClick(e);
+        } catch (err) {
+          ctx.showBanner("error", failure(err));
+        }
+      }
+    },
+    true,
+  );
   function stop() {
+    cancelAnimationFrame(brushFrame);
+    brushFrame = 0;
+    restore?.();
+    restore = undefined;
+    viewport.request();
+    ring.hidden = true;
     trace?.remove();
     trace = undefined;
     if (active && canvas.hasPointerCapture(active.id)) canvas.releasePointerCapture(active.id);
@@ -87,8 +137,13 @@ export function mountShape(
     "pointerdown",
     (e) => {
       if (e.button === 0 && !pending && !active && startStroke && !viewport.motion) {
-        intercept(e);
-        startStroke(e);
+        try {
+          startStroke(e);
+        } catch (err) {
+          stop();
+          ctx.showBanner("error", failure(err));
+        }
+        if (active) intercept(e);
       }
     },
     true,
@@ -99,7 +154,7 @@ export function mountShape(
       if (active?.id === e.pointerId) {
         intercept(e);
         active.move(e);
-      }
+      } else hover?.(e);
     },
     true,
   );
@@ -109,16 +164,31 @@ export function mountShape(
       if (active?.id === e.pointerId) {
         intercept(e);
         const finish = active.finish;
-        stop();
-        finish(e);
+        try {
+          finish(e);
+        } catch (err) {
+          ctx.showBanner("error", failure(err));
+        } finally {
+          stop();
+        }
       }
     },
     true,
   );
-  canvas.addEventListener("pointercancel", stop, true);
+  canvas.addEventListener(
+    "pointercancel",
+    (e) => {
+      if (placementDown?.id === e.pointerId) placementDown = undefined;
+      if (active?.id === e.pointerId) stop();
+    },
+    true,
+  );
   let lastId: string | undefined;
   function render() {
     stop();
+    if (placementDown) placementDown = undefined;
+    hover = undefined;
+    placementClick = undefined;
     startStroke = undefined;
     overlay.replaceChildren();
     projectHandle = [];
@@ -127,7 +197,12 @@ export function mountShape(
       request++;
       mode = "Select";
       donor = undefined;
+      pin = undefined;
       lastId = doc?.id;
+    }
+    if ((!panel.open || viewport.motion) && (mode === "Place branch" || mode === "Sculpt skin")) {
+      pin = undefined;
+      mode = "Select";
     }
     panel.hidden = !doc || Boolean(viewport.motion);
     viewport.setLocations(panel.open && !viewport.motion);
@@ -214,9 +289,15 @@ export function mountShape(
       return f;
     };
     const f = section("Edit mode"),
-      m = choices(modes, mode);
+      m = choices(
+        doc.generation?.generator === "irudd.human-adult"
+          ? modes
+          : modes.filter((v) => v !== "Sculpt skin"),
+        mode,
+      );
     f.rows.append(field("Shape mode", m.input));
     m.input.onchange = () => {
+      pin = undefined;
       mode = m.read();
       render();
     };
@@ -306,34 +387,192 @@ export function mountShape(
         }
       } else hint(mode === "Cage" ? "Select a cage part." : "Select a swept part.");
     }
-    if (mode === "Draw" || mode === "Mark" || mode === "Pull") {
-      const tool = mode;
+    function remember() {
+      for (const control of f.rows.querySelectorAll("input,select")) {
+        if (
+          !(control instanceof HTMLInputElement || control instanceof HTMLSelectElement) ||
+          control === m.input
+        )
+          continue;
+        const key = mode + " " + control.getAttribute("aria-label");
+        const value = settings.get(key),
+          check = control instanceof HTMLInputElement && control.type === "checkbox";
+        if (value !== undefined) {
+          if (check) control.checked = value === "true";
+          else control.value = value;
+        }
+        const update = () => settings.set(key, check ? String(control.checked) : control.value);
+        control.addEventListener("change", update);
+        control.addEventListener("input", update);
+      }
+    }
+    const shifted = (v: Vec3, n: Vec3, amount: number): Vec3 => [
+      v[0] + n[0] * amount,
+      v[1] + n[1] * amount,
+      v[2] + n[2] * amount,
+    ];
+    if (mode === "Place branch") {
+      const operation = f.choose(
+          "Placement",
+          ["Copy branch", "Move branch"] as const,
+          "Copy branch",
+        ),
+        scale = f.numeric("Branch size (%)", 100, 10, 400),
+        axis = f.choose("Turn around", ["Surface normal", "View axis"] as const, "Surface normal"),
+        twist = f.numeric("Turn (degrees)", 0, -360, 360),
+        depth = f.numeric("Seat inside surface (mm)", 8, 0, 100);
+      remember();
+      if (pin?.revision !== base.revision) pin = undefined;
       hint(
-        tool === "Mark"
-          ? "Click the model to place the named location."
-          : "Drag from the model surface.",
+        pin
+          ? "Click the receiving surface. Drag to orbit."
+          : p
+            ? "Pick an anchor on " + p.label + " or one of its children."
+            : "Pick an anchor on the branch to place.",
       );
-      const radius =
-        tool !== "Mark"
-          ? f.numeric("Radius (m)", tool === "Pull" ? 0.12 : 0.045, 0.005, 0.6)
-          : () => 0.1;
-      const branch = tool === "Draw" ? f.choose("Appendage", branchKinds, "Horn") : undefined;
-      const colour = tool === "Draw" ? f.color("Branch colour", "#a68861") : undefined;
+      if (pin) {
+        const dot = el("div", { className: "branch-anchor" }),
+          at = pin.world;
+        overlay.append(dot);
+        const project = () => {
+          const [x, y] = viewport.project(at);
+          dot.style.left = x + "px";
+          dot.style.top = y + "px";
+        };
+        projectHandle.push(project);
+        project();
+      }
+      placementClick = (e) => {
+        if (pending) return;
+        const hit = viewport.surfaceHit(e.clientX, e.clientY);
+        const target = hit && ctx.part(hit.id);
+        if (!target || !hit) return ctx.say("Pick a visible surface. Drag empty space to orbit.");
+        if (!pin) {
+          const source = p ?? target;
+          if (!descendants(doc, source.id).has(target.id))
+            return ctx.say("Pick a point on " + source.label + " or a child.");
+          pin = { source: source.id, world: hit.world, revision: base.revision };
+          render();
+          return;
+        }
+        const source = ctx.part(pin.source);
+        if (!source) return;
+        const result = placeBranch(
+          doc,
+          source,
+          target,
+          viewport.branchMatrix(source.id, "object"),
+          viewport.branchMatrix(target.id, "mount"),
+          {
+            anchor: pin.world,
+            point: hit.world,
+            normal: hit.normal,
+            axis: axis() === "View axis" ? viewport.viewAxis() : hit.normal,
+            depth: depth() / 1000,
+            twist: twist(),
+            scale: scale() / 100,
+            copy: operation() === "Copy branch",
+          },
+        );
+        edit(
+          operation(),
+          () => result.ops,
+          () => {
+            pin = undefined;
+            mode = "Select";
+            return result.id;
+          },
+        );
+      };
+    }
+    if (mode === "Draw" || mode === "Mark" || mode === "Pull" || mode === "Sculpt skin") {
+      const tool = mode,
+        skin = tool === "Sculpt skin",
+        pull = tool === "Pull",
+        draw = tool === "Draw";
+      const radius = skin
+        ? f.numeric("Reach (cm)", 6, 2, 16, 1)
+        : pull
+          ? f.numeric("Reach (cm)", 7, 1, 150)
+          : draw
+            ? f.numeric("Radius (m)", 0.06, 0.005, 0.6)
+            : () => 0;
+      const direction = skin
+        ? f.choose(
+            "Drag direction",
+            ["Screen plane", "Normal", "Soften corrections"] as const,
+            "Screen plane",
+          )
+        : pull
+          ? f.choose("Drag direction", ["Screen plane", "Normal"] as const, "Screen plane")
+          : () => "Screen plane";
+      const mirror =
+        tool === "Mark"
+          ? () => false
+          : f.check(pull ? "Mirror across this part" : "Mirror across the character", skin);
+      const branch = draw ? f.choose("Appendage", branchKinds, "Horn") : undefined,
+        colour = draw ? f.color("Branch colour", "#987453") : undefined;
       const name = el("input");
       name.value = "Location";
       if (tool === "Mark") f.rows.append(field("Location name", name));
+      if (skin) {
+        hint("Drag on bare skin. Drag up to raise, down to sink, or across to soften.");
+        f.action("Remove surface corrections", () => {
+          if (!humanCorrections.read(doc.features))
+            return ctx.say("This body has no surface corrections.");
+          edit("Remove surface corrections", () => [
+            { op: "feature.set", feature: humanCorrections.id, value: null },
+          ]);
+        });
+        overlay.append(ring);
+        ring.hidden = true;
+      } else
+        hint(
+          draw
+            ? "Drag from the surface to draw an appendage."
+            : pull
+              ? "Drag the surface. In Normal mode, drag up to raise or down to indent."
+              : "Click the model to place the named location.",
+        );
+      remember();
+      const mark = (world: Vec3, size: number) => {
+        const [x, y] = viewport.project(world);
+        ring.style.left = x + "px";
+        ring.style.top = y + "px";
+        ring.style.width = ring.style.height = (2 * size) / viewport.pixelSize(world) + "px";
+        ring.hidden = false;
+      };
+      if (skin)
+        hover = (e) => {
+          const h = viewport.surfaceHit(e.clientX, e.clientY);
+          if (h?.skin) {
+            try {
+              mark(h.world, radius() / 100);
+            } catch {
+              ring.hidden = true;
+            }
+          } else ring.hidden = true;
+        };
       startStroke = (e) => {
-        const hit = viewport.surfaceHit(e.clientX, e.clientY),
+        const hit = viewport.surfaceHit(e.clientX, e.clientY, tool === "Mark"),
           q = hit && ctx.part(hit.id);
-        if (!hit || !q) {
-          ctx.say("Start on a visible surface.");
-          return;
-        }
-        const path: Vec3[] = [hit.world],
-          at = viewport.partPoint(q.id, hit.world, "local");
+        if (!hit || !q || (skin && !hit.skin)) return;
+        const reach = radius() / (draw ? 1 : 100),
+          sym = mirror(),
+          dragMode = direction();
+        const at = viewport.partPoint(q.id, hit.world, "local"),
+          fieldReach = pull ? viewport.brushReach(q.id, reach) : undefined;
+        const brush = pull ? viewport.partBrush(q.id, sym) : undefined,
+          adult = skin ? viewport.skinBrush(hit, reach, sym) : undefined;
+        restore = () => {
+          brush?.restore();
+          adult?.restore();
+        };
+        if (adult) mark(hit.world, adult.radius);
         canvas.setPointerCapture(e.pointerId);
+        const stroke = draw ? branchStroke(hit.world, hit.normal, reach) : undefined;
         const rect = canvas.getBoundingClientRect();
-        if (tool !== "Mark") {
+        if (draw) {
           trace = el("canvas");
           trace.className = "shape-trace";
           trace.width = canvas.clientWidth;
@@ -347,45 +586,97 @@ export function mountShape(
           line.beginPath();
           line.moveTo(e.clientX - rect.left, e.clientY - rect.top);
         }
+        let delta: Vec3 = [0, 0, 0],
+          fit: ReturnType<typeof humanCorrections.read>;
         const sample = (event: PointerEvent) => {
-          path.push(viewport.planePoint(event.clientX, event.clientY, hit.world));
-          if (line) {
-            line.lineTo(event.clientX - rect.left, event.clientY - rect.top);
-            line.stroke();
+          const plane = viewport.planePoint(event.clientX, event.clientY, hit.world);
+          const end =
+            dragMode === "Normal"
+              ? shifted(
+                  hit.world,
+                  hit.normal,
+                  (e.clientY - event.clientY) * viewport.pixelSize(hit.world),
+                )
+              : plane;
+          const local = viewport.partPoint(q.id, end, "local");
+          if (stroke) {
+            if (stroke.sample(plane)) {
+              line?.lineTo(event.clientX - rect.left, event.clientY - rect.top);
+              line?.stroke();
+            }
+          } else if (brush && fieldReach) {
+            const clamp = (n: number) => Math.min(4, Math.max(-4, n));
+            delta = [clamp(local[0] - at[0]), clamp(local[1] - at[1]), clamp(local[2] - at[2])];
+            brush.apply({
+              at,
+              offset: delta,
+              reach: fieldReach,
+              ...(brush.mirrorX === undefined ? {} : { mirrorX: brush.mirrorX }),
+            });
+          } else if (adult) {
+            delta = [end[0] - hit.world[0], end[1] - hit.world[1], end[2] - hit.world[2]];
+            const share = Math.min(
+              1,
+              Math.hypot(event.clientX - e.clientX, event.clientY - e.clientY) / 140,
+            );
+            fit = adult.apply(
+              dragMode === "Soften corrections"
+                ? share > 0.02
+                  ? share
+                  : 0
+                : Math.hypot(...delta) > 0.0005
+                  ? delta
+                  : [0, 0, 0],
+            );
           }
+          viewport.request();
         };
+        let latest = e;
         active = {
           id: e.pointerId,
-          move: sample,
+          move: (event) => {
+            if (!adult) return sample(event);
+            latest = event;
+            brushFrame ||= requestAnimationFrame(() => {
+              brushFrame = 0;
+              sample(latest);
+            });
+          },
           finish: (event) => {
             sample(event);
-            if (tool === "Mark") {
-              edit("Mark " + name.value, () => [markLocation(q, name.value, at)]);
-              return;
-            }
-            const end = viewport.partPoint(q.id, path.at(-1) ?? hit.world, "local");
-            const delta: Vec3 = [end[0] - at[0], end[1] - at[1], end[2] - at[2]];
-            if (Math.hypot(...delta) < 0.0001) return;
-            if (tool === "Pull")
-              edit("Pull " + q.label, () => [
-                pullPart(q, at, delta, viewport.brushReach(q.id, radius())),
-              ]);
-            else {
-              let child: Part;
-              edit(
-                "Draw appendage",
-                () => {
-                  child = drawAppendage(
-                    q,
-                    path.map((pt) => viewport.partPoint(q.id, pt, "mount")),
-                    branch?.() ?? "Horn",
-                    radius(),
-                    colour?.() ?? q.color,
-                  );
-                  return [{ op: "part.add", part: child }];
-                },
-                () => child.id,
+            if (tool === "Mark")
+              return edit("Mark " + name.value, () => [markLocation(q, name.value, at)]);
+            if (stroke && branch && colour && stroke.points.length > 1) {
+              const parts = drawBranches(
+                doc,
+                q,
+                stroke.points,
+                branch(),
+                reach,
+                colour(),
+                sym,
+                (id) => viewport.branchMatrix(id, "mount"),
               );
+              const first = parts[0];
+              if (first)
+                edit(
+                  "Draw appendage",
+                  () => parts.map((part) => ({ op: "part.add", part })),
+                  () => first.id,
+                );
+            } else if (brush && fieldReach && Math.hypot(...delta) > 0.0001)
+              edit(
+                "Pull " + q.label,
+                () => [pullPart(q, at, delta, fieldReach, brush.mirrorX)],
+                () => q.id,
+              );
+            else if (adult && fit) {
+              const value = fit.controls.length ? humanCorrections.json(fit) : null;
+              if (jsonEqual(doc.features[humanCorrections.id] ?? null, value))
+                return ctx.say("No surface correction changed.");
+              edit("Sculpt " + q.label, () => [
+                { op: "feature.set", feature: humanCorrections.id, value },
+              ]);
             }
           },
         };
@@ -407,6 +698,7 @@ export function mountShape(
         crest = plates.numeric("Crest height", settings?.crest ?? 0.5, 0, 1),
         face = plates.choose("Plate face", plateFaces, settings?.face ?? "Front"),
         color = plates.color("Plate colour", settings?.color ?? "#bcaa84");
+      const width = plates.numeric("Repeated plate width (cm)", 12, 1, 100);
       for (const isField of [true, false]) {
         const title = isField ? "Grow plate field" : "Repeat plates";
         plates.action(title, () =>
@@ -420,6 +712,7 @@ export function mountShape(
               color(),
               isField,
               { start: start(), end: end(), wrap: wrap(), overlap: overlap(), crest: crest() },
+              isField ? undefined : width() / 100,
             ),
           ),
         );

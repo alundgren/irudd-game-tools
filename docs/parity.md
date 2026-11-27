@@ -47,6 +47,7 @@ Posture, arm edits and named poses have History entries and travel with the char
 | 7 | Motion |
 | 8a | Shape tools, individual styling and armour |
 | 8b | Portraits, references, artwork and files |
+| 9-1 | Surface sculpting and branch placement |
 
 | # | Feature | Desktop status | Phase |
 | --- | --- | --- | --- |
@@ -56,8 +57,8 @@ Posture, arm edits and named poses have History entries and travel with the char
 | 4 | Adjust an adult body measurement by region | done | 2 |
 | 5 | Reroll the body, face, limbs or portrait | done | 2 |
 | 6 | Fit a character to a 3D reference | partly (upright OBJ and embedded GLB body fit) | 8b |
-| 7 | Sculpt on the model by pulling its surface | partly (local surface pulls, including adult regions) | 8a |
-| 8 | Draw an appendage or place a branch | partly (drawn branches) | 8a |
+| 7 | Sculpt on the model by pulling its surface | done | 9-1 |
+| 8 | Draw an appendage or place a branch | done | 9-1 |
 | 9 | Protect selected parts during AI edits | done | 3 |
 | 10 | Frame the selected part or the whole character | done | 1 |
 | 11 | Switch between the current outfit and the base shape | done | 2 |
@@ -131,13 +132,21 @@ Run the packaged `qa:character` check after changing the rig, animation tracks o
 
 Open **Properties** and expand **Shape tools**. Face and Build change figure proportions. Cloth adjusts the folds and opening of a sweep or the cut of a garment. Select a swept part or control cage to drag its points. Cage faces support inset, extrusion, crease and tunnel operations.
 
-In Pull mode, drag the surface to move nearby geometry. Draw starts a horn, tail, fin or walking limb at the point where the stroke touches the model. Placing an existing branch by picking its source and destination anchors still requires the browser. In Mark mode, click to place a named location. Enter the same name on the same part to move it. Under **Spine plates**, set the run, coverage, spacing and colour to grow editable cage plates or repeat scutes.
+Use **Pull** to shape one part, or **Sculpt skin** to brush across connected regions of an adult. Adjust the reach in centimetres and choose whether to mirror the stroke. Drag in the screen plane or use **Normal** and drag up to raise or down to indent. **Soften corrections** reduces earlier skin edits under the brush. **Remove surface corrections** restores the measured adult surface.
+
+In **Draw**, choose a horn, tail, fin or walking limb, set its radius and colour, then drag outward from the model. Mirroring adds its twin on the opposite side. In **Place branch**, pick an anchor on the selected branch or one of its children, then click its destination. With the selection cleared, the first click chooses the source. Choose **Copy branch** or **Move branch** and adjust size, turn axis, angle and seating depth before the second click.
+
+In Mark mode, click to place a named location. Enter the same name on the same part to move it. Under **Spine plates**, set the run, coverage, spacing and colour to grow editable cage plates or repeat scutes.
 
 **World scale** measures the visible character in metres. Pin a height, switch characters or set a new height to see both figures at the same scale. To graft a branch, open the saved source and destination in one project, select the destination part and choose the source character and part.
 
-The pull brush works within a single part. The browser's connected-skin adult brush also follows neighbouring body regions. Plate fields support placement, crest height and overlap. Individual random tip variants remain open. Adjusting a field preserves edits on its surviving plates. Armour layers support fit and finish controls. The browser's embossed devices, asymmetric armour variants and specialised cuts remain open. Grafting supports independent part hierarchies. Native adult rig regions depend on their original body generator.
+Plate fields support placement, crest height and overlap. Individual random tip variants remain open. Adjusting a field preserves edits on its surviving plates. Armour layers support fit and finish controls. The browser's embossed devices, asymmetric armour variants and specialised cuts remain open. Grafting supports independent part hierarchies. Native adult rig regions depend on their original body generator.
 
 The packaged `qa:character` check uses real pointer strokes and control-point drags, compares the rendered results, undoes and redoes a plate arrangement, and reopens the saved studies in a fresh project. The shape sequence took 3 minutes 19 seconds on the first run and 3 minutes 11 seconds on repeat on an RTX 5070 Ti. Its before and after images and contact sheet are in `.reference-cache/phase8a/`.
+
+Build the browser workshop with `pnpm build`, then build the desktop app with `pnpm --filter @irudd/desktop build`. Run `pnpm --filter @irudd/desktop qa:shape-parity` after changing surface pulls, connected adult skin, appendages or branch placement. It uses hardware WebGL in Chrome and Electron, exercises matched pointer gestures on the same character and checks one-step undo, redo and character-file reopening. Its before-and-after comparisons use fixed cameras and magnify the most changed area in each render. Find the comparisons and contact sheet in `.reference-cache/phase9-1/`. On the conductor, changing the jaw moved vertices by 15.6 mm, changing body mass moved them by 57.3 mm and dragging a cape corner moved them by 120 mm in both workshops. Repeating four rows of three plates added twelve visible scutes to the forearm. The repeated plate width is adjustable in centimetres. Plates mounted on a painted sweep refit to the carrier and pick up its paint when moved.
+
+For a focused GPU check, append a group name such as `mirroredAttachments` to the QA command. This group catches a mirrored appendage attaching to the wrong forearm. On an RTX 5070 Ti the exercise took 46 seconds cold and 45 seconds warm (59 and 65 seconds including startup and reopening). [Behavior checklist and screenshot filenames](shape-parity-checklist.md)
 
 ### Portraits, artwork and files
 
@@ -152,7 +161,6 @@ Run `qa:portraits` and `qa:art` in `apps/desktop` after changing these workflows
 ### Remaining parity gaps
 
 - **6 and 15**. Body fitting adjusts stature and build from an upright reference. Registered neutral meshes, per-vertex head transfer and imported head families still require the browser.
-- **7 and 8**. The pull brush affects one part. Connected adult sculpting and placing an existing branch between picked anchors remain open.
 - **14 and 17**. Individual styling has a smaller accessory catalogue. Embossed devices, asymmetric armour and specialised garment cuts remain open.
 - **38 and 64**. Plate fields lack individual random tip variants. Grafting handles independent branches, while native adult rig regions depend on the source generator.
 - **57 and 59**. Scalp-only and isolated wearable artwork requests lack dedicated desktop actions. The game inspection shows the current revision. Cross-proposal export and coverage comparisons remain open.

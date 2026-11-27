@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import * as T from "three";
+import { correctedSurface, skinStroke } from "../src/human/brush.js";
+import { humanCorrections } from "@irudd/document";
 import { humanRegions, humanWeightsOf } from "../src/human/mesh.js";
 import { referenceGlb } from "../src/reference-glb.js";
 import { fittedAccessories } from "../src/human/dress/accessories.js";
@@ -251,4 +253,52 @@ test("native face families, fitted accessories and individual armour use the sel
     assert.ok(made.parts.length >= 2);
     assert.ok(made.parts.every((p) => p.piece.count > 0 && p.piece.pos.every(Number.isFinite)));
   }
+});
+
+test("connected corrections follow touching regions, preserve separated surfaces, mirror, soften and clear", () => {
+  const bare = evaluateHuman(body, { stance: 1 }),
+    position = (i: number) => new T.Vector3().fromArray(bare.positions, 3 * i);
+  const nearest = (at: T.Vector3) => {
+    let id = 0,
+      d = Infinity;
+    for (let v = 0; v < bare.bodyVertices; v++) {
+      const n = position(v).distanceToSquared(at);
+      if (n < d) {
+        d = n;
+        id = v;
+      }
+    }
+    return id;
+  };
+  const seed = nearest(new T.Vector3(0.06, 1.54, 0.09)),
+    at = position(seed);
+  const single = skinStroke(body, bare, undefined, [seed], at.toArray(), 0.07, false);
+  const mirror = skinStroke(body, bare, undefined, [seed], at.toArray(), 0.07, true);
+  const fit = mirror.apply([0.05, 0, 0.02]),
+    one = single.apply([0.05, 0, 0.02]);
+  assert.ok(fit.controls.length > one.controls.length);
+  assert.deepEqual(
+    humanCorrections.read({ [humanCorrections.id]: humanCorrections.json(fit) }),
+    fit,
+  );
+  const changed = correctedSurface(body, bare, fit);
+  const moved = (i: number) =>
+    new T.Vector3().fromArray(changed.positions, i * 3).distanceTo(position(i));
+  assert.ok(moved(seed) > 0.006);
+  assert.ok(moved(nearest(new T.Vector3(-at.x, at.y, at.z))) > 0.005);
+  assert.equal(moved(nearest(new T.Vector3(0, 0.6, 0))), 0);
+  const soften = skinStroke(
+    body,
+    changed,
+    fit,
+    [seed],
+    new T.Vector3().fromArray(changed.positions, seed * 3).toArray(),
+    0.16,
+    true,
+  ).apply(1);
+  const energy = (rows: typeof fit.controls) =>
+    rows.reduce((a, [, x, y, z]) => a + x * x + y * y + z * z, 0);
+  assert.ok(energy(soften.controls) < energy(fit.controls));
+  assert.deepEqual(single.apply(1), { controls: [] });
+  assert.equal(correctedSurface(body, bare, undefined), bare);
 });

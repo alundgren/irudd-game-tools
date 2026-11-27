@@ -4,6 +4,10 @@ import { TransformControls } from "three/addons/controls/TransformControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import {
   buildCharacter,
+  previewPull,
+  mirrorCentre,
+  startSkinStroke,
+  skinMeshData,
   MotionPreview,
   skinCharacter,
   armChains,
@@ -22,6 +26,7 @@ import {
 import type { HumanBody } from "@irudd/character/human";
 import {
   figureLocations,
+  humanCorrections,
   worldDeltaInParent,
   type CharacterDocument,
   type Registry,
@@ -217,7 +222,7 @@ export class EditorViewport {
     canvas.addEventListener("pointerup", (e) => {
       const start = pressed;
       pressed = undefined;
-      if (!start || this.gizmo.dragging) return;
+      if (!start || e.defaultPrevented || this.gizmo.dragging) return;
       if (Math.hypot(e.clientX - start[0], e.clientY - start[1]) > 4) return;
       if (this.motion) {
         if (this.joints?.visible && !this.gizmo.axis) this.pickJoint(e.clientX, e.clientY);
@@ -510,14 +515,25 @@ export class EditorViewport {
     return ray;
   }
 
-  surfaceHit(x: number, y: number) {
+  surfaceHit(x: number, y: number, blendedOwner = true) {
     if (!this.built || this.motion) return;
     const meshes: T.Mesh[] = [];
     this.built.group.traverseVisible((n) => {
       if (isMesh(n)) meshes.push(n);
     });
     for (const hit of this.pointerRay(x, y).intersectObjects(meshes, false)) {
-      const owners = isMesh(hit.object) && this.built.blendOwners.get(hit.object);
+      if (!hit.face) continue;
+      const contact = {
+        world: hit.point.toArray(),
+        normal: hit.face.normal
+          .clone()
+          .applyNormalMatrix(new T.Matrix3().getNormalMatrix(hit.object.matrixWorld))
+          .toArray(),
+        mesh: hit.object,
+        face: hit.faceIndex ?? 0,
+        skin: skinMeshData.has(hit.object),
+      };
+      const owners = blendedOwner && isMesh(hit.object) && this.built.blendOwners.get(hit.object);
       if (owners && hit.face) {
         const scores = new Map<string, number>();
         for (const vertex of [hit.face.a, hit.face.b, hit.face.c]) {
@@ -531,11 +547,11 @@ export class EditorViewport {
           }
         }
         const id = [...scores].sort((a, b) => b[1] - a[1])[0]?.[0];
-        if (id) return { id, world: hit.point.toArray() };
+        if (id) return { id, ...contact };
       }
       for (let n: T.Object3D | null = hit.object; n; n = n.parent) {
         const id: unknown = n.userData["partId"];
-        if (typeof id === "string") return { id, world: hit.point.toArray() };
+        if (typeof id === "string") return { id, ...contact };
       }
     }
     return;
@@ -566,10 +582,48 @@ export class EditorViewport {
     ).toArray();
   }
 
+  branchMatrix(id: string, kind: "object" | "mount") {
+    const node = this.built?.parts.get(id)?.[kind];
+    if (!node) throw new Error("Choose a visible branch.");
+    node.updateWorldMatrix(true, false);
+    return node.matrixWorld.clone();
+  }
+  viewAxis() {
+    return this.camera.getWorldDirection(new T.Vector3()).negate().toArray();
+  }
+  pixelSize(world: Vec3) {
+    const cameraPoint = new T.Vector3(...world).applyMatrix4(this.camera.matrixWorldInverse);
+    return (
+      (-2 * cameraPoint.z * Math.tan(T.MathUtils.degToRad(this.camera.fov / 2))) /
+      this.renderer.domElement.clientHeight
+    );
+  }
+  skinBrush(
+    hit: NonNullable<ReturnType<EditorViewport["surfaceHit"]>>,
+    reach: number,
+    mirror: boolean,
+  ) {
+    if (!this.built || !this.doc) throw new Error("Choose an adult body.");
+    return startSkinStroke(
+      this.built.group,
+      hit.mesh,
+      hit.face,
+      hit.world,
+      humanCorrections.read(this.doc.features),
+      reach,
+      mirror,
+    );
+  }
+  partBrush(id: string, mirror: boolean) {
+    const node = this.built?.parts.get(id)?.object;
+    if (!node) throw new Error("Choose a visible part.");
+    return { ...previewPull(node), mirrorX: mirror ? mirrorCentre(node) : undefined };
+  }
   brushReach(id: string, metres: number): Vec3 {
     const s =
       this.built?.parts.get(id)?.object.getWorldScale(new T.Vector3()) ?? new T.Vector3(1, 1, 1);
-    return [metres / s.x, metres / s.y, metres / s.z];
+    const radius = (axis: number) => T.MathUtils.clamp(metres / Math.abs(axis), 0.001, 20);
+    return [radius(s.x), radius(s.y), radius(s.z)];
   }
 
   graftPoint(id: string): Vec3 {

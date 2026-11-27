@@ -1,5 +1,12 @@
 import * as T from "three";
-import { decodeWith, finishes, type CharacterDocument, type Finish } from "@irudd/document";
+import {
+  humanCorrections,
+  humanRegionCopy,
+  decodeWith,
+  finishes,
+  type CharacterDocument,
+  type Finish,
+} from "@irudd/document";
 import { isMesh } from "../mesh.js";
 import { buildView, type BuildPart, type BuildView } from "../view.js";
 import type { HumanBody } from "./body.js";
@@ -83,11 +90,14 @@ export function buildHuman(
   const colors = new Map<BoneName, string>();
   const regionParts: BuildPart[] = [];
   for (const part of view.parts) {
-    const slot = doc.parts.find((p) => p.id === part.id)?.slot;
+    const source = doc.parts.find((p) => p.id === part.id);
+    const copied = source && humanRegionCopy.read(source.features);
+    const slot = source?.slot ?? copied?.slot;
     const bone = slot === undefined ? undefined : humanSlotBone(slot);
-    if (!bone || colors.has(bone)) continue;
+    if (!bone && copied) throw new Error("Unknown copied adult region " + copied.slot + ".");
+    if (!bone) continue;
     bones.set(part.id, bone);
-    colors.set(bone, part.color);
+    if (!copied) colors.set(bone, part.color);
     regionParts.push({ ...part, motion: humanRole(bone) });
   }
   const order = (p: BuildPart) => boneNames.indexOf(bones.get(p.id) ?? "head");
@@ -130,7 +140,7 @@ export function buildHuman(
     throw new Error(
       `A native portrait layer belongs on the adult's head, not ${unregioned.label}.`,
     );
-  const member = portrait ? null : humanWornCast(params, regionParts.length);
+  const member = portrait ? null : humanWornCast(params, colors.size);
   const uniform =
     params.outfit === "Base layer"
       ? "Running kit"
@@ -162,6 +172,7 @@ export function buildHuman(
   const regions = humanRegions(body, measurements, (bone) => colors.get(bone) ?? params.skin, {
     material: (color) => options.materials(color, "plain"),
     dressMaterial,
+    corrections: humanCorrections.read(doc.features),
     studio:
       params.style.faceFamily === "Studio Rain"
         ? {
