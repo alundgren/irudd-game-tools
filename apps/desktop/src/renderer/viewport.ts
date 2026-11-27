@@ -61,6 +61,7 @@ export type DisplayMode = (typeof displayModes)[number];
 
 const directions = {
   front: new T.Vector3(0, 0, 1),
+  portrait: new T.Vector3(-2.06, 0, 4.33).normalize(),
   side: new T.Vector3(1, 0, 0),
   back: new T.Vector3(0, 0, -1),
   threequarter: new T.Vector3(0.62, 0.35, 1).normalize(),
@@ -1040,6 +1041,7 @@ export class EditorViewport {
     if (view !== "current") {
       const along = {
         front: new T.Vector3(0, 0, 1),
+        portrait: new T.Vector3(-2.06, 0, 4.33).normalize(),
         side: new T.Vector3(1, 0, 0),
         back: new T.Vector3(0, 0, -1),
       }[view];

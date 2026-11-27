@@ -5,6 +5,7 @@ import {
   dialog,
   ipcMain,
   session,
+  shell,
   type IpcMainInvokeEvent,
 } from "electron";
 import { referenceModels } from "../shared/reference-models.js";
@@ -49,6 +50,8 @@ const { values: args } = parseArgs({
   args: process.argv.slice(app.isPackaged ? 1 : 2),
   options: {
     project: { type: "string" },
+    study: { type: "string" },
+    compare: { type: "string" },
     create: { type: "boolean", default: false },
     hidden: { type: "boolean", default: false },
     "user-data": { type: "string" },
@@ -269,8 +272,30 @@ function relaunchArgs(): string[] {
   return link && !untitled ? [...kept, "--project", link.directory] : kept;
 }
 
+let sources: ReadonlySet<string> | undefined;
+function studySources(): ReadonlySet<string> {
+  if (sources) return sources;
+  const found = new Set<string>();
+  try {
+    const studies: unknown = JSON.parse(
+      fs.readFileSync(path.join(dist, "renderer", "studies.json"), "utf8"),
+    );
+    if (Array.isArray(studies))
+      for (const study of studies) {
+        const source: unknown = study && typeof study === "object" && Reflect.get(study, "source");
+        if (typeof source === "string" && source.startsWith("https://")) found.add(source);
+      }
+  } catch {
+    found.clear();
+  }
+  sources = found;
+  return found;
+}
+
 function trusted(event: IpcMainInvokeEvent): boolean {
-  return event.senderFrame?.url === rendererUrl && event.sender === window?.webContents;
+  return (
+    event.senderFrame?.url.split("#")[0] === rendererUrl && event.sender === window?.webContents
+  );
 }
 
 function handle(channel: string, run: (...args: unknown[]) => unknown): void {
@@ -551,12 +576,47 @@ function createWindow(): BrowserWindow {
   });
   const icon = path.join(path.dirname(dist), "icon.ico");
   if (fs.existsSync(icon)) win.setIcon(icon);
-  win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (win.webContents.getURL().split("#")[0] === rendererUrl) {
+      if (studySources().has(url)) void shell.openExternal(url);
+      const rig = path.join(dist, "renderer", "rig-study.html");
+      if (url === pathToFileURL(rig).href && fs.existsSync(rig)) {
+        const compare = new BrowserWindow({
+          width: 1280,
+          height: 900,
+          parent: win,
+          show: !hidden,
+          paintWhenInitiallyHidden: true,
+          webPreferences: {
+            sandbox: true,
+            contextIsolation: true,
+            nodeIntegration: false,
+            webSecurity: true,
+          },
+        });
+        compare.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+        compare.webContents.on("will-navigate", (e) => {
+          e.preventDefault();
+          if (e.url === new URL("character-view.html#study=mhr-torso", pathToFileURL(rig)).href) {
+            win.webContents.send(channels.torsoStudy);
+            compare.close();
+            if (!hidden) win.focus();
+          } else if (e.url === "https://github.com/facebookresearch/MHR")
+            void shell.openExternal(e.url);
+        });
+        void compare.loadFile(rig);
+      }
+    }
+    return { action: "deny" };
+  });
   win.webContents.on("will-navigate", (event) => event.preventDefault());
   win.once("ready-to-show", () => {
     if (!hidden) win.show();
   });
-  void win.loadFile(rendererPage);
+  const hash = new URLSearchParams();
+  if (typeof args.study === "string") hash.set("study", args.study);
+  if (args.compare === "3d") hash.set("compare", "3d");
+  void win.loadFile(rendererPage, hash.size ? { hash: hash.toString() } : {});
   win.on("close", (event) => {
     if (!quitting && !canLeaveProject()) event.preventDefault();
   });

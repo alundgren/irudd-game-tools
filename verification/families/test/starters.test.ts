@@ -24,3 +24,43 @@ test("each starter with a source form is that form's current preparation", () =>
     );
   }
 });
+
+test("a form's surface fit becomes the adult's corrections at its strength", () => {
+  const file = sourceForm("winged-scout");
+  assert.ok(file && typeof file === "object" && "form" in file);
+  const source = file.form;
+  assert.ok(source && typeof source === "object");
+  const fitted = (strength: number) =>
+    prepareForm("winged-scout", {
+      ...file,
+      form: {
+        ...source,
+        humanFit: {
+          version: 1,
+          strength,
+          controls: [
+            [3, 100, -40, 20],
+            [9, 1, 0, 0],
+          ],
+        },
+      },
+    }).document.features["human.surface-corrections"];
+  assert.deepEqual(fitted(1), {
+    controls: [
+      [3, 100, -40, 20],
+      [9, 1, 0, 0],
+    ],
+  });
+  assert.deepEqual(fitted(0.5), {
+    controls: [
+      [3, 50, -20, 10],
+      [9, 1, 0, 0],
+    ],
+  });
+  assert.deepEqual(fitted(0.25), { controls: [[3, 25, -10, 5]] });
+  assert.equal(fitted(0), undefined);
+  assert.throws(
+    () => prepareForm("winged-scout", { ...file, form: { ...source, humanFit: { version: 2 } } }),
+    /humanFit/,
+  );
+});

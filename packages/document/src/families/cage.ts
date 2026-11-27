@@ -13,6 +13,7 @@ export const FigureCage = Schema.Struct({
   faces: Schema.Array(
     Schema.Array(Index).check(Schema.isMinLength(3), Schema.isMaxLength(8)),
   ).check(Schema.isMinLength(1), Schema.isMaxLength(256)),
+  pinna: Schema.optionalKey(Schema.Literal(true)),
   levels: Schema.optionalKey(Schema.Literals([0, 1, 2])),
   creases: Schema.optionalKey(Schema.Array(Schema.Tuple([Index, Index]))),
 }).check(Schema.makeFilter((cage) => cageProblem(cage) ?? true));

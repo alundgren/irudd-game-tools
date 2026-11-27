@@ -90,6 +90,7 @@ export function bridge(): DesktopApi {
       check(await api.openProject(directory), isState, "project state"),
     createProject: async (kind) => check(await api.createProject(kind), isState, "project state"),
     call: async (method, params) => check(await api.call(method, params), isOutcome, "reply"),
+    onTorsoStudy: (listener) => api.onTorsoStudy(listener),
     onCommit: (listener) =>
       api.onCommit((notice) => {
         if (isNotice(notice)) listener(notice);

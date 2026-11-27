@@ -38,6 +38,7 @@ export const paintImageNames: ReadonlyArray<string> = [
   "finish.gloss",
   "finish.lips",
   "clippedBeard",
+  "weatheredScars",
   ...castSkinNames.flatMap((name) => [`cast.${name}.paint`, `cast.${name}.surface`]),
   ...capturedAxes.flatMap((axis) => [`captured.${axis}.paint`, `captured.${axis}.surface`]),
   ...groomNames.flatMap((name) => [`groom.${name}.texture`, `groom.${name}.normal`]),

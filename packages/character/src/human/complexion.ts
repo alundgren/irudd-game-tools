@@ -113,6 +113,16 @@ const detailOrder: ReadonlyArray<DetailName> = [
   "Soft lines",
 ];
 
+export function cheekPlane(x: number, y: number) {
+  const side = Math.abs(y - 0.5);
+  return (
+    smooth(x, 0.44, 0.5) *
+    (1 - smooth(x, 0.66, 0.74)) *
+    smooth(side, 0.075, 0.125) *
+    (1 - smooth(side, 0.36, 0.44))
+  );
+}
+
 export interface ComplexionLook {
   readonly choice: string;
   readonly ageDetail: DetailName;
@@ -165,7 +175,12 @@ export function complexionProfile(look: ComplexionLook): ComplexionProfile {
   const fair = smooth(light, 0.05, 0.45);
   const naturalHue = smooth(c.r - c.g, -0.02, 0.05) * smooth(c.g - c.b, -0.04, 0.03);
   const clampedAge = clamp(look.age, 0, 1);
-  const baseName: DetailName = isDetail(look.choice) ? look.choice : look.ageDetail;
+  const baseName: DetailName =
+    look.choice === "Weathered scars"
+      ? "Weathered"
+      : isDetail(look.choice)
+        ? look.choice
+        : look.ageDetail;
   const preset = detailPresets[baseName];
   const bodyRoughness = clamp(
     mix(0.69, 0.64, fair) + 0.04 * clampedAge + preset.dryness * 0.45,
@@ -419,6 +434,7 @@ export interface HumanPaintSources {
   readonly height: number;
   readonly left: number;
   readonly top: number;
+  readonly weatheredScars: Uint8ClampedArray;
   readonly clippedBeard: Uint8ClampedArray;
   readonly maps: ReadonlyArray<Uint8ClampedArray>;
   readonly fields: readonly [
@@ -480,6 +496,7 @@ export async function prepareHumanPaint(
     meso,
     gloss,
     lips,
+    weatheredScars,
     clippedBeard,
   ] = await Promise.all([
     all([0, 1, 2, 3].map((k) => pixels(`detail.${k}`))),
@@ -493,6 +510,7 @@ export async function prepareHumanPaint(
     pixels("finish.meso"),
     pixels("finish.gloss"),
     pixels("finish.lips"),
+    pixels("weatheredScars"),
     pixels("clippedBeard"),
   ]);
   const [tone, zones, eyes, visibility] = fields;
@@ -535,6 +553,7 @@ export async function prepareHumanPaint(
     left,
     top,
     maps,
+    weatheredScars,
     clippedBeard,
     fields: [tone, zones, eyes, visibility],
     dermal,
@@ -564,7 +583,12 @@ export function paintFace(
   const { choice, skin, hair, age, seed, brow } = look;
   const cast = sources.cast.get(choice);
   const captured = sources.captured.get(choice);
-  const baseDetail: DetailName = cast || captured || !isDetail(choice) ? look.ageDetail : choice;
+  const weather = choice === "Weathered scars" ? sources.weatheredScars : undefined;
+  const baseDetail: DetailName = weather
+    ? "Weathered"
+    : cast || captured || !isDetail(choice)
+      ? look.ageDetail
+      : choice;
   const detail = sources.maps[detailOrder.indexOf(baseDetail) - 1];
   const [tone, zones, eyes, visibility] = sources.fields;
   const fin = sources.finish,
@@ -763,6 +787,18 @@ export function paintFace(
         const target = 0.94 * light + 0.8 * profile.naturalHue * chroma + liftedBrow;
         pigLinear[k] = Math.exp((1 - region) * Math.log(at(pigLinear, k)) + region * target);
       }
+    }
+    if (weather && mask > 0 && cover < 1) {
+      const luminance =
+        0.25 * at(weather, i) + 0.5 * at(weather, i + 1) + 0.25 * at(weather, i + 2) - 128;
+      const cheek = cheekPlane((px + 0.5) / width, (py + 0.5) / height) * (1 - at(eyes, i) / 255);
+      const wash = 0.0055 * (1 - 0.65 * cheek) * mask * (1 - cover);
+      for (let k = 0; k < 3; k++)
+        pigLinear[k] =
+          at(pigLinear, k) *
+          Math.exp(
+            wash * (luminance + 0.6 * profile.naturalHue * (at(weather, i + k) - 128 - luminance)),
+          );
     }
     if (makeup) mixMakeup(tints, makeup, lips, lids, socket, blush, mask);
     for (let k = 0; k < 3; k++) {
@@ -1014,7 +1050,7 @@ export function faceMaterial(
     ...material.userData,
     portrait: true,
     faceLayout: true,
-    quietCheeks: false,
+    quietCheeks: look.choice === "Weathered scars",
     skinColor,
     paintedLips: look.makeup === "None",
   };

@@ -83,7 +83,7 @@ function asJson(value: unknown, what: string): Json {
   return parsed;
 }
 
-function asObject(value: Legacy, what: string): JsonObject {
+function asObject(value: unknown, what: string): JsonObject {
   const json = asJson(value, what);
   if (!isJsonObject(json)) throw new Error(`${what} is not an object.`);
   return json;
@@ -145,6 +145,9 @@ const isMotionRole = (role: string): role is MotionRoleName => motionRoles.some(
 const isOutfitRole = (role: string) => outfitRoles.some((r) => r === role);
 
 const handledPartFields = new Set([
+  "pinna",
+  "radialFit",
+  "suckerRows",
   "id",
   "shape",
   "parent",
@@ -207,6 +210,7 @@ const handledFormFields = new Set([
   "poses",
   "origin",
   "build",
+  "sectionProfile",
   "artwork",
   "occluders",
   "referenceRigs",
@@ -215,6 +219,7 @@ const handledFormFields = new Set([
 ]);
 const adultFormFields = new Set([
   "human",
+  "humanFit",
   "humanStyle",
   "posture",
   "eyeColor",
@@ -352,7 +357,7 @@ const jointedRoles = new Set(["upper arm", "forearm"]);
 function sectionRoleMismatches(
   parts: ReadonlyArray<Legacy>,
   roles: ReadonlyMap<string, string>,
-): string[] {
+): [string, boolean][] {
   const byId = new Map(parts.map((p) => [str(p["id"], "part id"), p]));
   const legacyRole = (p: Legacy | undefined) => {
     const v = p?.["motionRole"] ?? p?.["outfitRole"];
@@ -377,7 +382,7 @@ function sectionRoleMismatches(
   };
   return parts
     .filter((p) => retains(p, legacyRole, false) !== retains(p, storedRole, true))
-    .map((p) => `parts[${str(p["id"], "part id")}] game sections by inferred role`);
+    .map((p) => [str(p["id"], "part id"), retains(p, legacyRole, false)]);
 }
 
 export function prepareForm(name: string, raw: unknown): Prepared {
@@ -405,7 +410,7 @@ export function prepareForm(name: string, raw: unknown): Prepared {
   );
   const plan =
     isRecord(legacyOrigin) && isRecord(legacyOrigin["plan"]) ? legacyOrigin["plan"] : undefined;
-  if (plan?.["dress"] !== undefined) unsupported.push("form.origin.plan.dress");
+
   const chains = plan
     ? creatureLimbChains(
         legacyParts.map((p) => str(p["id"], "part id")),
@@ -533,7 +538,7 @@ export function prepareForm(name: string, raw: unknown): Prepared {
       if (p[key] !== undefined && shape !== "sweep")
         unsupported.push(`parts[${legacyId}].${key} on ${shape}`);
   }
-  unsupported.push(...sectionRoleMismatches(legacyParts, roles));
+  const sectionOverrides = new Map(sectionRoleMismatches(legacyParts, roles));
   const atlasOf = (paint: unknown, what: string): string | undefined => {
     if (!isRecord(paint)) return undefined;
     const atlas = resolveAtlas(str(paint["atlas"], what + " atlas"), artwork, store);
@@ -567,6 +572,16 @@ export function prepareForm(name: string, raw: unknown): Prepared {
         resolvePlate(id, "nativeportrait", artwork, store),
       )
     : undefined;
+  const surfaceFit = form["humanFit"];
+  if (
+    surfaceFit !== undefined &&
+    (!isRecord(surfaceFit) ||
+      surfaceFit["version"] !== 1 ||
+      typeof surfaceFit["strength"] !== "number" ||
+      !(surfaceFit["strength"] >= 0 && surfaceFit["strength"] <= 1) ||
+      !Array.isArray(surfaceFit["controls"]))
+  )
+    unsupported.push("form.humanFit");
   if (unsupported.length) throw new UnsupportedForm(name, unsupported);
   const handMade = legacyParts.flatMap((p, order) =>
     p["shape"] === "human region" ? [] : [{ p, order }],
@@ -580,7 +595,19 @@ export function prepareForm(name: string, raw: unknown): Prepared {
       order,
       ...(frame === undefined ? {} : { frameSize: nums(frame, "frameSize") }),
     };
-    if (shape === "sweep") features["figure.sweep"] = { knots: asJson(p["knots"], "knots") };
+    if (shape === "sweep")
+      features["figure.sweep"] = {
+        knots: asJson(p["knots"], "knots"),
+        ...(p["radialFit"] === undefined
+          ? {}
+          : { radialFit: asJson(p["radialFit"], "radial surface fit") }),
+        ...(p["suckerRows"] === undefined
+          ? {}
+          : { suckerRows: asJson(p["suckerRows"], "sucker rows") }),
+        ...(sectionOverrides.has(legacyId)
+          ? { retainSections: sectionOverrides.get(legacyId) === true }
+          : {}),
+      };
     if (shape === "scute") {
       const m = p["mount"];
       features["figure.scute"] = isRecord(m)
@@ -655,7 +682,11 @@ export function prepareForm(name: string, raw: unknown): Prepared {
           ? {}
           : { clearance: asJson(p["faceClearance"], `parts[${legacyId}].faceClearance`) }),
       };
-    if (shape === "cage") features["figure.cage"] = asJson(p["cage"], "cage");
+    if (shape === "cage")
+      features["figure.cage"] = {
+        ...asObject(p["cage"], "cage"),
+        ...(p["pinna"] === undefined ? {} : { pinna: asJson(p["pinna"], "pinna") }),
+      };
     if (p["anatomy"] !== undefined)
       features["figure.anatomy"] = { region: str(p["anatomy"], `parts[${legacyId}].anatomy`) };
     if (p["wearFit"] === true) features["outfit.fit"] = {};
@@ -814,11 +845,17 @@ export function prepareForm(name: string, raw: unknown): Prepared {
   });
   const features: Record<string, Json> = {};
   const build = form["build"];
-  if (isRecord(build))
+  if (isRecord(build) || form["sectionProfile"] !== undefined)
     features["figure.build"] = {
       ...Object.fromEntries(
-        Object.entries(build).map(([k, v]): [string, Json] => [k, asJson(v, "build " + k)]),
+        Object.entries(isRecord(build) ? build : {}).map(([k, v]): [string, Json] => [
+          k,
+          asJson(v, "build " + k),
+        ]),
       ),
+      ...(form["sectionProfile"] === undefined
+        ? {}
+        : { sectionProfile: asJson(form["sectionProfile"], "section profile") }),
       frame: bodyFrameParts(legacyParts).map((p) => ids.get(str(p["id"], "part id")) ?? ""),
     };
   const origin = form["origin"];
@@ -826,6 +863,23 @@ export function prepareForm(name: string, raw: unknown): Prepared {
     const { plan, ...provenance } = origin;
     features["character.origin"] = asJson(provenance, "origin");
     if (isRecord(plan)) features["creature.plan"] = asJson(plan, "origin.plan");
+  }
+  const fit = form["humanFit"];
+  if (
+    adult &&
+    isRecord(fit) &&
+    typeof fit["strength"] === "number" &&
+    Array.isArray(fit["controls"])
+  ) {
+    const strength = fit["strength"];
+    const controls = fit["controls"].flatMap((row): Json[] => {
+      const [id, ...offset] = nums(row, "humanFit control");
+      const scaled = offset.map((v) => Math.round(v * strength));
+      return id === undefined || offset.length !== 3 || scaled.every((v) => v === 0)
+        ? []
+        : [[id, ...scaled]];
+    });
+    if (controls.length) features["human.surface-corrections"] = { controls };
   }
   if (Array.isArray(form["referenceRigs"]))
     features["human.reference-rigs"] = {
@@ -969,7 +1023,11 @@ function adultRegions(
   const human = isRecord(form["human"]) ? form["human"] : {};
   for (const axis of Object.keys(human))
     if (!isHumanAxis(axis)) unsupported.push(`form.human.${axis}`);
-  if (JSON.stringify(appearance) !== JSON.stringify(adultAppearance(appearance["skin"])))
+  const style = isRecord(form["humanStyle"]) ? form["humanStyle"] : {};
+  const expectedAppearance = adultAppearance(appearance["skin"]);
+  if (appearance["hairColor"] === style["hairColor"] && typeof style["hairColor"] === "string")
+    expectedAppearance.hairColor = style["hairColor"];
+  if (JSON.stringify(appearance) !== JSON.stringify(expectedAppearance))
     unsupported.push("form.appearance beyond the adult's skin");
   const outfit = form["outfit"];
   const raw = {
