@@ -9,6 +9,7 @@ export type SurfaceKind =
   | "plain"
   | "canvas"
   | "satin"
+  | "woven satin"
   | "leather"
   | "metal"
   | "scales"
@@ -241,6 +242,7 @@ export async function loadSurfaces(raster: Raster, assets: AssetResolver): Promi
 }
 
 function roughnessOf(kind: SurfaceKind, hasMap: boolean): number {
+  if (kind === "woven satin") return 0.68;
   if (kind === "satin") return 0.34;
   if (kind === "metal") return 0.47;
   if (kind === "leather") return hasMap ? 0.56 : 0.44;
@@ -249,6 +251,7 @@ function roughnessOf(kind: SurfaceKind, hasMap: boolean): number {
 }
 
 function bumpOf(kind: SurfaceKind): number {
+  if (kind === "woven satin") return 0.0013;
   if (kind === "scales") return 0.003;
   if (kind === "leather") return 0.0026;
   if (kind === "canvas") return 0.0022;
@@ -261,7 +264,7 @@ export function surfaceMaterial(
   kind: SurfaceKind,
 ): T.MeshStandardMaterial {
   if (kind === "fur" && !kit.textures.has(kind)) kit.textures.set(kind, shortFur(kit.raster));
-  const texture = kit.textures.get(kind);
+  const texture = kit.textures.get(kind === "woven satin" ? "canvas" : kind);
   const roughMap = kit.roughness.get(kind);
   return new T.MeshStandardMaterial({
     color,
@@ -275,13 +278,14 @@ export function surfaceMaterial(
 
 export function surfaceMaterials(
   kit: SurfaceKit,
-): (color: string, finish: SurfaceKind) => T.Material {
+): (color: string, finish: SurfaceKind, cutGarment?: boolean) => T.Material {
   const cache = new Map<string, T.Material>();
-  return (color, finish) => {
-    const key = color + finish;
+  return (color, finish, cutGarment) => {
+    const kind = cutGarment && finish === "satin" ? "woven satin" : finish;
+    const key = color + kind;
     let material = cache.get(key);
     if (!material) {
-      material = surfaceMaterial(kit, color, finish);
+      material = surfaceMaterial(kit, color, kind);
       cache.set(key, material);
     }
     return material;
