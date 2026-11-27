@@ -40,10 +40,12 @@ import {
   unit,
   type DressBody,
   type DressMesh,
+  type Envelope,
   type Shell,
   type Vec,
 } from "./kit.js";
 
+import { sewShirt, type SewnView } from "./sew.js";
 import { tailorLayer, tailorProblems, type Tailor, type TailorLayer } from "./tailor-data.js";
 
 export * from "./tailor-data.js";
@@ -81,6 +83,8 @@ interface Worn {
   readonly length?: number;
   readonly height?: number;
   readonly shafts?: ReadonlyArray<Shell>;
+  readonly sewn?: boolean;
+  readonly strap?: Envelope;
 }
 interface Made {
   readonly parts: TailoredPart[];
@@ -329,64 +333,99 @@ function top(
             ? { height: openPlate ? -0.013 : 0.012 }
             : { height: seat };
   const band0 = waists.length ? Math.max(...waists.map((w) => w.waist ?? 0)) : null;
-  const ease = mm(num(layer, "ease"));
-  const g = garment(body, m, {
-    sleeve: num(layer, "sleeve"),
-    hem,
-    ease,
-    neck,
-    fall: mix(0.45, 0.06, stiff),
-    tension: 1,
-    span: mix(2, 2.8, stiff),
-    sleeveFall: mix(0.5, 0.08, stiff),
-    sleeveEase: stiff > 0.5 ? 0.004 : 0.002,
-    passes: Math.round(mix(6, 9, stiff)),
-    extra: band0 === null ? null : (y) => 0.006 * smooth(band0 + 0.04 * k, band0 + 0.012 * k, y),
-    under: shellsOf(worn),
-  });
-  const layered = worn
-      .filter((w) => w.kind === "top")
-      .reduce((sum, w) => sum + (w.ease ?? 0) + 0.004, 0),
-    near = (ease + layered) * k,
-    least = near - ease * 0.5 * k,
-    y = (i: number) => at(g.s.anc, i * 3 + 1);
-  const over = (i: number) =>
-    band0 === null
-      ? 0
-      : (Math.max(...waists.map((w) => w.ease ?? 0)) + 0.005) *
-        k *
-        smooth(band0 + 0.02 * k, band0 - 0.01 * k, y(i));
-  snug(
-    g.s,
-    (i) =>
-      smooth(m.neck[1] - 0.075 * k, m.neck[1] - 0.005 * k, y(i)) *
-      (1 - smooth(0.2, 0.6, g.s.value("wArm", i))),
-    near,
-    least,
-  );
-  const sleeve = num(layer, "sleeve");
-  if (sleeve < 0.3)
-    snug(
-      g.s,
-      (i) => smooth(0.03, 0.25, g.s.value("wArm", i)) * smooth(0.3, 0.15, sleeve),
-      near,
-      least,
-    );
-  const gather = num(layer, "gather"),
-    hemBand = num(layer, "hemBand");
-  if (gather)
+  const ease = mm(num(layer, "ease")),
+    hemBand = num(layer, "hemBand"),
+    thickness = material === "leather" ? 0.006 : 0.004;
+  const belted = later.find((l) => l.piece === "belt"),
+    beltY = belted ? mix(m.waistband - 0.008 * k, m.waist - 0.01 * k, num(belted, "at")) : null;
+  const pants = worn.findLast((w) => w.kind === "trousers" && w.shell),
+    tuck =
+      str(layer, "tuck") === "tucked" && pants?.shell && pants.waist !== undefined
+        ? { y: pants.waist, shell: pants.shell }
+        : null;
+  const sewn =
+    str(layer, "construction") === "sewn"
+      ? sewShirt(body, m, {
+          spec: {
+            length: num(layer, "length"),
+            room: ease,
+            sleeve: num(layer, "sleeve"),
+            neck: neckKind,
+            depth,
+          },
+          stiff,
+          thickness: thickness * 0.75,
+          under: shellsOf(worn),
+          belt:
+            !tuck && belted && beltY !== null && hem < beltY - 0.02 * k
+              ? {
+                  y: beltY,
+                  half: (mm(num(belted, "height")) * k) / 2,
+                  reach: mm(num(belted, "height")) / 2 + 0.012,
+                }
+              : null,
+          tuck,
+        })
+      : null;
+  const shaped = (): SewnView => {
+    const g = garment(body, m, {
+      sleeve: num(layer, "sleeve"),
+      hem,
+      ease,
+      neck,
+      fall: mix(0.45, 0.06, stiff),
+      tension: 1,
+      span: mix(2, 2.8, stiff),
+      sleeveFall: mix(0.5, 0.08, stiff),
+      sleeveEase: stiff > 0.5 ? 0.004 : 0.002,
+      passes: Math.round(mix(6, 9, stiff)),
+      extra: band0 === null ? null : (y) => 0.006 * smooth(band0 + 0.04 * k, band0 + 0.012 * k, y),
+      under: shellsOf(worn),
+    });
+    const layered = worn
+        .filter((w) => w.kind === "top")
+        .reduce((sum, w) => sum + (w.ease ?? 0) + 0.004, 0),
+      near = (ease + layered) * k,
+      least = near - ease * 0.5 * k,
+      y = (i: number) => at(g.s.anc, i * 3 + 1);
+    const over = (i: number) =>
+      band0 === null
+        ? 0
+        : (Math.max(...waists.map((w) => w.ease ?? 0)) + 0.005) *
+          k *
+          smooth(band0 + 0.02 * k, band0 - 0.01 * k, y(i));
     snug(
       g.s,
       (i) =>
-        gather *
-        smooth(hem + (mm(hemBand) + 0.13) * k, hem + mm(hemBand) * 0.6 * k, y(i)) *
+        smooth(m.neck[1] - 0.075 * k, m.neck[1] - 0.005 * k, y(i)) *
         (1 - smooth(0.2, 0.6, g.s.value("wArm", i))),
-      (i) => near + over(i),
-      (i) => least + over(i),
+      near,
+      least,
     );
-  const thickness = material === "leather" ? 0.006 : 0.004;
-  clear(g.s, shellsOf(worn), thickness + 0.0015 * k);
-  const piece = new Piece().shell(g.s, { thickness }),
+    const sleeve = num(layer, "sleeve");
+    if (sleeve < 0.3)
+      snug(
+        g.s,
+        (i) => smooth(0.03, 0.25, g.s.value("wArm", i)) * smooth(0.3, 0.15, sleeve),
+        near,
+        least,
+      );
+    const gather = num(layer, "gather");
+    if (gather)
+      snug(
+        g.s,
+        (i) =>
+          gather *
+          smooth(hem + (mm(hemBand) + 0.13) * k, hem + mm(hemBand) * 0.6 * k, y(i)) *
+          (1 - smooth(0.2, 0.6, g.s.value("wArm", i))),
+        (i) => near + over(i),
+        (i) => least + over(i),
+      );
+    clear(g.s, shellsOf(worn), thickness + 0.0015 * k);
+    return g;
+  };
+  const g = sewn ? sewn.view : shaped();
+  const piece = sewn ? sewn.piece : new Piece().shell(g.s, { thickness }),
     rise = (stiff > 0.5 ? 0.0025 : 0.0018) * k;
   const cuff = num(layer, "cuff");
   if (cuff) for (const loop of g.sleeves) band(piece, g.s, loop, { width: mm(cuff) * k, rise });
@@ -485,7 +524,18 @@ function top(
     parts.push(
       part(trim, str(layer, "trim"), "spine_03", front === "zip" ? "Zip" : "Buttons", "metal"),
     );
-  return { parts, covers: [g.s], worn: { kind: "top", shell: g.s, ease } };
+  const outer = sewn ? sewn.cover : g.s;
+  return {
+    parts,
+    covers: [outer],
+    worn: {
+      kind: "top",
+      shell: outer,
+      ease,
+      ...(sewn ? { sewn: true } : {}),
+      ...(sewn?.strap ? { strap: sewn.strap } : {}),
+    },
+  };
 }
 
 function trousers(
@@ -680,12 +730,19 @@ function waistBelt(
   const y = mix(m.waistband - 0.008 * k, m.waist - 0.01 * k, num(layer, "at")),
     strap = new Piece(),
     height = mm(num(layer, "height"));
-  const env = belt(strap, body, m, shells, y, { height, buckle: false });
+  const fitted = worn.findLast((w) => w.strap)?.strap,
+    reach = fitted || worn.some((w) => w.sewn) ? height / 2 + 0.012 : 0.05;
+  const env = belt(strap, body, m, shells, y, {
+    height,
+    buckle: false,
+    reach,
+    ...(fitted ? { env: fitted } : {}),
+  });
   const region = y > mix(m.waistband, m.waist, 0.5) ? "spine_01" : "pelvis";
   parts.push(part(strap, str(layer, "color"), region, "Belt", str(layer, "material")));
   if (str(layer, "buckle") === "frame") {
     const metal = new Piece(),
-      p = env.point(0.05 * k, 0, env.sample(0.05 * k, 0) + 0.0075 * k),
+      p = env.point(reach * k, 0, env.sample(reach * k, 0) + 0.0075 * k),
       skin = body.skinAt(p),
       h = height * k * 0.62,
       w = 0.021 * k,
