@@ -181,6 +181,8 @@ export interface DesktopApi {
   onSteer(listener: (notice: SteerNotice) => void): () => void;
   library(): Promise<ReadonlyArray<LibraryEntry>>;
   bundledImage(digest: string): Promise<Uint8Array>;
+  referenceModels(): Promise<string[]>;
+  referenceModel(id: string): Promise<Uint8Array>;
   humanPack(file: string): Promise<Uint8Array>;
   readLibrary(id: string): Promise<LibraryFile | null>;
   openGlb(): Promise<LibraryFile | null>;
@@ -213,6 +215,8 @@ export const channels = {
   steer: "workshop:steer",
   library: "workshop:library",
   bundledImage: "workshop:bundled-image",
+  referenceModels: "workshop:reference-models",
+  referenceModel: "workshop:reference-model",
   humanPack: "workshop:human-pack",
   readLibrary: "workshop:read-library",
   openGlb: "workshop:open-glb",

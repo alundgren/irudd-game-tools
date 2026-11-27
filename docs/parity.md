@@ -48,6 +48,7 @@ Posture, arm edits and named poses have History entries and travel with the char
 | 8a | Shape tools, individual styling and armour |
 | 8b | Portraits, references, artwork and files |
 | 9-1 | Surface sculpting and branch placement |
+| 9-4 | [3D reference fitting, registered head families and studio heads](reference-parity-checklist.md) |
 
 | # | Feature | Desktop status | Phase |
 | --- | --- | --- | --- |
@@ -56,7 +57,7 @@ Posture, arm edits and named poses have History entries and travel with the char
 | 3 | Make a small reroll or reset the shape | done | 3 |
 | 4 | Adjust an adult body measurement by region | done | 2 |
 | 5 | Reroll the body, face, limbs or portrait | done | 2 |
-| 6 | Fit a character to a 3D reference | partly (upright OBJ and embedded GLB body fit) | 8b |
+| 6 | Fit a character to a 3D reference | done | 9-4 |
 | 7 | Sculpt on the model by pulling its surface | done | 9-1 |
 | 8 | Draw an appendage or place a branch | done | 9-1 |
 | 9 | Protect selected parts during AI edits | done | 3 |
@@ -65,7 +66,7 @@ Posture, arm edits and named poses have History entries and travel with the char
 | 12 | Try a new outfit and hairstyle and set a preference for new looks | done | 2 |
 | 13 | Adjust skin tone, eye colour and facial detail | done | 2 |
 | 14 | Style hair, fringe, brows, makeup, arm ink, eyewear, necklace, clothing, colours, designs and cast looks | done | 2, 8a, 9-3 |
-| 15 | Choose a face family or studio head | partly (Studio Rain with expressions and hair, plus native families) | 8a, 8b |
+| 15 | Choose a face family or studio head | done | 9-4 |
 | 16 | Adjust an adult's posture | done | 7 |
 | 17 | Tailor layers of clothing | done | 4, 8a, 9-3 |
 | 18 | Add freckles, scars or moles | done | 5 |
@@ -162,7 +163,13 @@ Run `pnpm --filter @irudd/desktop qa:style-parity` after changing these catalogu
 
 ### Portraits, artwork and files
 
-Open **Portraits and references** on an editable adult to fit the build to an upright OBJ or embedded GLB. Use individual styling for native portrait paint. Mark the eyes and lip seam on a front picture, then optionally mark the eye, nose and lips on a right-facing profile. On a figure or traced head, mark matching points on the model and the photograph to reshape the face. Trace a profile from forehead to chin to set its silhouette. A painted head can also take a grayscale depth map with adjustable strength.
+Open **Portraits and references** on an editable adult and choose **Fit 3D reference**. Load a local mesh or an installed example, set the units and orientation, and compare the aligned surfaces side by side, with a wipe, or by their deviation. Fit measurements and local contours for the whole body or a selected region. On an isolated head, mark both eyes and the chin, hide hair or other obstructions, and fit the visible skin or individual features. Mark facial widths and angles to fit several proportions together.
+
+To transfer a head from a mesh family, select its neutral and a reference member that share vertex and triangle order. Transfer measurements, a fine per-vertex layer, or both. Further body fitting preserves that layer. **Apply to character** records the staged changes as one History edit. Saved characters carry the resulting head independently of the reference files.
+
+Build both workshops and run `pnpm --filter @irudd/desktop qa:reference-parity` after changing the fitting room or head transfer. The suite uses the same character and meshes in Chrome and Electron, compares the results, and reopens the applied fit in a fresh project. It writes the paired images and contact sheet to `.reference-cache/phase9-4/`. [Behaviour checklist and reference assets](reference-parity-checklist.md)
+
+Use individual styling for native portrait paint. Mark the eyes and lip seam on a front picture, then optionally mark the eye, nose and lips on a right-facing profile. On a figure or traced head, mark matching points on the model and the photograph to reshape the face. Trace a profile from forehead to chin to set its silhouette. A painted head can also take a grayscale depth map with adjustable strength.
 
 Choose **Trace a new character** to draw front and profile outlines on a four-view sheet. Select a painted region to add a rounded loft, solid hull or thin membrane, or reuse a turnaround on that region. In **Artwork**, request a painted edit for the selected regions. Preview a reply, compare it with the current character, ask its author for a refinement, or keep the preview as a separate alternate. Named variations and alternates appear in the project's character selector and can be saved as character files. [Artwork requests and replies](artwork.md).
 
@@ -172,7 +179,6 @@ Run `qa:portraits` and `qa:art` in `apps/desktop` after changing these workflows
 
 ### Remaining parity gaps
 
-- **6 and 15**. Body fitting adjusts stature and build from an upright reference. Registered neutral meshes, per-vertex head transfer and imported head families still require the browser.
 - **38 and 64**. Plate fields lack individual random tip variants. Grafting handles independent branches, while native adult rig regions depend on the source generator.
 - **57 and 59**. Scalp-only and isolated wearable artwork requests lack dedicated desktop actions. The game inspection shows the current revision. Cross-proposal export and coverage comparisons remain open.
 - **61 and 66**. Hand tracing supports lofts, hulls and membranes. Tracing a path from paired centreline points and opening the browser's locally prepared scan studies remain open.

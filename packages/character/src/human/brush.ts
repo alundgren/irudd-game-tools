@@ -6,7 +6,7 @@ import { evaluateHuman, type HumanSurface } from "./surface.js";
 type Row = SkinCorrections["controls"][number];
 const point = (positions: Float32Array, v: number) => new T.Vector3().fromArray(positions, v * 3);
 
-function vectors(body: HumanBody, fit?: SkinCorrections) {
+export function controlVectors(body: HumanBody, fit?: SkinCorrections) {
   const out = new Float32Array(body.arrays.u16("controlIds").length * 3);
   for (const [i, x, y, z] of fit?.controls ?? []) out.set([x / 10000, y / 10000, z / 10000], 3 * i);
   return out;
@@ -18,8 +18,14 @@ export function correctedSurface(
   fit?: SkinCorrections,
 ): HumanSurface {
   if (!fit?.controls.length) return source;
-  const delta = vectors(body, fit),
-    refs = body.arrays.u16("controlRefs"),
+  return surfaceFromVectors(body, source, controlVectors(body, fit));
+}
+export function surfaceFromVectors(
+  body: HumanBody,
+  source: HumanSurface,
+  delta: Float32Array,
+): HumanSurface {
+  const refs = body.arrays.u16("controlRefs"),
     weights = body.arrays.u16("controlWeights");
   const positions = source.positions.slice(),
     scale = source.height / 1.72;
@@ -110,7 +116,7 @@ export function skinStroke(
     refs = body.arrays.u16("controlRefs"),
     weights = body.arrays.u16("controlWeights");
   const graph = topology(body, s),
-    start = vectors(body, fit),
+    start = controlVectors(body, fit),
     hit = new T.Vector3(...centre);
   const seeds = vertices.map((v) => ({ v, d: point(s.positions, v).distanceTo(hit) }));
   function field(touches: typeof seeds, center: T.Vector3, radius: number, widen: boolean) {

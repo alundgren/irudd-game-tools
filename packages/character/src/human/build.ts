@@ -1,6 +1,7 @@
 import * as T from "three";
 import {
   humanCorrections,
+  humanFineHead,
   humanRegionCopy,
   decodeWith,
   finishes,
@@ -189,6 +190,7 @@ export function buildHuman(
     material: (color) => options.materials(color, "plain"),
     dressMaterial,
     planes: params.style.facePlanes,
+    fineHead: donor ? donor.fineHead : humanFineHead.read(doc.features),
     corrections: donor ? donor.corrections : humanCorrections.read(doc.features),
     studio:
       params.style.faceFamily === "Studio Rain"

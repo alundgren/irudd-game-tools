@@ -1,8 +1,11 @@
 import { applyFacePlanes } from "./face-planes.js";
 import { fittedHeadwear } from "./dress/headwear.js";
 import { correctedSurface } from "./brush.js";
-import type { SkinCorrections } from "@irudd/document";
+import { applyHeadLayer } from "./fine-head.js";
+import type { FineHeadLayer, SkinCorrections } from "@irudd/document";
 import { skinMeshData } from "./brush-preview.js";
+import { finishStudioSkin } from "./studio-skin.js";
+import { studioFit, studioAccessoryFit } from "./studio-fit.js";
 import { studioMeshes, studioCollar } from "./studio.js";
 import * as T from "three";
 import {
@@ -47,7 +50,7 @@ import type { BrowName } from "./body.js";
 import type { CastFigureName } from "./cast-data.js";
 import { castMeshes, type CastStyle } from "./cast-figure.js";
 import type { ClothJoints } from "./cloth-joints.js";
-import { smoothHumanSurface, type SmoothSurface } from "./smooth.js";
+import { smoothHumanSurface, skinBoneCorners, type SmoothSurface } from "./smooth.js";
 import {
   evaluateHuman,
   expressionDisplacements,
@@ -165,6 +168,7 @@ export interface HumanRegions {
 
 export interface HumanRegionOptions {
   readonly planes?: string | undefined;
+  readonly fineHead?: FineHeadLayer | undefined;
   readonly corrections?: SkinCorrections | undefined;
   readonly studio?: { hair: string; familyHair: boolean } | undefined;
   readonly material: (color: string) => T.Material;
@@ -262,7 +266,7 @@ function dressed(
   const packedHair = fittedHeadwear(
     body,
     cage,
-    dress.hair?.hair,
+    dress.hair?.hair === "Ribbon ponytail" ? undefined : dress.hair?.hair,
     dress.hair?.hairColor ?? "#51433b",
     "hair",
     material,
@@ -270,7 +274,7 @@ function dressed(
     dress.hair?.fringe,
   );
   const hair =
-    dress.hair && !packedHair.length
+    dress.hair && dress.hair.hair !== "Ribbon ponytail" && !packedHair.length
       ? fittedHair(
           cage,
           dress.hair,
@@ -373,7 +377,11 @@ export function humanRegions(
   options: HumanRegionOptions,
 ): HumanRegions {
   const bare = evaluateHuman(body, measurements);
-  const cage = correctedSurface(body, bare, options.corrections);
+  const cage = applyHeadLayer(
+    body,
+    correctedSurface(body, bare, options.corrections),
+    options.fineHead,
+  );
   const s = refineFaceForm(body, smoothHumanSurface(body, cage));
   const member = options.cast;
   if (member)
@@ -407,33 +415,22 @@ export function humanRegions(
         return group;
       },
     };
-  const bins = boneNames.map((): number[] => []);
   const full = new T.BufferGeometry();
   full.setAttribute("position", new T.BufferAttribute(s.positions, 3));
   full.setIndex(new T.BufferAttribute(s.indices, 1));
   full.computeVertexNormals();
   const normals = full.getAttribute("normal").array;
-  const totals = new Float32Array(boneNames.length);
+  const ribbon = options.dress?.hair?.hair === "Ribbon ponytail";
+  const studio = options.studio || ribbon ? studioFit(body, s) : undefined;
+  const adjustAccessory =
+    studio && options.studio && !options.studio.familyHair ? studioAccessoryFit(studio) : undefined;
   const { worn, hidden } = dressed(body, cage, options.dress, options);
   const skip = new Set<number>();
   if (hidden.size)
     for (let j = 0; j < s.quadIds.length; j += 4)
       if ([0, 1, 2, 3].every((k) => hidden.has(cage.ids[s.quadIds[j + k] ?? 0] ?? -1)))
         skip.add(j / 4);
-  for (let c = 0; c < s.bodyTriangles * 3; c += 3) {
-    if (skip.has(s.parentFaces[c / 3] ?? -1)) continue;
-    totals.fill(0);
-    for (let i = 0; i < 3; i++) {
-      const v = s.indices[c + i] ?? 0;
-      for (let j = v * 4; j < v * 4 + 4; j++) {
-        const b = s.boneIndices[j] ?? 0;
-        totals[b] = (totals[b] ?? 0) + (s.weights[j] ?? 0);
-      }
-    }
-    let best = 0;
-    for (let i = 1; i < totals.length; i++) if ((totals[i] ?? 0) > (totals[best] ?? 0)) best = i;
-    bins[best]?.push(c, c + 1, c + 2);
-  }
+  const bins = skinBoneCorners(s, skip);
   const headBin = boneNames.indexOf("head"),
     joined = new Uint8Array(s.positions.length / 3),
     onHead = new Uint8Array(joined.length);
@@ -467,14 +464,14 @@ export function humanRegions(
         group = new T.Group(),
         origin = triple(s.joints, k * 3);
       const corners = bins[k] ?? [];
-      if (bone === "head" && options.studio) {
+      if (bone === "head" && options.studio && studio) {
         for (const mesh of studioMeshes(
           body,
-          cage,
+          studio,
           origin,
           color(bone),
           options.studio.hair,
-          options.studio.familyHair,
+          options.studio.familyHair || ribbon,
           options.plain,
           paint &&
             irisSwatch(
@@ -490,16 +487,19 @@ export function humanRegions(
           });
           group.add(mesh);
           if (mesh.userData["faceSurface"]) {
-            const collar = studioCollar(
-              body,
-              s,
-              corners,
-              origin,
+            humanWeightsOf.set(
               mesh,
-              k,
-              color(bone),
-              options.plain,
+              finishStudioSkin(
+                body,
+                studio,
+                s,
+                mesh.geometry,
+                normals,
+                paint ? shadeOf(color(bone), paint.sources) : undefined,
+              ),
             );
+            mesh.updateMorphTargets();
+            const collar = studioCollar(body, s, corners, origin, mesh, k, normals);
             if (collar) {
               humanWeightsOf.set(collar.mesh, {
                 boneIndices: collar.bones,
@@ -576,6 +576,7 @@ export function humanRegions(
         skinMeshData.set(mesh, {
           body,
           bare,
+          fineHead: options.fineHead,
           cage,
           surface: s,
           origin,
@@ -608,10 +609,25 @@ export function humanRegions(
         group.add(mesh);
       }
       if (bone === "head" && !options.studio) headPieces(body, group, s, origin, options);
+      if (bone === "head" && studio && ribbon && !options.studio)
+        for (const mesh of studioMeshes(
+          body,
+          studio,
+          origin,
+          color(bone),
+          options.dress?.hair?.hairColor ?? "#51433b",
+          true,
+          options.plain,
+          null,
+          true,
+        )) {
+          group.add(mesh);
+        }
       for (const piece of worn) {
         if (piece.region !== bone) continue;
         const mesh = piece.mesh.clone();
         mesh.geometry = piece.mesh.geometry.clone();
+        if (bone === "head" && adjustAccessory) adjustAccessory(mesh.geometry);
         mesh.geometry.translate(-origin[0], -origin[1], -origin[2]);
         if (piece.skin)
           humanWeightsOf.set(mesh, {

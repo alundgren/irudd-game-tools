@@ -1,6 +1,7 @@
 import { isMesh } from "../mesh.js";
 import * as T from "three";
-import type { SkinCorrections, Vec3 } from "@irudd/document";
+import { applyHeadLayer } from "./fine-head.js";
+import type { FineHeadLayer, SkinCorrections, Vec3 } from "@irudd/document";
 import type { HumanBody } from "./body.js";
 import { skinStroke, correctedSurface } from "./brush.js";
 import { smoothHumanSurface, type SmoothSurface } from "./smooth.js";
@@ -10,6 +11,7 @@ import { refineFaceForm } from "./anatomy.js";
 interface SkinMesh {
   body: HumanBody;
   bare: HumanSurface;
+  fineHead: FineHeadLayer | undefined;
   cage: HumanSurface;
   surface: SmoothSurface;
   origin: Vec3;
@@ -58,7 +60,10 @@ export function startSkinStroke(
       );
       const fitted = refineFaceForm(
         body,
-        smoothHumanSurface(body, correctedSurface(body, bare, next)),
+        smoothHumanSurface(
+          body,
+          applyHeadLayer(body, correctedSurface(body, bare, next), data.fineHead),
+        ),
       );
       whole.setAttribute("position", new T.BufferAttribute(fitted.positions, 3));
       whole.computeVertexNormals();

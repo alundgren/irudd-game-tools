@@ -1,0 +1,18 @@
+export * from "./reference-mesh.js";
+export * from "./reference-mask.js";
+export * from "./reference-proportions.js";
+export * from "./reference-depth.js";
+export * from "./head-registration.js";
+export { smoothHumanSurface, skinBoneCorners } from "./smooth.js";
+export { boneNames } from "./catalogue.js";
+export { regionOfBone } from "./fit-types.js";
+export { refineFaceForm } from "./anatomy.js";
+export * from "./reference-align.js";
+export * from "./fit-surface.js";
+export * from "./family-fit.js";
+export { matchReferenceFeature } from "./reference-feature.js";
+export { eyeBalls, humanEyes } from "./eyes.js";
+export { encodeHeadLayer } from "./fine-head.js";
+export type { HumanBody } from "./body.js";
+export { humanRange, isHumanAxis } from "./surface.js";
+export { humanMeasurements, type HumanAdultParams } from "./generator.js";

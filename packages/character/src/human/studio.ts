@@ -1,7 +1,9 @@
 import * as T from "three";
 import type { SmoothSurface } from "./smooth.js";
 import type { HumanBody } from "./body.js";
-import type { HumanSurface } from "./surface.js";
+import { studioEyes } from "./studio-eyes.js";
+import { studioTexture } from "./studio-paint.js";
+import type { StudioFit } from "./studio-fit.js";
 import { studioExpressions, studioPieces } from "./studio-data.js";
 
 function nativeRim(s: SmoothSurface, corners: readonly number[]) {
@@ -48,15 +50,14 @@ export function studioCollar(
   origin: readonly [number, number, number],
   head: T.Mesh,
   headBone: number,
-  skin: string,
-  plain: boolean,
+  normals: ArrayLike<number>,
 ) {
   const native = nativeRim(s, corners),
     rim = body.studio.u16("neck");
   if (!native.length) return;
   const coords = head.geometry.getAttribute("position"),
     color = head.geometry.getAttribute("color"),
-    tone = new T.Color(skin);
+    tone = new T.Color(1, 1, 1);
   const points: T.Vector3[] = [],
     colours: number[] = [],
     indices: number[] = [],
@@ -76,31 +77,50 @@ export function studioCollar(
       bones.push(s.boneIndices[4 * v + j] ?? 0);
     }
   }
-  function ordered(start: number, length: number) {
-    const ring = points.slice(start, start + length),
-      centre = ring.reduce((c, p) => c.add(p), new T.Vector3()).multiplyScalar(1 / length);
-    return ring
-      .map((p, i) => ({ i: i + start, a: Math.atan2(p.x - centre.x, p.z - centre.z) }))
-      .sort((a, b) => a.a - b.a);
+  const upper = Array.from(rim, (_, i) => i),
+    lower = native.map((_, i) => rim.length + i);
+  const distance = (a: number, b: number) =>
+    (points[a] ?? zero).distanceToSquared(points[b] ?? zero);
+  const winding = (ring: number[]) =>
+    ring.reduce((sum, a, i) => {
+      const p = points[a] ?? zero,
+        q = points[ring[(i + 1) % ring.length] ?? 0] ?? zero;
+      return sum + p.z * q.x - p.x * q.z;
+    }, 0);
+  if (Math.sign(winding(upper)) !== Math.sign(winding(lower))) lower.reverse();
+  let start = 0;
+  for (let i = 1; i < lower.length; i++)
+    if (distance(0, lower[i] ?? 0) < distance(0, lower[start] ?? 0)) start = i;
+  const tex = head.geometry.getAttribute("uv"),
+    normal = head.geometry.getAttribute("normal"),
+    uv: number[] = [],
+    directions: number[] = [];
+  for (const i of rim) {
+    uv.push(tex.getX(i), tex.getY(i));
+    directions.push(normal.getX(i), normal.getY(i), normal.getZ(i));
   }
-  const upper = ordered(0, rim.length),
-    lower = ordered(rim.length, native.length);
+  for (const [k, v] of native.entries()) {
+    let nearest = 0;
+    for (const i of upper)
+      if (distance(i, rim.length + k) < distance(nearest, rim.length + k)) nearest = i;
+    const j = rim[nearest] ?? 0;
+    uv.push(tex.getX(j), tex.getY(j));
+    directions.push(normals[3 * v] ?? 0, normals[3 * v + 1] ?? 0, normals[3 * v + 2] ?? 0);
+  }
   for (let i = 0, j = 0; i < upper.length || j < lower.length;) {
-    const a = upper[i % upper.length],
-      b = lower[j % lower.length],
-      c = upper[(i + 1) % upper.length],
-      d = lower[(j + 1) % lower.length];
-    if (!a || !b || !c || !d) break;
+    const a = upper[i % upper.length] ?? 0,
+      b = lower[(j + start) % lower.length] ?? 0;
+    const c = upper[(i + 1) % upper.length] ?? 0,
+      d = lower[(j + 1 + start) % lower.length] ?? 0;
+    const ahead = (i + 1) / upper.length - (j + 1) / lower.length;
     if (
-      j === lower.length ||
-      (i < upper.length &&
-        c.a + (i + 1 >= upper.length ? 2 * Math.PI : 0) <=
-          d.a + (j + 1 >= lower.length ? 2 * Math.PI : 0))
+      j >= lower.length ||
+      (i < upper.length && (ahead < -0.04 || (ahead < 0.04 && distance(c, b) <= distance(a, d))))
     ) {
-      indices.push(a.i, b.i, c.i);
+      indices.push(c, a, b);
       i++;
     } else {
-      indices.push(a.i, b.i, d.i);
+      indices.push(b, d, a);
       j++;
     }
   }
@@ -112,126 +132,115 @@ export function studioCollar(
       3,
     ),
   );
-  g.setAttribute("uv", new T.BufferAttribute(new Float32Array(points.length * 2), 2));
+  g.setAttribute("uv", new T.Float32BufferAttribute(uv, 2));
   g.setAttribute("color", new T.Float32BufferAttribute(colours, 3));
   g.setIndex(indices);
-  g.computeVertexNormals();
-  const mesh = new T.Mesh(
-    g,
-    new T.MeshStandardMaterial({
-      color: plain ? 0xcac5be : 0xffffff,
-      vertexColors: !plain,
-      side: T.DoubleSide,
-    }),
-  );
+  g.setAttribute("normal", new T.Float32BufferAttribute(directions, 3));
+  const mesh = new T.Mesh(g, head.material);
   mesh.name = "Studio Rain neck";
   return { mesh, bones, weights };
 }
+const zero = new T.Vector3();
+
 export function studioMeshes(
   body: HumanBody,
-  s: HumanSurface,
+  fit: StudioFit,
   origin: readonly [number, number, number],
   skin: string,
   hair: string,
   familyHair: boolean,
   plain: boolean,
   iris: T.Color | null,
+  onlyHair = false,
 ) {
-  const pack = body.studio;
-  const eyes = s.eyeGroups.map((group) => {
-    const centre = new T.Vector3();
-    for (const v of group) centre.add(new T.Vector3().fromArray(s.positions, 3 * v));
-    return centre.multiplyScalar(1 / group.length);
-  });
-  const centre = new T.Vector3()
-    .addVectors(eyes[0] ?? new T.Vector3(), eyes[1] ?? new T.Vector3())
-    .multiplyScalar(0.5);
-  const scale = s.height / 1.72;
-  const offset = centre
-    .sub(new T.Vector3(0, 1.60812, 0.10012).multiplyScalar(scale))
-    .sub(new T.Vector3(...origin));
+  const pack = body.studio,
+    skinColour = new T.Color(skin),
+    hairColour = new T.Color(hair),
+    vec = new T.Vector3();
+  const standalone = onlyHair ? fit.standaloneDelta() : undefined;
   return studioPieces
-    .filter((name) => familyHair || !name.startsWith("hair"))
+    .filter((name) => (onlyHair ? name.startsWith("hair") : familyHair || !name.startsWith("hair")))
     .map((name) => {
       const geo = new T.BufferGeometry();
-      geo.setAttribute("position", new T.BufferAttribute(pack.f32(name + ".position").slice(), 3));
-      geo.scale(scale, scale, scale).translate(offset.x, offset.y, offset.z);
-      geo.setAttribute("uv", new T.BufferAttribute(pack.f32(name + ".uv"), 2));
+      geo.setAttribute(
+        "position",
+        new T.BufferAttribute(fit.position(name, origin, standalone), 3),
+      );
+      geo.setAttribute("uv", new T.BufferAttribute(pack.f32(name + ".uv").slice(), 2));
       geo.setIndex(new T.BufferAttribute(pack.u16(name + ".index"), 1));
       geo.computeVertexNormals();
+      const mapped =
+        name === "skin"
+          ? "skin"
+          : name === "eyes"
+            ? "eyes"
+            : name.startsWith("hair_")
+              ? "hair"
+              : undefined;
       const source = pack.u8(name + ".color"),
-        tint = new T.Color(),
-        values = new Float32Array(source.length);
-      const hairColour = new T.Color(hair),
-        skinColour = new T.Color(skin);
-      const gain = (v: number, reference: number, max: number) =>
-        T.MathUtils.clamp(v / reference, 0.02, max);
-      const skinGain = new T.Color(
-        gain(skinColour.r, 0.23839757, 6),
-        gain(skinColour.g, 0.12743768, 6),
-        gain(skinColour.b, 0.05448028, 6),
-      );
-      const browGain = new T.Color(
-        Math.sqrt(gain(hairColour.r, 0.01850022, 8)),
-        Math.sqrt(gain(hairColour.g, 0.01032982, 8)),
-        Math.sqrt(gain(hairColour.b, 0.00604883, 8)),
-      );
-      for (let i = 0; i < values.length; i += 3) {
-        const r = source[i] ?? 0,
-          g = source[i + 1] ?? 0,
-          b = source[i + 2] ?? 0;
-        tint.setRGB(r / 255, g / 255, b / 255, T.SRGBColorSpace);
-        if (name === "skin") tint.multiply(skinGain);
-        else if (name === "brows") tint.multiply(browGain);
-        else if (name.startsWith("hair_")) {
-          const light =
-            ((0.2126 * tint.r + 0.7152 * tint.g + 0.0722 * tint.b) /
-              (0.2126 * 0.01850022 + 0.7152 * 0.01032982 + 0.0722 * 0.00604883)) **
-            0.85;
-          tint.copy(hairColour).multiplyScalar(0.78 * light);
-        } else if (name === "eyes" && iris) {
-          const most = Math.max(r, g, b),
-            least = Math.min(r, g, b);
-          const share = T.MathUtils.smoothstep(most ? (most - least) / most : 0, 0.12, 0.3);
-          const l = Math.min(
-            1.9,
-            (0.299 * r + 0.587 * g + 0.114 * b) / (0.299 * 23 + 0.587 * 64 + 0.114 * 85),
+        values = new Float32Array(source.length).fill(1);
+      if (!mapped) {
+        const tint = new T.Color(),
+          gain = new T.Color().fromArray(
+            hairColour
+              .toArray()
+              .map((x, i) =>
+                Math.sqrt(
+                  T.MathUtils.clamp(x / ([0.01850022, 0.01032982, 0.00604883][i] ?? 1), 0.02, 8),
+                ),
+              ),
           );
+        for (let i = 0; i < values.length; i += 3) {
           tint.setRGB(
-            T.MathUtils.lerp(r / 255, Math.min(1, iris.r * l), share),
-            T.MathUtils.lerp(g / 255, Math.min(1, iris.g * l), share),
-            T.MathUtils.lerp(b / 255, Math.min(1, iris.b * l), share),
+            (source[i] ?? 0) / 255,
+            (source[i + 1] ?? 0) / 255,
+            (source[i + 2] ?? 0) / 255,
             T.SRGBColorSpace,
           );
+          if (name === "brows") tint.multiply(gain);
+          values.set([Math.min(1, tint.r), Math.min(1, tint.g), Math.min(1, tint.b)], i);
         }
-        values[i] = Math.min(1, tint.r);
-        values[i + 1] = Math.min(1, tint.g);
-        values[i + 2] = Math.min(1, tint.b);
       }
       geo.setAttribute("color", new T.BufferAttribute(values, 3));
+      if (name === "eyes") studioEyes(body, fit, geo, origin);
       if (pack.has(name + ".Blink")) {
         geo.morphTargetsRelative = true;
         geo.morphAttributes["position"] = studioExpressions.map((e) => {
-          const attr = new T.BufferAttribute(
-            pack.f32(name + "." + e).map((n) => n * scale),
-            3,
-          );
+          const shift = pack.f32(name + "." + e).slice();
+          for (let i = 0; i < shift.length; i += 3)
+            vec.fromArray(shift, i).applyMatrix3(fit.rotation).toArray(shift, i);
+          const attr = new T.BufferAttribute(shift, 3);
           attr.name = e;
           return attr;
         });
       }
+      const map =
+        !plain && mapped
+          ? studioTexture(
+              body,
+              mapped,
+              mapped === "skin"
+                ? skinColour
+                : mapped === "hair"
+                  ? hairColour
+                  : (iris ?? new T.Color(0.15, 0.35, 0.45)),
+            )
+          : null;
       const mesh = new T.Mesh(
         geo,
         new T.MeshStandardMaterial({
+          map,
           color: plain ? 0xcac5be : 0xffffff,
           vertexColors: !plain,
-          roughness: name === "eyes" ? 0.24 : 0.74,
+          roughness: name === "eyes" ? 0.22 : mapped === "hair" ? 0.52 : 0.65,
           side: T.DoubleSide,
         }),
       );
       mesh.name = "Studio Rain " + name;
       mesh.userData["faceSurface"] = name === "skin";
-      mesh.castShadow = true;
+      if (name === "eyes") mesh.userData["eyePiece"] = "Iris";
+      if (name.startsWith("hair")) mesh.userData["studioHair"] = true;
+      mesh.castShadow = name !== "eyes";
       return mesh;
     });
 }

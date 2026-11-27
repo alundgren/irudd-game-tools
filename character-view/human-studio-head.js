@@ -93,7 +93,7 @@ function closestOnTriangle(p, a, b, c, out) {
 }
 
 let bound = null;
-function binding() {
+export function studioBinding() {
   if (bound) return bound;
   const s = refineFaceForm(smoothHumanSurface(evaluateHuman({})));
   const corners = cornersOf(s, [s.names.indexOf("head"), s.names.indexOf("neck_01")]);
@@ -200,7 +200,7 @@ function carry(from, to, weight) {
 }
 
 function controlPoints(s) {
-  const { vertices, shares, rest, beside, vertexCount } = binding();
+  const { vertices, shares, rest, beside, vertexCount } = studioBinding();
   if (s.positions.length / 3 !== vertexCount) throw new Error("The studio head was tied to a different native surface.");
   const count = data.count, control = read("control", Float32Array), settle = read("settle", Uint8Array);
   const native = new Float32Array(count * 3), weight = new Float32Array(count);
@@ -681,7 +681,7 @@ function ontoStudioHead(meshes, points) {
 
 export function studioHairFor(cage, style, material, plain) {
   if (!studioHairStyles.includes(style.hair)) return [];
-  const s = refineFaceForm(smoothHumanSurface(cage)), { native } = controlPoints(s), { beside } = binding();
+  const s = refineFaceForm(smoothHumanSurface(cage)), { native } = controlPoints(s), { beside } = studioBinding();
   const count = data.count, control = read("control", Float32Array);
   let delta = new Float32Array(count * 3);
   for (let i = 0; i < delta.length; i++) delta[i] = native[i] - control[i];

@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./creature": "./src/creature/index.ts",
     "./human": "./src/human/index.ts",
+    "./human/reference": "./src/human/reference.ts",
     "./human/paint": "./src/human/paint.ts",
     "./human/dress": "./src/human/dress/index.ts",
     "./repaint": "./src/paint/repaint.ts",

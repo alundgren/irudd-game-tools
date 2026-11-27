@@ -13,6 +13,7 @@ import {
   figureScute,
   figureOccluders,
   humanCorrections,
+  humanFineHead,
   humanRegionCopy,
   motionRole,
   outfitFit,
@@ -152,9 +153,15 @@ function regionSource(source: CharacterDocument, part: Part) {
     g = source.generation;
   if (!slot || !humanSlotBone(slot) || g?.generator !== "irudd.human-adult") return undefined;
   const corrections = humanCorrections.read(source.features);
+  const fineHead = humanFineHead.read(source.features);
   return {
     slot,
-    source: { version: g.version, params: g.params, ...(corrections ? { corrections } : {}) },
+    source: {
+      version: g.version,
+      params: g.params,
+      ...(corrections ? { corrections } : {}),
+      ...(fineHead ? { fineHead } : {}),
+    },
   };
 }
 function makePattern(
