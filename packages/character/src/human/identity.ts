@@ -1,3 +1,9 @@
+export function hash1(n: number): number {
+  let x = Math.imul(n | 0, 0x9e3779b1);
+  x = Math.imul(x ^ (x >>> 15), 0x85ebca6b);
+  return ((x ^ (x >>> 13)) >>> 0) / 4294967295;
+}
+
 export type Spec = Record<string, number>;
 
 export function randomStream(seed: number): () => number {

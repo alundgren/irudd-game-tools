@@ -66,23 +66,39 @@ export function cutGarment(
       if (!part.fitted && object.visible && !part.wear.visibleIn && part.wear.role !== "accessory")
         floor = Math.min(floor, bodyBounds(entry).min.y);
     }
+    const knees = [...built.parts.values()].filter(({ part }) => {
+      const bone = built.human?.bones.get(part.id);
+      return bone === "calf_l" || bone === "calf_r";
+    });
+    const adult = knees.length > 0 && built.human?.bones.has(hostId);
+    const hem = adult
+      ? knees.reduce((y, knee) => y + knee.mount.getWorldPosition(new T.Vector3()).y, 0) /
+        knees.length
+      : pivot.y - (pivot.y - floor) * 0.965;
     cut = {
       kind,
       width: clamp(size.x * 0.86, 0.025, 8),
       depth: clamp(size.z * 0.91, 0.025, 8),
-      drop: clamp((pivot.y - floor) * 0.965, 0.025, 8),
+      drop: clamp(pivot.y - hem, 0.025, 8),
       flare: 1,
-      folds: 7,
-      bias: 0.65,
-      gather: 0.12,
-      tiers: 2,
+      folds: adult ? 0 : 7,
+      bias: adult ? 0 : 0.65,
+      gather: adult ? 0 : 0.12,
+      tiers: adult ? 0 : 2,
+      ...(adult ? { pleats: 16, pleatDepth: 0.055 } : {}),
       train: 0,
-      outline: [
-        [0, 1],
-        [0.2, 1.22],
-        [0.6, 1.04],
-        [1, 1.5],
-      ],
+      outline: adult
+        ? [
+            [0, 1],
+            [0.22, 1.18],
+            [1, 1.42],
+          ]
+        : [
+            [0, 1],
+            [0.2, 1.22],
+            [0.6, 1.04],
+            [1, 1.5],
+          ],
     };
   } else {
     cut = {

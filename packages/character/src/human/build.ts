@@ -27,6 +27,7 @@ import { fittedBrow } from "./strands.js";
 import { surfaceRegions } from "./draw.js";
 import { humanRegions, humanWeightsOf } from "./mesh.js";
 import { pullSurface } from "../surfaces/pull.js";
+import { familyHolds } from "./wardrobe.js";
 import { readTailor } from "./dress/tailor-data.js";
 import type { HumanBuild } from "./binding.js";
 import { isPresetOutfit } from "./dress/outfit-names.js";
@@ -171,7 +172,7 @@ export function buildHuman(
     !member &&
     params.style.tailor === undefined &&
     presetName &&
-    isPresetOutfit(presetName)
+    (isPresetOutfit(presetName) || presetName === "Pressure suit")
       ? presetName
       : undefined);
   const fieldClothes =
@@ -187,6 +188,7 @@ export function buildHuman(
   const regions = humanRegions(body, measurements, (bone) => colors.get(bone) ?? params.skin, {
     material: (color) => options.materials(color, "plain"),
     dressMaterial,
+    planes: params.style.facePlanes,
     corrections: donor ? donor.corrections : humanCorrections.read(doc.features),
     studio:
       params.style.faceFamily === "Studio Rain"
@@ -207,42 +209,58 @@ export function buildHuman(
     height: measurements["height"] ?? 1.72,
     paint,
     cast,
-    dress:
-      params.outfit === "Anatomy"
-        ? undefined
-        : {
-            fieldClothes,
-            accessories: preset === "Pressure suit" ? undefined : params.style,
-            tailor:
-              !work || params.style.tailor === undefined
-                ? undefined
-                : readTailor(params.style.tailor),
-            outfit: preset ? { name: preset, tones: params.style } : undefined,
-            hair:
-              params.style.faceFamily === "Studio Rain" && params.style.faceFamilyHair !== "Chosen"
-                ? undefined
-                : {
-                    hair:
-                      preset === "Pressure suit"
-                        ? "Crop"
-                        : params.style.faceFamily &&
-                            params.style.faceFamily !== "None" &&
-                            params.style.faceFamilyHair !== "Chosen"
-                          ? params.style.faceFamily === "Angular"
-                            ? "Layered short"
-                            : "Tied bun"
-                          : params.style.hair,
-                    fringe: params.style.fringe,
-                    hairColor: params.style.hairColor,
-                  },
-            skin: params.skin,
-            eyewear: params.style.eyewear,
-            necklace: preset === "Pressure suit" ? "None" : params.style.necklace,
-            clothAccent: params.style.clothAccent,
-            clothDesign: params.style.clothDesign,
-            secondDesign: params.style.secondDesign,
-            metalColor: params.style.metalColor,
-          },
+    dress: {
+      fieldClothes,
+      accessories:
+        preset === "Pressure suit"
+          ? undefined
+          : {
+              ...params.style,
+              hat: familyHolds(params.style, "hat") ? "None" : (params.style.hat ?? "None"),
+              earrings: familyHolds(params.style, "earrings")
+                ? "None"
+                : (params.style.earrings ?? "None"),
+              facialHair: familyHolds(params.style, "facialHair")
+                ? "None"
+                : (params.style.facialHair ?? "None"),
+              handProp: params.outfit === "Anatomy" ? "None" : (params.style.handProp ?? "None"),
+              waistBag: params.outfit === "Anatomy" ? "None" : (params.style.waistBag ?? "None"),
+            },
+      tailor:
+        !work || params.style.tailor === undefined ? undefined : readTailor(params.style.tailor),
+      outfit: preset ? { name: preset, tones: params.style } : undefined,
+      hair:
+        params.style.faceFamily === "Studio Rain" && params.style.faceFamilyHair !== "Chosen"
+          ? undefined
+          : {
+              hair:
+                preset === "Pressure suit" &&
+                [
+                  "Crown braid",
+                  "Rounded bob",
+                  "Blunt bob",
+                  "Low ponytail",
+                  "Long centre part",
+                ].includes(params.style.hair ?? "")
+                  ? "Crop"
+                  : params.style.faceFamily &&
+                      params.style.faceFamily !== "None" &&
+                      params.style.faceFamilyHair !== "Chosen"
+                    ? params.style.faceFamily === "Angular"
+                      ? "Layered short"
+                      : "Tied bun"
+                    : params.style.hair,
+              fringe: params.style.fringe,
+              hairColor: params.style.hairColor,
+            },
+      skin: params.skin,
+      eyewear: familyHolds(params.style, "eyewear") ? undefined : params.style.eyewear,
+      necklace: preset === "Pressure suit" ? "None" : params.style.necklace,
+      clothAccent: params.style.clothAccent,
+      clothDesign: params.style.clothDesign,
+      secondDesign: params.style.secondDesign,
+      metalColor: params.style.metalColor,
+    },
   });
   const group = new T.Group();
   const built = new Map<

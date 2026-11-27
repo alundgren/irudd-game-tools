@@ -26,12 +26,14 @@ export async function contactSheet(
   directory: string,
   rows: { name: string; image: string }[],
   scale = 1,
+  filename = "contact-sheet.png",
+  columns = 2,
 ) {
   const sheet = await page.evaluate(
-    async ({ entries, scale }) => {
+    async ({ entries, scale, columns }) => {
       const canvas = document.createElement("canvas");
-      canvas.width = 760 * scale;
-      canvas.height = Math.ceil(entries.length / 2) * 260 * scale;
+      canvas.width = 380 * columns * scale;
+      canvas.height = Math.ceil(entries.length / columns) * 260 * scale;
       const ctx = canvas.getContext("2d");
       if (!ctx) throw new Error("Cannot make contact sheet.");
       ctx.scale(scale, scale);
@@ -47,8 +49,8 @@ export async function contactSheet(
         const scale = Math.min(372 / img.width, 228 / img.height),
           w = img.width * scale,
           h = img.height * scale;
-        const x = (i % 2) * 380,
-          y = Math.floor(i / 2) * 260;
+        const x = (i % columns) * 380,
+          y = Math.floor(i / columns) * 260;
         ctx.drawImage(img, x + (380 - w) / 2, y, w, h);
         img.close();
         ctx.fillStyle = "#fff";
@@ -56,7 +58,7 @@ export async function contactSheet(
       }
       return canvas.toDataURL("image/png").split(",")[1] ?? "";
     },
-    { entries: rows, scale },
+    { entries: rows, scale, columns },
   );
-  writeFileSync(join(directory, "contact-sheet.png"), Buffer.from(sheet, "base64"));
+  writeFileSync(join(directory, filename), Buffer.from(sheet, "base64"));
 }

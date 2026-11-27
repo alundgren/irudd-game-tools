@@ -4,13 +4,12 @@ import { castSkin } from "./cast.js";
 import { isCastFigureName, type CastFigureName } from "./cast-data.js";
 import { castOutfits } from "./cast-wardrobe.js";
 import { armInkStyles } from "./draw.js";
-import { presetOutfitNames, type PresetOutfit } from "./dress/outfit-names.js";
+import { libraryOutfitNames, presetOutfitNames, type PresetOutfit } from "./dress/outfit-names.js";
 import {
   finishingStyles,
   eyewearStyles,
-  fittedHairStyles,
+  adultHairStyles,
   fringeStyles,
-  grownHairStyles,
   necklaceStyles,
   secondClothDesigns,
   tailoredClothDesigns,
@@ -22,14 +21,14 @@ import { randomStream } from "./identity.js";
 type Style = HumanAdultParams["style"];
 export const adultStyleOptions = {
   ...finishingStyles,
-  hair: [...fittedHairStyles, ...grownHairStyles],
+  hair: adultHairStyles,
   fringe: fringeStyles,
   browStyle: browStyles,
   makeup: makeupStyles,
   armInk: armInkStyles,
   eyewear: eyewearStyles,
   necklace: necklaceStyles,
-  outfit: ["None", ...presetOutfitNames],
+  outfit: ["None", ...presetOutfitNames, "Pressure suit", ...libraryOutfitNames],
   clothDesign: tailoredClothDesigns,
   secondDesign: secondClothDesigns,
 } as const;
@@ -79,6 +78,46 @@ export function showOutfit(params: HumanAdultParams, show: boolean): HumanAdultP
     outfit: show ? "Work clothes" : "Anatomy",
     style: needsClothes ? { ...style, outfit: "T-shirt and jeans" } : style,
   };
+}
+
+export function studioRainPerson(params: HumanAdultParams): HumanAdultParams {
+  const styled = chooseAdultStyle(params, { faceFamily: "Studio Rain", hairColor: "#5a3d2b" });
+  const human = {
+    ...styled.human,
+    age: 0.08,
+    frame: -0.35,
+    weight: -0.3,
+    muscle: 0.1,
+    neck: -0.2,
+    jaw: 0,
+    nose: 0,
+    noseBridge: 0,
+    cheeks: 0,
+    lips: 0,
+    chin: 0,
+    jawProjection: 0,
+    chinHeight: 0,
+    forehead: 0,
+    temples: 0,
+    noseLength: 0,
+    noseTipWidth: 0,
+  };
+  return {
+    ...styled,
+    human,
+    eyeColor: "blue",
+    skin: "#e2b08e",
+    sourceSkin: params.sourceSkin ?? params.skin,
+  };
+}
+
+export function familyHolds(style: Style, key: keyof Style) {
+  if (style.faceFamily !== "Studio Rain") return false;
+  return (
+    ["facePlanes", "browStyle", "facialHair", "makeup"].includes(key) ||
+    (style.faceFamilyHair !== "Chosen" &&
+      ["hair", "fringe", "eyewear", "earrings", "hat", "hatColor"].includes(key))
+  );
 }
 
 export function chooseAdultStyle(
@@ -224,5 +263,10 @@ export function tailorAdult(
   if (problems.length) throw new Error(problems.join(" "));
   const { tailor: _old, ...style } = params.style;
   const next = { ...params, style: layers.length ? { ...style, tailor: { layers } } : style };
-  return chooseAdultWardrobe(next, layers.length ? "Work clothes" : (params.outfit ?? "Anatomy"));
+  return chooseAdultWardrobe(
+    next,
+    layers.length && (params.outfit ?? "Anatomy") === "Anatomy"
+      ? "Work clothes"
+      : (params.outfit ?? "Anatomy"),
+  );
 }

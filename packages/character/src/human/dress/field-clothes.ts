@@ -1,4 +1,9 @@
+import { hangLibraryCloth, sleeveBone } from "./library-drape.js";
+import type { ClothJoints } from "../cloth-joints.js";
+import { fabricMaps } from "./library-fabric.js";
+import { dyes, panelDyes } from "./library-dyes.js";
 import * as T from "three";
+import { libraryOutfits } from "./outfit-names.js";
 import type { FieldClothing as Source } from "../field-clothes-data.js";
 import type { HumanBody } from "../body.js";
 import type { HumanSurface } from "../surface.js";
@@ -7,11 +12,18 @@ import { surfaceBody } from "./fringe.js";
 import { outfitPalette, toneFields, type OutfitTones } from "./outfits.js";
 
 type PixelMap = Source["record"]["texture"];
-type JointInfluence = { boneIndices: number[]; weights: number[] };
+type JointInfluence = { boneIndices: number[]; weights: number[]; clothJoints?: ClothJoints };
+const bareLegged = new Set(["Shift dress", "Rib knit and full skirt", "Striped blouse and skirt"]);
 const unit = (v: number) => Math.max(0, Math.min(1, v));
-function imageMap(image: PixelMap, colour: boolean, style?: OutfitTones, shoe = false) {
+function imageMap(
+  image: PixelMap,
+  colour: boolean,
+  style?: OutfitTones,
+  record?: Source["record"],
+) {
   const pixels = image.pixels.slice();
-  if (colour && style && Object.keys(toneFields).some((k) => Object.hasOwn(style, k))) {
+  const rules = record ? (panelDyes[record.name] ?? dyes[record.name]) : undefined;
+  if (colour && rules && style && Object.keys(toneFields).some((k) => Object.hasOwn(style, k))) {
     const palette = outfitPalette(style),
       tones = new Map(
         Object.entries(palette).map(([k, v]) => [
@@ -28,35 +40,22 @@ function imageMap(image: PixelMap, colour: boolean, style?: OutfitTones, shoe = 
       const { h, s, l } = col
         .setRGB((pixels[i] ?? 0) / 255, (pixels[i + 1] ?? 0) / 255, (pixels[i + 2] ?? 0) / 255)
         .getHSL(hsl);
-      let name = "",
-        level = 1,
-        light = 0;
-      if (shoe) {
-        if (s < 0.3 && l > 0.05) {
-          name = "leather";
-          level = 0.4;
-        }
-      } else if (s > 0.14 && h > 0.5 && h < 0.68 && l > 0.1) {
-        name = "dark";
-        level = 0.37;
-      } else if (s > 0.16 && (h > 0.88 || h < 0.07) && l > 0.05) {
-        name = "accent";
-        level = 0.2;
-        light = unit((l - 0.32) / 0.18);
-      } else if (s <= 0.14 && l >= 0.36) {
-        name = "dark";
-        level = 0.5;
-      } else if (s <= 0.14 && l > 0.1) {
-        name = "main";
-        level = 0.25;
-      }
-      const dye = tones.get(name);
+      let index = record?.panels
+        ? (record.panels[i / 4] ?? 0) - 1
+        : rules.findIndex((rule) => rule.pick?.(h, s, l));
+      if (index === 0 && record?.name === "female_sportsuit01" && s > 0.45 && h < 0.16) index = 2;
+      const rule = rules[index];
+      if (!rule) continue;
+      const level = rule.level,
+        light = rule.pale ? unit((l - (rule.from ?? 0)) / ((rule.to ?? 1) - (rule.from ?? 0))) : 0;
+      const dye = tones.get(rule.tone);
       if (!dye) continue;
       const shade = T.MathUtils.clamp((l / level) ** 0.72, 0.36, 1.5),
-        pale = tones.get("light");
+        pale = rule.pale ? tones.get(rule.pale) : undefined;
       for (let c = 0; c < 3; c++) {
         const base = Math.min(255, (dye[c] ?? 0) * (light ? Math.min(shade, 1) : shade));
-        pixels[i + c] = Math.round(T.MathUtils.lerp(base, pale?.[c] ?? base, light));
+        const dyed = T.MathUtils.lerp(base, pale?.[c] ?? base, light);
+        pixels[i + c] = Math.round(T.MathUtils.lerp(dyed, pixels[i + c] ?? 0, rule.worn ?? 0));
       }
     }
   }
@@ -147,13 +146,22 @@ function fitChest(
       positions.set(body.clear([x, y, positions[j + 2] ?? 0], 0.009 * body.scale), j);
   }
 }
-function fit(body: HumanBody, s: HumanSurface, source: Source, ids: Map<number, number>) {
+function fit(
+  body: HumanBody,
+  s: HumanSurface,
+  source: Source,
+  ids: Map<number, number>,
+  outfit: string,
+) {
   const rest = body.arrays.f32("base"),
     positions = new Float32Array(source.refs.length),
     bones = new Uint8Array((positions.length / 3) * 4),
     skin = new Float32Array(bones.length);
-  const shoe = source.record.name === "shoes02",
-    panel = shoe ? undefined : new Float32Array(positions.length);
+  const stocking: Record<string, number> = { shoes01: 1434, shoes02: 1306, shoes05: 1306 };
+  const shoe = stocking[source.record.name],
+    panel = Object.values(libraryOutfits).some((pieces) => pieces[0] === source.record.name)
+      ? new Float32Array(positions.length)
+      : undefined;
   for (let j = 0; j < positions.length; j += 3) {
     const refs = Array.from(source.refs.subarray(j, j + 3), (r) => {
       const id = ids.get(r);
@@ -193,14 +201,14 @@ function fit(body: HumanBody, s: HumanSurface, source: Source, ids: Map<number, 
     });
   }
   if (panel) fitChest(s, rest, panel, positions);
-  if (shoe) {
+  if (shoe && !bareLegged.has(outfit)) {
     const legs = (["r", "l"] as const).map((side) => {
         const ankle = new T.Vector3().fromArray(s.joints, 3 * boneNames.indexOf(`foot_${side}`)),
           knee = new T.Vector3().fromArray(s.joints, 3 * boneNames.indexOf(`calf_${side}`));
         return { ankle, axis: knee.sub(ankle).normalize() };
       }),
       k = s.height / 1.72;
-    for (let i = 1306 * 3; i < positions.length; i += 3) {
+    for (let i = shoe * 3; i < positions.length; i += 3) {
       const leg = legs[(positions[i] ?? 0) > 0 ? 1 : 0];
       if (!leg) continue;
       const v = new T.Vector3().fromArray(positions, i).sub(leg.ankle),
@@ -214,30 +222,53 @@ function fit(body: HumanBody, s: HumanSurface, source: Source, ids: Map<number, 
           .toArray(positions, i);
     }
   }
-  return { positions, bones, skin };
+  return {
+    positions,
+    bones,
+    skin,
+    joints: hangLibraryCloth(s, source.record.name, positions, bones, skin),
+  };
 }
 export function fieldClothes(
   body: HumanBody,
   s: HumanSurface,
-  style: OutfitTones,
+  style: OutfitTones & { readonly outfit?: string },
   material: (color: string) => T.Material,
   plain: boolean,
 ) {
   const meshes: { mesh: T.Mesh; region: string; skin: JointInfluence }[] = [],
     hidden = new Set<number>(),
     ids = new Map(Array.from(s.ids, (r, i) => [r, i] as const));
-  for (const src of body.fieldClothing) {
-    const { positions, bones, skin } = fit(body, s, src, ids),
+  const pieces =
+    libraryOutfits[
+      !style.outfit || style.outfit === "None" ? "Field jacket and denim" : style.outfit
+    ] ?? [];
+  for (const src of body.fieldClothing.filter((entry) => pieces.includes(entry.record.name))) {
+    const { positions, bones, skin, joints } = fit(
+        body,
+        s,
+        src,
+        ids,
+        style.outfit ?? "Field jacket and denim",
+      ),
       r = src.record;
     const m = material("#ffffff").clone();
     m.side = T.DoubleSide;
     if (!plain && m instanceof T.MeshStandardMaterial) {
-      m.map = imageMap(r.texture, true, style, r.name === "shoes02");
-      if (r.normal) {
-        m.normalMap = imageMap(r.normal, false);
-        m.normalScale.setScalar(0.82);
+      m.map = imageMap(r.texture, true, style, r);
+      const weave = fabricMaps(r),
+        normal = weave?.normal ?? r.normal,
+        surface = weave?.surface ?? r.surface;
+      if (normal) {
+        m.normalMap = imageMap(normal, false);
+        m.normalScale.setScalar(weave ? 1 : 0.82);
       }
-      if (r.occlusion) {
+      if (surface) {
+        const orm = imageMap(surface, false);
+        m.roughnessMap = m.metalnessMap = m.aoMap = orm;
+        m.roughness = m.metalness = 1;
+        m.aoMapIntensity = 0.8;
+      } else if (r.occlusion) {
         m.aoMap = imageMap(r.occlusion, false);
         m.aoMapIntensity = 0.72;
       }
@@ -306,7 +337,9 @@ export function fieldClothes(
       g.setIndex(indices);
       const mesh = new T.Mesh(g, m);
       mesh.castShadow = true;
-      meshes.push({ mesh, region: boneNames[owner] ?? "spine_03", skin: influence });
+      const region = boneNames[owner] ?? "spine_03";
+      if (joints && !sleeveBone(region)) influence.clothJoints = joints;
+      meshes.push({ mesh, region, skin: influence });
     }
     whole.dispose();
   }

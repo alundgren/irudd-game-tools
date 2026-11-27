@@ -28,10 +28,47 @@ const palettes = {
     strength: 0.9,
     roughness: 0.45,
   },
+  "Plum stage": {
+    lip: [0.75, 0.22, 0.43],
+    shadow: [0.53, 0.38, 0.68],
+    cheek: [0.95, 0.7, 0.88],
+    strength: 1,
+    roughness: 0.42,
+  },
+  "Smoked charcoal": {
+    lip: [0.88, 0.7, 0.71],
+    shadow: [0.36, 0.37, 0.41],
+    cheek: [0.96, 0.9, 0.88],
+    strength: 0.91,
+    roughness: 0.48,
+  },
+  "Gilded nocturne": {
+    lip: [0.78, 0.26, 0.22],
+    shadow: [0.46, 0.36, 0.3],
+    cheek: [0.95, 0.76, 0.66],
+    strength: 0.98,
+    roughness: 0.44,
+  },
+  "Crimson aria": {
+    lip: [0.84, 0.14, 0.22],
+    shadow: [0.44, 0.24, 0.3],
+    cheek: [0.96, 0.72, 0.78],
+    strength: 1,
+    roughness: 0.4,
+  },
 } as const satisfies Readonly<Record<string, MakeupPalette>>;
 
 export type MakeupName = keyof typeof palettes;
-export const makeupStyles = ["None", "Rose stain", "Burnished copper", "Berry satin"] as const;
+export const makeupStyles = [
+  "None",
+  "Rose stain",
+  "Burnished copper",
+  "Berry satin",
+  "Plum stage",
+  "Smoked charcoal",
+  "Gilded nocturne",
+  "Crimson aria",
+] as const;
 
 const table: ReadonlyMap<string, MakeupPalette> = new Map(Object.entries(palettes));
 export const makeupPalette = (name: string | undefined): MakeupPalette | null =>

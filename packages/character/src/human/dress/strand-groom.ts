@@ -133,7 +133,7 @@ interface EarBox {
 }
 
 const earSourceCache = new WeakMap<HumanBody, ReadonlySet<number>>();
-function earSources(human: HumanBody): ReadonlySet<number> {
+export function earSources(human: HumanBody): ReadonlySet<number> {
   const known = earSourceCache.get(human);
   if (known) return known;
   const s = evaluateHuman(human, { height: 1.72 }),

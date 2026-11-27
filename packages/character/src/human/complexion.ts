@@ -1,3 +1,4 @@
+import { beardAt, isStageMakeup, paintStageMakeup } from "./stage-makeup.js";
 import * as T from "three";
 import { context2d, type Raster, type RasterImage } from "../raster.js";
 import type { BrowName, HumanBody } from "./body.js";
@@ -123,6 +124,7 @@ export interface ComplexionLook {
   readonly brow: BrowName;
   readonly photoBrows: boolean;
   readonly makeup: string;
+  readonly facialHair?: string | undefined;
 }
 export function complexionLook(params: HumanAdultParams, brow: BrowName): ComplexionLook {
   const age = params.human["age"] ?? 0;
@@ -136,6 +138,7 @@ export function complexionLook(params: HumanAdultParams, brow: BrowName): Comple
     seed: params.seed >>> 0,
     brow,
     photoBrows: (params.style.browStyle ?? "As drawn") === "As drawn",
+    facialHair: params.style.facialHair,
     makeup: params.style.makeup ?? "None",
   };
 }
@@ -398,12 +401,13 @@ function skinPigment(
   };
 }
 
-export function browPigment(hair: T.Color, skin: T.Color, age: number): T.Color {
+export function browPigment(hair: T.Color, skin: T.Color, age: number, makeup = "None"): T.Color {
   const light = (c: T.Color) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
-  const root = new T.Color("#30251f").lerp(hair, 0.23);
+  const stage = isStageMakeup(makeup);
+  const root = new T.Color(stage ? "#291d21" : "#30251f").lerp(hair, stage ? 0.08 : 0.23);
   const value = light(root);
   root.lerp(new T.Color(value, value, value), 0.27);
-  const most = (0.38 + 0.075 * age) * light(skin);
+  const most = (stage ? 0.26 : 0.38 + 0.075 * age) * light(skin);
   if (light(root) > most) root.multiplyScalar(most / Math.max(light(root), 0.0001));
   return root;
 }
@@ -415,6 +419,7 @@ export interface HumanPaintSources {
   readonly height: number;
   readonly left: number;
   readonly top: number;
+  readonly clippedBeard: Uint8ClampedArray;
   readonly maps: ReadonlyArray<Uint8ClampedArray>;
   readonly fields: readonly [
     Uint8ClampedArray,
@@ -463,20 +468,33 @@ export async function prepareHumanPaint(
   };
   const all = <T>(list: ReadonlyArray<Promise<T>>) => Promise.all(list);
   const pair = async (a: string, b: string) => [await pixels(a), await pixels(b)] as const;
-  const [maps, fields, dermal, browList, normal, roughness, donors, micro, meso, gloss, lips] =
-    await Promise.all([
-      all([0, 1, 2, 3].map((k) => pixels(`detail.${k}`))),
-      all(["tone", "zones", "eyes", "visibility"].map((k) => pixels(`field.${k}`))),
-      all([0, 1].map((k) => pixels(`dermal.${k}`))),
-      all(paintBrowNames.map(async (n) => [n, await image(`brow.${n}`)] as const)),
-      image("body.normal"),
-      image("body.roughness"),
-      all(paint.donors.map((_, k) => image(`finish.donor.${k}`))),
-      pixels("finish.micro"),
-      pixels("finish.meso"),
-      pixels("finish.gloss"),
-      pixels("finish.lips"),
-    ]);
+  const [
+    maps,
+    fields,
+    dermal,
+    browList,
+    normal,
+    roughness,
+    donors,
+    micro,
+    meso,
+    gloss,
+    lips,
+    clippedBeard,
+  ] = await Promise.all([
+    all([0, 1, 2, 3].map((k) => pixels(`detail.${k}`))),
+    all(["tone", "zones", "eyes", "visibility"].map((k) => pixels(`field.${k}`))),
+    all([0, 1].map((k) => pixels(`dermal.${k}`))),
+    all(paintBrowNames.map(async (n) => [n, await image(`brow.${n}`)] as const)),
+    image("body.normal"),
+    image("body.roughness"),
+    all(paint.donors.map((_, k) => image(`finish.donor.${k}`))),
+    pixels("finish.micro"),
+    pixels("finish.meso"),
+    pixels("finish.gloss"),
+    pixels("finish.lips"),
+    pixels("clippedBeard"),
+  ]);
   const [tone, zones, eyes, visibility] = fields;
   if (!tone || !zones || !eyes || !visibility)
     throw new Error("The paint pack lacks a face field.");
@@ -517,6 +535,7 @@ export async function prepareHumanPaint(
     left,
     top,
     maps,
+    clippedBeard,
     fields: [tone, zones, eyes, visibility],
     dermal,
     brows: new Map(browList),
@@ -594,7 +613,25 @@ export function paintFace(
       ? 0
       : Math.min(1, Math.max(0, (age - 0.18) * 1.25) + (baseDetail === "Lined" ? 0.25 : 0));
   const lines = lineStrength > 0 ? expressionLines(body, seed) : null;
-  const { neutral, base: headBase } = headroomForSkin(skin, headGain);
+  const trimmed = look.facialHair === "Clipped beard";
+  const clipped = trimmed || look.facialHair === "Stubble" ? sources.clippedBeard : null;
+  const root = trimmed ? hair.clone().multiplyScalar(0.66).lerp(skin, 0.12) : null;
+  const gain = root
+    ? clamp(
+        1.04 *
+          Math.max(
+            root.r / Math.max(skin.r, 0.004),
+            root.g / Math.max(skin.g, 0.004),
+            root.b / Math.max(skin.b, 0.004),
+          ),
+        headGain,
+        6,
+      )
+    : headGain;
+  const { neutral, base: headBase } = headroomForSkin(skin, gain);
+  const rootLinear = root
+    ? root.toArray().map((v, k) => v / Math.max(0.0001, at(headBase, k)))
+    : null;
   const bareLinear = neutral.map((b) => at(srgbDecode, b));
   const { beard } = profile;
   const stubble = tintOn(skin, hair.clone().lerp(skin, 0.48)).map((v) => v / 255);
@@ -607,7 +644,6 @@ export function paintFace(
   const colour = new ImageData(width, height),
     gloss = new ImageData(width, height),
     bump = new ImageData(width, height);
-  const cover = 0;
   for (let i = 0; i < width * height * 4; i += 4) {
     const pixel = i / 4,
       px = pixel % width,
@@ -615,6 +651,13 @@ export function paintFace(
     const mask = at(eyes, i + 2) / 255,
       lips = at(fin.lips, i) / 255,
       lids = at(tone, i + 1) / 255;
+    const beardDensity = clipped ? (at(clipped, i) / 255) * mask * (1 - lips) : 0;
+    const cover = clipped
+      ? trimmed
+        ? Math.min(0.96, 1.33 * beardDensity)
+        : 0.32 * beardDensity
+      : beardAt(body, look.facialHair, (px + 0.5) / width, (py + 0.5) / height, true);
+    const rootGrain = clipped ? 0.26 + (0.7 * at(clipped, i + 1)) / 128 : 1;
     const blush = at(zones, i) / 255,
       shine = at(zones, i + 1) / 255,
       growth = (at(zones, i + 2) / 255) * (1 - lips) * beard;
@@ -642,9 +685,17 @@ export function paintFace(
         )
       : [1, 1, 1];
     const tints = [
-      plane * detR * mix(1, at(stubble, 0), growth) * mix(1, at(dense, 0), cover),
-      plane * detG * warmG * mix(1, at(stubble, 1), growth) * mix(1, at(dense, 1), cover),
-      plane * detB * warmB * mix(1, at(stubble, 2), growth) * mix(1, at(dense, 2), cover),
+      plane * detR * mix(1, at(stubble, 0), growth) * mix(1, at(dense, 0), root ? 0 : cover),
+      plane *
+        detG *
+        warmG *
+        mix(1, at(stubble, 1), growth) *
+        mix(1, at(dense, 1), root ? 0 : cover),
+      plane *
+        detB *
+        warmB *
+        mix(1, at(stubble, 2), growth) *
+        mix(1, at(dense, 2), root ? 0 : cover),
     ];
     let pigLinear: number[];
     {
@@ -721,7 +772,11 @@ export function paintFace(
       } else {
         const variation = pigmentAt ? Math.exp(pigmentGain * skinArea * at(localPigment, k)) : 1;
         const lit = srgbUnitToLinear(sVal) * at(pigLinear, k) * at(bareLinear, k) * variation;
-        colour.data[i + k] = Math.round(srgbEncode(lit));
+        colour.data[i + k] = Math.round(
+          srgbEncode(
+            rootLinear && cover > 0 ? mix(lit, at(rootLinear, k) * rootGrain, cover) : lit,
+          ),
+        );
       }
     }
     colour.data[i + 3] = 255;
@@ -797,6 +852,7 @@ export function paintFace(
         amount = (at(surface, i + 2) / 255) * mask * (1 - cover);
       high = mix(high, 128 + 0.09 * (at(surface, i) - 128) + 0.32 * (high - 128), amount);
     }
+    if (clipped) high += (at(clipped, i + 2) - 128) * cover * 0.62;
     bump.data[i] = bump.data[i + 1] = bump.data[i + 2] = high;
     bump.data[i + 3] = 255;
   }
@@ -832,7 +888,7 @@ export function paintFace(
     const inkLayer = context2d(tint);
     inkLayer.drawImage(browImage, 0, 0);
     inkLayer.globalCompositeOperation = "source-in";
-    inkLayer.fillStyle = ink(browPigment(hair, skin, age));
+    inkLayer.fillStyle = ink(browPigment(hair, skin, age, look.makeup));
     inkLayer.fillRect(0, 0, tint.width, tint.height);
     f.save();
     f.filter = "blur(" + 1.8 * density + "px)";
@@ -910,6 +966,21 @@ export function paintFace(
     t.anisotropy = 8;
     return t;
   };
+  if (isStageMakeup(look.makeup)) {
+    const glossContext = context2d(roughness);
+    const colour = mc.getImageData(0, 0, w, h),
+      gloss = glossContext.getImageData(0, 0, w, h);
+    const base = paintStageMakeup(body, { map: colour.data, rough: gloss.data }, look.makeup, {
+      skin: [skin.r, skin.g, skin.b],
+      base: headBase,
+      brow: look.brow,
+      facialHair: look.facialHair,
+      clippedBeard: clipped,
+    });
+    for (const i of [0, 1, 2] as const) headBase[i] = base[i] ?? headBase[i];
+    mc.putImageData(colour, 0, 0);
+    glossContext.putImageData(gloss, 0, 0);
+  }
   return {
     map: texture(map, true),
     roughnessMap: texture(roughness, false),

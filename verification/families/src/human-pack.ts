@@ -234,6 +234,8 @@ const imageSource = (name: string): unknown => {
   const [group = "", a = "", b = ""] = name.split(".");
   const at = (v: unknown, k: number) => list(v, name)[k];
   switch (group) {
+    case "clippedBeard":
+      return json("human-clipped-beard-data.json")["url"];
     case "detail":
       return complexionMaps[Number(a)];
     case "field":

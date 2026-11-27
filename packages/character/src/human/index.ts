@@ -1,3 +1,4 @@
+import { headwearPack } from "./headwear-library.js";
 import { digestBrand, sha256Digest, type Digest } from "@irudd/document";
 import { readHumanBody, type HumanBody } from "./body.js";
 import { readHumanPaint, type HumanPaint } from "./paint-data.js";
@@ -13,7 +14,8 @@ export interface HumanPackFile {
     | "cast"
     | "paint"
     | "studio"
-    | "field-clothes";
+    | "field-clothes"
+    | "headwear";
   readonly file: string;
   readonly digest: Digest;
   readonly byteLength: number;
@@ -82,10 +84,21 @@ export const humanPackFiles: ReadonlyArray<HumanPackFile> = [
   {
     name: "field-clothes",
     file: "human-field-clothes.bin",
-    digest: digestBrand("sha256:ac8a87e478f19d5487293815286990b81214362465a4e99709eca987926fbd36"),
-    byteLength: 2074565,
+    digest: digestBrand("sha256:64a63f2c33efde33755ac7f1fd2afb8db3c15ee1174258c9dd661860a6167af8"),
+    byteLength: 57868966,
     sources: [
-      "MakeHuman community field clothing and shoes from the browser workshop's human-library-data.json (CC0)",
+      "MakeHuman system clothing, shoes and community clothing adapted from the browser wardrobe (CC0).",
+      "Einar Rig, Blender Foundation (CC BY 4.0), coat, trousers and boots adapted for the adult rig. https://studio.blender.org/characters/einar/v1/",
+      "Scanned garments adapted from HSRD-100, Digital Reality Lab (CC BY 4.0). https://huggingface.co/datasets/digitalrealitylab/HSRD-100",
+    ],
+  },
+  {
+    name: "headwear",
+    file: "human-headwear.bin",
+    byteLength: headwearPack.byteLength,
+    digest: digestBrand(headwearPack.digest),
+    sources: [
+      "Fitted hairstyles and headwear from the browser workshop. MakeHuman community and FlightHelmet from Microsoft (CC0), Rocketbox Avatar Library (MIT, Copyright (c) 2020 Microsoft), Rain and Einar from the Blender Foundation (CC BY 4.0), and HSRD-100 from Digital Reality Lab (CC BY 4.0). See the bundled artwork notices.",
     ],
   },
 ];
@@ -101,17 +114,17 @@ export async function loadHumanPacks(
       return data;
     }),
   );
-  const [body, captured, face, groom, cast, studio, clothes] = bytes;
-  if (!body || !captured || !face || !groom || !cast || !studio || !clothes)
+  const [body, captured, face, groom, cast, studio, clothes, headwear] = bytes;
+  if (!body || !captured || !face || !groom || !cast || !studio || !clothes || !headwear)
     throw new Error("Missing human pack.");
-  return readHumanBody(body, captured, face, groom, cast, studio, clothes);
+  return readHumanBody(body, captured, face, groom, cast, studio, clothes, headwear);
 }
 
 export const humanPaintFile: HumanPackFile = {
   name: "paint",
   file: "human-paint.bin",
-  digest: digestBrand("sha256:302c0ba159bb6ae6d0ff8a461bcda9b104ba39671b7372dccc31a12f5c6f9286"),
-  byteLength: 23010837,
+  digest: digestBrand("sha256:c95363989dbd61855435d736e37472960f1e793780d558cbc9d363ef07fbf30b"),
+  byteLength: 23175056,
   sources: [
     "MakeHuman system skins (20 adult skins, CC0): portrait finish donors and local skin tone",
     "MakeHuman system skin young_darkskinned_male (CC0): the clipped buzz cut's hair density and grain, traced from its scalp",
@@ -119,7 +132,7 @@ export const humanPaintFile: HumanPackFile = {
     "Mindfront skin maps (CC0): body relief and dermal relief",
     "MakeHuman / MPFB2 head (CC0): face detail, tone, zone and visibility fields and brow paint",
     "MakeHuman eye textures (CC0): iris stroma, brightness and hue removed",
-    "Microsoft Rocketbox Avatar Library donor skins (MIT, Copyright (c) 2020 Microsoft)",
+    "Microsoft Rocketbox Avatar Library donor skins, including Male_Adult_05 clipped beard density, grain and relief (MIT, Copyright (c) 2020 Microsoft)",
     "HSRD-100 face and iris photographs, Digital Reality Lab (CC BY 4.0), registered to the adult layout",
     "MakeHuman system and community grooms (CC0 1.0): strand pictures and normal maps of the authored hair and facial hair",
     "Microsoft Rocketbox Avatar Library (MIT, Copyright (c) 2020 Microsoft): the clothed cast's pictures, hair card pictures, garment art and surface maps",
@@ -238,3 +251,5 @@ export * from "./measurements.js";
 export * from "./wardrobe.js";
 export { castDonor, castSkin } from "./cast.js";
 export { castOutfits } from "./cast-wardrobe.js";
+
+export { armourLooks, armourSet } from "./dress/armour-set.js";

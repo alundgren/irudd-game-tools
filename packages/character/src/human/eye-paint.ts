@@ -94,6 +94,17 @@ function stromaSampler(map: Uint8Array, rotation: number) {
   };
 }
 
+export function irisSwatch(paint: HumanPaint, name: string): T.Color {
+  const side = 32,
+    pixels = irisPixels(paint, name, 0, side),
+    i = (side * 16 + Math.round(side * 0.76)) * 4;
+  return new T.Color(
+    (pixels[i] ?? 0) / 255,
+    (pixels[i + 1] ?? 0) / 255,
+    (pixels[i + 2] ?? 0) / 255,
+  );
+}
+
 function irisPixels(
   paint: HumanPaint,
   name: string,

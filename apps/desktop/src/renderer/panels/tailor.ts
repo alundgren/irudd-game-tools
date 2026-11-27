@@ -1,4 +1,6 @@
 import {
+  armourLooks,
+  armourSet,
   defaultTailor,
   readTailor,
   tailorAdult,
@@ -14,6 +16,7 @@ import { choices, colour, field } from "./garment-fields.js";
 export function tailorControls(
   params: HumanAdultParams,
   index: number,
+  armour: { look: string; seed: number },
   select: (i: number) => void,
   save: (next: HumanAdultParams, message: string) => void,
 ) {
@@ -26,8 +29,23 @@ export function tailorControls(
     save(tailorAdult(params, next), message);
   const selected = Math.min(index, layers.length - 1),
     layer = layers[selected];
+  const look = choices(armourLooks, armour.look);
+  look.input.onchange = () => {
+    armour.look = look.read();
+  };
+  const wear = (seed: number) => {
+    armour.seed = seed;
+    select(0);
+    set(armourSet(seed, armour.look).layers, "Wear " + armour.look + " armour, variation " + seed);
+  };
+  const sets = [
+    field("Armour set", look.input),
+    button("Wear armour set", () => wear(armour.seed)),
+    button("Another variation", () => wear(Math.floor(Math.random() * 1000))),
+  ];
   if (!layer)
     return [
+      ...sets,
       button("Tailor this outfit", () => {
         select(0);
         set(defaultTailor(params.style.clothColor).layers, "Tailor outfit");
@@ -44,7 +62,7 @@ export function tailorControls(
     },
   );
   list.input.onchange = () => select(Number(list.read()));
-  const controls: HTMLElement[] = [field("Tailored layer", list.input)];
+  const controls: HTMLElement[] = [...sets, field("Tailored layer", list.input)];
   for (const [key, spec] of Object.entries(piece.fields)) {
     const value = layer[key] ?? spec.value;
     const input =

@@ -1,3 +1,5 @@
+import { adultStyleOptions } from "../src/human/wardrobe.js";
+import { tailorPieces } from "../src/human/dress/tailor-data.js";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
@@ -6,6 +8,10 @@ import { correctedSurface, skinStroke } from "../src/human/brush.js";
 import { humanCorrections } from "@irudd/document";
 import { humanRegions, humanWeightsOf } from "../src/human/mesh.js";
 import { referenceGlb } from "../src/reference-glb.js";
+import { armourSet, armourLooks } from "../src/human/dress/armour-set.js";
+import { fittedHeadwear } from "../src/human/dress/headwear.js";
+import { headwear } from "../src/human/headwear-library.js";
+import { breastplateDevices } from "../src/human/dress/armour-device.js";
 import { fittedAccessories } from "../src/human/dress/accessories.js";
 import { humanMeasurements } from "../src/human/generator.js";
 import { fitReference, referenceVertices, evaluateHuman, tailorLayer } from "../src/human/index.js";
@@ -229,13 +235,18 @@ test("native face families, fitted accessories and individual armour use the sel
   });
   assert.ok(decodeWith(HumanAdultParams, styled).ok);
   assert.notDeepEqual(humanMeasurements(styled), humanMeasurements(person));
+  assert.deepEqual(
+    humanMeasurements(chooseAdultStyle(styled, { facePlanes: "None" })),
+    humanMeasurements(styled),
+  );
   const surface = evaluateHuman(body, humanMeasurements(styled));
   const items = fittedAccessories(
+    body,
     surface,
     styled.style,
     (tone) => new T.MeshStandardMaterial({ color: tone }),
   );
-  for (const name of ["Beret", "Hoops", "Dispatch folio", "Painted folding fan", "Moustache"])
+  for (const name of ["Beret", "Hoops", "Dispatch folio", "Pleated silk fan leaf", "Moustache"])
     assert.ok(
       items.some((i) => i.mesh.name === name),
       name,
@@ -255,6 +266,121 @@ test("native face families, fitted accessories and individual armour use the sel
   }
 });
 
+test("armour preserves articulated cuts, neck closures, asymmetric sides and the selected emboss", () => {
+  const surface = evaluateHuman(body, humanMeasurements(person)),
+    fit = dressBody(surface),
+    m = dressLandmarks(fit);
+  const make = (piece: string, settings: Record<string, string | number>) =>
+    tailorParts(fit, m, { layers: [tailorLayer(piece, settings)] }).parts;
+  const mantle = make("travellingMantle", { shoulder: "right" }).find((part) => part.mantleFinish);
+  assert.ok(mantle && mantle.piece.mantleUV);
+  assert.equal(mantle.piece.mantleUV.length, mantle.piece.count * 2);
+  assert.ok(mantle.piece.mantleUV.every((v) => v >= 0 && v <= 1));
+  const arms = make("pauldrons", { balance: "left only", cut: "pointed" });
+  assert.ok(arms.some((p) => p.name === "Pauldron straps"));
+  assert.ok(arms.every((p) => p.region === "upperarm_l"));
+  const armour = make("cuirass", {
+    build: "segmented",
+    device: "Knotted oak",
+    collar: "mail standard",
+    back: "pack",
+  });
+  for (const title of [
+    "Cuirass",
+    "Cuirass straps",
+    "Cuirass buckles",
+    "Mail standard band",
+    "Mail standard buckle",
+    "Back unit vents",
+  ])
+    assert.ok(
+      armour.some((p) => p.name === title),
+      title,
+    );
+  const plate = armour.find((p) => p.breastplate)?.breastplate;
+  assert.ok(plate);
+  assert.ok(plate.ribs > plate.bottom && plate.ribs < plate.top);
+  assert.deepEqual(breastplateDevices, [
+    "Plain",
+    "Night moth",
+    "Reed heron",
+    "Knotted oak",
+    "Compass",
+  ]);
+  assert.equal(plate.layer["device"], "Knotted oak");
+  const matched = make("pauldrons", { balance: "right heavier", lames: 3 });
+  const bells = matched.filter((p) => p.name === "Pauldron");
+  assert.equal(bells.length, 2);
+  assert.notEqual(bells[0]?.piece.count, bells[1]?.piece.count);
+  assert.equal(
+    armourSet(578, "Heavy sci-fi").layers.find((l) => l.piece === "cuirass")?.["color"],
+    "#b9b3a2",
+  );
+  for (const name of armourLooks) {
+    const recipe = armourSet(31, name);
+    assert.deepEqual(recipe, armourSet(31, name));
+    assert.notDeepEqual(recipe, armourSet(491, name));
+  }
+});
+test("packed hair and accessories fit the adult head and retain expression channels", () => {
+  const surface = evaluateHuman(body, humanMeasurements(person));
+  for (const [cut, meshes] of Object.entries(headwear)) {
+    assert.ok(meshes.length, cut);
+    for (const entry of meshes) {
+      assert.ok(body.headwear.i16(entry.points).length > 0, cut);
+      assert.equal(body.headwear.i16(entry.points).length, body.headwear.i16(entry.normals).length);
+    }
+  }
+  const pieces = fittedHeadwear(
+    body,
+    surface,
+    "Full beard",
+    "#412819",
+    "facialHair",
+    (tone) => new T.MeshStandardMaterial({ color: tone }),
+    false,
+  );
+  assert.ok(pieces.some((p) => p.mesh.geometry.morphAttributes["position"]?.length));
+});
+test("authored fringe variants change the bob and leave the two close coil cuts intact", () => {
+  const surface = evaluateHuman(body, humanMeasurements(person));
+  function positions(cut: string, fringe: string) {
+    return fittedHeadwear(
+      body,
+      surface,
+      cut,
+      "#51433b",
+      "hair",
+      (tone) => new T.MeshStandardMaterial({ color: tone }),
+      false,
+      fringe,
+    ).map(({ mesh }) => mesh.geometry.getAttribute("position").array);
+  }
+  assert.notDeepEqual(positions("Bob", "As cut"), positions("Bob", "Swept left"));
+  for (const cut of ["Coiled crop", "Rounded coils"])
+    assert.deepEqual(positions(cut, "As cut"), positions(cut, "Swept left"));
+});
+test("every styling choice and tailor control survives the adult recipe codec", () => {
+  const roundTrip = (p: typeof person) => {
+    const saved: unknown = JSON.parse(JSON.stringify(p));
+    const loaded = decodeWith(HumanAdultParams, saved);
+    assert.ok(loaded.ok);
+    assert.deepEqual(loaded.value, p);
+  };
+  for (const [field, choices] of Object.entries(adultStyleOptions))
+    for (const value of choices) roundTrip(chooseAdultStyle(person, { [field]: value }));
+  for (const [piece, spec] of Object.entries(tailorPieces))
+    for (const [field, control] of Object.entries(spec.fields)) {
+      const choices =
+        control.type === "choice"
+          ? control.options
+          : control.type === "range"
+            ? [control.min, control.max]
+            : [control.value, "#943521"];
+      for (const value of choices)
+        roundTrip(tailorAdult(person, [tailorLayer(piece, { [field]: value })]));
+    }
+});
 test("connected corrections follow touching regions, preserve separated surfaces, mirror, soften and clear", () => {
   const bare = evaluateHuman(body, { stance: 1 }),
     position = (i: number) => new T.Vector3().fromArray(bare.positions, 3 * i);

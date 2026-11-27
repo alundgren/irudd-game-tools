@@ -86,7 +86,7 @@ test("each cast look's clay export is G0's: the worn member's meshes, rig, clips
   }
 });
 
-test("in Anatomy the drawn cast member is not worn and its tailored layers are not dressed", async () => {
+test("Anatomy shows the drawn adult and Work clothes fits the cast or default field outfit", async () => {
   const seeded = seededHumanAdult(body, 42);
   assert.equal(seeded.style.cast, "Blue shirt");
   assert.equal(seeded.outfit, undefined);
@@ -102,10 +102,17 @@ test("in Anatomy the drawn cast member is not worn and its tailored layers are n
   );
   assert.notEqual(accessorDigest(worn), accessorDigest(anatomy));
   const bare = seededHumanAdult(body, 491);
-  await assert.rejects(
-    clayBytes(documentOf(store.generate({ ...bare, outfit: "Work clothes" }, "bare")), body),
-    /field jacket and denim is not built yet/,
+  const digest = async (params: HumanAdultParams) =>
+    accessorDigest(
+      parseGlb(await clayBytes(documentOf(store.generate(params, "Adult 491")), body)),
+    );
+  const work = { ...bare, outfit: "Work clothes" } as const;
+  const defaultOutfit = await digest(work);
+  assert.equal(
+    defaultOutfit,
+    await digest({ ...work, style: { ...bare.style, outfit: "Field jacket and denim" } }),
   );
+  assert.notEqual(defaultOutfit, await digest(bare));
 });
 
 test("the member's skin and outfit steer the export while a held region edit stays", async () => {

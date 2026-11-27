@@ -135,6 +135,7 @@ export function studioMeshes(
   hair: string,
   familyHair: boolean,
   plain: boolean,
+  iris: T.Color | null,
 ) {
   const pack = body.studio;
   const eyes = s.eyeGroups.map((group) => {
@@ -161,22 +162,52 @@ export function studioMeshes(
       const source = pack.u8(name + ".color"),
         tint = new T.Color(),
         values = new Float32Array(source.length);
-      const gain =
-        name === "skin"
-          ? new T.Color(skin).multiply(new T.Color(1 / 0.2384, 1 / 0.1274, 1 / 0.0545))
-          : name.startsWith("hair_")
-            ? new T.Color(hair).multiply(new T.Color(1 / 0.0185, 1 / 0.01033, 1 / 0.00605))
-            : new T.Color(0xffffff);
-      for (let i = 0; i < values.length; i += 3)
-        tint
-          .setRGB(
-            (source[i] ?? 0) / 255,
-            (source[i + 1] ?? 0) / 255,
-            (source[i + 2] ?? 0) / 255,
+      const hairColour = new T.Color(hair),
+        skinColour = new T.Color(skin);
+      const gain = (v: number, reference: number, max: number) =>
+        T.MathUtils.clamp(v / reference, 0.02, max);
+      const skinGain = new T.Color(
+        gain(skinColour.r, 0.23839757, 6),
+        gain(skinColour.g, 0.12743768, 6),
+        gain(skinColour.b, 0.05448028, 6),
+      );
+      const browGain = new T.Color(
+        Math.sqrt(gain(hairColour.r, 0.01850022, 8)),
+        Math.sqrt(gain(hairColour.g, 0.01032982, 8)),
+        Math.sqrt(gain(hairColour.b, 0.00604883, 8)),
+      );
+      for (let i = 0; i < values.length; i += 3) {
+        const r = source[i] ?? 0,
+          g = source[i + 1] ?? 0,
+          b = source[i + 2] ?? 0;
+        tint.setRGB(r / 255, g / 255, b / 255, T.SRGBColorSpace);
+        if (name === "skin") tint.multiply(skinGain);
+        else if (name === "brows") tint.multiply(browGain);
+        else if (name.startsWith("hair_")) {
+          const light =
+            ((0.2126 * tint.r + 0.7152 * tint.g + 0.0722 * tint.b) /
+              (0.2126 * 0.01850022 + 0.7152 * 0.01032982 + 0.0722 * 0.00604883)) **
+            0.85;
+          tint.copy(hairColour).multiplyScalar(0.78 * light);
+        } else if (name === "eyes" && iris) {
+          const most = Math.max(r, g, b),
+            least = Math.min(r, g, b);
+          const share = T.MathUtils.smoothstep(most ? (most - least) / most : 0, 0.12, 0.3);
+          const l = Math.min(
+            1.9,
+            (0.299 * r + 0.587 * g + 0.114 * b) / (0.299 * 23 + 0.587 * 64 + 0.114 * 85),
+          );
+          tint.setRGB(
+            T.MathUtils.lerp(r / 255, Math.min(1, iris.r * l), share),
+            T.MathUtils.lerp(g / 255, Math.min(1, iris.g * l), share),
+            T.MathUtils.lerp(b / 255, Math.min(1, iris.b * l), share),
             T.SRGBColorSpace,
-          )
-          .multiply(gain)
-          .toArray(values, i);
+          );
+        }
+        values[i] = Math.min(1, tint.r);
+        values[i + 1] = Math.min(1, tint.g);
+        values[i + 2] = Math.min(1, tint.b);
+      }
       geo.setAttribute("color", new T.BufferAttribute(values, 3));
       if (pack.has(name + ".Blink")) {
         geo.morphTargetsRelative = true;

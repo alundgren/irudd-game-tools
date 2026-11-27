@@ -319,7 +319,7 @@ function whiteVertexColors(geometry: T.BufferGeometry): void {
 
 const boneSafe = (label: string): string => label.replace(/[^a-zA-Z0-9_-]/g, "_");
 
-export function skinCharacter(character: BuiltCharacter): Rig {
+export function skinCharacter(character: BuiltCharacter, standingOnly = false): Rig {
   prepareExpressions(character.faces);
   const regions = collect(character);
   const actor = new T.Group();
@@ -514,7 +514,7 @@ export function skinCharacter(character: BuiltCharacter): Rig {
     skinned = mesh;
   }
   const bindings = bindPoseJoints(skeleton);
-  const clips = buildClips(root, regions);
+  const clips = standingOnly ? [] : buildClips(root, regions);
   const idle = clips.find((c) => c.name === "Idle");
   if (idle)
     for (const mesh of actor.children) {
@@ -528,8 +528,9 @@ export function skinCharacter(character: BuiltCharacter): Rig {
         ),
       );
     }
-  const poses = authoredClips(bindings, character.view.poses);
-  const offer = character.view.offer && offerClip(bindings, character.view.offer.pose);
+  const poses = standingOnly ? [] : authoredClips(bindings, character.view.poses);
+  const offer =
+    !standingOnly && character.view.offer && offerClip(bindings, character.view.offer.pose);
   if (offer) clips.push(offer);
   const posture = character.human?.params.posture;
   if (human && posture && skinned)
@@ -540,6 +541,11 @@ export function skinCharacter(character: BuiltCharacter): Rig {
       actor,
       skinned,
       boneOf: (r) => human.bones.get(r.part.id),
+      fan:
+        character.human?.params.style.handProp === "Painted folding fan" &&
+        character.view.outfit !== "Anatomy" &&
+        character.view.outfit !== "Pressure suit" &&
+        character.human.params.style.outfit !== "Pressure suit",
       posture,
       clips,
       poses,

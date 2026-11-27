@@ -44,6 +44,7 @@ export { readGlb, writeGlb, type GlbParts } from "./glb.js";
 export * from "./rig/preview.js";
 export * from "./rig/arm-edit.js";
 export { poseClipName } from "./rig/poses.js";
+export { fanDisplay } from "./rig/fan-display.js";
 export { skinCharacter, type Region, type Rig } from "./rig/skin.js";
 export { codeNotices, type CodeNotice } from "./notices.js";
 export { repaintOperations, RepaintError } from "./paint/repaint.js";

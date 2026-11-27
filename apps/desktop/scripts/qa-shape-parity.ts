@@ -11,9 +11,17 @@ import { appDir, electronExecutable, appEnvironment } from "./electron.js";
 import { contactSheet } from "./contact-sheet.js";
 import type {} from "../qa/shape/probe.js";
 
+const stylePhase = process.argv[2] === "phase9-3";
 const fieldPhase = process.argv[2] === "phase9-2";
 const root = resolve(appDir, "../.."),
-  dir = join(root, fieldPhase ? ".reference-cache/phase9-2" : ".reference-cache/phase9-1"),
+  dir = join(
+    root,
+    stylePhase
+      ? ".reference-cache/phase9-3"
+      : fieldPhase
+        ? ".reference-cache/phase9-2"
+        : ".reference-cache/phase9-1",
+  ),
   work = mkdtempSync(join(tmpdir(), "shape-parity-"));
 mkdirSync(dir, { recursive: true });
 const problems: string[] = [];
@@ -113,9 +121,28 @@ execFileSync(
   ],
   { cwd: root },
 );
-async function fresh(adult: boolean) {
+const dressedFile = join(work, "look-8973.form.json");
+if (stylePhase)
+  execFileSync(
+    process.execPath,
+    [
+      "--input-type=module",
+      "-e",
+      `import { generatedHuman } from './character-view/human-form.js'; import { dressHuman } from './character-view/human-wardrobe.js'; import { writeFileSync } from 'node:fs'; writeFileSync(process.argv[1], JSON.stringify({format:'irudd.form.v1', form:dressHuman(generatedHuman(8973,'any','Mixed'),8973)}));`,
+      dressedFile,
+    ],
+    { cwd: root },
+  );
+async function fresh(adult: boolean, dressed = false) {
   const old = await desk.inputValue("#document");
-  await desk.selectOption("#start", adult ? "human-adult/preset/seed-491" : "jointed-conductor");
+  await desk.selectOption(
+    "#start",
+    dressed
+      ? "human-adult/preset/look-8973"
+      : adult
+        ? "human-adult/preset/seed-491"
+        : "jointed-conductor",
+  );
   await desk.waitForFunction(
     (v) =>
       document.querySelector<HTMLSelectElement>("#document")?.value !== v &&
@@ -126,7 +153,13 @@ async function fresh(adult: boolean) {
   await expand("#shape-editor");
   await web
     .locator("#openfile")
-    .setInputFiles(adult ? adultFile : join(root, "examples/jointed-conductor.form.json"));
+    .setInputFiles(
+      dressed
+        ? dressedFile
+        : adult
+          ? adultFile
+          : join(root, "examples/jointed-conductor.form.json"),
+    );
   await web.waitForFunction(() =>
     document.querySelector("#status")?.textContent?.includes("Form opened"),
   );
@@ -1278,9 +1311,11 @@ try {
     rechecks,
     cageAndPlates,
   };
-  if (fieldPhase) {
-    const { fieldParity } = await import("./qa-field-parity.js");
-    await fieldParity({
+  if (fieldPhase || stylePhase) {
+    const suite = stylePhase
+      ? (await import("./qa-style-parity.js")).styleParity
+      : (await import("./qa-field-parity.js")).fieldParity;
+    await suite({
       desk,
       web,
       editor,

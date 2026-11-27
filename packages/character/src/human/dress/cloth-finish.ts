@@ -4,6 +4,7 @@ import { tailoredClothDesigns } from "./styles.js";
 import type { Landmarks } from "./kit.js";
 
 export interface ClothStyle {
+  readonly brocade?: Uint8Array;
   readonly clothDesign?: string | undefined;
   readonly secondDesign?: string | undefined;
   readonly clothAccent?: string | undefined;
@@ -215,7 +216,7 @@ interface Chart {
   readonly yoke: number;
 }
 
-function clothChart(
+export function clothChart(
   positions: T.BufferAttribute | T.InterleavedBufferAttribute,
   m: Landmarks,
 ): Chart {
@@ -248,15 +249,45 @@ function clothChart(
   return { uv: new T.Float32BufferAttribute(points, 2), u0, v0, du, dv, yoke: shoulder - waist };
 }
 
+function brocadeThread(thread: Uint8Array, x: number, y: number) {
+  const row = Math.floor(y / 0.156);
+  const dx = x / 0.202 + 0.5 * (row & 1);
+  const dy = y / 0.156 - row;
+  const u = Math.floor((dx - Math.floor(dx)) * 144);
+  const v = Math.min(144 - 1, Math.floor((1 - dy) * 144));
+  return (thread[v * 144 + u] ?? 0) / 255;
+}
+
 function printAt(
   pattern: string,
   x: number,
   y: number,
   chart: Chart,
   outfit: string | null,
+  meshName: string,
+  thread?: Uint8Array,
 ): readonly [number, number] {
-  if (pattern === "Scallop brocade")
-    throw new Error("The scallop brocade's goldwork is not woven yet.");
+  if (pattern === "Scallop brocade") {
+    if (!thread) throw new Error("The brocade thread map is missing.");
+    const ground = brocadeThread(thread, 1.4 * x, 1.4 * y);
+    if (meshName === "Gathered overskirt") {
+      const hem = y / chart.dv;
+      const rail = Math.max(
+        band(Math.abs(hem - 0.046), 0.0025, 0.003),
+        band(Math.abs(hem - 0.244), 0.0025, 0.003),
+      );
+      const border =
+        hem > 0.054 && hem < 0.235 ? brocadeThread(thread, x, ((hem - 0.054) * 0.156) / 0.181) : 0;
+      return [0.12 * ground + 0.7 * border + 0.38 * rail, 0.07 * (1 - ground)];
+    }
+    if (meshName === "Evening bodice") {
+      const yoke = (y - chart.v0) / chart.dv;
+      const trim = Math.max(0, 1 - Math.abs(yoke - 0.57) / 0.33);
+      return [0.04 + (0.12 + 0.34 * trim) * ground, 0.09 * (1 - ground)];
+    }
+    return [0.025 + 0.46 * ground, 0.09 * (1 - ground)];
+  }
+
   if (pattern === "Pinstripe") return [0.54 * band(fold(x, 0.033), 0.0015, 0.0018), 0];
   if (pattern === "Windowpane") {
     const warp = band(fold(x, 0.068), 0.0031);
@@ -568,6 +599,7 @@ function swatchMap(
   outfit: string | null,
   depth: number,
   meshName: string,
+  thread?: Uint8Array,
 ): { readonly texture: T.CanvasTexture; readonly surface: T.CanvasTexture | null } {
   const width = clamp(Math.round(chart.du * 720), 128, 704),
     height = clamp(Math.round(chart.dv * 720), 128, 704);
@@ -595,7 +627,7 @@ function swatchMap(
     const y = chart.v0 + chart.dv * (1 - (row + 0.5) / height);
     for (let col = 0; col < width; col++, i += 4) {
       const x = chart.u0 + (chart.du * (col + 0.5)) / width;
-      const [tint, shade] = printAt(pattern, x, y, chart, outfit);
+      const [tint, shade] = printAt(pattern, x, y, chart, outfit, meshName, thread);
       fabricConstruction(fabric, meshName, x, y, chart, pitch, contrast, fabOut);
       let light = fabOut[0] ?? 1;
       const weftLift = fabOut[3] ?? 0;
@@ -607,8 +639,9 @@ function swatchMap(
               cloud(x * 37 + 9, y * 29) * 0.4 +
               cloud(x * 120, y * 40 + 5) * 0.16) -
           wash * 0.65 * band(Math.abs(y - chart.v0 - 0.03), 0.0018, 0.0022);
-        relief.data[i] = Math.round(255 * clamp(fabOut[1] ?? 0, 0, 1));
-        relief.data[i + 1] = Math.round(255 * clamp(fabOut[2] ?? 0, 0.38, 1));
+        const brocade = pattern === "Scallop brocade" ? tint : 0;
+        relief.data[i] = Math.round(255 * clamp((fabOut[1] ?? 0) + brocade * 0.52, 0, 1));
+        relief.data[i + 1] = Math.round(255 * clamp((fabOut[2] ?? 0) - brocade * 0.22, 0.38, 1));
         relief.data[i + 2] = 0;
         relief.data[i + 3] = 255;
       }
@@ -648,6 +681,7 @@ function weave(
   outfit: string | null,
   m: Landmarks,
   depth: number,
+  thread?: Uint8Array,
 ): void {
   const source = mesh.material;
   if (!(source instanceof T.MeshStandardMaterial)) return;
@@ -677,6 +711,7 @@ function weave(
     outfit,
     depth,
     mesh.name,
+    thread,
   );
   mesh.geometry.setAttribute("uv", chart.uv);
   material.color.set(0xffffff);
@@ -713,6 +748,7 @@ export function finishCloth(
     outfit,
     m,
     depth,
+    style.brocade,
   );
 }
 
@@ -749,6 +785,7 @@ export function finishTailored(
       null,
       m,
       1,
+      style.brocade,
     );
   }
 }

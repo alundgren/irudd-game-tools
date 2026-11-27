@@ -12,6 +12,7 @@ import {
   skinMeshData,
   MotionPreview,
   skinCharacter,
+  fanDisplay,
   armChains,
   partBounds,
   portraitFrame,
@@ -139,6 +140,7 @@ export class EditorViewport {
   private readonly studio = new Map<T.Mesh, T.Material | T.Material[]>();
 
   private built: BuiltCharacter | undefined;
+  private fan: ReturnType<typeof fanDisplay>;
   private doc: CharacterDocument | undefined;
   private registry: Registry | undefined;
   private selected: string | null = null;
@@ -298,6 +300,7 @@ export class EditorViewport {
     const display = this.mode;
     this.setDisplay("studio");
     try {
+      this.fan?.show(false);
       const rig = skinCharacter(this.built);
       this.motion = new MotionPreview(rig);
       this.scene.add(rig.actor);
@@ -309,6 +312,7 @@ export class EditorViewport {
       this.gizmo.detach();
       return this.motion;
     } finally {
+      if (!this.motion) this.fan?.show(true);
       this.setDisplay(display);
     }
   }
@@ -368,6 +372,7 @@ export class EditorViewport {
     this.onMotionFrame = undefined;
     this.motion.dispose();
     this.motion = undefined;
+    this.fan?.show(true);
     if (this.built) this.built.group.visible = true;
     this.select(this.selected);
   }
@@ -433,6 +438,8 @@ export class EditorViewport {
       this.built.group.removeFromParent();
       for (const [mesh, original] of this.studio) mesh.material = original;
       this.studio.clear();
+      this.fan?.dispose();
+      this.fan = undefined;
       this.built.dispose();
       this.built = undefined;
     }
@@ -451,6 +458,7 @@ export class EditorViewport {
         };
       };
       this.built = buildCharacter(doc, this.buildOptions());
+      this.fan = fanDisplay(this.built);
       this.built.group.traverse((node) => {
         if (isMesh(node)) {
           node.castShadow = true;

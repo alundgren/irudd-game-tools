@@ -1,3 +1,4 @@
+import { mantle, type MantlePattern } from "./mantle.js";
 import * as T from "three";
 import type { Raster } from "../../raster.js";
 import type { HumanSurface } from "../surface.js";
@@ -366,7 +367,541 @@ function surfaceOf(piece: Piece): Shell {
 
 type Outfit = (body: DressBody, m: Landmarks) => OutfitPart[];
 
+function wayfarer(body: DressBody, m: Landmarks, hooded: boolean) {
+  const parts: OutfitPart[] = [],
+    k = m.k,
+    seam = m.waist - 0.01 * k;
+  const legs = garment(body, m, { waist: m.waistband, leg: 1.6, ease: 0.009, taper: 0.25 });
+  parts.push(part(new Piece().shell(legs.s), "dark", "pelvis", "Breeches"));
+  const tunic = garment(body, m, {
+    sleeve: 1.93,
+    hem: seam - 0.03 * k,
+    ease: 0.012,
+    fall: 0.15,
+    tension: 1,
+    span: 2.2,
+    sleeveFall: 0.2,
+    sleeveEase: 0.004,
+    passes: 7,
+    neck: { v: 0.06 },
+  });
+  const tails = skirt(body, m, {
+    top: seam + 0.012 * k,
+    bottom: m.crotch - (hooded ? 0.2 : 0.13) * k,
+    ease: 0.014,
+    flare: 0.13,
+    fold: 0.008,
+    folds: 9,
+    shells: [tunic.s, legs.s],
+  });
+  parts.push(
+    part(finish(tunic, k, { neck: 0.016, cuff: 0.034, rise: 0.003 }), "main", "spine_03", "Tunic"),
+    part(tails.piece, "main", "pelvis", "Tunic skirt"),
+  );
+  const leather = new Piece(),
+    metal = new Piece();
+  belt(leather, body, m, [tunic.s], seam, { height: 0.056, thick: 0.005, buckle: false });
+  buckle(metal, body, m, [tunic.s], seam, 0.056);
+  const env = belt(leather, body, m, [tunic.s, surfaceOf(tails.piece)], seam - 0.05 * k, {
+    height: 0.02,
+    thick: 0.005,
+    buckle: false,
+  });
+  const at = env.point(
+    0.05 * k + 0.045 * k,
+    hooded ? -1.1 : 1.1,
+    env.sample(0.05 * k, hooded ? -1.1 : 1.1) + 0.03 * k,
+  );
+  pod(
+    leather,
+    at,
+    [
+      [0.042 * k, 0, -0.02 * k * (hooded ? -1 : 1)],
+      [0, 0.052 * k, 0],
+      [0.012 * k, 0, 0.024 * k],
+    ],
+    body.rigid("pelvis"),
+    { power: 3.2 },
+  );
+  parts.push(part(leather, "leather", "spine_01", "Belts and pouch", "leather"));
+  const elbow = body.joint("lowerarm_l")[1];
+  const fall = (y: number) => m.neck[1] - y;
+  const shape: MantlePattern = hooded
+    ? {
+        drop: (a) =>
+          Math.min(
+            mix(fall(m.waist) + 0.03 * k, fall(m.hip) + 0.04 * k, smooth(0.5, 2.6, a)),
+            mix(fall(elbow) - 0.01 * k, 9, smooth(0.5, 1.15, Math.abs(a - 1.45))),
+          ),
+        open: (v) => 0.05 + 0.34 * v ** 1.5,
+        facing: 0.07,
+        fold: 0.012,
+        armLow: elbow - 0.01 * k,
+      }
+    : {
+        drop: (a) =>
+          mix(fall(m.chest[1]) + 0.12 * k, fall(m.knee) + 0.14 * k, smooth(1.45, 1.95, a)),
+        open: (v) => 0.1 + 0.9 * v ** 1.3,
+        facing: 0.09,
+        fold: 0.014,
+        armLow: elbow + 0.05 * k,
+        split: 0.3,
+        flare: 0.06,
+      };
+  const cloak = mantle(body, m, [tunic.s, surfaceOf(tails.piece)], shape);
+  if (hooded)
+    hood(cloak.cloth, body, [tunic.s, surfaceOf(cloak.cloth)], tunic.s, tunic.upper, m, {
+      length: 0.2,
+      thick: 0.026,
+      stand: 0.022,
+      front: 0.5,
+    });
+  parts.push(
+    part(cloak.cloth, "accent", "spine_03", hooded ? "Shoulder cloak" : "Split mantle"),
+    part(cloak.lining, "light", "spine_03", "Mantle lining"),
+  );
+  const skinAt = body.rigid("spine_03");
+  for (const v of hooded ? [0.1, 0.3] : [0.09]) {
+    const a = cloak.at(v, 1, 0.006 * k),
+      b = cloak.at(v, -1, 0.006 * k),
+      mid: Vec = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, Math.max(a[2], b[2]) + 0.004 * k],
+      wide = Math.abs(a[0] - b[0]) / 2;
+    for (const q of [a, b])
+      pod(
+        metal,
+        [q[0], q[1], q[2] + 0.002 * k],
+        [
+          [(hooded ? 0.011 : 0.019) * k, 0, 0],
+          [0, (hooded ? 0.011 : 0.019) * k, 0],
+          [0, 0, 0.006 * k],
+        ],
+        skinAt,
+        { power: 2.2, rings: 6, around: 12 },
+      );
+    box(
+      hooded ? leather : metal,
+      mid,
+      [
+        [wide, 0, 0],
+        [0, (hooded ? 0.006 : 0.004) * k, 0],
+        [0, 0, 0.003 * k],
+      ],
+      skinAt,
+    );
+  }
+  parts.push(part(metal, "metal", "spine_03", "Clasp and buckle", "metal"));
+  boots(body, m, parts, { from: hooded ? 1.42 : 1.26, cuff: 0.05, ease: 0.016 });
+  return parts;
+}
+
+function garmentSheet(skin: (p: Vec) => Skin) {
+  return (
+    piece: Piece,
+    rows: number,
+    cols: number,
+    point: (u: number, v: number) => Vec,
+    relief?: (u: number, v: number) => number,
+  ) => {
+    const base = piece.count;
+    const grid = Array.from({ length: rows + 1 }, (_, i) =>
+      Array.from({ length: cols + 1 }, (_, j) => point(j / cols, i / rows)),
+    );
+    piece.loft(grid, skin, { closed: false, flip: true });
+    if (relief) {
+      const heights = Float32Array.from({ length: (rows + 1) * (cols + 1) }, (_, i) =>
+        relief((i % (cols + 1)) / cols, Math.floor(i / (cols + 1)) / rows),
+      );
+      piece.foldBands.push([base, heights]);
+      piece.draped = true;
+    }
+  };
+}
+
+function bomber(body: DressBody, m: Landmarks, rolled: boolean) {
+  const parts: OutfitPart[] = [],
+    k = m.k,
+    waist = m.waist + 0.012 * k;
+  const legs = garment(body, m, {
+    waist,
+    leg: rolled ? 1.84 : 1.98,
+    ease: 0.015,
+    legEase: rolled ? 0.02 : 0.028,
+    taper: 0.012,
+    flare: 4,
+    soft: 12,
+    folds: 0.45,
+  });
+  const lower = finish(legs, k, { waist: 0.046, legs: rolled ? 0.07 : 0.055, rise: 0.0035 }),
+    cast = caster([legs.s]);
+  for (const sign of [1, -1])
+    pocket(lower, cast, body, m, {
+      x: sign * 0.062 * k,
+      y: m.waist - 0.09 * k,
+      width: 0.012,
+      height: 0.15,
+      flap: false,
+      rise: 0.004,
+      z: m.pelvis[2],
+    });
+  parts.push(part(lower, "dark", "pelvis", rolled ? "Cuffed wide trousers" : "Wide trousers"));
+  const tee = garment(body, m, {
+    sleeve: 0.3,
+    hem: waist - 0.03 * k,
+    ease: 0.005,
+    neck: rolled ? { scoop: 0.04, scoopWidth: 0.07 } : {},
+  });
+  parts.push(part(finish(tee, k, { neck: 0.012 }), "light", "spine_03", "Tucked top"));
+  const leather = new Piece(),
+    metal = new Piece();
+  belt(leather, body, m, [legs.s, tee.s], waist - 0.024 * k, {
+    height: 0.03,
+    thick: 0.004,
+    buckle: false,
+  });
+  buckle(metal, body, m, [legs.s, tee.s], waist - 0.024 * k, 0.03);
+  parts.push(
+    part(leather, "leather", "pelvis", "Belt", "leather"),
+    part(metal, "metal", "pelvis", "Buckle", "metal"),
+  );
+  const jacket = garment(body, m, {
+    sleeve: rolled ? 1.22 : 1.93,
+    hem: waist - 0.012 * k,
+    ease: 0.03,
+    gap: 0.012,
+    fall: 0.05,
+    tension: 1,
+    span: 3,
+    sleeveFall: 0.06,
+    sleeveEase: 0.008,
+    passes: 10,
+    neck: { v: rolled ? 0.2 : 0.26, height: 0.012 },
+    under: [tee.s, legs.s],
+  });
+  const shell = new Piece().shell(jacket.s, { thickness: 0.006 }),
+    ribs = new Piece();
+  const edge = jacket.lower;
+  if (edge) {
+    const points = edge.map((i) => jacket.s.at(i));
+    const centre = points
+      .reduce((sum, p) => [(sum[0] ?? 0) + p[0], (sum[1] ?? 0) + p[2]], [0, 0])
+      .map((x) => x / points.length);
+    const ring = (down: number, gather: number) =>
+      points.map(([x, y, z]): Vec => [
+        (centre[0] ?? 0) + (x - (centre[0] ?? 0)) * gather,
+        y - down * k,
+        (centre[1] ?? 0) + (z - (centre[1] ?? 0)) * gather,
+      ]);
+    const signedArea = points.reduce((sum, p, i) => {
+      const next = points[(i + 1) % points.length] ?? p;
+      return sum + p[0] * next[2] - p[2] * next[0];
+    }, 0);
+    ribs.loft(
+      [
+        ring(-0.003, 0.99),
+        ring(0.001, 1.002),
+        ring(0.022, 0.988),
+        ring(0.043, 0.966),
+        ring(0.043, 0.94),
+      ],
+      (_p, _row, j) => jacket.s.skin(edge[j] ?? 0),
+      { flip: signedArea > 0 },
+    );
+  }
+  band(ribs, jacket.s, jacket.upper, { width: 0.03 * k, rise: 0.0045 * k });
+  for (const loop of jacket.sleeves)
+    band(ribs, jacket.s, loop, {
+      width: (rolled ? 0.06 : 0.05) * k,
+      rise: (rolled ? 0.007 : 0.0045) * k,
+    });
+  const on = caster([jacket.s]);
+  for (const sign of [1, -1])
+    pocket(shell, on, body, m, {
+      x: sign * 0.105 * k,
+      y: m.chest[1] - 0.015 * k,
+      width: 0.03,
+      height: 0.12,
+      flap: false,
+      rise: 0.004,
+      across: [1, sign * 0.35, 0],
+    });
+  parts.push(
+    part(shell, "main", "spine_03", rolled ? "Rolled-sleeve bomber" : "Short bomber"),
+    part(ribs, "accent", "spine_03", "Ribbing"),
+  );
+  if (rolled)
+    shoes(body, m, parts, { collar: 0.05, sole: 0.012, heel: 0.014 }, "leather", "sole", "Loafer");
+  else
+    shoes(
+      body,
+      m,
+      parts,
+      { collar: 0.066, sole: 0.024, toe: 0.004 },
+      "light",
+      "light",
+      "Chunky trainer",
+    );
+  return parts;
+}
+
+function bodiced(body: DressBody, m: Landmarks, draped: boolean) {
+  const parts: OutfitPart[] = [],
+    k = m.k,
+    seam = m.waist - 0.02 * k;
+  const bodice = garment(body, m, {
+    sleeve: draped ? 0.46 : 0.16,
+    hem: seam - 0.026 * k,
+    ease: 0.007,
+    fall: 0.22,
+    below: 0.16,
+    rise: 0.5,
+    sleeveEase: draped ? 0.022 : 0,
+    ...(draped ? { sleeveFall: 0.05 } : {}),
+    neck: draped
+      ? { height: -0.02, scoop: 0.085, scoopWidth: 0.12, wide: 0.075 }
+      : { height: -0.012, scoop: 0.1, scoopWidth: 0.085, wide: 0.03 },
+  });
+  const top = finish(bodice, k, { neck: 0.014, cuff: draped ? 0.03 : 0.014, rise: 0.003 });
+  parts.push(part(top, "main", "spine_03", "Bodice", "satin"));
+  if (!draped)
+    for (const sign of [1, -1]) {
+      const cap = plate(
+        body,
+        m,
+        [
+          (s, i) => (s.anchor(i)[0] * sign > 0 ? 0.3 - s.value("arm", i) : -1),
+          (s, i) => s.value("arm", i) + 0.05,
+          (s, i) => s.anchor(i)[1] - (m.shoulder - 0.075 * k) + 10 * s.value("wArm", i),
+        ],
+        { ease: 0.024, passes: 12, near: body.joint(sign > 0 ? "upperarm_l" : "upperarm_r") },
+      );
+      const wing = new Piece().shell(cap.s, { thickness: 0.006 });
+      for (const loop of cap.all) band(wing, cap.s, loop, { width: 0.012 * k, rise: 0.003 * k });
+      parts.push(
+        part(wing, "accent", sign > 0 ? "upperarm_l" : "upperarm_r", "Shoulder wing", "satin"),
+      );
+    }
+  const length = draped ? m.ankle + 0.05 * k : mix(m.knee, m.ankle, 0.42);
+  const lower = skirt(body, m, {
+    top: seam + 0.015 * k,
+    bottom: length,
+    ease: 0.014,
+    flare: draped ? 0.16 : 0.26,
+    fold: draped ? 0.022 : 0.018,
+    folds: draped ? 12 : 10,
+    cols: 84,
+    shells: [bodice.s],
+    yoke: 0.018,
+    gores: true,
+    drape: draped ? { cloth: "gown", sweep: 0.21, folds: 10, calm: 0.2 } : { cloth: "gored" },
+  });
+  const centre = draped ? 0.55 : 0,
+    spread = draped ? 0.34 : 0.5,
+    edge = (v: number) => 0.05 + spread * v ** 1.25,
+    face = (v: number) => 0.035 + 0.11 * v;
+  const at = (v: number, a: number, lift = 0) =>
+    lower.pointAt(
+      0.012 + 0.988 * v,
+      (((a + centre) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2),
+      lift * k,
+    );
+  const sheet = garmentSheet(lower.skin);
+  const reliefAt = (v: number, a: number) =>
+    lower.relief(0.012 + 0.988 * v, (((a + centre) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2));
+  const wrap = new Piece(),
+    panel = new Piece(),
+    facings = new Piece();
+  const spans: ReadonlyArray<
+    readonly [Piece, (v: number) => number, (v: number) => number, number]
+  > = [
+    [wrap, (v) => edge(v) + face(v), (v) => Math.PI * 2 - edge(v) - face(v), 72],
+    [panel, (v) => -edge(v), edge, 22],
+    [facings, edge, (v) => edge(v) + face(v), 6],
+    [facings, (v) => Math.PI * 2 - edge(v) - face(v), (v) => Math.PI * 2 - edge(v), 6],
+  ];
+  for (const [piece, from, to, cols] of spans) {
+    sheet(
+      piece,
+      18,
+      cols,
+      (u, v) => at(v, mix(from(v), to(v), u)),
+      (u, v) => reliefAt(v, mix(from(v), to(v), u)),
+    );
+    sheet(piece, 2, cols, (u, v) => at(1 - 0.03 * v, mix(from(1), to(1), u), -0.005 * v));
+  }
+  if (lower.rig) for (const piece of [wrap, panel, facings]) piece.clothJoints = lower.rig;
+  parts.push(
+    part(
+      wrap,
+      draped ? "main" : "dark",
+      "pelvis",
+      draped ? "Draped skirt" : "Gored skirt",
+      "satin",
+    ),
+    part(panel, "accent", "pelvis", "Skirt panel", "satin"),
+    part(facings, "light", "pelvis", "Skirt facing", "satin"),
+  );
+  const girdle = new Piece(),
+    studs = new Piece(),
+    tall = draped ? 0.05 : 0.085;
+  belt(girdle, body, m, [bodice.s, surfaceOf(lower.piece)], seam + (draped ? 0 : 0.014 * k), {
+    height: tall,
+    thick: 0.004,
+    buckle: false,
+  });
+  const on = caster([surfaceOf(girdle)]);
+  if (!draped)
+    for (let i = 0; i < 4; i++)
+      button(studs, on, body, {
+        centre: [0, seam + 0.014 * k + mix(-0.3, 0.3, i / 3) * tall * k, m.chest[2]],
+        facing: [0, 0, 1],
+        radius: 0.0075 * k,
+        rise: 0.005 * k,
+      });
+  parts.push(
+    part(girdle, draped ? "accent" : "main", "spine_01", draped ? "Sash" : "Girdle", "satin"),
+  );
+  if (studs.tri.length) parts.push(part(studs, "metal", "spine_01", "Girdle studs", "metal"));
+  if (draped)
+    shoes(body, m, parts, { collar: 0.05, sole: 0.008, heel: 0.025 }, "dark", "sole", "Dress shoe");
+  else
+    shoes(
+      body,
+      m,
+      parts,
+      { collar: 0.11, sole: 0.01, heel: 0.024 },
+      "leather",
+      "sole",
+      "Ankle boot",
+    );
+  return parts;
+}
+
 export const presetOutfits = {
+  "Split mantle": (body, m) => wayfarer(body, m, false),
+  "Hooded shoulder cloak": (body, m) => wayfarer(body, m, true),
+  "Evening gown"(body, m) {
+    const k = m.k,
+      seam = m.waist - 0.027 * k,
+      parts: OutfitPart[] = [];
+    const bodice = garment(body, m, {
+      sleeve: 0.27,
+      hem: seam - 0.026 * k,
+      ease: 0.008,
+      fall: 0.18,
+      below: 0.16,
+      rise: 0.5,
+      neck: { height: -0.023, scoop: 0.105, scoopWidth: 0.117, wide: 0.07 },
+    });
+    const top = finish(bodice, k, { neck: 0.012, cuff: 0.014 });
+    parts.push(part(top, "main", "spine_03", "Evening bodice", "satin"));
+    const skirtTop = seam + 0.015 * k,
+      skirtEnd = m.ankle + 0.045 * k;
+    const lower = skirt(body, m, {
+      top: skirtTop,
+      bottom: skirtEnd,
+      ease: 0.013,
+      flare: 0.075,
+      fold: 0.031,
+      folds: 8,
+      cols: 84,
+      shells: [bodice.s],
+      yoke: 0.018,
+      gores: true,
+      drape: { cloth: "gown" },
+    });
+    const tau = Math.PI * 2;
+    const angle = (u: number, v: number) => {
+      const gap = 0.12 + 0.69 * v;
+      return gap + u * (tau - 2 * gap) + 0.29 - 0.4 * v;
+    };
+    const atHip = (a: number) => 0.5 + 0.5 * Math.cos(a - 1.2);
+    const fall = (a: number) => 0.71 + 0.1 * (1 - Math.cos(a)) - 0.25 * atHip(a) ** 3;
+    const at = (d: number, a: number, lift = 0) => lower.pointAt(d, a, lift * k);
+    const pleat = (u: number, v: number, a: number) => {
+      const tuck = atHip(a);
+      const gather = 0.5 + 0.5 * Math.cos(25 * v + 4 * (1 - Math.cos(a - 1.2)) - 3 * Math.sin(a));
+      const swag = (0.005 + 0.017 * tuck * tuck) * gather ** 2 * Math.sin(Math.PI * v) ** 0.7;
+      const hanging = (0.006 + 0.01 * v) * (1 + Math.sin(a * 7 - 1.9 * v + 0.55 * Math.sin(a * 2)));
+      return (
+        (swag + hanging) *
+        Math.min(1, u * 22, (1 - u) * 22) *
+        smooth(1, 0.93, v) *
+        smooth(0, 0.13, v)
+      );
+    };
+    const panel = (u: number, v: number) => {
+      const a = angle(u, v);
+      return at(0.012 * smooth(0, 0.1, v) + fall(a) * v, a, pleat(u, v, a));
+    };
+    const sheet = garmentSheet(lower.skin);
+    const field = new Piece(),
+      wrap = new Piece(),
+      edging = new Piece();
+    const wrapRows = 22,
+      wrapColumns = 72;
+    sheet(
+      wrap,
+      wrapRows,
+      wrapColumns,
+      (u, v) => panel(u, v * 0.967),
+      (u, v) => {
+        const a = angle(u, v * 0.967);
+        return lower.relief(0.012 + fall(a) * v * 0.967, a) + (pleat(u, v * 0.967, a) - 0.012) * k;
+      },
+    );
+
+    sheet(edging, 1, 72, (u, v) => panel(u, 0.967 + v * 0.033));
+    sheet(
+      field,
+      16,
+      20,
+      (u, v) => {
+        const left = angle(1, v) - tau,
+          right = angle(0, v);
+        const a = mix(left, right, u);
+        return at(0.012 + v * fall(a), a);
+      },
+      (u, v) => {
+        const a = mix(angle(1, v) - tau, angle(0, v), u);
+        return lower.relief(0.012 + v * fall(a), a);
+      },
+    );
+    for (const [start, end, cols] of [
+      [angle(0, 1), angle(1, 1), 72],
+      [angle(1, 1) - tau, angle(0, 1), 20],
+    ] as const) {
+      const hemPoint = (u: number, v: number) => {
+        const a = mix(start, end, u),
+          d = mix(0.012 + fall(a), 1, v);
+        return at(d, a);
+      };
+      sheet(field, 10, cols, hemPoint, (u, v) => {
+        const a = mix(start, end, u);
+        return lower.relief(mix(0.012 + fall(a), 1, v), a);
+      });
+      sheet(field, 2, cols, (u, v) => at(1 - 0.024 * v, mix(start, end, u), -0.005 * v));
+    }
+    if (lower.rig) for (const piece of [field, wrap, edging]) piece.clothJoints = lower.rig;
+    parts.push(
+      part(field, "main", "pelvis", "Gored satin skirt", "satin"),
+      part(wrap, "dark", "pelvis", "Gathered overskirt", "satin"),
+      part(edging, "accent", "pelvis", "Overskirt binding", "satin"),
+    );
+    const sash = new Piece();
+    belt(sash, body, m, [bodice.s, surfaceOf(lower.piece)], seam, {
+      height: 0.047,
+      thick: 0.004,
+      buckle: false,
+    });
+    parts.push(part(sash, "dark", "spine_01", "Sash", "satin"));
+    shoes(body, m, parts, { collar: 0.05, sole: 0.008, heel: 0.025 }, "dark", "sole", "Dress shoe");
+    return parts;
+  },
+  "Bomber and wide trousers": (body, m) => bomber(body, m, false),
+  "Rolled bomber and cuffed trousers": (body, m) => bomber(body, m, true),
+  "Bodice and gored skirt": (body, m) => bodiced(body, m, false),
+  "Draped bodice gown": (body, m) => bodiced(body, m, true),
+
   "T-shirt and jeans"(body, m) {
     const parts: OutfitPart[] = [],
       k = m.k,

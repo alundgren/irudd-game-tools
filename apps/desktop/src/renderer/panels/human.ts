@@ -2,6 +2,8 @@ import { outfitPalette, toneFields } from "@irudd/character/human/dress";
 import { decodeWith } from "@irudd/document";
 import {
   adultStyleOptions,
+  familyHolds,
+  studioRainPerson,
   castDonor,
   castFigureNames,
   castOutfits,
@@ -310,39 +312,43 @@ export function mountHuman(ctx: PanelContext, variation: () => Direction | undef
           );
         }
     } else {
+      fields.push(
+        button("Start a Studio Rain person", () =>
+          steer(studioRainPerson(params), "Start a Studio Rain person"),
+        ),
+      );
       for (const key of keys(styleLabels)) {
         const label = styleLabels[key];
         const value = style[key];
-        fields.push(
-          field(
-            label,
-            select(
-              "human-" + key,
-              adultStyleOptions[key],
-              key === "outfit" && style.tailor
-                ? ""
-                : (value ?? (key === "browStyle" ? "As drawn" : "")),
-              (v) =>
-                steer(
-                  chooseAdultStyle(params, v ? { [key]: v } : {}, v ? undefined : key),
-                  "Change " + label,
-                ),
-              key === "outfit" && style.tailor
-                ? "Tailored outfit"
-                : key === "armInk"
-                  ? "None"
-                  : key === "browStyle"
-                    ? undefined
-                    : "As drawn",
+        const control = select(
+          "human-" + key,
+          adultStyleOptions[key],
+          key === "outfit" && style.tailor
+            ? ""
+            : (value ?? (key === "browStyle" ? "As drawn" : "")),
+          (v) =>
+            steer(
+              chooseAdultStyle(params, v ? { [key]: v } : {}, v ? undefined : key),
+              "Change " + label,
             ),
-          ),
+          key === "outfit" && style.tailor
+            ? "Tailored outfit"
+            : key === "armInk"
+              ? "None"
+              : key === "browStyle"
+                ? undefined
+                : "As drawn",
         );
+        control.disabled =
+          familyHolds(style, key) ||
+          (key === "faceFamilyHair" && (!style.faceFamily || style.faceFamily === "None"));
+        fields.push(field(label, control));
       }
       const palette = outfitPalette(style);
       const defaults = {
-        hatColor: "#526377",
+        hatColor: style.clothSecond ?? "#5a4a3c",
         hairColor: "#45352e",
-        clothColor: palette["main"],
+        clothColor: "#ffffff",
         clothAccent: "#dfd0ae",
       };
       for (const key of keys(tones)) {
@@ -351,14 +357,11 @@ export function mountHuman(ctx: PanelContext, variation: () => Direction | undef
           key === "hatColor" || key === "hairColor" || key === "clothColor" || key === "clothAccent"
             ? defaults[key]
             : palette[toneFields[key]];
-        fields.push(
-          field(
-            label,
-            input("human-" + key, "color", style[key] ?? fallback ?? "#6f7f86", (v) =>
-              steer(chooseAdultStyle(params, { [key]: v }), "Change " + label),
-            ),
-          ),
+        const control = input("human-" + key, "color", style[key] ?? fallback ?? "#6f7f86", (v) =>
+          steer(chooseAdultStyle(params, { [key]: v }), "Change " + label),
         );
+        control.disabled = familyHolds(style, key);
+        fields.push(field(label, control));
       }
     }
     styling.querySelector("div")?.replaceChildren(...fields);

@@ -75,7 +75,7 @@ import type { HumanPaintSources } from "./human/complexion.js";
 export const presets = ["clay", "full", "game", "portrait"] as const;
 export type Preset = (typeof presets)[number];
 
-export type MaterialSource = (color: string, finish: Finish) => T.Material;
+export type MaterialSource = (color: string, finish: Finish, cutGarment?: boolean) => T.Material;
 
 export type GroomMaterialSource = (color: string, finish: "scalp" | "strands") => T.Material;
 
@@ -598,7 +598,8 @@ function buildFigure(
         ? volumeMaterial(texture, part.color)
         : new T.MeshStandardMaterial({ color: part.color });
     }
-    if (!part.paint || !options.finish) return options.materials(part.color, part.finish);
+    if (!part.paint || !options.finish)
+      return options.materials(part.color, part.finish, part.mantle !== undefined);
     const depth = part.paint.depth;
     const binding = { ...part.paint.trace, atlas: part.paint.atlas, ...(depth ? { depth } : {}) };
     return bakedMaterial(

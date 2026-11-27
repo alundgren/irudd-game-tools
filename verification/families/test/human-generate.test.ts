@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { test } from "node:test";
+import { Color } from "three";
 import {
   createRegistry,
   decodeWith,
@@ -24,6 +25,8 @@ import {
   type HumanAdultParams,
 } from "@irudd/character/human";
 import { isRecord } from "../src/glb.js";
+import { chartDensity, chartSize } from "../../../packages/character/src/human/chart.js";
+import { paintStageMakeup } from "../../../packages/character/src/human/stage-makeup.js";
 import { loadHumanBody } from "../src/human-assets.js";
 
 const body = await loadHumanBody();
@@ -172,20 +175,26 @@ test("measurements outside the editor's limits are refused at their field", () =
   }
 });
 
-test("everyday makeup steers the face and a stage look, not yet painted, is refused", () => {
-  const s = generated(491);
+test("the adult can switch from Rose stain to the browser's Plum stage face paint", () => {
+  let s = generated(491);
   const params = seededHumanAdult(body, 491);
-  const steer = (makeup: string) =>
-    step(s, 1, {
+  for (const makeup of ["Rose stain", "Plum stage"] as const) {
+    const steered = { ...params, style: { ...params.style, makeup } };
+    s = commit(s, s.head, {
       type: "edit",
-      ops: [{ op: "generation.steer", params: { ...params, style: { ...params.style, makeup } } }],
-    }).outcome;
-  assert.notEqual(steer("Rose stain").kind, "rejected");
-  const refused = steer("Plum stage");
-  assert.equal(refused.kind, "rejected");
-  const diagnostics = refused.kind === "rejected" ? refused.diagnostics : [];
-  assert.ok(
-    diagnostics.some((d) => d.path.includes("makeup")),
-    JSON.stringify(diagnostics),
+      ops: [{ op: "generation.steer", params: steered }],
+    });
+    assert.deepEqual(doc(s).generation?.params, steered);
+  }
+  const { width, height } = chartSize(body);
+  const size = width * height * chartDensity ** 2 * 4;
+  const map = new Uint8ClampedArray(size).fill(255);
+  const rough = new Uint8ClampedArray(size).fill(255);
+  const skin = new Color(params.skin).toArray();
+  paintStageMakeup(body, { map, rough }, "Plum stage", { skin, base: skin, brow: "eyebrow001" });
+  assert.equal(
+    createHash("sha256").update(map).update(rough).digest("hex"),
+    "ff2b2d9925d713fb32f7561cbb2626baf205a2f0c0b2a10288a2f22c0b4e718b",
+    "the browser's colour and roughness maps on the same blank face",
   );
 });

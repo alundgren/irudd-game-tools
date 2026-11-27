@@ -64,11 +64,7 @@ export function noise3(x: number, y: number, z: number): number {
   return mix(along(0), along(1), w);
 }
 
-export function hash1(n: number): number {
-  let x = Math.imul(n | 0, 0x9e3779b1);
-  x = Math.imul(x ^ (x >>> 15), 0x85ebca6b);
-  return ((x ^ (x >>> 13)) >>> 0) / 4294967295;
-}
+export { hash1 } from "../identity.js";
 
 export function mergeSkin(pairs: ReadonlyArray<readonly [number, number]>): [number[], number[]] {
   const sum = new Map<number, number>();
@@ -942,6 +938,9 @@ export interface LoftOptions {
 type SkinFor = Skin | ((p: Vec, i: number, j: number) => Skin);
 
 export class Piece {
+  mantleUV?: number[];
+  mailUV?: number[];
+  plateUV?: number[];
   pos: number[] = [];
   bones: number[] = [];
   weights: number[] = [];

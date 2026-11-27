@@ -1,3 +1,4 @@
+import { readHeadwear } from "./headwear-data.js";
 import { readFieldClothes, type FieldClothing } from "./field-clothes-data.js";
 import { readStudio } from "./studio-data.js";
 import {
@@ -146,6 +147,10 @@ export interface StrandCard {
 }
 
 export interface HumanBody {
+  readonly headwear: Pack;
+  readonly growth: readonly Uint8Array[];
+  readonly brocade: Uint8Array;
+  readonly devices: Uint8Array;
   readonly fieldClothing: readonly FieldClothing[];
   readonly studio: Pack;
   readonly arrays: Pack;
@@ -177,6 +182,7 @@ export async function readHumanBody(
   castBytes: Uint8Array,
   studioBytes: Uint8Array,
   clothes: Uint8Array,
+  headwear: Uint8Array,
 ): Promise<HumanBody> {
   const studio = await readStudio(studioBytes);
   const grooms = readHumanGrooms(groom);
@@ -225,7 +231,8 @@ export async function readHumanBody(
     throw new Error("Human pack patch matrix does not match its rings.");
   return {
     arrays,
-    fieldClothing: await readFieldClothes(clothes),
+    ...(await readFieldClothes(clothes)),
+    headwear: await readHeadwear(headwear),
     morph: (name) => arrays.i16(`m:${name}`),
     patch,
     eyeGroups: [arrays.u16("eyes.left"), arrays.u16("eyes.right")],

@@ -79,10 +79,8 @@ export async function verifyWardrobe(page: Page, directory: string) {
   }
   await after("42-after-four-cuts", beforeCut);
   const beforeAdjust = await shot("44-before-fit");
-  assert.ok(
-    Number(await get("Drop (m)").inputValue()) > 0.65,
-    "the skirt starts at the adult's waist",
-  );
+  const drop = Number(await get("Drop (m)").inputValue());
+  assert.ok(drop > 0.2 && drop < 0.65, "the adult skirt falls from waist to knee");
   await panel.getByText("Trace waist to hem", { exact: true }).click();
   const canvas = panel.locator("canvas");
   for (const [x, y] of [

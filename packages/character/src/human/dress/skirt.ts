@@ -394,6 +394,7 @@ export interface Skirt {
   readonly skin: (p: Vec) => Skin;
   readonly field: DrapeField | null;
   readonly rig: ClothJoints | null;
+  relief(depth: number, angle: number): number;
   pointAt(depth: number, angle: number, lift?: number): Vec;
 }
 
@@ -568,9 +569,11 @@ export function skirt(body: DressBody, m: Landmarks, o: SkirtOptions): Skirt {
     rings.push(Array.from({ length: cols }, (_, j) => place(row, j, 0.005 * k)));
   piece.loft(rings, skin, { flip: true });
   if (rig) piece.clothJoints = rig;
+  const relief = (deep: number, angle: number) =>
+    field
+      ? field.relief(deep * field.hem(angle), angle) * smooth(0.3, 0.62, Math.abs(Math.cos(angle)))
+      : 0;
   if (field) {
-    const relief = (deep: number, angle: number) =>
-      field.relief(deep * field.hem(angle), angle) * smooth(0.3, 0.62, Math.abs(Math.cos(angle)));
     const heights = new Float32Array(piece.count),
       lead = rings.length - 2 * (rows + 1);
     for (let n = 0; n < 2 * (rows + 1); n++) {
@@ -587,6 +590,7 @@ export function skirt(body: DressBody, m: Landmarks, o: SkirtOptions): Skirt {
     skin,
     field,
     rig,
+    relief,
     pointAt: (depthShare, angle, lift = 0) => place(depthShare * rows, (angle / TAU) * cols, -lift),
   };
 }

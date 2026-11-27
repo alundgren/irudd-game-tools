@@ -38,6 +38,7 @@ export function mountWardrobe(
   const cutting = byId("cutting", HTMLDivElement),
     layers = byId("garment-layers", HTMLDivElement),
     saved = byId("saved-outfits", HTMLDivElement);
+  const armour = { look: "Light fantasy", seed: 0 };
   let layerId = "",
     lookName = "",
     pieceIndex = 0,
@@ -93,6 +94,7 @@ export function mountWardrobe(
         ...tailorControls(
           params,
           pieceIndex,
+          armour,
           (i) => {
             pieceIndex = i;
             render();
