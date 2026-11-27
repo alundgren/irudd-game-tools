@@ -211,7 +211,7 @@ try {
   await page.click("#camera-front");
   await page.click("#focus-selection");
   await pair("06-reference-build", async () => {
-    await action("Fit 3D reference");
+    await action("Quick fit upright mesh");
     await page.getByLabel("3D reference file").setInputFiles(obj);
     await apply(++rev);
   });

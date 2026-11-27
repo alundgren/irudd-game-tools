@@ -7,6 +7,7 @@ import {
   session,
   type IpcMainInvokeEvent,
 } from "electron";
+import { referenceModels } from "../shared/reference-models.js";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -456,6 +457,24 @@ function registerBridge(build: string): void {
     if (!asset) throw new Error("Unknown bundled artwork.");
     return new Uint8Array(await fs.promises.readFile(path.join(assetsDir, asset.file)));
   });
+  const referenceRoot = app.isPackaged ? app.getPath("userData") : path.resolve(dist, "../../..");
+  const referenceFile = (id: unknown) => {
+    const model = referenceModels.find((entry) => entry.id === id);
+    if (!model || process.env["WORKSHOP_REFERENCES"] === "none")
+      throw new Error("Unknown reference model.");
+    return path.join(referenceRoot, model.file);
+  };
+  handle(channels.referenceModels, () =>
+    process.env["WORKSHOP_REFERENCES"] === "none"
+      ? []
+      : referenceModels
+          .filter((entry) => fs.existsSync(referenceFile(entry.id)))
+          .map((entry) => entry.id),
+  );
+  handle(
+    channels.referenceModel,
+    async (id) => new Uint8Array(await fs.promises.readFile(referenceFile(id))),
+  );
   handle(channels.humanPack, (file) => {
     const pack = humanPackPaths.find(
       (p) => typeof file === "string" && p === path.join("human", file),

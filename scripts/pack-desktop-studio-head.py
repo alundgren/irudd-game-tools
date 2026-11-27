@@ -1,5 +1,6 @@
 import base64
 import json
+import subprocess
 import struct
 import zlib
 from pathlib import Path
@@ -59,6 +60,25 @@ for name, piece in {"skin": source["skin"], **source["pieces"]}.items():
         delta = values(text, "f")
         add(name + "." + expression, "f", expand(delta, indices) if native else delta)
 
+binding = json.loads(subprocess.check_output(["node", "scripts/studio-binding.mjs"], cwd=root))
+for name, raw in binding.items():
+    kind = "H" if name == "bindingVertices" else "f"
+    add(name, kind, [v for v, in struct.iter_unpack("<" + kind, base64.b64decode(raw))])
+for key, kind in [("control", "f"), ("settle", "B"), ("lips", "B"), ("triangles", "H")]:
+    add(key, kind, values(source[key], kind))
+for key in ["source", "smooth"]:
+    add("skin." + key, "H", values(source["skin"][key], "H"))
+for name, piece in source["pieces"].items():
+    for key, kind in [("ties", "H"), ("shares", "f")]:
+        add(name + "." + key, kind, values(piece[key], kind))
+add("eyes.left", "B", [int(side > 0) for side in values(source["pieces"]["eyes"]["side"], "b")])
+for side in ("L", "R"):
+    add("lids." + side, "H", values(source["lids"][side], "H"))
+    add("centre." + side, "f", source["eyeCentres"][side])
+for name in ("skin", "hair", "eyes"):
+    add("paint." + name, "B", values(source["paint"][name]["pixels"], "B"))
+add("eyes.box", "f", source["paint"]["eyes"]["box"])
+add("eyes.axis", "f", source["eyeAxis"])
 skin = values(source["skin"]["source"], "H")
 add("neck", "H", [skin.index(v) for v in values(source["skin"]["neck"], "H")])
 header = bytearray(struct.pack("<4sII", b"IRHP", 1, len(entries)))

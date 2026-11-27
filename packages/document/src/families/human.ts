@@ -56,6 +56,35 @@ export const humanCorrections = family({
   toJson: (v) => v,
 });
 export type SkinCorrections = NonNullable<ReturnType<typeof humanCorrections.read>>;
+const fineOffset = Schema.Int.check(Schema.isBetween({ minimum: -1200, maximum: 1200 }));
+export const humanFineHead = family({
+  id: "human.fine-head",
+  version: 1,
+  scope: "document",
+  schema: Schema.Struct({
+    vertices: Schema.Array(
+      Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 17595 })),
+    ).check(Schema.isMinLength(1), Schema.isMaxLength(17596)),
+    offsets: Schema.Array(fineOffset).check(Schema.isMaxLength(52788)),
+  }).check(
+    Schema.makeFilter(
+      ({ vertices, offsets }) =>
+        (offsets.length === vertices.length * 3 &&
+          vertices.every(
+            (v, i) =>
+              v > (vertices[i - 1] ?? -1) &&
+              Math.hypot(
+                offsets[i * 3] ?? Infinity,
+                offsets[i * 3 + 1] ?? Infinity,
+                offsets[i * 3 + 2] ?? Infinity,
+              ) <= 1200,
+          )) ||
+        "Use ascending head vertices with one bounded three-axis correction per vertex.",
+    ),
+  ),
+  toJson: (v) => v,
+});
+export type FineHeadLayer = NonNullable<ReturnType<typeof humanFineHead.read>>;
 export const humanReferenceRigs = family({
   id: "human.reference-rigs",
   version: 1,
@@ -80,6 +109,7 @@ export const AdultRegionSource = Schema.Struct({
   version: Schema.Int,
   params: JsonValue,
   corrections: Schema.optionalKey(humanCorrections.schema),
+  fineHead: Schema.optionalKey(humanFineHead.schema),
 });
 export type AdultRegionSource = typeof AdultRegionSource.Type;
 export const humanRegionCopy = family({

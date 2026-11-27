@@ -39,9 +39,15 @@ export function humanCredits(params: HumanAdultParams, regions?: number): HumanC
     )
     .map((axis) => capturedSources[axis]);
   const extras: Record<string, Json> = {};
-  if (!cast && params.style.faceFamily === "Studio Rain") {
+  if (
+    !cast &&
+    (params.style.faceFamily === "Studio Rain" || params.style.hair === "Ribbon ponytail")
+  ) {
     copyright.push(
-      "Rain Rig (CC) Blender Foundation | studio.blender.org. Fitted head, expressions, hair and sampled vertex colour. https://studio.blender.org/characters/rain/v3/ | https://creativecommons.org/licenses/by/4.0/",
+      (params.style.faceFamily === "Studio Rain"
+        ? "Head, eyes, brows, lashes and hair fitted to an editable adult. Neck joined to the body. Colour maps resized and re-tinted."
+        : "Hair fitted to the adult head with a resized and re-tinted colour map.") +
+        " Rain Rig (CC) Blender Foundation | studio.blender.org. https://studio.blender.org/characters/rain/v3/ | https://creativecommons.org/licenses/by/4.0/",
     );
   }
   if (scans.length) {

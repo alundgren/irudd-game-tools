@@ -31,6 +31,7 @@ import type { EditorViewport } from "../viewport.js";
 import { failure, type PanelContext } from "./context.js";
 import { field, choices } from "./garment-fields.js";
 import { pictureMarks } from "./picture-marks.js";
+import { mountReferenceRoom } from "./reference-room.js";
 import { sheetTools } from "./sheet-tools.js";
 
 export function mountPortrait(
@@ -46,12 +47,14 @@ export function mountPortrait(
   const apply = byId("portrait-apply", HTMLButtonElement);
   byId("portrait-close", HTMLButtonElement).onclick = () => dialog.close();
   let identity: string | undefined;
+  let fitting: ReturnType<typeof mountReferenceRoom> | undefined;
   function render() {
     const doc = ctx.doc,
       view = ctx.view;
     const current = view?.documentId + "@" + view?.revision;
     if (identity !== current && dialog.open) dialog.close();
     identity = current;
+    fitting?.closeStale(view?.documentId, view?.revision);
     controls.replaceChildren();
     panel.hidden = !doc || !view;
     if (!doc || !view) return;
@@ -89,6 +92,10 @@ export function mountPortrait(
       const params = adult.value;
       controls.append(
         button("Fit 3D reference", () => {
+          fitting ??= mountReferenceRoom(ctx);
+          void fitting.open({ body, params, doc, base }).catch((e) => ctx.say(failure(e)));
+        }),
+        button("Quick fit upright mesh", () => {
           const file = el("input");
           file.type = "file";
           file.accept = ".obj,.glb";

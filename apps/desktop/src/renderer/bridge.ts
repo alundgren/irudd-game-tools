@@ -110,6 +110,18 @@ export function bridge(): DesktopApi {
         (v): v is Uint8Array => v instanceof Uint8Array,
         "bundled image",
       ),
+    referenceModels: async () =>
+      check(
+        await api.referenceModels(),
+        (v): v is string[] => Array.isArray(v) && v.every((id) => typeof id === "string"),
+        "reference catalogue",
+      ),
+    referenceModel: async (id) =>
+      check(
+        await api.referenceModel(id),
+        (v): v is Uint8Array => v instanceof Uint8Array,
+        "reference mesh",
+      ),
     humanPack: async (file) =>
       check(await api.humanPack(file), (v): v is Uint8Array => v instanceof Uint8Array, "pack"),
     readLibrary: async (id) =>

@@ -7,6 +7,8 @@ const bridgeMethods = [
   "call",
   "createProject",
   "bundledImage",
+  "referenceModel",
+  "referenceModels",
   "humanPack",
   "library",
   "onCommit",

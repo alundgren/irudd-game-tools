@@ -75,10 +75,10 @@ export const humanPackFiles: ReadonlyArray<HumanPackFile> = [
   {
     name: "studio",
     file: "studio-rain.bin",
-    digest: digestBrand("sha256:d70eaf77bd76c76168b20871f217c13bde12ef5d8c8c81cc7f95fd2955087ee4"),
-    byteLength: 374896,
+    digest: digestBrand("sha256:344000e6a03fae9c65a47fc1775af1cb72e726ed72e05d541994e2352fee7e44"),
+    byteLength: 1325851,
     sources: [
-      "Rain Rig, Blender Foundation (CC BY 4.0), fitted head, hair, expressions and vertex colour derived from the workshop Rain asset",
+      "Rain Rig, Blender Foundation (CC BY 4.0), fitted head, hair, expressions, binding data and repainted textures derived from the workshop Rain asset",
     ],
   },
   {

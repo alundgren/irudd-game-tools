@@ -9,6 +9,7 @@ import { creatureLimbChain, creatureOrgan } from "./creature-organ.js";
 import { motionOffer } from "./motion-offer.js";
 import {
   humanCorrections,
+  humanFineHead,
   humanRegionCopy,
   humanReferenceRigs,
   figureNativePortrait,
@@ -75,6 +76,7 @@ export * from "./human.js";
 
 export const familyFeatures: ReadonlyArray<FeatureDefinition> = [
   humanCorrections.definition,
+  humanFineHead.definition,
   humanRegionCopy.definition,
   humanReferenceRigs.definition,
   figureAssembly.definition,

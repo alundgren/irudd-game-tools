@@ -29,6 +29,8 @@ const api: PreloadApi = {
   },
   library: () => invoke(channels.library),
   bundledImage: (digest) => invoke(channels.bundledImage, digest),
+  referenceModels: () => invoke(channels.referenceModels),
+  referenceModel: (id) => invoke(channels.referenceModel, id),
   humanPack: (file) => invoke(channels.humanPack, file),
   readLibrary: (id) => invoke(channels.readLibrary, id),
   openGlb: () => invoke(channels.openGlb),

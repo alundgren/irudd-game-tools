@@ -39,3 +39,8 @@ export function numberInput(value: number, onCommit: (value: number) => void): H
   };
   return input;
 }
+
+export function required<T>(value: T | null | undefined): T {
+  if (value == null) throw new Error("The fitting room is missing required data.");
+  return value;
+}
