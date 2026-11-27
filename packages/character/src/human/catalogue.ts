@@ -375,6 +375,16 @@ export const portraitCredits: Readonly<Record<(typeof portraitAxes)[number], Cre
   },
 };
 
+export const portraitFrames: Readonly<Record<(typeof portraitAxes)[number], number>> = {
+  portraitSiyanda: -0.7,
+  portraitHideko: -1,
+  portraitTom: 1,
+  portraitCorine: -1,
+  portraitEveryman: 1,
+  portraitDivorcee: 1,
+  portraitViking: 1,
+};
+
 export const castShapeAxes = [
   "castM03",
   "castM04",

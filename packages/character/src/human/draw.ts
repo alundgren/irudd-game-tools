@@ -5,6 +5,7 @@ import {
   castShapeAxes,
   identityAxes,
   portraitAxes,
+  portraitFrames,
   type BoneName,
 } from "./catalogue.js";
 import type { HumanBody } from "./body.js";
@@ -47,10 +48,14 @@ export function randomHuman(
   const between = (key: string, lo: number, hi: number) => +(lo + (hi - lo) * draw(key)).toFixed(3);
   const spec: Spec = Object.fromEntries(humanAxes.map((key) => [key, between(key, -0.79, 0.79)]));
   const g = (key: string) => spec[key] ?? 0;
-  spec["height"] = between("height", 1.52, 1.99);
   spec["age"] = +(draw("age") ** 1.4 * 0.92).toFixed(2);
   spec["frame"] =
     { male: 0.9, female: -0.9, neutral: 0, any: undefined }[archetype] ?? between("frame", -1, 1);
+  const stature = 1.705 + 0.075 * g("frame");
+  spec["height"] =
+    archetype === "any"
+      ? between("height", 1.52, 1.99)
+      : between("height", stature - 0.14, stature + 0.14);
   spec["earTip"] = g("earTip") * 0.28;
   for (const key of [
     "shoulderLine",
@@ -109,7 +114,10 @@ export function randomHuman(
   for (const key of castShapeAxes) spec[key] = 0;
   for (const key of capturedAxes) spec[key] = 0;
   const foundation =
-    portraitAxes[Math.floor(draw("portrait foundation") * portraitAxes.length)] ?? portraitAxes[0];
+    archetype === "any"
+      ? (portraitAxes[Math.floor(draw("portrait foundation") * portraitAxes.length)] ??
+        portraitAxes[0])
+      : framedPortrait(g("frame"), draw("portrait foundation"));
   spec[foundation] = between("portrait strength", 0.62, 0.98);
   if (g("frame") > castShapeFrame && draw("cast foundation") < castShapeShare) {
     spec[foundation] = 0;
@@ -159,6 +167,16 @@ export function randomHuman(
     );
   }
   return spec;
+}
+
+function framedPortrait(frame: number, pick: number): (typeof portraitAxes)[number] {
+  const weights = portraitAxes.map((axis) => Math.exp(-2.8 * (frame - portraitFrames[axis]) ** 2));
+  let at = pick * weights.reduce((a, b) => a + b, 0);
+  for (const [i, axis] of portraitAxes.entries()) {
+    at -= weights[i] ?? 0;
+    if (at <= 0) return axis;
+  }
+  return portraitAxes.at(-1) ?? portraitAxes[0];
 }
 
 function balanceCheekDraw(spec: Spec, surface: HumanSurface): void {
