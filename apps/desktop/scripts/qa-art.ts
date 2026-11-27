@@ -24,17 +24,14 @@ import { Schema } from "effect";
 import {
   AssetEntry,
   PartId,
-  affinePoint,
   applyOperations,
   assetCredits,
   createRegistry,
   decodeOperations,
   documentDigest,
   familyFeatures,
-  figureHull,
   figurePaint,
   figurePortraitDepth,
-  figureSweep,
   frameCreature,
   partPlacements,
   sha256Digest,
@@ -55,7 +52,7 @@ import {
 import { appDir, appEnvironment, electronExecutable } from "./electron.js";
 
 const { values } = parseArgs({
-  options: { keep: { type: "boolean" }, packaged: { type: "string" }, out: { type: "string" } },
+  options: { keep: { type: "boolean" }, packaged: { type: "string" } },
   args: process.argv.slice(2).filter((arg) => arg !== "--"),
 });
 const keep = values.keep === true;
@@ -66,9 +63,6 @@ const stateDir = join(scratch, "state");
 const evidence = join(scratch, "evidence");
 mkdirSync(evidence);
 const repository = resolve(appDir, "..", "..");
-const traceOut = resolve(
-  values.out ?? join(repository, ".reference-cache", "g4a", "trace-desktop"),
-);
 const distribution = join(scratch, "Workshop App");
 const executable = values.packaged
   ? resolve(values.packaged, "Irudd Workshop.exe")
@@ -1215,7 +1209,7 @@ try {
   );
 
   await step(
-    "a trace brief that builds adds the agent's regions as parts on the body's sheet, as G0 builds them",
+    "a trace brief that builds adds the agent's regions as parts on the body's sheet",
     async () => {
       const at = (await paired.call("current", { documentId: portraitId })).revision;
       const before = (await paired.call("current", { documentId: portraitId })).document;
@@ -1403,46 +1397,7 @@ try {
         "the proposal is exactly the build of the measured sheet",
       );
       const placements = partPlacements(proposed, registry);
-      const anchor = placements.get("p-body")?.frame;
-      assert.ok(anchor);
-      const origin = figurePaint.read(body.features)?.offset ?? [0, 0, 0];
-      const compared: Record<string, unknown> = {};
-      const built = expected.built.map((b) => {
-        const part = proposed.parts.find((p) => p.id === b.part.id);
-        assert.ok(part);
-        const world = placements.get(part.id)?.frame;
-        assert.ok(world);
-        compared[b.region] = { method: b.method, part: part.id, parent: part.parent };
-        return {
-          region: b.region,
-          method: b.method,
-          part: part.id,
-          parent: part.parent,
-          hull: figureHull.read(part.features),
-          paint: figurePaint.read(part.features),
-          knots: figureSweep.read(part.features)?.knots,
-          world: affinePoint(world, [0, 0, 0]),
-        };
-      });
-      mkdirSync(traceOut, { recursive: true });
-      writeFileSync(
-        join(traceOut, "trace-build.json"),
-        JSON.stringify({
-          sheet: asset.file,
-          height: figurePaint.read(body.features)?.height,
-          anchorShift: affinePoint(anchor, [0, 0, 0]).map((v, i) => v - (origin[i] ?? 0)),
-          panels: panels.map((p) => ({
-            size: p.size,
-            mid: p.mid,
-            feet: p.feet,
-            span: p.span,
-            mask: Buffer.from(p.mask).toString("base64"),
-          })),
-          map: traceMap,
-          built,
-          missed: expected.missed,
-        }),
-      );
+      for (const b of expected.built) assert.ok(placements.get(b.part.id), `${b.region} is placed`);
       assert.deepEqual(
         expected.built.map((b) => [b.region, b.part.parent]),
         [
@@ -1544,7 +1499,12 @@ try {
         ms: 0,
         detail: {
           pixelsChanged: changed,
-          built: compared,
+          built: expected.built.map((b) => ({
+            region: b.region,
+            method: b.method,
+            part: b.part.id,
+            parent: b.part.parent,
+          })),
           kept: expected.kept,
           missed: expected.missed,
           addedVertices,

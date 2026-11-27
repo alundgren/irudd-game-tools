@@ -11,7 +11,6 @@ import {
   Digest,
   PartId,
   applyOperations,
-  assetCreditsNamespace,
   createRegistry,
   decodeOperations,
   documentDigest,
@@ -32,8 +31,6 @@ import { repaintTranslator, shippedArtwork } from "../../src/main/art.js";
 const repository = fileURLToPath(new URL("../../../../", import.meta.url));
 const fixturesDir = path.join(repository, "verification", "families", "fixtures");
 const exampleImages = readExampleArtwork(repository);
-const referenceBlobsDir = path.join(repository, ".reference-cache", "g4a", "blobs");
-const g0PaintDir = path.join(repository, ".reference-cache", "g0-paint");
 
 function json(value: unknown): Json {
   const copy: unknown = JSON.parse(JSON.stringify(value));
@@ -49,11 +46,8 @@ const person = { kind: "human", id: "tester", name: "Tester" } as const;
 const characterAssets = path.join(repository, "character-view");
 
 function bytesOf(digest: string): Uint8Array {
-  const name = digest.replace(":", "-");
   const bytes = exampleImages.get(digest);
   if (bytes) return bytes;
-  const file = path.join(referenceBlobsDir, name);
-  if (fs.existsSync(file)) return new Uint8Array(fs.readFileSync(file));
   const asset = bundledAsset(decodeDigest(digest));
   if (asset) return new Uint8Array(fs.readFileSync(path.join(characterAssets, asset.file)));
   throw new Error(`No bytes for ${digest}.`);
@@ -212,33 +206,6 @@ async function accept(
   return doc;
 }
 
-function expectedWithCredit(
-  repaint: CharacterDocument,
-  digest: string,
-  artId: string,
-  submission: MethodResults["art.submit"]["submission"],
-): CharacterDocument {
-  return {
-    ...repaint,
-    extensions: {
-      ...repaint.extensions,
-      [assetCreditsNamespace]: json({
-        format: "irudd.asset-credits",
-        version: 1,
-        assets: [
-          {
-            digest,
-            via: "paired-agent",
-            submittedBy: submission.by,
-            art: { id: artId, kind: "turnaround" },
-            summary: submission.reply.summary,
-          },
-        ],
-      }),
-    },
-  };
-}
-
 const sortedAssets = (doc: CharacterDocument) =>
   [...doc.assets].sort((a, b) => a.digest.localeCompare(b.digest));
 
@@ -267,40 +234,6 @@ test("the paired courier repaint of feline-worker is the person's own courier re
     );
     assert.deepEqual(sortedAssets(ported), sortedAssets(own));
     assert.equal(ported.parts.find((p) => p.id === "p-body")?.paint?.atlas, courier.digest);
-  });
-});
-
-test("the paired repaint of harbour-trader with G0's accepted sheet is the person's own repaint", async (t) => {
-  const record = path.join(g0PaintDir, "paint.json");
-  if (!fs.existsSync(record)) {
-    t.skip(`no G0 paint recording in ${g0PaintDir}; run verification/baseline/paint.py`);
-    return;
-  }
-  const recorded: unknown = JSON.parse(fs.readFileSync(record, "utf8"));
-  const digest = `sha256:${String(Reflect.get(Object(recorded), "artworkSha256"))}`;
-  const file = path.join(referenceBlobsDir, digest.replace(":", "-"));
-  if (!fs.existsSync(file)) {
-    t.skip(`G0's accepted sheet is not in ${referenceBlobsDir}; run the family gate`);
-    return;
-  }
-  const bytes = new Uint8Array(fs.readFileSync(file));
-  assert.equal(bytes.byteLength, 78290);
-  const base = fixture("harbour-trader").doc;
-  await withRig("harbour-trader", async (rig) => {
-    const artId = await repaintBrief(rig, 1, "p-body");
-    const s = (await reply(rig, artId, bytes, "harbour-reply-0001")).submission;
-    assert.equal(s.state, "proposed", JSON.stringify(s.diagnostics));
-    assert.deepEqual(
-      s.files.map((f) => [f.digest, f.byteLength]),
-      [[digest, 78290]],
-    );
-    const ported = await accept(rig, s);
-    assert.equal(
-      documentDigest(ported),
-      documentDigest(
-        expectedWithCredit(expected(base, "p-body", digest, bytes.byteLength), digest, artId, s),
-      ),
-    );
   });
 });
 

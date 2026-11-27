@@ -152,6 +152,8 @@ export const tailorPieces: Readonly<Record<string, TailorPiece>> = {
     fields: {
       color: colour("#6f7f86"),
       material: choice("Material", ["cloth", "leather", "mail"]),
+      construction: choice("Construction (sewn panels are experimental)", ["shaped", "sewn"]),
+      tuck: choice("Hem with trousers (tucking needs sewn panels)", ["over", "tucked"]),
       sleeve: range("Sleeve end (0 shoulder, 1 elbow, 2 wrist)", 0.05, 1.97, 0.5),
       length: range("Hem (0 waist, 1 seat)", 0, 1, 0.6),
       ease: range("Room over the body, mm", 2, 40, 8, 1),

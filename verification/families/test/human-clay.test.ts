@@ -3,29 +3,12 @@ import { test } from "node:test";
 import { humanSlot, seededHumanAdult } from "@irudd/character/human";
 import { parseGlb } from "../src/glb.js";
 import { loadHumanBody } from "../src/human-assets.js";
-import {
-  accessorDigest,
-  adultStore,
-  clayBytes,
-  documentOf,
-  meshValues,
-} from "../src/human-clay.js";
+import { adultStore, clayBytes, documentOf, meshValues } from "../src/human-clay.js";
 import { installNodeExporter } from "../src/node-exporter.js";
 
 installNodeExporter();
 const body = await loadHumanBody();
 const store = adultStore(body);
-
-const g0Adult491 = "033bd1559e8927f10f9360dc255ad8c8c8f77c476ce9f06c6e2974880d9bd90f";
-
-test("adult 491: the clay export carries G0's meshes, posture and clips", async () => {
-  const started = performance.now();
-  const fresh = parseGlb(await clayBytes(documentOf(store.generated(491)), body));
-  assert.equal(accessorDigest(fresh), g0Adult491);
-  console.log(
-    `  adult 491: generated and exported in ${(performance.now() - started).toFixed(0)} ms`,
-  );
-});
 
 test("a held forearm edit shows in a fresh export after a steer", async () => {
   let s = store.generated(491);

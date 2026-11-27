@@ -729,16 +729,20 @@ export function belt(
     thick = 0.004,
     buckle = true,
     cols = 64,
+    reach = 0.05,
+    env: fitted,
   }: {
     readonly height?: number;
     readonly thick?: number;
     readonly buckle?: boolean;
     readonly cols?: number;
+    readonly reach?: number;
+    readonly env?: Envelope;
   } = {},
 ): Envelope {
   const k = m.k,
-    env = girth(body, m, shells, y),
-    mid = 0.05 * k,
+    env = fitted ?? girth(body, m, shells, y, reach),
+    mid = reach * k,
     hh = (height * k) / 2;
   const radius = (dy: number, a: number) => env.sample(mid + dy, a) + 0.0015 * k;
   const ring = (dy: number, dr: number) =>

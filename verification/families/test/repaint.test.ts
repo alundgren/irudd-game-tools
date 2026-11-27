@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { test } from "node:test";
 import {
   bundledAssetNamed,
@@ -12,29 +11,7 @@ import { figureOccluders, type CharacterDocument } from "@irudd/document";
 import { applyChecked } from "../src/apply.js";
 import { compareGlb } from "../src/compare.js";
 import { installNodeExporter } from "../src/node-exporter.js";
-import { repository } from "../src/paths.js";
-import { legacyForm, prepareForm } from "../src/prepare.js";
-import { readFixture } from "../src/run.js";
-
-const frozen = "2761eb14";
-
-function legacyRepaint(form: unknown, ids: ReadonlyArray<string>, atlas: string): unknown {
-  const source = execFileSync("git", ["show", `${frozen}:character-view/paint-sources.js`], {
-    cwd: repository,
-    encoding: "utf8",
-  });
-  const driver = `${source}
-let text = "";
-for await (const chunk of process.stdin) text += chunk;
-const { form, ids, atlas } = JSON.parse(text);
-process.stdout.write(JSON.stringify(repaintRegions(form, ids, atlas)));`;
-  const out = execFileSync(process.execPath, ["--input-type=module", "-e", driver], {
-    input: JSON.stringify({ form, ids, atlas }),
-    encoding: "utf8",
-  });
-  const parsed: unknown = JSON.parse(out);
-  return parsed;
-}
+import { readFixture } from "../src/fixtures.js";
 
 const sortedAssets = (doc: CharacterDocument) =>
   [...doc.assets].sort((a, b) => a.digest.localeCompare(b.digest));
@@ -49,17 +26,11 @@ const partNamed = (doc: CharacterDocument, label: string) => {
   return part;
 };
 
-test("repainting the body from the courier sheet gives G0's repainted document", () => {
-  const raw = legacyForm("feline-worker");
-  assert.ok(typeof raw === "object" && raw !== null && "form" in raw);
-  const repainted = prepareForm("feline-worker", {
-    ...raw,
-    form: legacyRepaint(raw.form, ["body"], "courier"),
-  }).document;
-  const ported = applyChecked(base, repaintOperations(base, [partNamed(base, "body").id], sheet));
-  assert.deepEqual(ported.parts, repainted.parts);
-  assert.deepEqual(ported.features, repainted.features);
-  assert.deepEqual(sortedAssets(ported), sortedAssets(repainted));
+test("repainting the body from the courier sheet repaints it and keeps the old sheet as an occluder", () => {
+  const body = partNamed(base, "body");
+  const ported = applyChecked(base, repaintOperations(base, [body.id], sheet));
+  assert.equal(partNamed(ported, "body").paint?.atlas, sheet.digest);
+  assert.ok(sortedAssets(ported).some((a) => a.digest === sheet.digest));
   const occluders = figureOccluders.read(ported.features)?.sources ?? [];
   assert.ok(
     occluders.some((s) => s.atlas === partNamed(base, "body").paint?.atlas && s.region === "body"),

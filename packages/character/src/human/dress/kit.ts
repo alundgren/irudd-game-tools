@@ -937,6 +937,72 @@ export interface LoftOptions {
 }
 type SkinFor = Skin | ((p: Vec, i: number, j: number) => Skin);
 
+export interface PatternChart {
+  readonly u0: number;
+  readonly v0: number;
+  readonly du: number;
+  readonly dv: number;
+}
+
+function padUV(pos: ReadonlyArray<number>, uv: ReadonlyArray<number>): number[] {
+  const known = uv.length / 2,
+    out = uv.slice(),
+    cell = 0.02,
+    grid = new Map<string, number[]>(),
+    key = (x: number, y: number, z: number) =>
+      Math.floor(x / cell) + "," + Math.floor(y / cell) + "," + Math.floor(z / cell);
+  for (let i = 0; i < known; i++) {
+    const k = key(at(pos, i * 3), at(pos, i * 3 + 1), at(pos, i * 3 + 2)),
+      list = grid.get(k);
+    if (list) list.push(i);
+    else grid.set(k, [i]);
+  }
+  for (let i = known; i < pos.length / 3; i++) {
+    const x = at(pos, i * 3),
+      y = at(pos, i * 3 + 1),
+      z = at(pos, i * 3 + 2);
+    let best = 0,
+      bestD = Infinity;
+    for (let r = 1; r <= 4 && bestD === Infinity; r++)
+      for (let a = -r; a <= r; a++)
+        for (let b = -r; b <= r; b++)
+          for (let c = -r; c <= r; c++)
+            for (const j of grid.get(key(x + a * cell, y + b * cell, z + c * cell)) ?? []) {
+              const d =
+                (at(pos, j * 3) - x) ** 2 +
+                (at(pos, j * 3 + 1) - y) ** 2 +
+                (at(pos, j * 3 + 2) - z) ** 2;
+              if (d < bestD) {
+                bestD = d;
+                best = j;
+              }
+            }
+    out.push(at(uv, best * 2), at(uv, best * 2 + 1));
+  }
+  return out;
+}
+
+function weldNormals(g: T.BufferGeometry, weld: ReadonlyArray<number>): void {
+  const normal = g.getAttribute("normal"),
+    sum = new Map<number, [number, number, number]>();
+  for (let i = 0; i < weld.length; i++) {
+    const group = at(weld, i);
+    if (group < 0) continue;
+    const s = sum.get(group) ?? [0, 0, 0];
+    s[0] += normal.getX(i);
+    s[1] += normal.getY(i);
+    s[2] += normal.getZ(i);
+    sum.set(group, s);
+  }
+  for (let i = 0; i < weld.length; i++) {
+    const s = sum.get(at(weld, i));
+    if (!s) continue;
+    const l = Math.hypot(s[0], s[1], s[2]) || 1;
+    normal.setXYZ(i, s[0] / l, s[1] / l, s[2] / l);
+  }
+  normal.needsUpdate = true;
+}
+
 export class Piece {
   mantleUV?: number[];
   mailUV?: number[];
@@ -950,6 +1016,9 @@ export class Piece {
   shoeUV: number[] | undefined = undefined;
   clothJoints: ClothJoints | undefined = undefined;
   draped = false;
+  uv: number[] | undefined = undefined;
+  weld: number[] | undefined = undefined;
+  chart: PatternChart | undefined = undefined;
   get count(): number {
     return this.pos.length / 3;
   }
@@ -1123,11 +1192,14 @@ export class Piece {
     const g = new T.BufferGeometry();
     g.setAttribute("position", new T.Float32BufferAttribute(this.pos, 3));
     g.setIndex(this.tri);
+    if (this.uv) g.setAttribute("uv", new T.Float32BufferAttribute(padUV(this.pos, this.uv), 2));
     g.computeVertexNormals();
+    if (this.weld) weldNormals(g, this.weld);
     const mesh = new T.Mesh(g, material);
     mesh.name = name;
     mesh.castShadow = true;
     mesh.userData["styleRegion"] = region;
+    if (this.chart) mesh.userData["patternChart"] = this.chart;
     let foldMetres: Float32Array | undefined;
     if (this.foldBands.length) {
       foldMetres = new Float32Array(this.count);

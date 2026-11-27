@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { exportCharacter, inspectGlb } from "@irudd/character";
 import { installNodeExporter } from "../src/node-exporter.js";
-import { readFixture } from "../src/run.js";
+import { readFixture } from "../src/fixtures.js";
 
 test("a clay export's summary accounts for every triangle by region and material", async () => {
   installNodeExporter();
