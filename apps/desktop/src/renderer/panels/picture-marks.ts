@@ -11,9 +11,12 @@ export function pictureMarks(label: string, importable: boolean, maximum = 96) {
   const marks: Mark[] = [];
   const context = canvas.getContext("2d");
   const status = el("span");
+  let overlay: ((ctx: CanvasRenderingContext2D) => void) | undefined;
   function redraw() {
     if (!context) return;
+    context.clearRect(0, 0, canvas.width, canvas.height);
     context.drawImage(source, 0, 0);
+    overlay?.(context);
     context.fillStyle = "#ffdc44";
     context.strokeStyle = "#171410";
     context.lineWidth = Math.max(1, canvas.width / 320);
@@ -72,6 +75,11 @@ export function pictureMarks(label: string, importable: boolean, maximum = 96) {
   return {
     node,
     marks,
+    canvas,
+    redraw,
+    drawOverlay(draw: (ctx: CanvasRenderingContext2D) => void) {
+      overlay = draw;
+    },
     source,
     set,
     pixels() {

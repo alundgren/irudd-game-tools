@@ -317,8 +317,9 @@ try {
 
   await action("Trace a new character");
   await page
-    .getByLabel("Turnaround sheet")
+    .getByLabel("Import artwork")
     .setInputFiles(join(root, "character-view/courier.atlas.webp"));
+  await page.locator("#portrait-dialog p", { hasText: "Turnaround ready." }).waitFor();
   await page.getByLabel("Region name").fill("Courier body");
   await marks("Front outline", [
     [0.46, 0.15],

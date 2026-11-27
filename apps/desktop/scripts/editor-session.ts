@@ -5,7 +5,10 @@ import { chromium, type Browser, type BrowserContext, type Page } from "@playwri
 export interface Running {
   readonly page: Page;
   readonly browser: Browser;
-  capture(rect: { x: number; y: number; width: number; height: number }): Promise<Buffer>;
+  capture(
+    rect: { x: number; y: number; width: number; height: number },
+    page?: string,
+  ): Promise<Buffer>;
   answerDialogs(answers: { save?: string; open?: string }): Promise<void>;
   close(): Promise<void>;
 }
@@ -14,7 +17,7 @@ async function editorPage(context: BrowserContext): Promise<Page> {
   for (let i = 0; i < 600; i++) {
     const editor = context
       .pages()
-      .find((page) => /^file:.*\/dist\/renderer\/index\.html$/.test(page.url()));
+      .find((page) => /^file:.*\/dist\/renderer\/index\.html(?:#.*)?$/.test(page.url()));
     if (editor) return editor;
     await new Promise((done) => setTimeout(done, 100));
   }
@@ -115,11 +118,11 @@ export async function launchEditor(
     return {
       page,
       browser,
-      async capture(rect) {
+      async capture(rect, shown = "/renderer/index.html") {
         const png = await evaluateInMain(
           inspector,
           `(async()=>{
-          const window=require("electron").BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().endsWith("/renderer/index.html"));
+          const window=require("electron").BrowserWindow.getAllWindows().find(w=>w.webContents.getURL().split("#")[0].endsWith(${JSON.stringify(shown)}));
           const image=await window.webContents.capturePage(${JSON.stringify(rect)},{stayHidden:true,stayAwake:true});
           return image.toPNG().toString("base64");
         })()`,

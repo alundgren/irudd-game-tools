@@ -1,3 +1,4 @@
+import { cheekPlane } from "./complexion.js";
 import * as T from "three";
 import { context2d, drawable, type Raster, type RasterImage } from "../raster.js";
 
@@ -5,8 +6,7 @@ export function applyNativePortrait(mesh: T.Mesh, layer: RasterImage, raster: Ra
   const material: T.Material | T.Material[] = mesh.material;
   if (!(material instanceof T.MeshStandardMaterial) || !material.userData["faceLayout"])
     throw new Error("A native portrait layer paints the adult's painted face.");
-  if (material.userData["quietCheeks"])
-    throw new Error("A native portrait over quiet cheeks is not ported.");
+  const quiet = material.userData["quietCheeks"] === true;
   const source = drawable(material.map?.image);
   if (!source) throw new Error("The adult's face paint has no image to add the portrait to.");
   const { width, height } = source;
@@ -29,7 +29,12 @@ export function applyNativePortrait(mesh: T.Mesh, layer: RasterImage, raster: Ra
   const out = paint.data,
     over = overlay.data;
   for (let p = 0; p < out.length; p += 4) {
-    const alpha = (over[p + 3] ?? 0) / 255;
+    let alpha = (over[p + 3] ?? 0) / 255;
+    if (quiet)
+      alpha *=
+        1 -
+        0.55 *
+          cheekPlane((((p / 4) % width) + 0.5) / width, (Math.floor(p / 4 / width) + 0.5) / height);
     for (let c = 0; c < 3; c++) {
       const original = tint[(out[p + c] ?? 0) * 3 + c] ?? 0;
       out[p + c] = original + alpha * ((over[p + c] ?? 0) - 128) * exposure;

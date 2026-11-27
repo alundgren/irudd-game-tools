@@ -137,6 +137,12 @@
           <div id="properties"></div>
           <details id="study-shelf">
             <summary>Reference studies</summary>
+            <a id="study-source" target="_blank" rel="noopener" hidden
+              >View the original body scan</a
+            >
+            <a id="study-rig" href="./rig-study.html" target="_blank" rel="noopener" hidden
+              >Compare the editable torso with a rigged 3D reference</a
+            >
             <select id="study-choice" aria-label="Reference study"></select
             ><button id="open-study">Open study</button>
           </details>
@@ -277,7 +283,7 @@
             </button>
           </div>
           <div class="display-controls" role="group" aria-label="Camera angle">
-            <button id="camera-front">Front</button>
+            <button id="camera-front">Front</button><button id="camera-portrait">Portrait</button>
             <button id="camera-side">Side</button>
             <button id="camera-back">Back</button>
             <button id="camera-threequarter">Three-quarter</button>

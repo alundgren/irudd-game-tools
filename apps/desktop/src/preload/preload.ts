@@ -13,6 +13,13 @@ const api: PreloadApi = {
   openProject: (directory) => invoke(channels.openProject, directory),
   createProject: (kind) => invoke(channels.createProject, kind),
   call: (method, params) => invoke(channels.call, method, params),
+  onTorsoStudy(listener) {
+    const notify = () => listener();
+    ipcRenderer.on(channels.torsoStudy, notify);
+    return () => {
+      ipcRenderer.removeListener(channels.torsoStudy, notify);
+    };
+  },
   onCommit(listener) {
     const forward = (_event: unknown, notice: unknown): void => listener(notice);
     ipcRenderer.on(channels.commit, forward);

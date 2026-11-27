@@ -1,3 +1,4 @@
+import { sectionFit } from "./section-fit.js";
 import * as T from "three";
 import { buildAxes, type FigureBuild } from "@irudd/document";
 import type { BuildPart } from "../view.js";
@@ -103,13 +104,25 @@ export function buildWarp(
   parts: ReadonlyMap<string, WarpPart>,
 ): ((v: T.Vector3) => T.Vector3) | undefined {
   const amount = (key: (typeof buildAxes)[number]): number => build[key] ?? 1;
-  if (!buildAxes.some((k) => amount(k) !== 1)) return undefined;
+  const hasBuild = buildAxes.some((k) => amount(k) !== 1);
+  if (!hasBuild && !build.sectionProfile) return undefined;
   root.updateMatrixWorld(true);
+  const fit =
+    build.sectionProfile &&
+    sectionFit(
+      build.sectionProfile,
+      [...parts.values()].map(({ part, object }) => [
+        part.id.replace(/^p-/, "").replaceAll("-", " "),
+        object.getWorldPosition(new T.Vector3()),
+      ]),
+    );
+  if (!hasBuild) return fit;
   const box = bodyFrame(build, parts);
   const center = box.getCenter(new T.Vector3());
   const extent = box.getSize(new T.Vector3());
   const delta = (key: (typeof buildAxes)[number]): number => amount(key) - 1;
   return (v: T.Vector3): T.Vector3 => {
+    if (fit) fit(v);
     const y = (v.y - box.min.y) / Math.max(0.001, extent.y);
     const x = v.x - center.x;
     const z = v.z - center.z;

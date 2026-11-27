@@ -123,9 +123,10 @@ export async function loadHumanPacks(
 export const humanPaintFile: HumanPackFile = {
   name: "paint",
   file: "human-paint.bin",
-  digest: digestBrand("sha256:c95363989dbd61855435d736e37472960f1e793780d558cbc9d363ef07fbf30b"),
-  byteLength: 23175056,
+  digest: digestBrand("sha256:27f1356cc356db2e213fde3aee712c7f336e7801695887fd929e8b57b23cf2e9"),
+  byteLength: 23206533,
   sources: [
+    "Einar Rig, Blender Foundation (CC BY 4.0), registered facial weathering detail from character-view/human-seafarer-data.json",
     "MakeHuman system skins (20 adult skins, CC0): portrait finish donors and local skin tone",
     "MakeHuman system skin young_darkskinned_male (CC0): the clipped buzz cut's hair density and grain, traced from its scalp",
     "Brushed scalp painting generated for this project with OpenAI ImageGen, packed as grayscale samples (human-swept-scalp-data.json and docs/human-grooms.md at 2761eb14)",

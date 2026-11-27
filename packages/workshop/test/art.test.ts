@@ -744,6 +744,7 @@ test("a trace brief's intent picks its translator; a brief without one fits as b
       [
         ["fit", false],
         ["build", false],
+        ["character", false],
       ],
     );
     assert.match(trace?.intents?.[1]?.apply.reason ?? "", /no trace build translator/);
@@ -815,6 +816,7 @@ test("a trace brief's intent picks its translator; a brief without one fits as b
         [
           ["fit", "fixture-fit"],
           ["build", "fixture-build"],
+          ["character", null],
         ],
       );
       await failsWith(

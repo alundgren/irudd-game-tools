@@ -107,6 +107,7 @@ export const drawnComplexions: ReadonlyArray<string> = [
   "Portrait Umber",
   "Portrait Ruddy",
   "Portrait Sunworn",
+  "Weathered scars",
   ...capturedSkinNames,
 ];
 

@@ -13,6 +13,7 @@ const bridgeMethods = [
   "library",
   "onCommit",
   "onSteer",
+  "onTorsoStudy",
   "onUpdate",
   "openCharacter",
   "openGlb",

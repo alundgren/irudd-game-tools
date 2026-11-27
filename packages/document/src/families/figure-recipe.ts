@@ -23,7 +23,20 @@ export const FigureRecipeGroom = Schema.Struct({
   seed: opt(Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 4294967295 }))),
 });
 
+export const SectionProfile = Schema.Struct({
+  height: bounded(0.000001, 1000),
+  stations: Schema.Array(
+    Schema.Tuple([
+      bounded(0.72, 1.32),
+      bounded(0.72, 1.32),
+      bounded(-0.038, 0.038),
+      bounded(-0.038, 0.038),
+    ]),
+  ).check(Schema.isMinLength(14), Schema.isMaxLength(14)),
+});
+
 export const FigureRecipe = Schema.Struct({
+  sectionProfile: opt(SectionProfile),
   archetype: opt(Schema.Literals(figureArchetypes)),
   height: opt(bounded(1.2, 2.2)),
   heads: opt(bounded(6, 8.4)),

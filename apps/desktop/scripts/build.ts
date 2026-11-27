@@ -95,7 +95,35 @@ await build({
   plugins: [bundleReport("main", join(dist, "main"))],
 });
 
-const { forms } = stageForms(repository, join(dist, "forms"));
+const { forms: verified } = stageForms(repository, join(dist, "forms"));
+
+const prepared: unknown = JSON.parse(
+  execFileSync(
+    process.execPath,
+    [
+      "--import",
+      "./packages/document/test/support/register.ts",
+      join(repository, "scripts", "prepare-desktop-studies.mjs"),
+      join(dist, "forms"),
+    ],
+    { cwd: repository, encoding: "utf8", windowsHide: true },
+  ),
+);
+if (!Array.isArray(prepared)) throw new Error("Missing study catalogue.");
+writeFileSync(join(dist, "renderer", "studies.json"), JSON.stringify(prepared));
+const forms = [
+  ...verified,
+  ...prepared.map((item: unknown) => {
+    if (
+      !item ||
+      typeof item !== "object" ||
+      !("starter" in item) ||
+      typeof item.starter !== "string"
+    )
+      throw new Error("Invalid study ID.");
+    return item.starter;
+  }),
+];
 
 mkdirSync(join(dist, "assets"), { recursive: true });
 for (const asset of bundledAssets)

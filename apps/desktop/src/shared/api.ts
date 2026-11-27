@@ -177,6 +177,7 @@ export interface DesktopApi {
   openProject(directory?: string): Promise<ProjectState>;
   createProject(kind?: "untitled"): Promise<ProjectState>;
   call(method: WindowMethod, params: unknown): Promise<CallOutcome>;
+  onTorsoStudy(listener: () => void): () => void;
   onCommit(listener: (notice: CommitNotice) => void): () => void;
   onSteer(listener: (notice: SteerNotice) => void): () => void;
   library(): Promise<ReadonlyArray<LibraryEntry>>;
@@ -195,10 +196,11 @@ export interface DesktopApi {
 }
 
 export type PreloadApi = {
-  readonly [K in Exclude<keyof DesktopApi, "onCommit" | "onSteer" | "onUpdate">]: (
+  readonly [K in Exclude<keyof DesktopApi, "onCommit" | "onSteer" | "onUpdate" | "onTorsoStudy">]: (
     ...args: Parameters<DesktopApi[K]>
   ) => Promise<unknown>;
 } & {
+  readonly onTorsoStudy: (listener: () => void) => () => void;
   readonly onCommit: (listener: (notice: unknown) => void) => () => void;
   readonly onSteer: (listener: (notice: unknown) => void) => () => void;
   readonly onUpdate: (listener: (status: unknown) => void) => () => void;
@@ -211,6 +213,7 @@ export const channels = {
   openProject: "workshop:open-project",
   createProject: "workshop:create-project",
   call: "workshop:call",
+  torsoStudy: "workshop:torso-study",
   commit: "workshop:commit",
   steer: "workshop:steer",
   library: "workshop:library",

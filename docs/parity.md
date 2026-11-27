@@ -2,7 +2,7 @@
 
 This checklist tracks what you can do in the desktop app. A feature is **done** when its controls work in the desktop app and desktop QA exercises them. **Partly** means some of the workflow is available.
 
-In the Workshop's **Display** panel, choose **Studio colour** to see the character's paint, **Clay** to inspect shape or **Silhouette** to check the outline. Choose **Front**, **Side**, **Back** or **Three-quarter** to turn the camera. Select a part and press **F** or click **Focus (F)** to frame it. Clear the selection with **Escape** to frame the whole character on the next focus.
+In the Workshop's **Display** panel, choose **Studio colour** to see the character's paint, **Clay** to inspect shape or **Silhouette** to check the outline. Choose **Front**, **Portrait**, **Side**, **Back** or **Three-quarter** to turn the camera. Select a part and press **F** or click **Focus (F)** to frame it. Clear the selection with **Escape** to frame the whole character on the next focus.
 
 Choose **New random human** to pick an archetype and a Natural, Fantasy or Mixed colour range. A chosen archetype also steers stature, the portrait foundation (weighted by each source's MakeHuman Gender value, 0 as frame −1 and 1 as frame +1) and the hairstyle and outfit choices towards its frame. **Any** keeps the frozen reference draw. The adult starts dressed. In **Anatomy**, choose a region and measurement, then move the slider or reroll the region. **Appearance** controls skin, eyes and facial detail. **Outfit and hairstyle** lets you change one item, roll a complete look in a chosen direction or inspect the base shape. Each edit has its own History entry.
 
@@ -49,6 +49,7 @@ Posture, arm edits and named poses have History entries and travel with the char
 | 8b | Portraits, references, artwork and files |
 | 9-1 | Surface sculpting and branch placement |
 | 9-4 | [3D reference fitting, registered head families and studio heads](reference-parity-checklist.md) |
+| 9-6 | [Tracing, turnaround reuse and reference studies](trace-parity-checklist.md) |
 
 | # | Feature | Desktop status | Phase |
 | --- | --- | --- | --- |
@@ -112,12 +113,12 @@ Posture, arm edits and named poses have History entries and travel with the char
 | 58 | Refine a proposal, compare it or keep an alternate | done | 9-5 |
 | 59 | Inspect a game export | done | 9-5 |
 | 60 | Generate a starting form by archetype, colouring and family | done | 2, 6 |
-| 61 | Trace artwork manually to build a character | partly (manual lofts, hulls and membranes from two traced outlines) | 8b |
-| 62 | Reuse a turnaround on other regions | done | 8b |
+| 61 | Trace artwork manually to build a character | done | 8b, 9-6 |
+| 62 | Reuse a turnaround on other regions | done | 8b, 9-6 |
 | 63 | Save and open form files and choose export options | done | 8b |
 | 64 | Graft a part from a saved form | done | 8a, 9-2 |
 | 65 | Save and revisit variations and alternates | done | 8b |
-| 66 | Open reference studies | partly (shipped editable studies) | 8b |
+| 66 | Open reference studies | done | 8b, 9-6 |
 
 ### Checking surface edits
 
@@ -171,17 +172,18 @@ Build both workshops and run `pnpm --filter @irudd/desktop qa:reference-parity` 
 
 Use individual styling for native portrait paint. Mark the eyes and lip seam on a front picture, then optionally mark the eye, nose and lips on a right-facing profile. On a figure or traced head, mark matching points on the model and the photograph to reshape the face. Trace a profile from forehead to chin to set its silhouette. A painted head can also take a grayscale depth map with adjustable strength.
 
-Choose **Trace a new character** to draw front and profile outlines on a four-view sheet. Select a painted region to add a rounded loft, solid hull or thin membrane, or reuse a turnaround on that region. In **Artwork**, request a painted edit for the selected regions. Preview a reply, compare it with the current character, ask its author for a refinement, or keep the preview as a separate alternate. Named variations and alternates appear in the project's character selector and can be saved as character files. [Artwork requests and replies](artwork.md).
+Choose **Trace a new character** to draw front and profile outlines on a registered or imported four-view sheet. A dashed guide follows the pointer's height in both views. Build a rounded loft, solid hull, thin membrane or curved centreline, or leave both outlines empty to use the whole silhouette. For a centreline, click matching points from root to tip in each view; its radius tapers to a tenth at the tip. **Trace another region** attaches the result to the selected region. On a traced head, mark five facial landmarks or match a feature in front and profile to add a depth point. The same dialog fits a whole biped, builds a part map or asks the paired agent to fit separate parts. **Reuse turnaround** repaints chosen regions from another sheet without moving their geometry. In **Artwork**, request a painted edit for the selected regions. Preview a reply, compare it with the current character, ask its author for a refinement, or keep the preview as a separate alternate. Named variations and alternates appear in the project's character selector and can be saved as character files. [Artwork requests and replies](artwork.md).
 
 With a part selected, **Painted edit** can repaint its registered region, redesign the part or fit an open or closed garment over it. On a calibrated head, revise the portrait or fit a clean scalp under its existing hair. Preview or restore an earlier proposal before accepting it. **Keep alternate** saves the proposal and returns to the original character.
 
 **Inspect proposal game export** reloads the game GLB. Compare a refinement with its preceding export at rest and in motion, and expand the coverage report to see where clothing layers changed or skin became visible. A refinement request can include the measured differences and paired views. Run `pnpm --filter @irudd/desktop qa:proposal-parity` after changing these paths. [Behaviour checklist and paired screenshots](proposal-parity-checklist.md)
 
-Open **Reference studies** to start an editable copy of a shipped form. Under **Game export**, inspect rendered body and portrait views and the game's mesh, texture and rig counts. Clear **Include skeleton and motion** to export static geometry. The Workshop's save and open buttons transfer a character and its referenced project assets between projects.
+Open **Reference studies** to start an editable copy of any browser study, with its display mode and camera angle. When the local reference material is present, the list includes the six body scan studies, the measured torso, the six editable MHR fits and the head scan study. Body scan studies link to the original scan, and the measured torso can be compared with the rigged reference in a separate window. Start the app with `--study ID` to open a study, and add `--compare 3d` to open its linked reference in the fitting room. The desktop build converts the browser catalogue, so `node scripts/local-references.mjs` lists the files and preparation commands for both workshops. Under **Game export**, inspect rendered body and portrait views and the game's mesh, texture and rig counts. Clear **Include skeleton and motion** to export static geometry. The Workshop's save and open buttons transfer a character and its referenced project assets between projects.
+
+Build both workshops and run `pnpm --filter @irudd/desktop qa:trace-parity` after changing tracing, turnaround reuse or the study catalogue. It traces with real pointer clicks in Chrome and Electron, opens every study in both, and reopens each saved edit in a fresh project. The paired images and contact sheet are written to `.reference-cache/phase9-6/`. A complete run took 12 minutes on an RTX 5070 Ti. [Behaviour checklist and screenshot filenames](trace-parity-checklist.md)
 
 Run `qa:portraits` and `qa:art` in `apps/desktop` after changing these workflows. They drive the desktop controls, use a local paired client for artwork, and open the saved character files in fresh projects. On an RTX 5070 Ti, the portrait and file sequence took 3 minutes 45 seconds on the first run and 3 minutes 47 seconds on repeat. The 14 before-and-after pairs and their contact sheet are in `.reference-cache/phase8b/`.
 
 ### Remaining parity gaps
 
 - **38 and 64**. Plate fields lack individual random tip variants. Grafting handles independent branches, while native adult rig regions depend on the source generator.
-- **61 and 66**. Hand tracing supports lofts, hulls and membranes. Tracing a path from paired centreline points and opening the browser's locally prepared scan studies remain open.

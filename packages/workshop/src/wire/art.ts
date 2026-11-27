@@ -18,7 +18,7 @@ export const traceMapFormat = "irudd.trace-map.v1";
 export const artKinds = ["variation", "turnaround", "trace", "depth"] as const;
 export type ArtKind = (typeof artKinds)[number];
 
-export const traceIntents = ["fit", "build"] as const;
+export const traceIntents = ["fit", "build", "character"] as const;
 export type TraceIntent = (typeof traceIntents)[number];
 
 export const attachmentRoles = [

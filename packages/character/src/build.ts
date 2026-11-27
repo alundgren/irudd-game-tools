@@ -1,3 +1,4 @@
+import { applyRadialFit, finishEar, suctionCups } from "./surfaces/study-details.js";
 import * as T from "three";
 import { generatedCreature } from "./creature/generator.js";
 import {
@@ -211,6 +212,7 @@ function authoredGeometry(
       sweepSides(part),
       part.foot,
     );
+    if (part.sweep.radialFit) applyRadialFit(geometry, part.sweep.radialFit);
     const traced = part.anatomy === "face" || part.sourceHair;
     if (traced && part.paint) portraitSurface(geometry, part.paint.trace, part.paint.depth?.field);
     if (part.paint) fitDepth(geometry, part.paint.depth?.pins, part.paint.trace.height);
@@ -378,7 +380,7 @@ function retainSections(view: BuildView, part: BuildPart, geometry: T.BufferGeom
   const jointed = jointedRoles.has(roleOf(part) ?? "");
   const cuff = roleOf(part) === "rigid" && jointedRoles.has(roleOf(parent) ?? "");
   const plated = hasPlatedAxis(part);
-  if (!jointed && !cuff && !plated) return;
+  if (!(part.sweep.retainSections ?? (jointed || cuff)) && !plated) return;
   const bands = (part.sweep.knots.length - 1) * 5;
   const count = geometry.getAttribute("position").count;
   const sides = count / (bands + 1) - 1;
@@ -712,6 +714,24 @@ function buildFigure(
         if (feathered) material.userData["wingLOD"] = true;
         object.material = material;
       } else geometry.deleteAttribute("color");
+    }
+    if (part.cage?.pinna && options.finish)
+      finishEar(object, part.cage, cageFaces.get(geometry), part.color);
+    if (part.sweep?.suckerRows) {
+      const cups = suctionCups(
+        part.sweep.knots,
+        part.sweep.suckerRows,
+        part.color,
+        plan?.skin?.pale ?? "#e4c3a3",
+        !!options.game,
+      );
+      const material = options.materials(options.finish ? "#ffffff" : part.color, "plain").clone();
+      material.vertexColors = !!options.finish;
+      if (options.finish && material instanceof T.MeshStandardMaterial) material.roughness = 0.43;
+      const mesh = new T.Mesh(cups, material);
+      mesh.name = part.label + " suction cups";
+      mesh.castShadow = true;
+      object.add(mesh);
     }
     if (part.cage && part.finish === "horn" && options.finish)
       finishPlateSurface(object, part, cageFaces.get(geometry), options.materials);

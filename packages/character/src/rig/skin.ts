@@ -307,8 +307,15 @@ function hipBindings(
   return bindings;
 }
 
-function whiteVertexColors(geometry: T.BufferGeometry): void {
-  if (!geometry.getAttribute("color"))
+export function whiteVertexColors(geometry: T.BufferGeometry): void {
+  const color = geometry.getAttribute("color");
+  if (color && !(color.array instanceof Float32Array)) {
+    const values = new Float32Array(color.count * color.itemSize);
+    for (let i = 0; i < color.count; i++)
+      for (let k = 0; k < color.itemSize; k++)
+        values[i * color.itemSize + k] = color.getComponent(i, k);
+    geometry.setAttribute("color", new T.Float32BufferAttribute(values, color.itemSize));
+  } else if (!color)
     geometry.setAttribute(
       "color",
       new T.Float32BufferAttribute(

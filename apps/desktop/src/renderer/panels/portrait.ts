@@ -91,10 +91,13 @@ export function mountPortrait(
     if (adult && adult.ok && body) {
       const params = adult.value;
       controls.append(
-        button("Fit 3D reference", () => {
-          fitting ??= mountReferenceRoom(ctx);
-          void fitting.open({ body, params, doc, base }).catch((e) => ctx.say(failure(e)));
-        }),
+        Object.assign(
+          button("Fit 3D reference", () => {
+            fitting ??= mountReferenceRoom(ctx);
+            void fitting.open({ body, params, doc, base }).catch((e) => ctx.say(failure(e)));
+          }),
+          { id: "fit-study-reference" },
+        ),
         button("Quick fit upright mesh", () => {
           const file = el("input");
           file.type = "file";

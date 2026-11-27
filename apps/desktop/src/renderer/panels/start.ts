@@ -5,7 +5,14 @@ import {
   formArchetypes,
   formParams,
 } from "@irudd/character/creature";
-import { creatureFamilies, type Json, type CreaturePlan } from "@irudd/document";
+import {
+  creatureFamilies,
+  isJson,
+  isJsonObject,
+  isJsonArray,
+  type Json,
+  type CreaturePlan,
+} from "@irudd/document";
 import { adultColourRanges, randomDressedAdult } from "@irudd/character/human";
 import { describe, failure } from "./context.js";
 import { byId } from "../dom.js";
@@ -89,15 +96,74 @@ export function mountStart(ctx: PanelContext, onStarted: (id: string) => Promise
     dialog.close();
     void startCharacter("human-adult", params, `Adult human ${params.seed}`);
   };
+  ctx.api.onTorsoStudy(() => {
+    const studies = byId("study-choice", HTMLSelectElement);
+    studies.value = "study.mhr-torso";
+    studies.dispatchEvent(new Event("change"));
+    void startCharacter(studies.value);
+  });
+  const studyMetadata = new Map<
+    string,
+    {
+      id: string;
+      title: string;
+      game: string;
+      source?: string;
+      angle: string;
+      mode?: string;
+      referenceRigs: boolean;
+    }
+  >();
+  const requested = new URLSearchParams(location.hash.slice(1));
+  let initialStudy = requested.get("study");
   async function loadStarters(): Promise<void> {
     startSelect.disabled = true;
     startSelect.replaceChildren(new Option("New character from…", ""));
     if (!ctx.project) return;
     const list = await host.call("starters", {});
     const studies = byId("study-choice", HTMLSelectElement);
+    const response = await fetch("./studies.json");
+    const metadata: unknown = await response.json();
+    studyMetadata.clear();
+    if (isJson(metadata) && isJsonArray(metadata))
+      for (const item of metadata) {
+        if (
+          isJsonObject(item) &&
+          typeof item["id"] === "string" &&
+          typeof item["game"] === "string" &&
+          typeof item["starter"] === "string" &&
+          typeof item["title"] === "string" &&
+          typeof item["angle"] === "string"
+        )
+          studyMetadata.set(item["starter"], {
+            id: item["id"],
+            title: item["title"],
+            referenceRigs: item["referenceRigs"] === true,
+            game: item["game"],
+            ...(typeof item["source"] === "string" ? { source: item["source"] } : {}),
+            ...(typeof item["mode"] === "string" ? { mode: item["mode"] } : {}),
+            angle: item["angle"],
+          });
+      }
+    const link = byId("study-source", HTMLAnchorElement);
+    studies.onchange = () => {
+      const study = studyMetadata.get(studies.value);
+      link.hidden = !study?.source;
+      if (study?.source) link.href = study.source;
+      else link.removeAttribute("href");
+    };
     studies.replaceChildren();
+    const available = new Set(list.starters.map((s) => s.id));
+    for (const [id, study] of studyMetadata)
+      if (available.has(id)) studies.add(new Option(study.title + " \u00b7 " + study.game, id));
+    byId("study-rig", HTMLAnchorElement).hidden = !(
+      (await fetch("./rig-available.json").then((r) => r.json())) === true
+    );
+    const examples = document.createElement("optgroup");
+    examples.label = "Example forms";
     for (const s of list.starters) {
-      if (s.kind === "form") studies.add(new Option(s.label, s.id));
+      if (studyMetadata.has(s.id)) continue;
+      if (s.kind === "form") examples.append(new Option(s.label, s.id));
       const reference = Reflect.get(s, "kind") !== "form" && s.reference;
       const label = reference ? `${s.label} (protocol reference)` : s.label;
       if (s.presets.length && !s.presets.some((p) => p.id === "default")) {
@@ -114,7 +180,18 @@ export function mountStart(ctx: PanelContext, onStarted: (id: string) => Promise
         startSelect.add(new Option("New figure, humanoid or hybrid", "workshop-form/seed"), 2);
       else startSelect.append(new Option(label, s.id));
     }
+    studies.append(examples);
+    studies.dispatchEvent(new Event("change"));
     startSelect.disabled = startSelect.options.length < 2;
+    if (initialStudy) {
+      const entry = [...studyMetadata].find(([, s]) => s.id === initialStudy);
+      initialStudy = null;
+      if (entry && available.has(entry[0])) {
+        studies.value = entry[0];
+        studies.dispatchEvent(new Event("change"));
+        await startCharacter(entry[0], undefined, undefined, requested.get("compare") === "3d");
+      } else showBanner("error", "Unknown workshop study.");
+    }
   }
 
   function startChoice(value: string): {
@@ -146,7 +223,12 @@ export function mountStart(ctx: PanelContext, onStarted: (id: string) => Promise
     void startCharacter(byId("study-choice", HTMLSelectElement).value);
   randomHuman.onclick = () => dialog.showModal();
 
-  async function startCharacter(value: string, params?: Json, label?: string): Promise<void> {
+  async function startCharacter(
+    value: string,
+    params?: Json,
+    label?: string,
+    compare = false,
+  ): Promise<void> {
     if (startSelect.disabled) return;
     const choice = startChoice(value);
     const starter = choice.starter;
@@ -169,6 +251,26 @@ export function mountStart(ctx: PanelContext, onStarted: (id: string) => Promise
       }
       say(`Started ${starter}`);
       await onStarted(id);
+      const study = studyMetadata.get(starter);
+      if (study) {
+        if (study.mode) {
+          const display = byId("display-mode", HTMLSelectElement);
+          display.value =
+            study.mode === "Clay" ? "clay" : study.mode === "Silhouette" ? "silhouette" : "studio";
+          display.dispatchEvent(new Event("change"));
+        }
+        const angle =
+          { Front: "front", Portrait: "portrait", Side: "side", Back: "back" }[study.angle] ??
+          "threequarter";
+        byId("camera-" + angle, HTMLButtonElement).click();
+        if (compare && study.referenceRigs) {
+          for (let i = 0; i < 300 && !document.getElementById("fit-study-reference"); i++)
+            await new Promise((done) => setTimeout(done, 100));
+          const fit = document.getElementById("fit-study-reference");
+          if (fit) fit.click();
+          else showBanner("error", "The study's 3D reference could not be opened.");
+        }
+      }
     } catch (error) {
       showBanner("error", `Could not start: ${failure(error)}`);
     } finally {

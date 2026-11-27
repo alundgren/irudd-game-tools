@@ -111,14 +111,15 @@ def run(out, url, refine_face):
         }""")
         print("Renderer:", renderer, flush=True)
         (out/"renderer.json").write_text(json.dumps({"renderer":renderer})+"\n",encoding="utf8")
-        page.goto(url.rstrip("/") + "/#study=mhr-f1&compare=3d", wait_until="load")
-        page.reload()
-        page.wait_for_function("""document.querySelector('#hfit-source')?.value === 'mhr-f1'
-            && document.querySelector('#hfit-facts')?.textContent.includes('female-typical 1')""",
-            timeout=60000)
-        page.locator("#hfit-frame").select_option("head")
-        check_wipe(page, out)
-        page.locator("#hfit-close").click()
+        if (ROOT / "examples/workshop-body-fits.json").exists():
+            page.goto(url.rstrip("/") + "/#study=mhr-f1&compare=3d", wait_until="load")
+            page.reload()
+            page.wait_for_function("""document.querySelector('#hfit-source')?.value === 'mhr-f1'
+                && document.querySelector('#hfit-facts')?.textContent.includes('female-typical 1')""",
+                timeout=60000)
+            page.locator("#hfit-frame").select_option("head")
+            check_wipe(page, out)
+            page.locator("#hfit-close").click()
         for index,subject in enumerate(SUBJECTS):
             readings[subject], fits[subject], panels = fit_subject(page, subject, control, out, refine_face)
             for row,image in enumerate(panels):

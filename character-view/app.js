@@ -7,7 +7,7 @@ import {loadComplexions} from "./human-complexion.js";
 import { creatureEditor } from "./creature-plan-editor.js";
 import { creatureHandleOverlay } from "./creature-handle-overlay.js";
 import { creatureWarp } from "./creature-warp.js";
-import {humanStudies} from "../examples/human-studies.js";
+import { studies } from "./study-catalogue.js";
 import { surfaceMarkEditor, validSurfaceMarks } from "./surface-marks.js";
 import { branchPlacement } from "./branch-placement.js";
 import { fitEyeSettings } from "./ocular.js";
@@ -61,15 +61,6 @@ import { appendPart, copyBranch, removePart } from "./parts.js";
 import { componentShelf, generateWorkshopForm } from "./components.js";
 import { extractComponent, placeComponent } from "./graft.js";
 import { generateForm } from "./generator.js";
-import { buildTraceMap } from "./trace-map.js";
-import tidebellMap from "../examples/tidebell.trace.json";
-import glider from "../examples/estuary-glider.form.json";
-import beetle from "../examples/accepted-beetle.form.json";
-import { studies as proceduralStudies } from "../examples/studies.js";
-import { creatureStudies } from "../examples/creature-studies.js";
-import { mhrStudies } from "../examples/mhr-study.js";
-import { referenceStudies } from "../examples/reference-studies.js";
-import { paintedStudies } from "../examples/painted-studies.js";
 import { equipPlateRows, repeatOnSpine } from "./scutes.js";
 import { outfitRoles } from "./wardrobe.js";
 import { faceHandles } from "./face-handles.js";
@@ -79,32 +70,6 @@ import { profileEditor } from "./profile-editor.js";
 import { isFace } from "./facial-sculpt.js";
 import { bindTraceEditor } from "./trace-editor.js";
 import { loadTurnarounds, restoreArtwork } from "./turnaround.js";
-const studies = [
-  ...humanStudies,
-  ...creatureStudies,
-  ...proceduralStudies,
-  ...paintedStudies,
-  ...referenceStudies,
-  ...mhrStudies,
-  {
-    id: "tidebell",
-    title: "Tidebell · open carapace",
-    game: "Artwork fit",
-    make: () => buildTraceMap(tidebellMap, "tidebell"),
-  },
-  {
-    id: "glider",
-    title: "Estuary glider",
-    game: "AI trial",
-    make: () => structuredClone(glider.form),
-  },
-  {
-    id: "beetle",
-    title: "Beetle hybrid",
-    game: "AI trial",
-    make: () => structuredClone(beetle.form),
-  },
-];
 import { loadSurfaces } from "./materials.js";
 import { loadFacePaint } from "./face.js";
 import { createCharacter, disposeCharacter } from "./model.js";

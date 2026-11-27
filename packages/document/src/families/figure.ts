@@ -1,3 +1,4 @@
+import { SectionProfile } from "./figure-recipe.js";
 import { Schema } from "effect";
 import type { Vec3 } from "../geometry.js";
 import { PartId, Position, Rotation, Size } from "../schema.js";
@@ -58,6 +59,28 @@ const distinctKnots = (knots: ReadonlyArray<Knot>): boolean =>
   });
 
 export const FigureSweep = Schema.Struct({
+  radialFit: Schema.optionalKey(
+    Schema.Struct({
+      bottom: bounded(-3, 3),
+      step: bounded(0.003, 0.2),
+      rows: Schema.Array(
+        Schema.Array(bounded(-0.12, 0.12)).check(Schema.isMinLength(8), Schema.isMaxLength(64)),
+      ).check(
+        Schema.isMinLength(3),
+        Schema.isMaxLength(48),
+        Schema.makeFilter(
+          (rows) =>
+            rows.every(
+              (row, i) =>
+                row.length === rows[0]?.length &&
+                ((i !== 0 && i !== rows.length - 1) || row.every((v) => v === 0)),
+            ) || "Use equal radial rings with fixed end rows.",
+        ),
+      ),
+    }),
+  ),
+  suckerRows: Schema.optionalKey(Schema.Literals([0, 1, 2])),
+  retainSections: Schema.optionalKey(Schema.Boolean),
   knots: Schema.Array(Knot).check(
     Schema.isMinLength(2),
     Schema.isMaxLength(48),
@@ -148,6 +171,7 @@ export const buildAxes = ["mass", "shoulders", "waist", "belly", "hips"] as cons
 const buildAxis = Schema.optionalKey(bounded(0.4, 2.4));
 
 export const FigureBuild = Schema.Struct({
+  sectionProfile: Schema.optionalKey(SectionProfile),
   mass: buildAxis,
   shoulders: buildAxis,
   waist: buildAxis,
