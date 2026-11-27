@@ -195,6 +195,8 @@ state, and later commits continue its sequence. Failures:
   `["assets", digest]`. A newer package or archive version is
   `unsupported-format`.
 
+The human-only `document.donor {path}` method validates a saved character and returns its document and revision for grafting. It makes the file?s verified artwork available in the project. The donor can share an ID with an open character. Reading the donor leaves that character and its history intact.
+
 The wire methods `document.save {documentId, path}` and
 `document.open {path}` are for people only and take absolute paths on the
 host's machine. A successful open emits a commit event with

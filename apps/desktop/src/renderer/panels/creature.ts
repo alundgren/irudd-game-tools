@@ -35,24 +35,35 @@ import {
   snouts,
   markingKinds,
   type CreaturePlan,
-  type Vec3,
 } from "@irudd/document";
 import type { Direction } from "../direction.js";
 import { byId } from "../dom.js";
 import { failure, type PanelContext } from "./context.js";
 import { surfaceFields, seed } from "./surface-fields.js";
 import { limbFields } from "./creature-limbs.js";
+import type { EditorViewport } from "../viewport.js";
 import { planHandles } from "./creature-handles.js";
 
 export function mountCreature(
   ctx: PanelContext,
   direction: () => Direction | undefined,
-  project: (p: Vec3) => readonly [number, number],
+  viewport: EditorViewport,
   fromPlan: (plan: CreaturePlan, label: string) => Promise<void>,
 ) {
   const panel = byId("creature-editor", HTMLDetailsElement),
     body = panel.querySelector("div"),
-    handles = planHandles(project);
+    handles = planHandles(
+      (p) => viewport.project(p),
+      () => viewport.handleAxes(),
+      (p) => {
+        try {
+          viewport.previewPlan(p);
+        } catch (e) {
+          ctx.showBanner("error", failure(e));
+        }
+      },
+      ctx.say,
+    );
   const open = new Set(["Shuffle", "Adult wings"]);
   let selected = 0,
     scope: Scope = "Whole creature",

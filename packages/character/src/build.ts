@@ -3,6 +3,8 @@ import { generatedCreature } from "./creature/generator.js";
 import {
   armAccess,
   canonicalJson,
+  humanRegionCopy,
+  type AdultRegionSource,
   type Appearance,
   type CharacterDocument,
   type Digest,
@@ -94,6 +96,8 @@ export interface BuiltCharacter {
   readonly hands: ReadonlyMap<T.Mesh, ReadonlyArray<Digit>>;
   readonly faces: ReadonlyMap<T.Mesh, HeadSpace | undefined>;
   readonly human?: HumanBuild;
+  readonly regionRig?: HumanBuild;
+  readonly regionSources?: ReadonlyMap<string, HumanBuild>;
   dispose(): void;
 }
 
@@ -447,6 +451,7 @@ function withHandMadeParts(
     { ...full, byId, parts: full.parts.filter((p) => ids.has(p.id)) },
     options,
     human,
+    generatedCreature(doc),
   );
   const parts = new Map([...human.parts, ...added.parts]);
   for (const { part, object } of human.parts.values()) {
@@ -470,9 +475,59 @@ function withHandMadeParts(
 }
 
 export function buildCharacter(doc: CharacterDocument, options: BuildOptions): BuiltCharacter {
-  if (isHumanDocument(doc)) {
-    if (!options.human) throw new Error("Building an adult human needs the loaded body pack.");
-    return withHandMadeParts(doc, buildHuman(doc, options.human, options), options);
+  const donors = new Map<string, AdultRegionSource>();
+  for (const p of doc.parts) {
+    const source = humanRegionCopy.read(p.features)?.source;
+    if (source) donors.set(canonicalJson(source), source);
+  }
+  if (isHumanDocument(doc) || donors.size) {
+    const body = options.human;
+    if (!body) throw new Error("Building adult regions needs the loaded body pack.");
+    const native = isHumanDocument(doc) ? buildHuman(doc, body, options) : undefined;
+    if (native && !donors.size) return withHandMadeParts(doc, native, options);
+    const regions = [
+      ...(native ? [native] : []),
+      ...Array.from(donors.values(), (source) => buildHuman(doc, body, options, source)),
+    ];
+    const view = buildView(doc),
+      group = new T.Group();
+    const parts = new Map(regions.flatMap((r) => Array.from(r.parts)));
+    const sources = new Map(
+      regions.flatMap((r) =>
+        r.human ? Array.from(r.parts.keys(), (id) => [id, r.human] as const) : [],
+      ),
+    );
+    const first = regions[0]?.human;
+    const regionRig = first && {
+      ...first,
+      bones: new Map(regions.flatMap((r) => Array.from(r.human?.bones ?? []))),
+    };
+
+    for (const { part, object } of parts.values())
+      ((part.parent && parts.get(part.parent)?.mount) || group).add(object);
+    const entries = Array.from(parts.values(), (item) => item.part);
+    return withHandMadeParts(
+      doc,
+      {
+        group,
+        parts,
+        view: { ...view, parts: entries, byId: new Map(entries.map((p) => [p.id, p])) },
+        ...(native ? { human: native.human } : {}),
+        ...(regionRig ? { regionRig } : {}),
+        regionSources: sources,
+        warp: undefined,
+        blendOwners: new Map(),
+        hands: new Map(),
+        faces: new Map(),
+        dispose() {
+          for (const region of regions) {
+            for (const { object } of region.parts.values()) region.group.add(object);
+            region.dispose();
+          }
+        },
+      },
+      options,
+    );
   }
   return buildFigure(buildView(doc), options, undefined, generatedCreature(doc));
 }

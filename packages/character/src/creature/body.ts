@@ -13,28 +13,87 @@ import {
 } from "@irudd/document";
 
 const rad = Math.PI / 180;
-export function bodyStation(p: CreaturePlan, t: number) {
+const smooth = (t: number) => t * t * (3 - 2 * t);
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+const girthProfiles = {
+  barrel: (t: number) => 0.5 + 0.5 * Math.sin(Math.PI * t) ** 0.7,
+  pear: (t: number) => 0.42 + 0.58 * Math.sin(Math.PI * t ** 0.62) ** 0.9,
+  wedge: (t: number) => 0.42 + 0.58 * Math.sin(Math.PI * t ** 1.7) ** 0.9,
+  tube: () => 0.9,
+  wasp: (t: number) =>
+    0.34 +
+    0.66 *
+      Math.max(Math.exp(-(((t - 0.22) / 0.19) ** 2)), 0.82 * Math.exp(-(((t - 0.76) / 0.16) ** 2))),
+};
+function spineFrame(p: CreaturePlan) {
   const s = p.spine,
-    k = p.scale;
-  const pitch = (s.rear + (s.front - s.rear) * t * 0.5 + s.arch * (1 - t)) * rad;
-  const z = s.length * (t * Math.cos(pitch) - 0.5 * Math.cos((s.front + s.rear) * 0.5 * rad));
-  const y = s.stance + s.length * t * Math.sin(pitch);
-  const u = t * 4,
-    i = Math.min(3, Math.floor(u)),
-    f = u - i;
-  const bulge = (s.bulge[i] ?? 1) * (1 - f) + (s.bulge[i + 1] ?? 1) * f;
-  const profile =
-    s.profile === "wasp"
-      ? 1 - 0.36 * Math.sin(Math.PI * t) ** 6
-      : s.profile === "pear"
-        ? 1.24 - 0.44 * t
-        : s.profile === "wedge"
-          ? 0.8 + 0.4 * t
-          : s.profile === "tube"
-            ? 1.12 - 0.16 * Math.sin(Math.PI * t)
-            : 1;
-  const g = k * s.girth * profile * bulge * (0.24 + 0.76 * Math.sin(Math.PI * t) ** 0.45);
-  return { point: scale([0, y, z], k), width: g * Math.sqrt(s.flat), depth: g / Math.sqrt(s.flat) };
+    k = p.scale,
+    steps = 64,
+    widths = Math.sqrt(s.flat);
+  const radius = (t: number) => {
+    const u = t * 4,
+      i = Math.min(3, Math.floor(u));
+    const cap = Math.sqrt(Math.max(0.06, 1 - (1 - Math.min(1, Math.min(t, 1 - t) / 0.13)) ** 2));
+    return (
+      girthProfiles[s.profile](t) *
+      cap *
+      s.girth *
+      k *
+      lerp(s.bulge[i] ?? 1, s.bulge[i + 1] ?? 1, smooth(u - i))
+    );
+  };
+  let y = 0,
+    z = 0,
+    lowest = Infinity;
+  const points = Array.from({ length: steps + 1 }, (_, i) => {
+    const t = i / steps,
+      pitch = (lerp(s.rear, s.front, smooth(t)) + s.arch * Math.cos(Math.PI * t)) * rad;
+    const point = { y, z, pitch };
+    lowest = Math.min(lowest, y - (radius(t) * Math.cos(pitch)) / widths);
+    y += (Math.sin(pitch) * s.length * k) / steps;
+    z += (Math.cos(pitch) * s.length * k) / steps;
+    return point;
+  });
+  const lift = p.limbs.some((l) => l.kind !== "arm")
+    ? Math.max(s.stance * k, 0.02 - lowest)
+    : 0.004 - lowest;
+  const middle = (points[steps]?.z ?? 0) / 2;
+  return (station: number) => {
+    const t = Math.max(0, Math.min(1, station)),
+      u = t * steps,
+      i = Math.min(steps - 1, Math.floor(u)),
+      f = u - i;
+    const a = points[i],
+      b = points[i + 1];
+    if (!a || !b) throw new Error("Invalid spine station.");
+    const pitch = lerp(a.pitch, b.pitch, f),
+      r = radius(t);
+    const point: Vec3 = [0, lerp(a.y, b.y, f) + lift, lerp(a.z, b.z, f) - middle];
+    const dorsal: Vec3 = [0, Math.cos(pitch), -Math.sin(pitch)],
+      tangent: Vec3 = [0, Math.sin(pitch), Math.cos(pitch)];
+    return { point, dorsal, tangent, width: r * widths, depth: r / widths };
+  };
+}
+const frames = new WeakMap<CreaturePlan, ReturnType<typeof spineFrame>>();
+export function bodyStation(p: CreaturePlan, t: number) {
+  let frame = frames.get(p);
+  if (!frame) {
+    frame = spineFrame(p);
+    frames.set(p, frame);
+  }
+  return frame(t);
+}
+const limbOffsets = {
+  leg: [0.68, -0.3],
+  arm: [0.86, 0],
+  wing: [0.5, 0.62],
+  fin: [0.9, 0],
+  tentacle: [0.82, 0],
+} as const;
+export function limbSocket(p: CreaturePlan, kind: CreatureLimb["kind"], t: number, side: number) {
+  const s = bodyStation(p, t),
+    [across, back] = limbOffsets[kind];
+  return add(add(s.point, [side * s.width * across, 0, 0]), scale(s.dorsal, s.depth * back));
 }
 
 export function wingSurface(
@@ -572,12 +631,7 @@ export function creatureSlots(p: CreaturePlan): BaseSlotInput[] {
       );
     }
   function limb(l: CreatureLimb, id: string, side: 1 | -1, t: number) {
-    const station = bodyStation(p, t),
-      point = add(station.point, [
-        side * station.width * 0.68,
-        l.kind === "wing" ? station.depth * 0.55 : -station.depth * 0.27,
-        0,
-      ]);
+    const point = limbSocket(p, l.kind, t, side);
     const reach = g * l.girth;
     if (l.kind === "fin") {
       const len = l.length * k,

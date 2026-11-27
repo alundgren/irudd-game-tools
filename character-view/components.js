@@ -9,7 +9,7 @@ import { generateForm, randomStream } from "./generator.js";
 import { buildCreature, randomCreaturePlan } from "./creature-plan.js";
 
 const gallery = [...studies, ...paintedStudies];
-const entries = [
+export const componentEntries = [
   [
     "foreman-face",
     "Broad bespectacled head",
@@ -76,7 +76,7 @@ let cached;
 export function componentShelf() {
   if (cached) return cached;
   const built = new Map();
-  const items = entries.map(([key, title, study, id, tree]) => {
+  const items = componentEntries.map(([key, title, study, id, tree]) => {
     if (!built.has(study))
       built.set(study, gallery.find((s) => s.id === study).make());
     return { key, title, ...extractComponent(built.get(study), id, tree) };

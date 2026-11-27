@@ -173,7 +173,36 @@ h2 {
 }
 .creature-handle.limb {
   background: #aa5629;
-  border-radius: 3px;
+  border-radius: 50%;
+}
+.creature-handle.girth {
+  border-radius: 2px;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+.plan-guides {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.plan-guides svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: #fed281;
+  stroke-width: 2;
+}
+.plan-guides .was {
+  stroke: white;
+  stroke-dasharray: 4 4;
+}
+.plan-guides output {
+  position: absolute;
+  transform: translateX(-50%);
+  background: #20302e;
+  color: white;
+  padding: 3px 6px;
+  white-space: nowrap;
 }
 .workspace {
   display: grid;

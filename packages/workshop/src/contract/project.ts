@@ -334,6 +334,12 @@ export interface Session {
     ImportReport,
     ArchiveRejected | DocumentExists | StorageFailed | ProjectClosed
   >;
+  readonly donorCharacter: (
+    source: string,
+  ) => Effect.Effect<
+    { readonly document: CharacterDocument; readonly revision: number },
+    ArchiveRejected | BlobRejected | StorageFailed | ProjectClosed | InvalidArgument
+  >;
   readonly openCharacter: (
     source: string,
   ) => Effect.Effect<

@@ -10,6 +10,7 @@ import { motionOffer } from "./motion-offer.js";
 import {
   humanCorrections,
   humanRegionCopy,
+  humanReferenceRigs,
   figureNativePortrait,
   figureScapulaMount,
 } from "./human.js";
@@ -75,6 +76,7 @@ export * from "./human.js";
 export const familyFeatures: ReadonlyArray<FeatureDefinition> = [
   humanCorrections.definition,
   humanRegionCopy.definition,
+  humanReferenceRigs.definition,
   figureAssembly.definition,
   figureDrape.definition,
   figureSweep.definition,

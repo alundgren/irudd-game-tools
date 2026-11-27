@@ -206,6 +206,7 @@ export const methodParams = {
   "pair.revoke": Schema.Struct({ agent: AgentId }),
   verify: Empty,
   "document.save": Schema.Struct({ documentId: DocumentId, path: FilePath }),
+  "document.donor": Schema.Struct({ path: FilePath }),
   "document.open": Schema.Struct({ path: FilePath }),
   ...steeringParams,
   ...reviewParams,
@@ -329,6 +330,10 @@ export interface MethodResults extends ReviewMethodResults, ArtMethodResults {
   readonly "pair.revoke": { readonly agent: string; readonly revoked: boolean };
   readonly verify: VerifyReport;
   readonly "document.save": CharacterSaveReport;
+  readonly "document.donor": {
+    readonly document: import("@irudd/document").CharacterDocument;
+    readonly revision: number;
+  };
   readonly "document.open": ImportReport;
   readonly "recipient.bind": Recipient;
   readonly "recipient.unbind": { readonly agent: string; readonly unbound: boolean };

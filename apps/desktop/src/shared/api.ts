@@ -154,6 +154,7 @@ export type CharacterFileOutcome =
   | {
       readonly ok: true;
       readonly action: "opened";
+      readonly document?: unknown;
       readonly name: string;
       readonly documentId: string;
       readonly label: string;
@@ -186,7 +187,7 @@ export interface DesktopApi {
   saveExport(request: ExportRequest): Promise<LibraryEntry>;
   saveInspection(request: InspectionSave): Promise<string>;
   saveCharacter(documentId: string): Promise<CharacterFileOutcome>;
-  openCharacter(): Promise<CharacterFileOutcome>;
+  openCharacter(donor?: boolean): Promise<CharacterFileOutcome>;
   update(action: UpdateAction): Promise<UpdateStatus>;
   onUpdate(listener: (status: UpdateStatus) => void): () => void;
 }

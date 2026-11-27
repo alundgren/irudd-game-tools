@@ -322,7 +322,9 @@ async function run(jobId: string): Promise<string> {
           ),
         };
   const humanPaint =
-    textures && read.value.generation?.generator === humanAdultId
+    textures &&
+    (read.value?.generation?.generator === humanAdultId ||
+      read.value?.parts.some((p) => p.features["human.region-copy"]))
       ? await (adultPaint ??= loadHumanPaint(humanPack)
           .then((data) => prepareHumanPaint(raster, data, body))
           .catch((error: unknown) => {

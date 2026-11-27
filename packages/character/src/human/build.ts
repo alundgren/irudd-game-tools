@@ -4,11 +4,13 @@ import {
   humanRegionCopy,
   decodeWith,
   finishes,
+  canonicalJson,
+  type AdultRegionSource,
   type CharacterDocument,
   type Finish,
 } from "@irudd/document";
 import { isMesh } from "../mesh.js";
-import { buildView, type BuildPart, type BuildView } from "../view.js";
+import { visibleIn, buildView, type BuildPart, type BuildView } from "../view.js";
 import type { HumanBody } from "./body.js";
 import { boneNames, type BoneName } from "./catalogue.js";
 import {
@@ -76,28 +78,36 @@ export function buildHuman(
   doc: CharacterDocument,
   body: HumanBody,
   options: HumanBuildOptions,
+  donor?: AdultRegionSource,
 ): BuiltHuman {
   const generation = doc.generation;
-  if (!generation || generation.generator !== humanAdultId)
+  if (!donor && generation?.generator !== humanAdultId)
     throw new Error("This document was not generated as an adult human.");
-  if (generation.version !== humanAdultVersion)
-    throw new Error(`This build has no adult human builder version ${generation.version}.`);
-  const decoded = decodeWith(HumanAdultParams, generation.params, ["generation", "params"]);
+  if ((donor?.version ?? generation?.version) !== humanAdultVersion)
+    throw new Error(
+      `This build has no adult human builder version ${donor?.version ?? generation?.version}.`,
+    );
+  const decoded = decodeWith(HumanAdultParams, donor?.params ?? generation?.params, [
+    "generation",
+    "params",
+  ]);
   if (!decoded.ok) throw new Error(decoded.diagnostics.map((d) => d.message).join(" "));
   const params = decoded.value;
   const view = buildView(doc);
   const bones = new Map<string, BoneName>();
   const colors = new Map<BoneName, string>();
   const regionParts: BuildPart[] = [];
+  const sourceKey = donor && canonicalJson(donor);
   for (const part of view.parts) {
     const source = doc.parts.find((p) => p.id === part.id);
     const copied = source && humanRegionCopy.read(source.features);
-    const slot = source?.slot ?? copied?.slot;
+    if ((copied?.source && canonicalJson(copied.source)) !== sourceKey) continue;
+    const slot = copied?.slot ?? source?.slot;
     const bone = slot === undefined ? undefined : humanSlotBone(slot);
     if (!bone && copied) throw new Error("Unknown copied adult region " + copied.slot + ".");
     if (!bone) continue;
     bones.set(part.id, bone);
-    if (!copied) colors.set(bone, part.color);
+    if (donor || !copied) colors.set(bone, part.color);
     regionParts.push({ ...part, motion: humanRole(bone) });
   }
   const order = (p: BuildPart) => boneNames.indexOf(bones.get(p.id) ?? "head");
@@ -135,12 +145,19 @@ export function buildHuman(
   const portrait = regionParts.find((p) => p.nativePortrait);
   if (portrait && bones.get(portrait.id) !== "head")
     throw new Error(`A native portrait layer belongs on the adult's head, not ${portrait.label}.`);
-  const unregioned = view.parts.find((p) => p.nativePortrait && !bones.has(p.id));
+  const unregioned = view.parts.find(
+    (p) =>
+      p.nativePortrait &&
+      !doc.parts.some(
+        (q) => q.id === p.id && (humanRegionCopy.read(q.features) || humanSlotBone(q.slot ?? "")),
+      ),
+  );
   if (unregioned)
     throw new Error(
       `A native portrait layer belongs on the adult's head, not ${unregioned.label}.`,
     );
-  const member = portrait ? null : humanWornCast(params, colors.size);
+  const grafted = doc.parts.some((p) => humanRegionCopy.read(p.features));
+  const member = portrait || donor || grafted ? null : humanWornCast(params, colors.size);
   const uniform =
     params.outfit === "Base layer"
       ? "Running kit"
@@ -157,10 +174,8 @@ export function buildHuman(
     isPresetOutfit(presetName)
       ? presetName
       : undefined);
-  if (work && !member && params.style.tailor === undefined && !preset)
-    throw new Error(
-      "Work clothes need a tailored or preset outfit or a worn cast member; the default field jacket and denim is not built yet.",
-    );
+  const fieldClothes =
+    work && !member && params.style.tailor === undefined && !preset ? params.style : undefined;
   const cast = member
     ? {
         name: member,
@@ -172,7 +187,7 @@ export function buildHuman(
   const regions = humanRegions(body, measurements, (bone) => colors.get(bone) ?? params.skin, {
     material: (color) => options.materials(color, "plain"),
     dressMaterial,
-    corrections: humanCorrections.read(doc.features),
+    corrections: donor ? donor.corrections : humanCorrections.read(doc.features),
     studio:
       params.style.faceFamily === "Studio Rain"
         ? {
@@ -196,6 +211,7 @@ export function buildHuman(
       params.outfit === "Anatomy"
         ? undefined
         : {
+            fieldClothes,
             accessories: preset === "Pressure suit" ? undefined : params.style,
             tailor:
               !work || params.style.tailor === undefined
@@ -245,6 +261,7 @@ export function buildHuman(
       applyNativePortrait(face, layer, paint.sources.raster);
     }
     pullSurface(object, part.pulls, (original) => original.dispose());
+    object.visible = visibleIn(view, part);
     object.name = part.label;
     object.position.fromArray(part.position);
     object.scale.fromArray(part.size);

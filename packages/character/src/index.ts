@@ -9,6 +9,7 @@ export * from "./wardrobe.js";
 export * from "./garments.js";
 export * from "./surface-edit.js";
 export * from "./shape-tools.js";
+export * from "./plate-field.js";
 export { mirrorCentre, previewPull } from "./surfaces/pull.js";
 export * from "./place-branch.js";
 export { fitSweptHand } from "./surfaces/fit-hand.js";
@@ -49,3 +50,5 @@ export { repaintOperations, RepaintError } from "./paint/repaint.js";
 export { inspectGlb, type GlbSummary, type ImageSummary, type MaterialSummary } from "./inspect.js";
 
 export { startSkinStroke, skinMeshData } from "./human/brush-preview.js";
+
+export * from "./graft.js";

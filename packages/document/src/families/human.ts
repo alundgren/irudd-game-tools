@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { Digest, SlotKey } from "../schema.js";
+import { Digest, SlotKey, JsonValue } from "../schema.js";
 import { family } from "./family.js";
 
 export const FigureScapulaMount = Schema.Struct({
@@ -56,10 +56,36 @@ export const humanCorrections = family({
   toJson: (v) => v,
 });
 export type SkinCorrections = NonNullable<ReturnType<typeof humanCorrections.read>>;
+export const humanReferenceRigs = family({
+  id: "human.reference-rigs",
+  version: 1,
+  scope: "document",
+  schema: Schema.Struct({
+    rigs: Schema.Array(
+      Schema.Literals([
+        "lee-perry-smith",
+        "mhr-rest",
+        "mhr-f1",
+        "mhr-f2",
+        "mhr-f3",
+        "mhr-m1",
+        "mhr-m2",
+        "mhr-m3",
+      ]),
+    ),
+  }),
+  toJson: (v) => v,
+});
+export const AdultRegionSource = Schema.Struct({
+  version: Schema.Int,
+  params: JsonValue,
+  corrections: Schema.optionalKey(humanCorrections.schema),
+});
+export type AdultRegionSource = typeof AdultRegionSource.Type;
 export const humanRegionCopy = family({
   id: "human.region-copy",
   version: 1,
   scope: "part",
-  schema: Schema.Struct({ slot: SlotKey }),
+  schema: Schema.Struct({ slot: SlotKey, source: Schema.optionalKey(AdultRegionSource) }),
   toJson: (v) => v,
 });

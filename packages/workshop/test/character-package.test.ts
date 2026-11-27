@@ -281,9 +281,19 @@ test("a saved character opens offline in a fresh project with history, artwork a
         (yield* project.current(docId)).document?.parts.find((p) => p.id === made.second)?.label,
         "Oops",
       );
-      const next = yield* session.apply(rename(10, made.second, "Tail"));
+      const next = yield* session.apply(rename(10, made.second, "Edited recipient tail"));
       assert.ok(next.kind === "committed" && next.entry.sequence === made.bytes.length + 2);
       assert.equal((yield* Effect.flip(session.openCharacter(file)))._tag, "DocumentExists");
+      const savedDonor = yield* session.donorCharacter(file);
+      assert.equal(savedDonor.document.id, docId);
+      assert.equal(
+        savedDonor.document.parts.find((p) => p.id === made.second)?.label,
+        doc?.parts.find((p) => p.id === made.second)?.label,
+      );
+      assert.equal(
+        (yield* project.current(docId)).document?.parts.find((p) => p.id === made.second)?.label,
+        "Edited recipient tail",
+      );
     }),
   );
 });

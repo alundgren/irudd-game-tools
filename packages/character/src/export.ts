@@ -1,6 +1,9 @@
 import * as T from "three";
 import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
 import {
+  canonicalJson,
+  decodeWith,
+  humanRegionCopy,
   assetCreditLine,
   assetCredits,
   documentDigest,
@@ -9,6 +12,7 @@ import {
   type Digest,
   type OutfitLook,
 } from "@irudd/document";
+import { HumanAdultParams } from "./human/generator.js";
 import { humanCredits } from "./human/credits.js";
 import {
   buildCharacter,
@@ -312,7 +316,24 @@ export async function exportCharacter(
     };
     const human = entries.find((e) => e.character.human)?.character.human;
     const adult = human && humanCredits(human.params, human.bones.size);
-    const credits = [...(adult?.copyright ?? []), ...creditsFor(artwork)];
+    const donors = new Map<string, ReturnType<typeof humanCredits>>();
+    for (const p of doc.parts) {
+      const source = humanRegionCopy.read(p.features)?.source;
+      if (!source) continue;
+      const key = canonicalJson(source.params);
+      if (donors.has(key)) continue;
+      const decoded = decodeWith(HumanAdultParams, source.params);
+      if (!decoded.ok) throw new Error("The adult donor parameters are invalid.");
+      donors.set(key, humanCredits(decoded.value, 0));
+    }
+    const graftCredits = Array.from(donors.values());
+    const credits = [
+      ...new Set([
+        ...(adult?.copyright ?? []),
+        ...graftCredits.flatMap((c) => c.copyright),
+        ...creditsFor(artwork),
+      ]),
+    ];
     const { json, rest } = canonicalImages(readGlb(new Uint8Array(output)));
     if (!isObject(json) || !isObject(json["asset"])) throw new Error("The GLB has no asset.");
     const asset = json["asset"];
@@ -322,7 +343,12 @@ export async function exportCharacter(
       asset: {
         ...asset,
         ...(credits.length ? { copyright: credits.join(" ") } : {}),
-        extras: { ...extras, ...adult?.extras, irudd: provenance },
+        extras: {
+          ...extras,
+          ...adult?.extras,
+          ...(graftCredits.length ? { iruddDonorCredits: graftCredits.map((c) => c.extras) } : {}),
+          irudd: provenance,
+        },
       },
     };
     return { bytes: writeGlb(stamped, rest), provenance, credits };

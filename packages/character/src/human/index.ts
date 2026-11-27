@@ -5,7 +5,15 @@ import { readHumanPaint, type HumanPaint } from "./paint-data.js";
 export { rocketboxLicense } from "./credits.js";
 
 export interface HumanPackFile {
-  readonly name: "body" | "captured" | "face" | "groom" | "cast" | "paint" | "studio";
+  readonly name:
+    | "body"
+    | "captured"
+    | "face"
+    | "groom"
+    | "cast"
+    | "paint"
+    | "studio"
+    | "field-clothes";
   readonly file: string;
   readonly digest: Digest;
   readonly byteLength: number;
@@ -71,6 +79,15 @@ export const humanPackFiles: ReadonlyArray<HumanPackFile> = [
       "Rain Rig, Blender Foundation (CC BY 4.0), fitted head, hair, expressions and vertex colour derived from the workshop Rain asset",
     ],
   },
+  {
+    name: "field-clothes",
+    file: "human-field-clothes.bin",
+    digest: digestBrand("sha256:ac8a87e478f19d5487293815286990b81214362465a4e99709eca987926fbd36"),
+    byteLength: 2074565,
+    sources: [
+      "MakeHuman community field clothing and shoes from the browser workshop's human-library-data.json (CC0)",
+    ],
+  },
 ];
 
 export async function loadHumanPacks(
@@ -84,10 +101,10 @@ export async function loadHumanPacks(
       return data;
     }),
   );
-  const [body, captured, face, groom, cast, studio] = bytes;
-  if (!body || !captured || !face || !groom || !cast || !studio)
+  const [body, captured, face, groom, cast, studio, clothes] = bytes;
+  if (!body || !captured || !face || !groom || !cast || !studio || !clothes)
     throw new Error("Missing human pack.");
-  return readHumanBody(body, captured, face, groom, cast, studio);
+  return readHumanBody(body, captured, face, groom, cast, studio, clothes);
 }
 
 export const humanPaintFile: HumanPackFile = {

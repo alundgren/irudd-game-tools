@@ -196,7 +196,7 @@ export function copyDetailBranch(
     if (p.id === root.id) delete features[figurePlateSite.id];
     const next: Part = {
       ...copy,
-      id: newId(),
+      id: ids.get(p.id) ?? newId(),
       parent,
       features,
       label: copy.label.slice(0, 110) + (mirror ? " mirrored" : " copy"),
@@ -231,7 +231,10 @@ export function copyDetailBranch(
 }
 
 export function removeDetailBranch(doc: CharacterDocument, root: Part) {
-  const gone = descendants(doc, root.id);
+  return removeDetailBranches(doc, [root]);
+}
+export function removeDetailBranches(doc: CharacterDocument, roots: readonly Part[]) {
+  const gone = new Set(roots.flatMap((p) => Array.from(descendants(doc, p.id))));
   if (gone.size === doc.parts.length)
     throw new Error("Add another part before removing the whole character.");
   const ops: object[] = [];
@@ -278,7 +281,7 @@ export function removeDetailBranch(doc: CharacterDocument, root: Part) {
         ),
       );
   }
-  return [...ops, { op: "part.remove", part: root.id, cascade: true }];
+  return [...ops, ...roots.map((p) => ({ op: "part.remove", part: p.id, cascade: true }))];
 }
 
 export function fitAccessory(built: BuiltCharacter, faceId: string, pivotId: string): Vec3 {

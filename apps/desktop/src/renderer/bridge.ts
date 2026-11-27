@@ -125,8 +125,8 @@ export function bridge(): DesktopApi {
       check(await api.saveInspection(request), (v): v is string => typeof v === "string", "path"),
     saveCharacter: async (documentId) =>
       check(await api.saveCharacter(documentId), isCharacterOutcome, "character save"),
-    openCharacter: async () =>
-      check(await api.openCharacter(), isCharacterOutcome, "character open"),
+    openCharacter: async (donor) =>
+      check(await api.openCharacter(donor), isCharacterOutcome, "character open"),
     update: async (action) => check(await api.update(action), isUpdate, "update status"),
     onUpdate: (listener) =>
       api.onUpdate((status) => {

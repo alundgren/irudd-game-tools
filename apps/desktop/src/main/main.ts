@@ -362,7 +362,7 @@ async function saveCharacter(documentId: string): Promise<CharacterFileOutcome> 
   }
 }
 
-async function openCharacter(): Promise<CharacterFileOutcome> {
+async function openCharacter(donor = false): Promise<CharacterFileOutcome> {
   const current = link;
   if (!current) throw new Error("Open a project first.");
   const options = {
@@ -379,6 +379,22 @@ async function openCharacter(): Promise<CharacterFileOutcome> {
   const file = picked.canceled ? undefined : picked.filePaths[0];
   if (!file) return { ok: false, canceled: true };
   try {
+    if (donor) {
+      const { document, revision } = await current.characterFile("document.donor", {
+        path: path.resolve(file),
+      });
+      return {
+        ok: true,
+        action: "opened",
+        name: path.basename(file),
+        documentId: document.id,
+        label: document.label,
+        revision,
+        entries: 0,
+        assets: document.assets.length,
+        document,
+      };
+    }
     const report = await current.characterFile("document.open", { path: path.resolve(file) });
     return {
       ok: true,
@@ -472,7 +488,7 @@ function registerBridge(build: string): void {
       throw new Error("Invalid document.");
     return saveCharacter(documentId);
   });
-  handle(channels.openCharacter, () => openCharacter());
+  handle(channels.openCharacter, (donor) => openCharacter(donor === true));
   handle(channels.update, (action) => {
     if (!updater || !isUpdateAction(action)) throw new Error("Invalid update action.");
     return updater.act(action);

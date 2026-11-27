@@ -341,7 +341,7 @@ const makeProject = (
         );
       });
 
-    const importArchive: Session["importArchive"] = (bytes) =>
+    const unpack = (bytes: Uint8Array) =>
       Effect.gen(function* () {
         yield* open;
         const decoded = decodeAnyArchive(bytes);
@@ -439,6 +439,12 @@ const makeProject = (
             diagnostics: missing,
             message: "The archive lacks artwork its revisions reference.",
           });
+        return { archive, documentId, state, head };
+      });
+
+    const importArchive: Session["importArchive"] = (bytes) =>
+      Effect.gen(function* () {
+        const { archive, documentId, state, head } = yield* unpack(bytes);
         const entries = state.journal.map((entry) => ({
           sequence: entry.sequence,
           digest: entry.digest,
@@ -488,7 +494,7 @@ const makeProject = (
         );
       });
 
-    const openCharacter: Session["openCharacter"] = (source) =>
+    const characterBytes = (source: string) =>
       Effect.gen(function* () {
         yield* open;
         const file = path.resolve(source);
@@ -508,7 +514,15 @@ const makeProject = (
                   : `${file} cannot be read: ${cause instanceof Error ? cause.message : String(cause)}`,
             }),
         });
-        return yield* importArchive(bytes);
+        return bytes;
+      });
+    const openCharacter: Session["openCharacter"] = (source) =>
+      characterBytes(source).pipe(Effect.flatMap(importArchive));
+    const donorCharacter: Session["donorCharacter"] = (source) =>
+      Effect.gen(function* () {
+        const { archive, head, state } = yield* unpack(yield* characterBytes(source));
+        for (const blob of archive.blobs) if (!blobs.has(blob.digest)) yield* putBlob(blob);
+        return { document: head, revision: state.head };
       });
 
     const readBlob = (digest: string) =>
@@ -679,6 +693,7 @@ const makeProject = (
           putBlob,
           importArchive,
           openCharacter,
+          donorCharacter,
         } satisfies Session);
       },
       documents: Effect.andThen(

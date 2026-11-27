@@ -36,6 +36,7 @@ import { fittedHair, type HairStyle } from "./dress/hair.js";
 import { fittedNecklace } from "./dress/necklace.js";
 import { tailorHuman, type Tailor } from "./dress/tailor.js";
 import type { OutfitPattern } from "./dress/outfit-names.js";
+import { fieldClothes } from "./dress/field-clothes.js";
 import { dressPreset, type OutfitTones } from "./dress/outfits.js";
 import { isGrownHairStyle, strandGroom } from "./dress/strand-groom.js";
 import { gameTriangleTarget } from "../game/optimize.js";
@@ -187,6 +188,7 @@ export interface WornCast {
 }
 
 export interface HumanDress {
+  readonly fieldClothes?: OutfitTones | undefined;
   readonly accessories?: AccessoryStyle | undefined;
   readonly tailor?: Tailor | undefined;
   readonly outfit?: { readonly name: OutfitPattern; readonly tones: OutfitTones } | undefined;
@@ -246,6 +248,9 @@ function dressed(
             : undefined,
         )
       : null;
+  const field = dress.fieldClothes
+    ? fieldClothes(body, cage, dress.fieldClothes, material, options.plain)
+    : undefined;
   const hair = dress.hair
     ? fittedHair(
         cage,
@@ -286,7 +291,7 @@ function dressed(
           bakeGameFolds(raster, piece),
         )
       : [...(tailored?.meshes ?? []), ...(preset?.meshes ?? [])];
-  const clothes = garments.map((m) => m.mesh);
+  const clothes = [...garments.map((m) => m.mesh), ...(field?.meshes.map((m) => m.mesh) ?? [])];
   const skinned = (m: {
     readonly mesh: T.Mesh;
     readonly region: string;
@@ -301,6 +306,7 @@ function dressed(
   const worn: Worn[] = [
     ...fittedAccessories(cage, dress.accessories, material),
     ...garments.map(skinned),
+    ...(field?.meshes ?? []),
     ...(hair ? [{ mesh: hair.cards, region: "head" }, skinned(hair.roots)] : []),
     ...grown.map(skinned),
     ...fittedEyewear(cage, dress.eyewear, material, options.plain).map((mesh) => ({
@@ -309,7 +315,11 @@ function dressed(
     })),
     ...fittedNecklace(cage, dress, clothes, material, options.plain).map(skinned),
   ];
-  const hidden = new Set([...(tailored?.hidden ?? []), ...(preset?.hidden ?? [])]);
+  const hidden = new Set([
+    ...(tailored?.hidden ?? []),
+    ...(preset?.hidden ?? []),
+    ...(field?.hidden ?? []),
+  ]);
   for (const v of hair?.hide ?? []) hidden.add(v);
   return { worn, hidden };
 }
