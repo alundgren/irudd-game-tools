@@ -130,8 +130,8 @@ export const projects: readonly ProjectPolicy[] = [
       { ...testProgram, lib: esAndDom, ambient: "node+dom" },
     ],
     dependencies: ["@irudd/character", "@irudd/document", "three"],
-    devDependencies: ["@playwright/test", "@types/node", "@types/three", "esbuild"],
-    entries: ["src/gate.ts"],
+    devDependencies: ["@types/node", "@types/three"],
+    entries: ["src/prepare.ts", "src/inspect.ts"],
   },
   {
     dir: "tools/static",

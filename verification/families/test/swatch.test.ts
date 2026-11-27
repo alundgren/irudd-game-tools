@@ -11,7 +11,7 @@ import {
   type Raster,
   type SurfaceKit,
 } from "@irudd/character";
-import { readFixture } from "../src/run.js";
+import { readFixture } from "../src/fixtures.js";
 
 const noRaster: Raster = {
   canvas: () => {

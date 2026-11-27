@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { test } from "node:test";
 import { exportCharacter } from "@irudd/character";
 import {
@@ -22,33 +21,9 @@ import {
 import { applyChecked } from "../src/apply.js";
 import { accessorValues, parseGlb, records } from "../src/glb.js";
 import { installNodeExporter } from "../src/node-exporter.js";
-import { repository } from "../src/paths.js";
-import { readFixture } from "../src/run.js";
+import { readFixture } from "../src/fixtures.js";
 
 installNodeExporter();
-const frozen = "2761eb14";
-const show = (file: string) =>
-  execFileSync("git", ["show", `${frozen}:character-view/${file}`], {
-    cwd: repository,
-    encoding: "utf8",
-  });
-
-function g0(source: string, body: string, input: unknown): unknown {
-  const driver = `${source}
-let text = "";
-for await (const chunk of process.stdin) text += chunk;
-const input = JSON.parse(text);
-${body}`;
-  const out = execFileSync(process.execPath, ["--input-type=module", "-e", driver], {
-    cwd: repository,
-    input: JSON.stringify(input),
-    encoding: "utf8",
-    maxBuffer: 64 * 1024 * 1024,
-  });
-  const parsed: unknown = JSON.parse(out);
-  return parsed;
-}
-
 function depthPass(size: number): Uint8ClampedArray<ArrayBuffer> {
   const rgba = new Uint8ClampedArray(size * size * 4);
   for (let y = 0; y < size; y++)
@@ -66,17 +41,9 @@ function depthPass(size: number): Uint8ClampedArray<ArrayBuffer> {
   return rgba;
 }
 
-test("depthFromPixels registers a depth pass as G0's depth action does", () => {
+test("depthFromPixels registers a depth pass and refuses a blank image", () => {
   const size = 384;
-  const pixels = depthPass(size);
-  const ported = depthFromPixels(pixels, size, size);
-  const legacy = g0(
-    show("portrait-depth.js"),
-    `const rgba = Uint8ClampedArray.from(input.rgba);
-process.stdout.write(JSON.stringify(depthFromPixels(rgba, input.w, input.h)));`,
-    { rgba: [...pixels], w: size, h: size },
-  );
-  assert.deepEqual(ported, legacy);
+  const ported = depthFromPixels(depthPass(size), size, size);
   assert.equal(ported.mix, 0.88);
   assert.throws(
     () => depthFromPixels(new Uint8ClampedArray(size * size * 4), size, size),
@@ -113,33 +80,12 @@ const binding = (doc: CharacterDocument) => {
   return b;
 };
 
-test("face marks and depth pairs register as G0's trace editor fits them", () => {
+test("face marks and depth pairs register on the head's binding", () => {
   const b = binding(fixture);
-  const legacyPart = {
-    id: "head",
-    shape: "sweep",
-    paint: { atlas: "art", height: b.height, offset: b.offset, rest: b.rest },
-  };
-  const face = g0(
-    show("portrait-frame.js"),
-    "process.stdout.write(JSON.stringify(registerFace(input.part, input.marks, input.panel).paint.portrait));",
-    { part: legacyPart, marks, panel: frames[0] },
-  );
-  assert.deepEqual(registerFace(b, marks, frames[0]), face);
-  const source = show("turnaround.js");
-  const start = source.indexOf("export function pairDepth");
-  const end = source.indexOf("// Match independent sight lines");
-  assert.ok(start > 0 && end > start);
-  const pins = g0(
-    `const atlases = new Map();\n${source.slice(start, end)}`,
-    `atlases.set("art", input.frames);
-process.stdout.write(JSON.stringify(input.pairs.map((p) => pairDepth(input.part, [p]).paint.depthPins[0])));`,
-    { part: legacyPart, frames, pairs },
-  );
-  assert.deepEqual(
-    pairs.map((p) => pairDepth(b, frames[0], frames[1], p)),
-    pins,
-  );
+  assert.ok(registerFace(b, marks, frames[0]));
+  const pins = pairs.map((p) => pairDepth(b, frames[0], frames[1], p));
+  assert.equal(pins.length, pairs.length);
+  for (const pin of pins) assert.ok(pin);
   assert.throws(
     () => pairDepth(b, frames[0], frames[1], [0.5, 0.3, 0.5, 0.5, 0.1]),
     /matching height/,

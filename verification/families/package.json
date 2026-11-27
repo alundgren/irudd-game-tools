@@ -4,14 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check:fast": "node --import ../../packages/document/test/support/register.ts --test \"test/**/*.test.ts\"",
-    "check:participating": "node --import ../../packages/document/test/support/register.ts src/locked.ts src/gate.ts --participating",
-    "gate:g4a-families": "node --import ../../packages/document/test/support/register.ts src/locked.ts src/gate.ts",
-    "gate:human-adult": "node --import ../../packages/document/test/support/register.ts src/human-gate.ts",
-    "gate:human-textured": "node --import ../../packages/document/test/support/register.ts src/locked.ts src/human-textured.ts",
-    "gate:human-desktop": "node --import ../../packages/document/test/support/register.ts src/human-desktop.ts",
-    "gate:trace-desktop": "node --import ../../packages/document/test/support/register.ts src/trace-desktop.ts",
-    "gate:packaged-samples": "node --import ../../packages/document/test/support/register.ts src/locked.ts src/packaged-samples.ts"
+    "check:fast": "node --import ../../packages/document/test/support/register.ts --test \"test/**/*.test.ts\""
   },
   "dependencies": {
     "@irudd/character": "workspace:*",
@@ -19,9 +12,7 @@
     "three": "catalog:"
   },
   "devDependencies": {
-    "@playwright/test": "catalog:",
     "@types/node": "catalog:",
-    "@types/three": "catalog:",
-    "esbuild": "catalog:"
+    "@types/three": "catalog:"
   }
 }

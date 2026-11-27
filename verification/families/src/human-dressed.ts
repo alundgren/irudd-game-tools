@@ -63,7 +63,7 @@ export function surfaceDigest(
   return { digest: hash.digest("hex"), vertices: renumber.size, triangles: triangles.length / 3 };
 }
 
-export const g0LookPieces = {
+export const look491Pieces = {
   surface: { runs: [[0, 63203]], primitives: [0] },
   necklace: { runs: [[63203, 592]], primitives: [1, 2] },
   hair: { runs: [[63795, 17579]], primitives: [3] },

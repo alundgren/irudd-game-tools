@@ -14,7 +14,7 @@ import {
 import { compareGlb } from "../src/compare.js";
 import { installNodeExporter } from "../src/node-exporter.js";
 import { familyRegistry } from "../src/prepare.js";
-import { readFixture } from "../src/run.js";
+import { readFixture } from "../src/fixtures.js";
 
 installNodeExporter();
 const build = "test-build";

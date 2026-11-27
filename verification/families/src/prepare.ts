@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { bundledAssetNamed, bundledEntry } from "@irudd/character";
 import { join } from "node:path";
@@ -22,7 +22,7 @@ import {
   type MotionRoleName,
   occluderOrder,
 } from "@irudd/document";
-import { referenceBlobsDir, examplesDir, fixturesDir, g0Dir } from "./paths.js";
+import { examplesDir, fixturesDir } from "./paths.js";
 import {
   evaluateHuman,
   HumanAdultParams,
@@ -1081,25 +1081,18 @@ export function fixtureText(document: CharacterDocument): string {
   return JSON.stringify(canonical, null, 2) + "\n";
 }
 
-export function legacyForm(name: string): unknown {
-  const file = [
-    join(g0Dir, "wrapped", name + ".form.json"),
-    join(examplesDir, name + ".form.json"),
-    join(g0Dir, "seeded", name + ".form.json"),
-  ].find((f) => existsSync(f));
-  if (!file) throw new Error(`No source form for ${name}.`);
+export function sourceForm(name: string): unknown {
+  const file = join(examplesDir, name + ".form.json");
+  if (!existsSync(file)) throw new Error(`No source form for ${name} in ${examplesDir}.`);
   return JSON.parse(readFileSync(file, "utf8"));
 }
 
 if (import.meta.main) {
   await preparePacks();
   for (const name of process.argv.slice(2)) {
-    const { document, blobs } = prepareForm(name, legacyForm(name));
+    const { document } = prepareForm(name, sourceForm(name));
     const file = join(fixturesDir, name + ".json");
     writeFileSync(file, fixtureText(document));
-    mkdirSync(referenceBlobsDir, { recursive: true });
-    for (const [digest, bytes] of blobs)
-      writeFileSync(join(referenceBlobsDir, digest.replace(":", "-")), bytes);
-    console.log(`Prepared ${file}${blobs.size ? ` and ${blobs.size} project blob(s)` : ""}`);
+    console.log(`Prepared ${file}`);
   }
 }

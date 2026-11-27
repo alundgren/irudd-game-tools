@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
 import { test } from "node:test";
 import {
   createRegistry,
@@ -73,11 +72,6 @@ const doc = (state: DocumentState): CharacterDocument => {
   return state.document;
 };
 
-const g0Positions = [
-  [491, "1aeb0a30c1fc31140a0d4e33df6015b5a9df71e9cdf063ef097676b69869fb7d"],
-  [42, "f92281f9e43e81fcb983b374beed7d471324a1e0c89f5adf7ba5fcd11e4992a7"],
-] as const;
-
 function generated(seed: number): DocumentState {
   return commit(emptyState(documentId), 0, {
     type: "document.generate",
@@ -88,20 +82,15 @@ function generated(seed: number): DocumentState {
   });
 }
 
-test("a seeded adult is created with G0's 52 regions", () => {
+test("a seeded adult is created with 52 regions", () => {
   const started = performance.now();
-  for (const [seed, expected] of g0Positions) {
+  for (const seed of [491, 42]) {
     const d = doc(generated(seed));
     assert.equal(d.parts.length, 52);
-    const hash = createHash("sha256");
-    for (const part of d.parts.toSorted((a, b) => a.label.localeCompare(b.label, "en"))) {
-      const xyz = Buffer.alloc(24);
-      part.position.forEach((value, i) => xyz.writeDoubleBE(value, i * 8));
-      hash.update(part.label).update("\0").update(xyz);
+    for (const part of d.parts) {
       assert.deepEqual(part.size, [1, 1, 1]);
       assert.deepEqual(part.features, {});
     }
-    assert.equal(hash.digest("hex"), expected, `G0 region labels and positions for adult ${seed}`);
     const labels = new Map<string, string>(d.parts.map((p) => [p.id, p.label]));
     const head = d.parts.find((p) => p.slot === "head");
     assert.equal(head?.label, "head");

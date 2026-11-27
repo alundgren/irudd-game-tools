@@ -24,7 +24,7 @@ import {
 } from "@irudd/document";
 import { fixturesDir } from "../src/paths.js";
 import { familyRegistry } from "../src/prepare.js";
-import { readFixture } from "../src/run.js";
+import { readFixture } from "../src/fixtures.js";
 import { humanAdultId, type HumanBody } from "@irudd/character/human";
 import { loadHumanBody } from "../src/human-assets.js";
 
