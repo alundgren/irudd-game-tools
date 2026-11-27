@@ -46,31 +46,107 @@ export interface TailorPiece {
   readonly fields: Readonly<Record<string, TailorField>>;
 }
 
+const cuts = ["rounded", "pointed", "angular"],
+  balances = ["matched", "left heavier", "right heavier", "left only", "right only"];
+const finishes = { steel: "metal", leather: "leather", lacquer: "satin" };
+const finish = (value = "steel") => choice("Plates", Object.keys(finishes), value);
+
+export const armourPieces: Readonly<Record<string, TailorPiece>> = {
+  travellingMantle: {
+    label: "Travelling mantle",
+    fields: {
+      color: colour("#343c49", "Outer wool"),
+      trim: colour("#797056", "Facing"),
+      clasp: colour("#aa9060", "Brooch"),
+      shoulder: choice("Fastened on", ["right", "left"]),
+      room: range("Clearance (mm)", 3, 40, 12, 1),
+      length: range("Drop", 0, 1, 0.6),
+    },
+  },
+  cuirass: {
+    label: "Armour: cuirass",
+    fields: {
+      color: colour("#8d9197"),
+      trim: colour("#b08d4a", "Edges"),
+      material: finish(),
+      device: choice("Embossed device", [
+        "Plain",
+        "Night moth",
+        "Reed heron",
+        "Knotted oak",
+        "Compass",
+      ]),
+      build: choice("Build", ["fitted", "segmented", "hardshell"]),
+      length: range("Lower edge (0 ribs, 1 hips)", 0, 1, 0.45),
+      room: range("Room over the clothes, mm", 3, 40, 14, 1),
+      relief: range("Ridges and edges (0 plain, 1 bold)", 0, 1, 0.6),
+      lames: range("Waist plates", 1, 6, 3, 1),
+      collar: choice("Collar", ["open", "gorget", "ring", "mail standard"]),
+      back: choice("Back", ["plain", "pack"]),
+      seed: range("Variation", 0, 999, 0, 1),
+    },
+  },
+  pauldrons: {
+    label: "Armour: shoulders",
+    fields: {
+      length: range("Coverage", 0, 1, 0.6),
+      color: colour("#8d9197"),
+      trim: colour("#b08d4a", "Edges and studs"),
+      material: finish(),
+      cut: choice("Cut", cuts),
+      lames: range("Plates down the arm", 1, 6, 3, 1),
+      size: range("Size (0 light, 1 bulky)", 0, 1, 0.5),
+      flange: range("Neck guard (0 none, 1 tall)", 0, 1, 0),
+      balance: choice("Left and right", balances),
+      room: range("Room over the clothes, mm", 3, 40, 7, 1),
+      seed: range("Variation", 0, 999, 0, 1),
+    },
+  },
+  armguards: {
+    label: "Armour: arms",
+    fields: {
+      length: range("Coverage", 0, 1, 0.6),
+      color: colour("#8d9197"),
+      trim: colour("#5a4636", "Straps and edges"),
+      material: finish(),
+      cover: choice("Covers", ["forearm", "forearm and elbow", "whole arm"]),
+      cut: choice("Cut", cuts),
+      balance: choice("Left and right", balances),
+      room: range("Room over the clothes, mm", 3, 40, 6, 1),
+      seed: range("Variation", 0, 999, 0, 1),
+    },
+  },
+  legguards: {
+    label: "Armour: legs",
+    fields: {
+      length: range("Coverage", 0, 1, 0.6),
+      color: colour("#8d9197"),
+      trim: colour("#5a4636", "Straps and edges"),
+      material: finish(),
+      cover: choice("Covers", ["shin", "shin and knee", "whole leg"]),
+      cut: choice("Cut", cuts),
+      room: range("Room over the clothes, mm", 3, 40, 8, 1),
+      seed: range("Variation", 0, 999, 0, 1),
+    },
+  },
+  tassets: {
+    label: "Armour: hips",
+    fields: {
+      color: colour("#8d9197"),
+      trim: colour("#b08d4a", "Edges"),
+      material: finish(),
+      cut: choice("Cut", cuts),
+      plates: choice("Hangs", ["front", "front and sides", "all round"]),
+      lames: range("Plates in each", 1, 4, 3, 1),
+      length: range("Length (0 hip, 1 above the knee)", 0, 1, 0.45),
+      room: range("Room over the clothes, mm", 3, 40, 10, 1),
+      seed: range("Variation", 0, 999, 0, 1),
+    },
+  },
+};
+
 export const tailorPieces: Readonly<Record<string, TailorPiece>> = {
-  ...Object.fromEntries(
-    Object.entries({
-      travellingMantle: "Travelling mantle",
-      cuirass: "Cuirass",
-      pauldrons: "Shoulder plates",
-      armguards: "Arm guards",
-      legguards: "Leg guards",
-      tassets: "Hip plates",
-    }).map(([key, label]) => [
-      key,
-      {
-        label,
-        fields: {
-          color: colour(key === "travellingMantle" ? "#404857" : "#8d9197"),
-          trim: colour("#ac905d", "Edging"),
-          room: range("Clearance (mm)", 3, 40, 12, 1),
-          length: range("Coverage", 0, 1, 0.6),
-          ...(key === "travellingMantle"
-            ? {}
-            : { material: choice("Plate finish", ["steel", "leather"]) }),
-        },
-      },
-    ]),
-  ),
+  ...armourPieces,
   top: {
     label: "Top or jacket",
     fields: {

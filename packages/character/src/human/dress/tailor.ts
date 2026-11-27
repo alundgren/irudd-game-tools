@@ -1,7 +1,11 @@
+import { finishMantle } from "./mantle-surface.js";
+import { finishMail } from "./mail-surface.js";
+import { clear } from "./plate-shell.js";
 import type * as T from "three";
 import type { Raster } from "../../raster.js";
 export type { TailoredPart } from "./armour.js";
-import { fitArmour, finishMail, type TailoredPart } from "./armour.js";
+import { fitArmour, type TailoredPart } from "./armour.js";
+import { finishBreastplate, finishGuards } from "./armour-device.js";
 import { finishTailored, type ClothStyle } from "./cloth-finish.js";
 import { finishFootwear } from "./shoe-finish.js";
 import type { Ray } from "../../game/raycast.js";
@@ -158,38 +162,6 @@ function snug(
       i,
       lerp3(s.at(i), add(a, n, Math.min(Math.max(d, Math.min(floor, most)), most)), Math.min(1, w)),
     );
-  }
-}
-
-function clear(s: Shell, shells: ReadonlyArray<Shell>, margin: number): void {
-  if (!shells.length) return;
-  const cell = 0.024,
-    grid = new Map<string, Array<readonly [number, number, number, number]>>(),
-    key = (x: number, y: number, z: number) =>
-      Math.floor(x / cell) + "," + Math.floor(y / cell) + "," + Math.floor(z / cell);
-  for (const under of shells)
-    for (let i = 0; i < under.count; i++) {
-      const a = under.anchor(i),
-        k = key(a[0], a[1], a[2]),
-        d = dot(sub(under.at(i), a), under.normal(i));
-      let list = grid.get(k);
-      if (!list) grid.set(k, (list = []));
-      list.push([a[0], a[1], a[2], d]);
-    }
-  for (let i = 0; i < s.count; i++) {
-    const a = s.anchor(i),
-      n = s.normal(i);
-    let most = -Infinity;
-    for (let dx = -1; dx <= 1; dx++)
-      for (let dy = -1; dy <= 1; dy++)
-        for (let dz = -1; dz <= 1; dz++)
-          for (const [x, y, z, d] of grid.get(
-            key(a[0] + dx * cell, a[1] + dy * cell, a[2] + dz * cell),
-          ) ?? [])
-            if ((x - a[0]) ** 2 + (y - a[1]) ** 2 + (z - a[2]) ** 2 < 0.022 ** 2)
-              most = Math.max(most, d);
-    const d = dot(sub(s.at(i), a), n);
-    if (d < most + margin) s.set(i, add(s.at(i), n, most + margin - d));
   }
 }
 
@@ -770,10 +742,15 @@ function make(
         body,
         m,
         layer,
-        shellsOf(worn),
+        [...shellsOf(worn), ...worn.flatMap((w) => w.shafts ?? [])],
         worn.flatMap((w) => w.armour ?? []),
       );
-      return { parts, worn: { kind: layer.piece, armour: parts } };
+      const shell = parts.find((p) => p.shell)?.shell;
+      return {
+        parts,
+        covers: parts.flatMap((p) => (p.cover ? [p.cover] : [])),
+        worn: { kind: layer.piece, armour: parts, ...(shell ? { shell } : {}) },
+      };
     }
     default:
       throw new Error("Unknown outfit piece.");
@@ -817,6 +794,7 @@ export interface Tailored {
 }
 
 export interface TailorFinish {
+  readonly devices?: Uint8Array;
   readonly raster: Raster;
   readonly style: ClothStyle;
 }
@@ -833,12 +811,24 @@ export function tailorHuman(
     meshes: TailoredMesh[] = [];
   for (const p of made.parts)
     if (p.piece.tri.length) {
-      const mesh = p.piece.mesh(
+      let mesh = p.piece.mesh(
         material(p.tone, p.type === "mail" ? "metal" : p.type),
         p.region,
         p.name,
       );
-      if (finish && p.type === "mail") finishMail(mesh.mesh, finish.raster);
+      if (finish?.devices && p.breastplate)
+        mesh = finishBreastplate(mesh, p.breastplate, finish.raster, finish.devices);
+      if (finish && p.piece.plateUV && p.stamping)
+        finishGuards(
+          mesh.mesh,
+          p.piece.plateUV,
+          p.stamping,
+          p.stamping.piece !== "pauldrons",
+          finish.raster,
+        );
+      if (finish && p.mantleFinish && p.piece.mantleUV)
+        finishMantle(mesh.mesh, p.piece.mantleUV, p.mantleFinish, finish.raster);
+      if (finish && p.type === "mail") finishMail(mesh.mesh, m, p.piece.mailUV, finish.raster);
       if (finish) finishFootwear(finish.raster, mesh.mesh, p.piece.shoeUV);
       mesh.mesh.userData["styleType"] = p.type;
       meshes.push({

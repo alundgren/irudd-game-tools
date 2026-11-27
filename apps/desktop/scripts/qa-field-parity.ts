@@ -7,7 +7,7 @@ import { callEditor, type Running } from "./editor-session.js";
 import { contactSheet } from "./contact-sheet.js";
 import type {} from "../qa/shape/probe.js";
 
-interface Suite {
+export interface Suite {
   web: Page;
   desk: Page;
   editor: Running;
@@ -16,7 +16,7 @@ interface Suite {
   work: string;
   dir: string;
   adultFile: string;
-  fresh: (adult: boolean) => Promise<void>;
+  fresh: (adult: boolean, dressed?: boolean) => Promise<void>;
   part: (label: string, focus?: boolean) => Promise<void>;
   nativeId: (label: string) => Promise<string>;
   frame: (page: Page) => Promise<void>;
@@ -29,7 +29,7 @@ interface Suite {
   highlightDetail: (id: string) => Promise<{ name: string; image: string }>;
   writePair: (id: string, title: string, before: Buffer[], after: Buffer[]) => Promise<void>;
 }
-async function openDetails(control: Locator) {
+export async function openDetails(control: Locator) {
   await control.waitFor({ state: "attached" });
   const details = control.locator("xpath=ancestor::details");
   for (const el of await details.all())

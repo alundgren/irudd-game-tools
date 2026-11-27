@@ -1,3 +1,5 @@
+import { applyFacePlanes } from "./face-planes.js";
+import { fittedHeadwear } from "./dress/headwear.js";
 import { correctedSurface } from "./brush.js";
 import type { SkinCorrections } from "@irudd/document";
 import { skinMeshData } from "./brush-preview.js";
@@ -19,7 +21,7 @@ import {
   type ComplexionLook,
   type HumanPaintSources,
 } from "./complexion.js";
-import { defaultEyeColor, eyeRoughnessTexture, eyeTexture } from "./eye-paint.js";
+import { irisSwatch, defaultEyeColor, eyeRoughnessTexture, eyeTexture } from "./eye-paint.js";
 import { eyeBalls, humanEyes } from "./eyes.js";
 import { followGaze } from "./gaze.js";
 import { armInkBones, armInkChart, inkedSkin, type ArmInkChart } from "./arm-ink.js";
@@ -29,6 +31,7 @@ import { mouthInterior, mouthLining } from "./mouth.js";
 import { skinShade } from "./skin-tone.js";
 import { browsAndLashes, strandColours } from "./strands.js";
 import { finishCloth } from "./dress/cloth-finish.js";
+import { fitHairUnderHat } from "./dress/hat-fit.js";
 import { fittedAccessories, type AccessoryStyle } from "./dress/accessories.js";
 import { fittedEyewear } from "./dress/eyewear.js";
 import { bakeGameFolds } from "./dress/fold-bake.js";
@@ -161,6 +164,7 @@ export interface HumanRegions {
 }
 
 export interface HumanRegionOptions {
+  readonly planes?: string | undefined;
   readonly corrections?: SkinCorrections | undefined;
   readonly studio?: { hair: string; familyHair: boolean } | undefined;
   readonly material: (color: string) => T.Material;
@@ -224,7 +228,11 @@ function dressed(
   const finish =
     options.plain || !options.paint
       ? undefined
-      : { raster: options.paint.sources.raster, style: dress };
+      : {
+          raster: options.paint.sources.raster,
+          style: { ...dress, brocade: body.brocade },
+          devices: body.devices,
+        };
   const tailored = dress.tailor ? tailorHuman(cage, dress.tailor, material, finish) : null;
   const preset =
     !tailored && dress.outfit
@@ -241,7 +249,7 @@ function dressed(
                     finish.raster,
                     mesh,
                     dress.outfit?.name ?? "",
-                    { ...dress, ...dress.outfit?.tones },
+                    { ...dress, ...dress.outfit?.tones, brocade: body.brocade },
                     m,
                   ),
               }
@@ -251,20 +259,31 @@ function dressed(
   const field = dress.fieldClothes
     ? fieldClothes(body, cage, dress.fieldClothes, material, options.plain)
     : undefined;
-  const hair = dress.hair
-    ? fittedHair(
-        cage,
-        dress.hair,
-        body.grooms,
-        body.arrays.f32("base"),
-        material,
-        options.plain,
-        options.game === true,
-        options.paint
-          ? { raster: options.paint.sources.raster, maps: options.paint.sources.grooms }
-          : undefined,
-      )
-    : null;
+  const packedHair = fittedHeadwear(
+    body,
+    cage,
+    dress.hair?.hair,
+    dress.hair?.hairColor ?? "#51433b",
+    "hair",
+    material,
+    options.plain,
+    dress.hair?.fringe,
+  );
+  const hair =
+    dress.hair && !packedHair.length
+      ? fittedHair(
+          cage,
+          dress.hair,
+          body.grooms,
+          body.arrays.f32("base"),
+          material,
+          options.plain,
+          options.game === true,
+          options.paint
+            ? { raster: options.paint.sources.raster, maps: options.paint.sources.grooms }
+            : undefined,
+        )
+      : null;
   const grownName = dress.hair?.hair;
   const grown =
     dress.hair && isGrownHairStyle(grownName)
@@ -303,8 +322,14 @@ function dressed(
     region: m.region,
     skin: { boneIndices: m.boneIndices, weights: m.weights, clothJoints: m.clothJoints },
   });
+  fitHairUnderHat(cage, dress.accessories?.hat, dress.hair?.hair, [
+    ...packedHair.map((p) => p.mesh),
+    ...(hair ? [hair.cards, hair.roots.mesh] : []),
+    ...grown.map((p) => p.mesh),
+  ]);
   const worn: Worn[] = [
-    ...fittedAccessories(cage, dress.accessories, material),
+    ...packedHair,
+    ...fittedAccessories(body, cage, dress.accessories, material, options.plain, clothes, raster),
     ...garments.map(skinned),
     ...(field?.meshes ?? []),
     ...(hair ? [{ mesh: hair.cards, region: "head" }, skinned(hair.roots)] : []),
@@ -451,6 +476,11 @@ export function humanRegions(
           options.studio.hair,
           options.studio.familyHair,
           options.plain,
+          paint &&
+            irisSwatch(
+              paint.sources.paint,
+              paint.eyeColor ?? defaultEyeColor(color(bone), paint.seed),
+            ),
         )) {
           const n = mesh.geometry.getAttribute("position").count;
           humanWeightsOf.set(mesh, {
@@ -527,6 +557,8 @@ export function humanRegions(
             : null,
           chartKey ? (inkCharts.get(chartKey) ?? null) : null,
         );
+        if (bone === "head" && options.planes)
+          applyFacePlanes(piece.geometry, cage, origin, options.planes, !options.plain);
         if (bone === "head" && paint) {
           const colour = piece.geometry.getAttribute("color");
           for (let i = 0; i < piece.vertexIds.length; i++) {
@@ -628,7 +660,9 @@ function headPieces(
       plain,
       brows: plain || !photoBrow,
       parted: face.parted,
-      colours: paint ? strandColours(paint.look.hair, new T.Color(face.skin), face.age) : null,
+      colours: paint
+        ? strandColours(paint.look.hair, new T.Color(face.skin), face.age, paint.look.makeup)
+        : null,
     },
     material,
   );

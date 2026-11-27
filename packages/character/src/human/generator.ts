@@ -24,14 +24,13 @@ import { faceMarkKindTable, faceMarkKinds, faceMarkLimit, faceMarkSides } from "
 import { makeupStyles } from "./makeup.js";
 import { isCastFigureName, type CastFigureName } from "./cast-data.js";
 import { castBottomNames, castOutfitProblems, castTopNames } from "./cast-wardrobe.js";
-import { presetOutfitNames } from "./dress/outfit-names.js";
+import { libraryOutfitNames, presetOutfitNames } from "./dress/outfit-names.js";
 import { tailorProblems } from "./dress/tailor-data.js";
 import {
   finishingStyles,
   eyewearStyles,
-  fittedHairStyles,
+  adultHairStyles,
   fringeStyles,
-  grownHairStyles,
   necklaceStyles,
   secondClothDesigns,
   tailoredClothDesigns,
@@ -142,14 +141,16 @@ export const HumanStyleSchema = Schema.Struct({
   castBottom: Schema.optionalKey(Schema.Literals(castBottomNames)),
   makeup: Schema.optionalKey(Schema.Literals(makeupStyles)),
   tailor: Schema.optionalKey(HumanTailorSchema),
-  outfit: Schema.optionalKey(Schema.Literals(["None", ...presetOutfitNames])),
+  outfit: Schema.optionalKey(
+    Schema.Literals(["None", ...presetOutfitNames, ...libraryOutfitNames, "Pressure suit"]),
+  ),
   clothColor: Schema.optionalKey(Color),
   clothSecond: Schema.optionalKey(Color),
   clothLight: Schema.optionalKey(Color),
   accentColor: Schema.optionalKey(Color),
   leatherColor: Schema.optionalKey(Color),
   soleColor: Schema.optionalKey(Color),
-  hair: Schema.optionalKey(Schema.Literals([...fittedHairStyles, ...grownHairStyles])),
+  hair: Schema.optionalKey(Schema.Literals(adultHairStyles)),
   fringe: Schema.optionalKey(Schema.Literals(fringeStyles)),
   hairColor: Schema.optionalKey(Color),
   eyewear: Schema.optionalKey(Schema.Literals(eyewearStyles)),
@@ -237,8 +238,7 @@ export function humanMeasurements(params: HumanAdultParams): HumanMeasurements {
     const value = params.human[axis];
     if (value !== undefined) out[axis] = value;
   }
-  const family = params.style.faceFamily,
-    planes = params.style.facePlanes;
+  const family = params.style.faceFamily;
   if (family === "Angular") {
     out.faceSquare = Math.min(1, (out.faceSquare ?? 0) + 0.55);
     out.jawAngle = Math.min(1, (out.jawAngle ?? 0) + 0.35);
@@ -246,11 +246,6 @@ export function humanMeasurements(params: HumanAdultParams): HumanMeasurements {
   if (family === "Soft") {
     out.faceRound = Math.min(1, (out.faceRound ?? 0) + 0.55);
     out.cheekFullness = Math.min(1, (out.cheekFullness ?? 0) + 0.35);
-  }
-  if (planes && planes !== "None") {
-    const amount = planes === "Sculpted" ? 0.68 : 0.32;
-    out.cheekHollow = Math.min(1, (out.cheekHollow ?? 0) + amount);
-    out.zygomaticArch = Math.min(1, (out.zygomaticArch ?? 0) + amount);
   }
   return out;
 }

@@ -1,3 +1,5 @@
+import { fanDisplay } from "../src/rig/fan-display.js";
+import { cutGarment } from "../src/garments.js";
 import { isMesh } from "../src/mesh.js";
 import { graftComponent } from "../src/graft.js";
 import assert from "node:assert/strict";
@@ -14,6 +16,8 @@ import {
   applyOperations,
   decodeOperations,
   humanRegionCopy,
+  figureWing,
+  figureMantle,
   createRegistry,
   CreaturePlan,
   creatureFamilies,
@@ -171,6 +175,67 @@ test("placing native adult regions under an independently drawn part rebuilds th
     before.dispose();
   }
 });
+test("showing the fan raises the right hand and restores the editable rest pose", async () => {
+  const body = await loadHumanPacks((file) =>
+    readFileSync(new URL("../assets/human/" + file, import.meta.url)),
+  );
+  const params = seededHumanAdult(body, 8973, "neutral", "Natural");
+  const { doc } = generatedDocument(humanAdultGenerator(body), {
+    ...params,
+    outfit: "Work clothes",
+    style: { ...params.style, handProp: "Painted folding fan", outfit: "Day dress" },
+  });
+  const built = buildCharacter(doc, { human: body, materials: clayMaterials() });
+  try {
+    const wrist = [...built.parts.values()].find(
+      ({ part }) => built.human?.bones.get(part.id) === "hand_r",
+    );
+    assert.ok(wrist);
+    const before = wrist.object.getWorldPosition(new T.Vector3());
+    const fan = fanDisplay(built);
+    assert.ok(fan);
+    try {
+      const raised = wrist.object.getWorldPosition(new T.Vector3());
+      assert.ok(raised.y > before.y + 0.12, JSON.stringify({ before, raised }));
+      assert.ok(raised.z > before.z + 0.08);
+      fan.show(false);
+      assert.ok(wrist.object.getWorldPosition(new T.Vector3()).distanceTo(before) < 1e-6);
+      fan.show(true);
+      assert.ok(wrist.object.getWorldPosition(new T.Vector3()).distanceTo(raised) < 1e-6);
+    } finally {
+      fan.dispose();
+    }
+  } finally {
+    built.dispose();
+  }
+});
+
+test("the fitted adult kilt falls from the pelvis to the knee", async () => {
+  const body = await loadHumanPacks((file) =>
+    readFileSync(new URL("../assets/human/" + file, import.meta.url)),
+  );
+  const { doc } = generatedDocument(
+    humanAdultGenerator(body),
+    seededHumanAdult(body, 8973, "neutral", "Natural"),
+  );
+  const built = buildCharacter(doc, { human: body, materials: clayMaterials() });
+  try {
+    const regions = [...built.parts.values()];
+    const pelvis = regions.find(({ part }) => built.human?.bones.get(part.id) === "pelvis");
+    const knee = regions.find(({ part }) => built.human?.bones.get(part.id) === "calf_l");
+    assert.ok(pelvis && knee);
+    const skirt = cutGarment(built, pelvis.part.id, "Skirt", "#435258");
+    const cut = figureMantle.read(skirt.features)?.cut;
+    assert.ok(cut?.kind === "Skirt" && cut.drop > 0.2 && cut.pleats === 16);
+    const waist = pelvis.mount.localToWorld(new T.Vector3(...skirt.position));
+    assert.ok(
+      Math.abs(waist.y - cut.drop - knee.mount.getWorldPosition(new T.Vector3()).y) < 0.015,
+    );
+  } finally {
+    built.dispose();
+  }
+});
+
 test("adult wings occupy opposite scapula sockets and refitting reuses their parts", async () => {
   const body = await loadHumanPacks((file) =>
     readFileSync(new URL("../assets/human/" + file, import.meta.url)),
@@ -185,7 +250,16 @@ test("adult wings occupy opposite scapula sockets and refitting reuses their par
     parts: [...doc.parts, ...additions.map((op) => ("part" in op ? op.part : null))],
   });
   assert.ok(mounted.ok);
-  const wings = mounted.value.parts.slice(-2);
+  const added = mounted.value.parts.slice(doc.parts.length);
+  const wings = added.filter((p) => p.features["figure.scapula-mount"]);
+  assert.equal(added.length, 4);
+  for (const arm of wings) {
+    assert.ok(arm.features["figure.sweep"]);
+    const membrane = added.find((p) => p.parent === arm.id);
+    assert.ok(membrane);
+    const wing = figureWing.read(membrane.features);
+    assert.ok(wing && wing.back[1] < -0.35 && Math.abs(wing.back[2]) < 0.04);
+  }
   assert.equal(wings.length, 2);
   assert.deepEqual(
     wings.map((w) => w.features["figure.scapula-mount"]),
@@ -193,7 +267,13 @@ test("adult wings occupy opposite scapula sockets and refitting reuses their par
   );
   assert.ok((wings[0]?.position[0] ?? 0) * (wings[1]?.position[0] ?? 0) < 0);
   const refit = mountWings(mounted.value, body, "feather", 1.1, "#557788", 3);
-  assert.ok(refit.every((op) => "part" in op && wings.some((w) => w.id === op.part)));
+  assert.deepEqual(
+    refit.map(
+      (op) =>
+        "part" in op && op.part && typeof op.part === "object" && "id" in op.part && op.part.id,
+    ),
+    added.map((p) => p.id),
+  );
 });
 
 test("each family yields repeatable drawable anatomy, with different families dealt on consecutive seeds", () => {

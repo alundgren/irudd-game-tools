@@ -64,13 +64,13 @@ Posture, arm edits and named poses have History entries and travel with the char
 | 11 | Switch between the current outfit and the base shape | done | 2 |
 | 12 | Try a new outfit and hairstyle and set a preference for new looks | done | 2 |
 | 13 | Adjust skin tone, eye colour and facial detail | done | 2 |
-| 14 | Style hair, fringe, brows, makeup, arm ink, eyewear, necklace, clothing, colours, designs and cast looks | partly (nine styling controls, native face families and a smaller accessory catalogue) | 2, 8a |
+| 14 | Style hair, fringe, brows, makeup, arm ink, eyewear, necklace, clothing, colours, designs and cast looks | done | 2, 8a, 9-3 |
 | 15 | Choose a face family or studio head | partly (Studio Rain with expressions and hair, plus native families) | 8a, 8b |
 | 16 | Adjust an adult's posture | done | 7 |
-| 17 | Tailor layers of clothing | partly (individual armour, mantle and mail available) | 4, 8a |
+| 17 | Tailor layers of clothing | done | 4, 8a, 9-3 |
 | 18 | Add freckles, scars or moles | done | 5 |
 | 19 | Apply a portrait to an adult's own head | done | 8b |
-| 20 | Mount a pair of wings on an adult | done | 6 |
+| 20 | Mount a pair of wings on an adult | done | 6, 9-3 |
 | 21 | Edit a creature's body plan with drag handles | done | 6, 7, 9-2 |
 | 22 | Shuffle a chosen part of a creature's plan | done | 6 |
 | 23 | Choose a creature's coat and markings | done | 5, 6 |
@@ -128,7 +128,7 @@ The same run checks paired adult wings, creature starting families, drag handles
 
 Run the packaged `qa:character` check after changing the rig, animation tracks or motion controls. It compares three paused frames from a walking adult and a flying creature, checks gaze and expression changes on a fitted portrait, and exercises arm edits and joint posing. It reopens the saved poses in a fresh project and inspects the animation channels in both exported GLBs. The motion editing sequence took 2 minutes 2 seconds on the first run and 2 minutes 4 seconds on repeat on an RTX 5070 Ti. Screenshots and the contact sheet are in `.reference-cache/phase7/`.
 
-### Shape tools and remaining styling
+### Shape tools and styling
 
 Open **Properties** and expand **Shape tools**. Face and Build change figure proportions. Cloth adjusts the folds and opening of a sweep or the cut of a garment. Select a swept part or control cage to drag its points. Cage faces support inset, extrusion, crease and tunnel operations.
 
@@ -152,6 +152,14 @@ The creature workshop's **Body plan** section has drag handles for girth and lim
 
 Run `pnpm --filter @irudd/desktop qa:field-parity` for the matching plate, graft and spine-handle exercises. The paired images and contact sheet are written to `.reference-cache/phase9-2/`. Append `shelf` to check that all thirteen donor components load and a graft survives reopening. This took 49 seconds on the first run and 64 seconds on repeat on an RTX 5070 Ti. [Behaviour checklist and screenshot filenames](field-parity-checklist.md)
 
+### Adult styling and tailoring
+
+In **Individual styling**, choose a haircut, fringe, brow shape, beard, makeup, jewellery or other accessory. The two cloth design controls apply independently to the main and secondary fabric. **Character artwork** offers the original figure and its compatible garments. **Studio Rain** can supply the hair or leave the hairstyle and accessories editable.
+
+In **Tailored outfit**, start from the current clothing colour or choose one of the four armour sets. Add up to twelve pieces. Move boots before trousers to tuck their shafts underneath. Choose a device on the cuirass, fit heavier plates on one shoulder, or change a travelling mantle's shoulder and clasp. Layered adult skirt cuts fall to the knees. Paired wings follow both shoulder blades when the adult's build changes.
+
+Run `pnpm --filter @irudd/desktop qa:style-parity` after changing these catalogues, cuts or mount geometry. It applies the same edits to seeded adults in Chrome and Electron, checks History, and opens the saved studies in fresh desktop projects. The paired comparisons and contact sheet are in `.reference-cache/phase9-3/`. Set `IRUDD_STYLE_GROUP` to a group such as `hair`, `tailor-cuirass` or `shape` for a focused run. [Styling and tailoring checklist](style-parity-checklist.md).
+
 ### Portraits, artwork and files
 
 Open **Portraits and references** on an editable adult to fit the build to an upright OBJ or embedded GLB. Use individual styling for native portrait paint. Mark the eyes and lip seam on a front picture, then optionally mark the eye, nose and lips on a right-facing profile. On a figure or traced head, mark matching points on the model and the photograph to reshape the face. Trace a profile from forehead to chin to set its silhouette. A painted head can also take a grayscale depth map with adjustable strength.
@@ -165,7 +173,6 @@ Run `qa:portraits` and `qa:art` in `apps/desktop` after changing these workflows
 ### Remaining parity gaps
 
 - **6 and 15**. Body fitting adjusts stature and build from an upright reference. Registered neutral meshes, per-vertex head transfer and imported head families still require the browser.
-- **14 and 17**. Individual styling has a smaller accessory catalogue. Embossed devices, asymmetric armour and specialised garment cuts remain open.
 - **38 and 64**. Plate fields lack individual random tip variants. Grafting handles independent branches, while native adult rig regions depend on the source generator.
 - **57 and 59**. Scalp-only and isolated wearable artwork requests lack dedicated desktop actions. The game inspection shows the current revision. Cross-proposal export and coverage comparisons remain open.
 - **61 and 66**. Hand tracing supports lofts, hulls and membranes. Tracing a path from paired centreline points and opening the browser's locally prepared scan studies remain open.

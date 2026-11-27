@@ -125,6 +125,7 @@ interface Side {
   readonly elbowAxis: V;
   readonly upperLength: number;
   readonly fingers: ReadonlyArray<FingerJoint>;
+  readonly fanGrip: readonly (readonly [T.Bone, Q])[];
   readonly elbowBend: number;
   readonly fitted: number;
 }
@@ -167,6 +168,7 @@ export function postureRig(
   skeleton: T.Skeleton,
   mesh: T.SkinnedMesh,
   boneOf: (r: Region) => BoneName | undefined,
+  fan = false,
 ): PostureRig | null {
   const byBone = new Map<string, Region>();
   for (const r of regions.values()) {
@@ -277,6 +279,14 @@ export function postureRig(
       elbowAxis,
       upperLength: shoulder.distanceTo(elbow),
       fingers,
+      fanGrip:
+        fan &&
+        side === -1 &&
+        ["index_01_r", "index_02_r", "thumb_01_r", "thumb_02_r", "thumb_03_r"].every(
+          (id) => byBone.get(id)?.bones[0],
+        )
+          ? fanGrip(at, bone)
+          : [],
       elbowBend: Math.acos(clamp(upper.dot(lower), -1, 1)),
       fitted: Math.atan2(Math.hypot(upper.x, upper.z), -upper.y),
     };
@@ -557,6 +567,7 @@ function setPelvis(rig: PostureRig, at: V, q: Q): void {
 
 interface Arm {
   waist: number;
+  showFan: number;
   hang: number;
   ease: number;
   abduct: number;
@@ -594,7 +605,8 @@ function placeArm(rig: PostureRig, s: Side, arm: Arm): void {
     turn(s.elbowAxis, (arm.elbow - s.elbowBend) * free * ease + (arm.bend ?? 0)),
   );
   s.wristBone.quaternion.copy(turn(s.elbowAxis, arm.wrist * ease));
-  if (arm.waist > 0) restHandAtWaist(rig, s, arm.waist);
+  if (s.fanGrip.length && arm.showFan > 0) holdFan(rig, s, arm.showFan);
+  else if (arm.waist > 0) restHandAtWaist(rig, s, arm.waist);
   const curl = arm.fingers,
     still = new T.Quaternion();
   for (const finger of s.fingers) {
@@ -604,6 +616,52 @@ function placeArm(rig: PostureRig, s: Side, arm: Arm): void {
         still.identity().slerp(finger.gather, clamp(curl * 0.9, 0, 0.8)),
       );
   }
+  for (const [bone, rotation] of s.fanGrip) bone.quaternion.copy(rotation);
+}
+function fanGrip(
+  at: (name: string) => V,
+  bone: (name: string) => T.Bone,
+): readonly (readonly [T.Bone, Q])[] {
+  const tip = at("index_02_r"),
+    base = at("thumb_01_r"),
+    middle = at("thumb_02_r"),
+    distal = at("thumb_03_r");
+  tip.addScaledVector(distal.clone().sub(tip).normalize(), 0.012);
+  const line = tip.sub(base),
+    ab = middle.distanceTo(base),
+    bc = distal.distanceTo(middle);
+  const distance = clamp(line.length(), Math.abs(ab - bc) + 0.0001, ab + bc - 0.0001);
+  line.normalize();
+  const pole = middle.clone().sub(base);
+  pole.addScaledVector(line, -pole.dot(line)).normalize();
+  const along = (ab * ab - bc * bc + distance * distance) / (2 * distance);
+  const mid = line
+    .clone()
+    .multiplyScalar(along)
+    .addScaledVector(pole, Math.sqrt(Math.max(0, ab * ab - along * along)));
+  const first = arc(middle.clone().sub(base).normalize(), mid.clone().normalize());
+  const end = arc(
+    distal.clone().sub(middle).normalize(),
+    line.multiplyScalar(distance).sub(mid).normalize(),
+  );
+  return [
+    [bone("index_01_r"), new T.Quaternion()],
+    [bone("thumb_01_r"), first],
+    [bone("thumb_02_r"), first.clone().invert().multiply(end)],
+    [bone("thumb_03_r"), new T.Quaternion()],
+  ];
+}
+function holdFan(rig: PostureRig, s: Side, amount: number) {
+  const turn = worldQuat(rig.spine.at(-1) ?? null, rig.root);
+  const shoulder = worldPoint(s.shoulderBone, rig.root);
+  const wrist = new T.Vector3(-0.047, -0.225, 0.205)
+    .multiplyScalar(s.upperLength / 0.28)
+    .applyQuaternion(turn)
+    .add(shoulder);
+  const down = new T.Vector3(0.88, 0.34, 0.27).normalize().applyQuaternion(turn);
+  const across = new T.Vector3(0.27, -0.95, -0.14).normalize().applyQuaternion(turn);
+  const pole = new T.Vector3(-0.74, -0.8, -0.3).applyQuaternion(turn);
+  placeHand(rig, s, amount, wrist, pole, down, across);
 }
 function waistContact(
   points: ReadonlyArray<number>,
@@ -832,6 +890,7 @@ function hangingArms(rig: PostureRig, p: Posture): [Arm, Arm] {
     weight = read(p, "weight");
   const arm = (s: Side): Arm => ({
     waist: Math.max(0, s.side * read(p, "handAtWaist")),
+    showFan: s.fanGrip.length ? 1 : 0,
     hang: read(p, "arms"),
     ease: read(p, "arms"),
     abduct: rad(4.5),
@@ -1167,6 +1226,7 @@ function reach(rig: PostureRig, standing: Standing, body: Body, wave: number): v
   body.arms.forEach((arm, i) => {
     const lift = wave * ((rig.sides[i]?.side ?? 1) < 0 ? 1 : 0.42);
     arm.waist *= 1 - wave;
+    arm.showFan *= 1 - wave;
     arm.swing = rad(74) * lift;
     arm.bend = rad(12) * lift;
     arm.release = lift;
@@ -1190,6 +1250,7 @@ function crouch(rig: PostureRig, standing: Standing, body: Body, wave: number): 
   body.pelvis.at.z -= rig.limb * 0.11 * wave;
   for (const arm of body.arms) {
     arm.waist *= 1 - wave;
+    arm.showFan *= 1 - wave;
     arm.swing = rad(24) * wave;
     arm.bend = rad(16) * wave;
   }
@@ -1308,6 +1369,7 @@ function walk(
       c = Math.cos(lag);
     arm.release = 1;
     arm.waist = 0;
+    arm.showFan = s.fanGrip.length ? 0.94 + 0.035 * c : 0;
     arm.hang = plan.hangs[i] ?? arm.hang;
     arm.elbow = rad(8 + 10 * read(p, "elbows"));
     arm.swing = rad(15) * reachOut * c - rad(9);
@@ -1341,6 +1403,7 @@ export interface HumanPostureInput {
   readonly skinned: T.SkinnedMesh;
   readonly boneOf: (r: Region) => BoneName | undefined;
   readonly posture: Posture;
+  readonly fan?: boolean;
   readonly clips: ReadonlyArray<T.AnimationClip>;
   readonly poses: ReadonlyArray<T.AnimationClip>;
   readonly bindings: ReadonlyMap<
@@ -1352,7 +1415,7 @@ export interface HumanPostureInput {
 
 export function applyHumanPosture(input: HumanPostureInput): boolean {
   const { regions, root, skeleton, actor, skinned } = input;
-  const posed = postureRig(regions, root, skeleton, skinned, input.boneOf);
+  const posed = postureRig(regions, root, skeleton, skinned, input.boneOf, input.fan);
   if (!posed) return false;
   input.drapes?.stance(posed);
   const standing = stand(posed, input.posture),

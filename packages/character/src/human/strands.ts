@@ -226,11 +226,12 @@ export function strandColours(
   hair: T.Color,
   skin: T.Color,
   age: number,
+  makeup = "None",
 ): NonNullable<BrowLook["colours"]> {
   const rgb = (c: T.Color): Rgb => [c.r, c.g, c.b];
   const light = (c: T.Color) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b,
     most = Math.min(0.05, 0.3 * light(skin));
-  const brow = browPigment(hair, skin, age);
+  const brow = browPigment(hair, skin, age, makeup);
   const browTip = brow.clone().lerp(hair, 0.14 + 0.14 * age);
   const tipLimit = Math.min(0.82 * light(skin), 1.75 * light(brow) + 0.013);
   if (light(browTip) > tipLimit) browTip.multiplyScalar(tipLimit / light(browTip));

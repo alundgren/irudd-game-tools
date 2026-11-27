@@ -1,0 +1,419 @@
+# Browser and desktop workshop parity, phase 9-3
+
+Each comparison shows the same edit on the same adult, with the browser on the left and desktop on the right. Desktop QA checks History, undo, redo and reopening the saved character. Browser sources are relative to `character-view/`. Screenshot filenames are relative to `.reference-cache/phase9-3/`.
+
+Contact sheet `contact-sheet.png`
+
+## Human styling
+
+- [x] S-cast-1. cast — None. human-editor.js / humanEditor; human-cast-looks.js / wornCast. Comparison `S-cast-1.png`
+- [x] S-cast-2. cast — Gardener. human-editor.js / humanEditor; human-cast-looks.js / wornCast. Comparison `S-cast-2.png`
+- [x] S-cast-3. cast — Cropped jacket. human-editor.js / humanEditor; human-cast-looks.js / wornCast. Comparison `S-cast-3.png`
+- [x] S-cast-4. cast — Striped polo. human-editor.js / humanEditor; human-cast-looks.js / wornCast. Comparison `S-cast-4.png`
+- [x] S-cast-5. cast — Pink shirt. human-editor.js / humanEditor; human-cast-looks.js / wornCast. Comparison `S-cast-5.png`
+- [x] S-cast-6. cast — Grey tee. human-editor.js / humanEditor; human-cast-looks.js / wornCast. Comparison `S-cast-6.png`
+- [x] S-cast-7. cast — Denim jacket. human-editor.js / humanEditor; human-cast-looks.js / wornCast. Comparison `S-cast-7.png`
+- [x] S-cast-8. cast — Blue shirt. human-editor.js / humanEditor; human-cast-looks.js / wornCast. Comparison `S-cast-8.png`
+- [x] S-cast-9. cast — Long tunic. human-editor.js / humanEditor; human-cast-looks.js / wornCast. Comparison `S-cast-9.png`
+- [x] S-hair-1. hair — None. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-1.png`
+- [x] S-hair-2. hair — Buzz cut. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-2.png`
+- [x] S-hair-3. hair — Crop. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-3.png`
+- [x] S-hair-4. hair — Side part. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-4.png`
+- [x] S-hair-5. hair — Swept back. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-5.png`
+- [x] S-hair-6. hair — Curls. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-6.png`
+- [x] S-hair-7. hair — Afro. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-7.png`
+- [x] S-hair-8. hair — Bob. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-8.png`
+- [x] S-hair-9. hair — Long. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-9.png`
+- [x] S-hair-10. hair — Wavy. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-10.png`
+- [x] S-hair-11. hair — Ponytail. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-11.png` Rear `S-hair-11-rear.png`
+- [x] S-hair-12. hair — Bun. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-12.png` Rear `S-hair-12-rear.png`
+- [x] S-hair-13. hair — Braid. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-13.png` Rear `S-hair-13-rear.png`
+- [x] S-hair-14. hair — Swept crop. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-14.png`
+- [x] S-hair-15. hair — Rounded bob. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-15.png`
+- [x] S-hair-16. hair — Crown braid. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-16.png`
+- [x] S-hair-17. hair — Natural curls. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-17.png`
+- [x] S-hair-18. hair — Blunt bob. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-18.png`
+- [x] S-hair-19. hair — Low ponytail. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-19.png` Rear `S-hair-19-rear.png`
+- [x] S-hair-20. hair — Long centre part. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-20.png`
+- [x] S-hair-21. hair — Side-swept pixie. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-21.png`
+- [x] S-hair-22. hair — Loose waves. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-22.png`
+- [x] S-hair-23. hair — Layered short. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-23.png`
+- [x] S-hair-24. hair — Receding short. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-24.png`
+- [x] S-hair-25. hair — Sleek bob. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-25.png`
+- [x] S-hair-26. hair — Fringed bob. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-26.png`
+- [x] S-hair-27. hair — Angled bob. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-27.png`
+- [x] S-hair-28. hair — Curled-under bob. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-28.png`
+- [x] S-hair-29. hair — Tied bun. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-29.png` Rear `S-hair-29-rear.png`
+- [x] S-hair-30. hair — Coiled crop. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-30.png`
+- [x] S-hair-31. hair — Rounded coils. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-31.png`
+- [x] S-hair-32. hair — Tapered crop. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-32.png`
+- [x] S-hair-33. hair — Horseshoe crop. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-33.png`
+- [x] S-hair-34. hair — Close crop. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-34.png`
+- [x] S-hair-35. hair — Sculpted crop. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-35.png`
+- [x] S-hair-36. hair — Sculpted bob. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-36.png`
+- [x] S-hair-37. hair — Sculpted tie-back. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-37.png` Rear `S-hair-37-rear.png`
+- [x] S-hair-38. hair — Fringed ponytail. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-38.png` Rear `S-hair-38-rear.png`
+- [x] S-hair-39. hair — Feathered pixie. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-39.png`
+- [x] S-hair-40. hair — Ribbon ponytail. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-40.png` Rear `S-hair-40-rear.png`
+- [x] S-hair-41. hair — Silver side part. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-41.png`
+- [x] S-hair-42. hair — Feathered dark crop. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-hair-42.png`
+- [x] S-outfit-1. outfit — None. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-1.png`
+- [x] S-outfit-2. outfit — T-shirt and jeans. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-2.png`
+- [x] S-outfit-3. outfit — Hoodie and joggers. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-3.png`
+- [x] S-outfit-4. outfit — Shirt and chinos. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-4.png`
+- [x] S-outfit-5. outfit — Sweater and skirt. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-5.png`
+- [x] S-outfit-6. outfit — Day dress. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-6.png`
+- [x] S-outfit-7. outfit — Evening gown. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-7.png`
+- [x] S-outfit-8. outfit — Running kit. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-8.png`
+- [x] S-outfit-9. outfit — Coveralls. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-9.png`
+- [x] S-outfit-10. outfit — Chore jacket. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-10.png`
+- [x] S-outfit-11. outfit — Workshop apron. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-11.png`
+- [x] S-outfit-12. outfit — Overcoat. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-12.png`
+- [x] S-outfit-13. outfit — Traveller. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-13.png`
+- [x] S-outfit-14. outfit — Explorer. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-14.png`
+- [x] S-outfit-15. outfit — Parka. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-15.png`
+- [x] S-outfit-16. outfit — Leather armour. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-16.png`
+- [x] S-outfit-17. outfit — Pressure suit. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-17.png`
+- [x] S-outfit-18. outfit — Split mantle. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-18.png`
+- [x] S-outfit-19. outfit — Hooded shoulder cloak. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-19.png`
+- [x] S-outfit-20. outfit — Bomber and wide trousers. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-20.png`
+- [x] S-outfit-21. outfit — Rolled bomber and cuffed trousers. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-21.png`
+- [x] S-outfit-22. outfit — Bodice and gored skirt. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-22.png`
+- [x] S-outfit-23. outfit — Draped bodice gown. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-23.png`
+- [x] S-outfit-24. outfit — Field jacket and denim. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-24.png`
+- [x] S-outfit-25. outfit — Workshop overalls. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-25.png`
+- [x] S-outfit-26. outfit — Tailored suit. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-26.png`
+- [x] S-outfit-27. outfit — Striped blouse and skirt. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-27.png`
+- [x] S-outfit-28. outfit — Overshirt and denim. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-28.png`
+- [x] S-outfit-29. outfit — Striped shirt and jeans. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-29.png`
+- [x] S-outfit-30. outfit — Track top and leggings. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-30.png`
+- [x] S-outfit-31. outfit — Mail tunic and boots. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-31.png`
+- [x] S-outfit-32. outfit — Rope-belted robe. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-32.png`
+- [x] S-outfit-33. outfit — Shift dress. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-33.png`
+- [x] S-outfit-34. outfit — Rib knit and full skirt. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-34.png`
+- [x] S-outfit-35. outfit — Weathered field coat. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-35.png`
+- [x] S-outfit-36. outfit — Survey vest. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-36.png`
+- [x] S-outfit-37. outfit — Hoodie and denim shorts. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-37.png`
+- [x] S-outfit-38. outfit — Crew sweatshirt and cargo trousers. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-38.png`
+- [x] S-outfit-39. outfit — Crew sweatshirt and trousers. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-39.png`
+- [x] S-outfit-40. outfit — Cable V-neck and trousers. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-40.png`
+- [x] S-outfit-41. outfit — Cable V-neck and cargo trousers. human-editor.js / humanEditor; human-wardrobe.js / dressedHuman. Comparison `S-outfit-41.png`
+- [x] S-fringe-1. fringe — As cut. human-editor.js / humanEditor; human-fringe.js / fringeStyles. Comparison `S-fringe-1.png`
+- [x] S-fringe-2. fringe — Parted. human-editor.js / humanEditor; human-fringe.js / fringeStyles. Comparison `S-fringe-2.png`
+- [x] S-fringe-3. fringe — Swept left. human-editor.js / humanEditor; human-fringe.js / fringeStyles. Comparison `S-fringe-3.png`
+- [x] S-fringe-4. fringe — Swept right. human-editor.js / humanEditor; human-fringe.js / fringeStyles. Comparison `S-fringe-4.png`
+- [x] S-fringe-5. fringe — Off the face. human-editor.js / humanEditor; human-fringe.js / fringeStyles. Comparison `S-fringe-5.png`
+- [x] S-eyewear-1. eyewear — None. human-editor.js / humanEditor; human-eyewear.js / fittedEyewear. Comparison `S-eyewear-1.png`
+- [x] S-eyewear-2. eyewear — Round wire. human-editor.js / humanEditor; human-eyewear.js / fittedEyewear. Comparison `S-eyewear-2.png`
+- [x] S-eyewear-3. eyewear — Square acetate. human-editor.js / humanEditor; human-eyewear.js / fittedEyewear. Comparison `S-eyewear-3.png`
+- [x] S-eyewear-4. eyewear — Upswept frames. human-editor.js / humanEditor; human-eyewear.js / fittedEyewear. Comparison `S-eyewear-4.png`
+- [x] S-makeup-1. makeup — None. human-editor.js / humanEditor; human-makeup.js / makeupStyles. Comparison `S-makeup-1.png`
+- [x] S-makeup-2. makeup — Rose stain. human-editor.js / humanEditor; human-makeup.js / makeupStyles. Comparison `S-makeup-2.png`
+- [x] S-makeup-3. makeup — Burnished copper. human-editor.js / humanEditor; human-makeup.js / makeupStyles. Comparison `S-makeup-3.png`
+- [x] S-makeup-4. makeup — Berry satin. human-editor.js / humanEditor; human-makeup.js / makeupStyles. Comparison `S-makeup-4.png`
+- [x] S-makeup-5. makeup — Plum stage. human-editor.js / humanEditor; human-makeup.js / makeupStyles. Comparison `S-makeup-5.png`
+- [x] S-makeup-6. makeup — Smoked charcoal. human-editor.js / humanEditor; human-makeup.js / makeupStyles. Comparison `S-makeup-6.png`
+- [x] S-makeup-7. makeup — Gilded nocturne. human-editor.js / humanEditor; human-makeup.js / makeupStyles. Comparison `S-makeup-7.png`
+- [x] S-makeup-8. makeup — Crimson aria. human-editor.js / humanEditor; human-makeup.js / makeupStyles. Comparison `S-makeup-8.png`
+- [x] S-browStyle-1. browStyle — As drawn. human-editor.js / humanEditor; human-brow-styles.js / browStyles. Comparison `S-browStyle-1.png`
+- [x] S-browStyle-2. browStyle — Soft taper. human-editor.js / humanEditor; human-brow-styles.js / browStyles. Comparison `S-browStyle-2.png`
+- [x] S-browStyle-3. browStyle — Lifted arch. human-editor.js / humanEditor; human-brow-styles.js / browStyles. Comparison `S-browStyle-3.png`
+- [x] S-browStyle-4. browStyle — Straight. human-editor.js / humanEditor; human-brow-styles.js / browStyles. Comparison `S-browStyle-4.png`
+- [x] S-browStyle-5. browStyle — Fine arch. human-editor.js / humanEditor; human-brow-styles.js / browStyles. Comparison `S-browStyle-5.png`
+- [x] S-browStyle-6. browStyle — Full and brushed. human-editor.js / humanEditor; human-brow-styles.js / browStyles. Comparison `S-browStyle-6.png`
+- [x] S-browStyle-7. browStyle — Feathered. human-editor.js / humanEditor; human-brow-styles.js / browStyles. Comparison `S-browStyle-7.png`
+- [x] S-browStyle-8. browStyle — Untrimmed. human-editor.js / humanEditor; human-brow-styles.js / browStyles. Comparison `S-browStyle-8.png`
+- [x] S-armInk-1. armInk — None. human-editor.js / humanEditor; human-arm-ink.js / armInkStyles. Comparison `S-armInk-1.png`
+- [x] S-armInk-2. armInk — Diving swift. human-editor.js / humanEditor; human-arm-ink.js / armInkStyles. Comparison `S-armInk-2.png`
+- [x] S-armInk-3. armInk — Fern frond. human-editor.js / humanEditor; human-arm-ink.js / armInkStyles. Comparison `S-armInk-3.png`
+- [x] S-armInk-4. armInk — Botanical sleeve. human-editor.js / humanEditor; human-arm-ink.js / armInkStyles. Comparison `S-armInk-4.png`
+- [x] S-armInk-5. armInk — Engraved sleeve. human-editor.js / humanEditor; human-arm-ink.js / armInkStyles. Comparison `S-armInk-5.png`
+- [x] S-armInk-6. armInk — Cartographic sleeve. human-editor.js / humanEditor; human-arm-ink.js / armInkStyles. Comparison `S-armInk-6.png`
+- [x] S-earrings-1. earrings — None. human-editor.js / humanEditor; human-earrings.js / fittedEarrings. Comparison `S-earrings-1.png`
+- [x] S-earrings-2. earrings — Pearl studs. human-editor.js / humanEditor; human-earrings.js / fittedEarrings. Comparison `S-earrings-2.png`
+- [x] S-earrings-3. earrings — Hammered hoops. human-editor.js / humanEditor; human-earrings.js / fittedEarrings. Comparison `S-earrings-3.png`
+- [x] S-earrings-4. earrings — Enamel drops. human-editor.js / humanEditor; human-earrings.js / fittedEarrings. Comparison `S-earrings-4.png`
+- [x] S-earrings-5. earrings — Single ear pendant. human-editor.js / humanEditor; human-earrings.js / fittedEarrings. Comparison `S-earrings-5.png`
+- [x] S-earrings-6. earrings — Sea fan ear cuffs. human-editor.js / humanEditor; human-earrings.js / fittedEarrings. Comparison `S-earrings-6.png`
+- [x] S-necklace-1. necklace — None. human-editor.js / humanEditor; human-necklace.js / fittedNecklace. Comparison `S-necklace-1.png`
+- [x] S-necklace-2. necklace — Teardrop pendant. human-editor.js / humanEditor; human-necklace.js / fittedNecklace. Comparison `S-necklace-2.png`
+- [x] S-necklace-3. necklace — Pearl strand. human-editor.js / humanEditor; human-necklace.js / fittedNecklace. Comparison `S-necklace-3.png`
+- [x] S-necklace-4. necklace — Fan collar. human-editor.js / humanEditor; human-necklace.js / fittedNecklace. Comparison `S-necklace-4.png`
+- [x] S-waistBag-1. waistBag — None. human-editor.js / humanEditor; human-waist-bag.js / fittedWaistBag. Comparison `S-waistBag-1.png`
+- [x] S-waistBag-2. waistBag — Dispatch folio. human-editor.js / humanEditor; human-waist-bag.js / fittedWaistBag. Comparison `S-waistBag-2.png`
+- [x] S-waistBag-3. waistBag — Running belt. human-editor.js / humanEditor; human-waist-bag.js / fittedWaistBag. Comparison `S-waistBag-3.png`
+- [x] S-handProp-1. handProp — None. human-editor.js / humanEditor; human-hand-fan.js / fittedFan. Comparison `S-handProp-1.png`
+- [x] S-handProp-2. handProp — Painted folding fan. human-editor.js / humanEditor; human-hand-fan.js / fittedFan. Comparison `S-handProp-2.png`
+- [x] S-hat-1. hat — None. human-editor.js / humanEditor; human-hats.js / fittedHat. Comparison `S-hat-1.png`
+- [x] S-hat-2. hat — Bucket hat. human-editor.js / humanEditor; human-hats.js / fittedHat. Comparison `S-hat-2.png`
+- [x] S-hat-3. hat — Beret. human-editor.js / humanEditor; human-hats.js / fittedHat. Comparison `S-hat-3.png`
+- [x] S-hat-4. hat — Flat cap. human-editor.js / humanEditor; human-hats.js / fittedHat. Comparison `S-hat-4.png`
+- [x] S-hat-5. hat — Ribbed watch cap. human-editor.js / humanEditor; human-hats.js / fittedHat. Comparison `S-hat-5.png`
+- [x] S-hat-6. hat — Flying cap and goggles. human-editor.js / humanEditor; human-hats.js / fittedHat. Comparison `S-hat-6.png`
+- [x] S-clothDesign-1. clothDesign — Plain cloth. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-clothDesign-1.png`
+- [x] S-clothDesign-2. clothDesign — Outfit swatch. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-clothDesign-2.png`
+- [x] S-clothDesign-3. clothDesign — Quiet weave. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-clothDesign-3.png`
+- [x] S-clothDesign-4. clothDesign — Pinstripe. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-clothDesign-4.png`
+- [x] S-clothDesign-5. clothDesign — Windowpane. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-clothDesign-5.png`
+- [x] S-clothDesign-6. clothDesign — Breton stripe. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-clothDesign-6.png`
+- [x] S-clothDesign-7. clothDesign — Herringbone. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-clothDesign-7.png`
+- [x] S-clothDesign-8. clothDesign — Colour block. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-clothDesign-8.png`
+- [x] S-clothDesign-9. clothDesign — Gingham. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-clothDesign-9.png`
+- [x] S-clothDesign-10. clothDesign — Small dots. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-clothDesign-10.png`
+- [x] S-clothDesign-11. clothDesign — Chest band. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-clothDesign-11.png`
+- [x] S-clothDesign-12. clothDesign — Knit yoke. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-clothDesign-12.png`
+- [x] S-clothDesign-13. clothDesign — Hem border. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-clothDesign-13.png`
+- [x] S-clothDesign-14. clothDesign — Scallop brocade. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-clothDesign-14.png`
+- [x] S-secondDesign-1. secondDesign — Plain cloth. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-secondDesign-1.png`
+- [x] S-secondDesign-2. secondDesign — Quiet weave. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-secondDesign-2.png`
+- [x] S-secondDesign-3. secondDesign — Pinstripe. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-secondDesign-3.png`
+- [x] S-secondDesign-4. secondDesign — Windowpane. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-secondDesign-4.png`
+- [x] S-secondDesign-5. secondDesign — Breton stripe. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-secondDesign-5.png`
+- [x] S-secondDesign-6. secondDesign — Herringbone. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-secondDesign-6.png`
+- [x] S-secondDesign-7. secondDesign — Colour block. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-secondDesign-7.png`
+- [x] S-secondDesign-8. secondDesign — Gingham. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-secondDesign-8.png`
+- [x] S-secondDesign-9. secondDesign — Small dots. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-secondDesign-9.png`
+- [x] S-secondDesign-10. secondDesign — Chest band. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-secondDesign-10.png`
+- [x] S-secondDesign-11. secondDesign — Knit yoke. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-secondDesign-11.png`
+- [x] S-secondDesign-12. secondDesign — Hem border. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-secondDesign-12.png`
+- [x] S-secondDesign-13. secondDesign — Scallop brocade. human-editor.js / humanEditor; human-cloth-swatch.js / finishTailored. Comparison `S-secondDesign-13.png`
+- [x] S-facialHair-1. facialHair — None. human-editor.js / humanEditor; human-face-hair.js / facialHairNames. Comparison `S-facialHair-1.png`
+- [x] S-facialHair-2. facialHair — Clipped beard. human-editor.js / humanEditor; human-face-hair.js / facialHairNames. Comparison `S-facialHair-2.png`
+- [x] S-facialHair-3. facialHair — Stubble. human-editor.js / humanEditor; human-face-hair.js / facialHairNames. Comparison `S-facialHair-3.png`
+- [x] S-facialHair-4. facialHair — Moustache. human-editor.js / humanEditor; human-face-hair.js / facialHairNames. Comparison `S-facialHair-4.png`
+- [x] S-facialHair-5. facialHair — Short beard. human-editor.js / humanEditor; human-face-hair.js / facialHairNames. Comparison `S-facialHair-5.png`
+- [x] S-facialHair-6. facialHair — Full beard. human-editor.js / humanEditor; human-face-hair.js / facialHairNames. Comparison `S-facialHair-6.png`
+- [x] S-facePlanes-1. facePlanes — None. human-editor.js / humanEditor; human-face-planes.js / facePlaneStyles. Comparison `S-facePlanes-1.png`
+- [x] S-facePlanes-2. facePlanes — Subtle. human-editor.js / humanEditor; human-face-planes.js / facePlaneStyles. Comparison `S-facePlanes-2.png`
+- [x] S-facePlanes-3. facePlanes — Sculpted. human-editor.js / humanEditor; human-face-planes.js / facePlaneStyles. Comparison `S-facePlanes-3.png`
+- [x] S-faceFamily-1. faceFamily — None. human-editor.js / humanEditor; human-studio-head.js / studioHead. Comparison `S-faceFamily-1.png`
+- [x] S-faceFamily-2. faceFamily — Studio Rain. human-editor.js / humanEditor; human-studio-head.js / studioHead. Comparison `S-faceFamily-2.png`
+- [x] S-faceFamilyHair-1. faceFamilyHair — Family. human-editor.js / humanEditor; human-studio-head.js / studioHeadHolds. Comparison `S-faceFamilyHair-1.png`
+- [x] S-faceFamilyHair-2. faceFamilyHair — Chosen. human-editor.js / humanEditor; human-studio-head.js / studioHeadHolds. Comparison `S-faceFamilyHair-2.png`
+- [x] C-Gardener-1. Gardener — Work shirt with Work trousers and boots. human-cast-wardrobe.js / castOutfits, wornCastOutfit; human-wardrobe.js / chooseAdultStyle. Comparison `C-Gardener-1.png`
+- [x] C-Gardener-2. Gardener — Work shirt with Shorts and shoes. human-cast-wardrobe.js / castOutfits, wornCastOutfit; human-wardrobe.js / chooseAdultStyle. Comparison `C-Gardener-2.png`
+- [x] C-Gardener-3. Gardener — Work shirt with Jeans and shoes. human-cast-wardrobe.js / castOutfits, wornCastOutfit; human-wardrobe.js / chooseAdultStyle. Comparison `C-Gardener-3.png`
+- [x] C-Gardener-4. Gardener — Striped polo with Work trousers and boots. human-cast-wardrobe.js / castOutfits, wornCastOutfit; human-wardrobe.js / chooseAdultStyle. Comparison `C-Gardener-4.png`
+- [x] C-Gardener-5. Gardener — Striped polo with Shorts and shoes. human-cast-wardrobe.js / castOutfits, wornCastOutfit; human-wardrobe.js / chooseAdultStyle. Comparison `C-Gardener-5.png`
+- [x] C-Gardener-6. Gardener — Striped polo with Jeans and shoes. human-cast-wardrobe.js / castOutfits, wornCastOutfit; human-wardrobe.js / chooseAdultStyle. Comparison `C-Gardener-6.png`
+- [x] C-Gardener-7. Gardener — Denim jacket with Work trousers and boots. human-cast-wardrobe.js / castOutfits, wornCastOutfit; human-wardrobe.js / chooseAdultStyle. Comparison `C-Gardener-7.png`
+- [x] C-Gardener-8. Gardener — Denim jacket with Shorts and shoes. human-cast-wardrobe.js / castOutfits, wornCastOutfit; human-wardrobe.js / chooseAdultStyle. Comparison `C-Gardener-8.png`
+- [x] C-Gardener-9. Gardener — Denim jacket with Jeans and shoes. human-cast-wardrobe.js / castOutfits, wornCastOutfit; human-wardrobe.js / chooseAdultStyle. Comparison `C-Gardener-9.png`
+- [x] C-Cropped jacket-1. Cropped jacket — Hooded jacket with Trousers and boots. human-cast-wardrobe.js / castOutfits, wornCastOutfit; human-wardrobe.js / chooseAdultStyle. Comparison `C-Cropped jacket-1.png`
+- [x] C-Cropped jacket-2. Cropped jacket — Pink shirt with Fitted jeans and shoes. human-cast-wardrobe.js / castOutfits, wornCastOutfit; human-wardrobe.js / chooseAdultStyle. Comparison `C-Cropped jacket-2.png`
+- [x] C-Pink shirt-1. Pink shirt — Pink shirt with Fitted jeans and shoes. human-cast-wardrobe.js / castOutfits, wornCastOutfit; human-wardrobe.js / chooseAdultStyle. Comparison `C-Pink shirt-1.png`
+- [x] C-Pink shirt-2. Pink shirt — Hooded jacket with Trousers and boots. human-cast-wardrobe.js / castOutfits, wornCastOutfit; human-wardrobe.js / chooseAdultStyle. Comparison `C-Pink shirt-2.png`
+- [x] S-hatColor. Edit hatColor. human-editor.js / humanEditor, human-wardrobe.js / chooseAdultStyle. Comparison `S-hatColor.png`
+- [x] S-hairColor. Edit hairColor. human-editor.js / humanEditor, human-wardrobe.js / chooseAdultStyle. Comparison `S-hairColor.png`
+- [x] S-clothColor. Edit clothColor. human-editor.js / humanEditor, human-wardrobe.js / chooseAdultStyle. Comparison `S-clothColor.png`
+- [x] S-clothAccent. Edit clothAccent. human-editor.js / humanEditor, human-wardrobe.js / chooseAdultStyle. Comparison `S-clothAccent.png`
+- [x] S-clothSecond. Edit clothSecond. human-editor.js / humanEditor, human-wardrobe.js / chooseAdultStyle. Comparison `S-clothSecond.png`
+- [x] S-clothLight. Edit clothLight. human-editor.js / humanEditor, human-wardrobe.js / chooseAdultStyle. Comparison `S-clothLight.png`
+- [x] S-accentColor. Edit accentColor. human-editor.js / humanEditor, human-wardrobe.js / chooseAdultStyle. Comparison `S-accentColor.png`
+- [x] S-leatherColor. Edit leatherColor. human-editor.js / humanEditor, human-wardrobe.js / chooseAdultStyle. Comparison `S-leatherColor.png`
+- [x] S-soleColor. Edit soleColor. human-editor.js / humanEditor, human-wardrobe.js / chooseAdultStyle. Comparison `S-soleColor.png`
+- [x] S-metalColor. Edit metalColor. human-editor.js / humanEditor, human-wardrobe.js / chooseAdultStyle. Comparison `S-metalColor.png`
+- [x] S-castSkin. Edit castSkin. human-editor.js / humanEditor, human-wardrobe.js / chooseAdultStyle. Comparison `S-castSkin.png`
+- [x] S-castShape. Edit castShape. human-editor.js / humanEditor, human-wardrobe.js / chooseAdultStyle. Comparison `S-castShape.png`
+- [x] S-castPigment. Edit castPigment. human-editor.js / humanEditor, human-wardrobe.js / chooseAdultStyle. Comparison `S-castPigment.png`
+- [x] S-mode-cast. Artwork locks individual styling and complexion; keep compatible top/bottom combinations, show donor blends where available, restore source skin or return to individual controls. human-editor.js / humanEditor, human-wardrobe.js / chooseAdultStyle, dressedHuman. Comparison `S-mode-cast.png`
+- [x] S-mode-family. Studio Rain provides a preset build, colours and family hair. Chosen hair releases hairstyle, fringe, eyewear, earrings and hat. Retain held choices on return to the native face. human-editor.js / humanEditor, human-wardrobe.js / chooseAdultStyle, dressedHuman. Comparison `S-mode-family.png`
+- [x] S-mode-hide. Pressure suit suppresses incompatible hair and accessories. Inspect Anatomy and show the outfit again. Waist bags need clothing. human-editor.js / humanEditor, human-wardrobe.js / chooseAdultStyle, dressedHuman. Comparison `S-mode-hide.png` Anatomy `S-mode-hide-anatomy.png` Work `S-mode-hide-work.png`
+- [x] S-mode-dress. Selecting clothing clears tailoring; None shows Anatomy, selecting artwork shows Work clothes. human-editor.js / humanEditor, human-wardrobe.js / chooseAdultStyle, dressedHuman. Comparison `S-mode-dress.png`
+
+## Tailoring
+
+- [x] T-top-color-1. Top or jacket — Colour — #6f7f86 and a chosen colour. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-color-1.png`
+- [x] T-top-material-1. Top or jacket — Material — cloth. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-material-1.png`
+- [x] T-top-material-2. Top or jacket — Material — leather. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-material-2.png`
+- [x] T-top-material-3. Top or jacket — Material — mail. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-material-3.png`
+- [x] T-top-sleeve-1. Top or jacket — Sleeve end (0 shoulder, 1 elbow, 2 wrist) — 0.05 to 1.97 (step 0.0192). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-sleeve-1.png`
+- [x] T-top-length-1. Top or jacket — Hem (0 waist, 1 seat) — 0 to 1 (step 0.01). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-length-1.png`
+- [x] T-top-ease-1. Top or jacket — Room over the body, mm — 2 to 40 (step 1). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-ease-1.png`
+- [x] T-top-stiff-1. Top or jacket — Structure (0 soft, 1 holds its shape) — 0 to 1 (step 0.01). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-stiff-1.png`
+- [x] T-top-neck-1. Top or jacket — Neckline — crew. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-neck-1.png`
+- [x] T-top-neck-2. Top or jacket — Neckline — v. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-neck-2.png`
+- [x] T-top-neck-3. Top or jacket — Neckline — scoop. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-neck-3.png`
+- [x] T-top-neck-4. Top or jacket — Neckline — high. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-neck-4.png`
+- [x] T-top-depth-1. Top or jacket — Neck opening depth, mm — 0 to 260 (step 5). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-depth-1.png`
+- [x] T-top-collar-1. Top or jacket — Collar — none. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-collar-1.png`
+- [x] T-top-collar-2. Top or jacket — Collar — shirt. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-collar-2.png`
+- [x] T-top-collar-3. Top or jacket — Collar — stand. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-collar-3.png`
+- [x] T-top-collar-4. Top or jacket — Collar — hood. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-collar-4.png`
+- [x] T-top-front-1. Top or jacket — Front — plain. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-front-1.png`
+- [x] T-top-front-2. Top or jacket — Front — placket. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-front-2.png`
+- [x] T-top-front-3. Top or jacket — Front — zip. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-front-3.png`
+- [x] T-top-front-4. Top or jacket — Front — buttons. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-front-4.png`
+- [x] T-top-buttons-1. Top or jacket — Buttons — 0 to 8 (step 1). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-buttons-1.png`
+- [x] T-top-cuff-1. Top or jacket — Cuff band, mm — 0 to 60 (step 1). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-cuff-1.png`
+- [x] T-top-hemBand-1. Top or jacket — Hem band, mm — 0 to 70 (step 1). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-hemBand-1.png`
+- [x] T-top-gather-1. Top or jacket — Hem drawn in (0 hangs free, 1 snug) — 0 to 1 (step 0.01). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-gather-1.png`
+- [x] T-top-pockets-1. Top or jacket — Pockets — none. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-pockets-1.png`
+- [x] T-top-pockets-2. Top or jacket — Pockets — chest. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-pockets-2.png`
+- [x] T-top-pockets-3. Top or jacket — Pockets — hip. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-pockets-3.png`
+- [x] T-top-pockets-4. Top or jacket — Pockets — chest and hip. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-pockets-4.png`
+- [x] T-top-trim-1. Top or jacket — Buttons and zip — #8f9296 and a chosen colour. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-top-trim-1.png`
+- [x] T-trousers-color-1. Trousers or shorts — Colour — #3c4656 and a chosen colour. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-trousers-color-1.png`
+- [x] T-trousers-material-1. Trousers or shorts — Material — cloth. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-trousers-material-1.png`
+- [x] T-trousers-material-2. Trousers or shorts — Material — leather. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-trousers-material-2.png`
+- [x] T-trousers-length-1. Trousers or shorts — Leg end (1 knee, 2 ankle) — 0.3 to 2.03 (step 0.0173). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-trousers-length-1.png`
+- [x] T-trousers-rise-1. Trousers or shorts — Waistband (0 low, 1 natural waist) — 0 to 1 (step 0.01). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-trousers-rise-1.png`
+- [x] T-trousers-ease-1. Trousers or shorts — Room over the body, mm — 2 to 40 (step 1). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-trousers-ease-1.png`
+- [x] T-trousers-fit-1. Trousers or shorts — Leg shape (0 straight, 1 follows the leg) — 0 to 1 (step 0.01). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-trousers-fit-1.png`
+- [x] T-trousers-waistband-1. Trousers or shorts — Waistband, mm — 0 to 60 (step 1). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-trousers-waistband-1.png`
+- [x] T-trousers-hemBand-1. Trousers or shorts — Leg hem, mm — 0 to 60 (step 1). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-trousers-hemBand-1.png`
+- [x] T-trousers-pockets-1. Trousers or shorts — Pockets — none. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-trousers-pockets-1.png`
+- [x] T-trousers-pockets-2. Trousers or shorts — Pockets — back. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-trousers-pockets-2.png`
+- [x] T-trousers-pockets-3. Trousers or shorts — Pockets — cargo. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-trousers-pockets-3.png`
+- [x] T-trousers-pockets-4. Trousers or shorts — Pockets — back and cargo. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-trousers-pockets-4.png`
+- [x] T-boots-color-1. Boots — Colour — #5b4334 and a chosen colour. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-boots-color-1.png`
+- [x] T-boots-sole-1. Boots — Sole — #2c2a28 and a chosen colour. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-boots-sole-1.png`
+- [x] T-boots-material-1. Boots — Material — leather. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-boots-material-1.png`
+- [x] T-boots-material-2. Boots — Material — cloth. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-boots-material-2.png`
+- [x] T-boots-fastening-1. Boots — Shaft fastening — plain. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-boots-fastening-1.png`
+- [x] T-boots-fastening-2. Boots — Shaft fastening — buckled. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-boots-fastening-2.png`
+- [x] T-boots-height-1. Boots — Top of the shaft (1 knee, 2 ankle) — 1.05 to 1.9 (step 0.0085). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-boots-height-1.png`
+- [x] T-boots-ease-1. Boots — Room over the leg, mm — 3 to 40 (step 1). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-boots-ease-1.png`
+- [x] T-boots-straight-1. Boots — Shaft (0 follows the calf, 1 straight tube) — 0 to 1 (step 0.01). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-boots-straight-1.png`
+- [x] T-boots-cuff-1. Boots — Top band, mm — 0 to 70 (step 1). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-boots-cuff-1.png`
+- [x] T-boots-thick-1. Boots — Sole, mm — 4 to 40 (step 1). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-boots-thick-1.png`
+- [x] T-boots-heel-1. Boots — Heel, mm — 0 to 70 (step 1). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-boots-heel-1.png`
+- [x] T-boots-toe-1. Boots — Toe room, mm — 0 to 20 (step 1). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-boots-toe-1.png`
+- [x] T-shoes-color-1. Shoes — Colour — #5b4334 and a chosen colour. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-shoes-color-1.png`
+- [x] T-shoes-sole-1. Shoes — Sole — #2c2a28 and a chosen colour. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-shoes-sole-1.png`
+- [x] T-shoes-material-1. Shoes — Material — leather. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Both workshops save the selected material and render the same lace-up upper through human-shoe-surface.js / finishFootwear, upperMaterial. Comparison `T-shoes-material-1.png`
+- [x] T-shoes-material-2. Shoes — Material — cloth. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Both workshops save the selected material and render the same lace-up upper through human-shoe-surface.js / finishFootwear, upperMaterial. Comparison `T-shoes-material-2.png`
+- [x] T-shoes-collar-1. Shoes — Height at the ankle, mm — 30 to 140 (step 1). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-shoes-collar-1.png`
+- [x] T-shoes-thick-1. Shoes — Sole, mm — 4 to 40 (step 1). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-shoes-thick-1.png`
+- [x] T-shoes-heel-1. Shoes — Heel, mm — 0 to 70 (step 1). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-shoes-heel-1.png`
+- [x] T-shoes-toe-1. Shoes — Toe room, mm — 0 to 20 (step 1). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-shoes-toe-1.png`
+- [x] T-gloves-color-1. Gloves — Colour — #7c8a6c and a chosen colour. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-gloves-color-1.png`
+- [x] T-gloves-material-1. Gloves — Material — leather. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-gloves-material-1.png`
+- [x] T-gloves-material-2. Gloves — Material — cloth. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-gloves-material-2.png`
+- [x] T-gloves-from-1. Gloves — Cuff (1 elbow, 2 wrist) — 1.3 to 1.97 (step 0.0067). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-gloves-from-1.png`
+- [x] T-gloves-ease-1. Gloves — Room over the hand, mm — 2 to 12 (step 1). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-gloves-ease-1.png`
+- [x] T-gloves-cuff-1. Gloves — Cuff band, mm — 0 to 50 (step 1). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-gloves-cuff-1.png`
+- [x] T-belt-color-1. Belt — Colour — #4a3a2c and a chosen colour. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-belt-color-1.png`
+- [x] T-belt-material-1. Belt — Material — leather. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-belt-material-1.png`
+- [x] T-belt-material-2. Belt — Material — cloth. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-belt-material-2.png`
+- [x] T-belt-at-1. Belt — Height (0 hip band, 1 natural waist) — 0 to 1 (step 0.01). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-belt-at-1.png`
+- [x] T-belt-height-1. Belt — Width, mm — 15 to 70 (step 1). human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-belt-height-1.png`
+- [x] T-belt-buckle-1. Belt — Buckle — frame. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-belt-buckle-1.png`
+- [x] T-belt-buckle-2. Belt — Buckle — none. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-belt-buckle-2.png`
+- [x] T-belt-trim-1. Belt — Buckle — #8f9296 and a chosen colour. human-tailor.js / tailorPieces, tailorParts; human-tailor-editor.js / control. Comparison `T-belt-trim-1.png`
+- [x] T-travellingMantle-color-1. Travelling mantle — Outer wool — #343c49 and a chosen colour. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-travellingMantle-color-1.png`
+- [x] T-travellingMantle-trim-1. Travelling mantle — Facing — #797056 and a chosen colour. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-travellingMantle-trim-1.png`
+- [x] T-travellingMantle-clasp-1. Travelling mantle — Brooch — #aa9060 and a chosen colour. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-travellingMantle-clasp-1.png`
+- [x] T-travellingMantle-shoulder-1. Travelling mantle — Fastened on — right. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-travellingMantle-shoulder-1.png`
+- [x] T-travellingMantle-shoulder-2. Travelling mantle — Fastened on — left. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-travellingMantle-shoulder-2.png`
+- [x] T-travellingMantle-length-1. Travelling mantle — Drop — 0 to 1 (step 0.01). human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-travellingMantle-length-1.png`
+- [x] T-cuirass-color-1. Armour: cuirass — Colour — #8d9197 and a chosen colour. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-cuirass-color-1.png`
+- [x] T-cuirass-trim-1. Armour: cuirass — Edges — #b08d4a and a chosen colour. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-cuirass-trim-1.png`
+- [x] T-cuirass-material-1. Armour: cuirass — Plates — steel. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-cuirass-material-1.png`
+- [x] T-cuirass-material-2. Armour: cuirass — Plates — leather. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-cuirass-material-2.png`
+- [x] T-cuirass-material-3. Armour: cuirass — Plates — lacquer. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-cuirass-material-3.png`
+- [x] T-cuirass-device-1. Armour: cuirass — Embossed device — Plain. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-cuirass-device-1.png`
+- [x] T-cuirass-device-2. Armour: cuirass — Embossed device — Night moth. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-cuirass-device-2.png`
+- [x] T-cuirass-device-3. Armour: cuirass — Embossed device — Reed heron. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-cuirass-device-3.png`
+- [x] T-cuirass-device-4. Armour: cuirass — Embossed device — Knotted oak. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-cuirass-device-4.png`
+- [x] T-cuirass-device-5. Armour: cuirass — Embossed device — Compass. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-cuirass-device-5.png`
+- [x] T-cuirass-build-1. Armour: cuirass — Build — fitted. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-cuirass-build-1.png`
+- [x] T-cuirass-build-2. Armour: cuirass — Build — segmented. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-cuirass-build-2.png`
+- [x] T-cuirass-build-3. Armour: cuirass — Build — hardshell. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-cuirass-build-3.png`
+- [x] T-cuirass-length-1. Armour: cuirass — Lower edge (0 ribs, 1 hips) — 0 to 1 (step 0.01). human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-cuirass-length-1.png`
+- [x] T-cuirass-room-1. Armour: cuirass — Room over the clothes, mm — 6 to 40 (step 1). human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-cuirass-room-1.png`
+- [x] T-cuirass-relief-1. Armour: cuirass — Ridges and edges (0 plain, 1 bold) — 0 to 1 (step 0.01). human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-cuirass-relief-1.png`
+- [x] T-cuirass-lames-1. Armour: cuirass — Waist plates — 1 to 6 (step 1). human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-cuirass-lames-1.png`
+- [x] T-cuirass-collar-1. Armour: cuirass — Collar — open. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-cuirass-collar-1.png`
+- [x] T-cuirass-collar-2. Armour: cuirass — Collar — gorget. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-cuirass-collar-2.png`
+- [x] T-cuirass-collar-3. Armour: cuirass — Collar — ring. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-cuirass-collar-3.png`
+- [x] T-cuirass-collar-4. Armour: cuirass — Collar — mail standard. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-cuirass-collar-4.png`
+- [x] T-cuirass-back-1. Armour: cuirass — Back — plain. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-cuirass-back-1.png`
+- [x] T-cuirass-back-2. Armour: cuirass — Back — pack. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-cuirass-back-2.png`
+- [x] T-cuirass-seed-1. Armour: cuirass — Variation — 0 to 999 (step 1). human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-cuirass-seed-1.png`
+- [x] T-pauldrons-color-1. Armour: shoulders — Colour — #8d9197 and a chosen colour. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-pauldrons-color-1.png`
+- [x] T-pauldrons-trim-1. Armour: shoulders — Edges and studs — #b08d4a and a chosen colour. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-pauldrons-trim-1.png`
+- [x] T-pauldrons-material-1. Armour: shoulders — Plates — steel. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-pauldrons-material-1.png`
+- [x] T-pauldrons-material-2. Armour: shoulders — Plates — leather. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-pauldrons-material-2.png`
+- [x] T-pauldrons-material-3. Armour: shoulders — Plates — lacquer. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-pauldrons-material-3.png`
+- [x] T-pauldrons-cut-1. Armour: shoulders — Cut — rounded. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-pauldrons-cut-1.png`
+- [x] T-pauldrons-cut-2. Armour: shoulders — Cut — pointed. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-pauldrons-cut-2.png`
+- [x] T-pauldrons-cut-3. Armour: shoulders — Cut — angular. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-pauldrons-cut-3.png`
+- [x] T-pauldrons-lames-1. Armour: shoulders — Plates down the arm — 1 to 6 (step 1). human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-pauldrons-lames-1.png`
+- [x] T-pauldrons-size-1. Armour: shoulders — Size (0 light, 1 bulky) — 0 to 1 (step 0.01). human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-pauldrons-size-1.png`
+- [x] T-pauldrons-flange-1. Armour: shoulders — Neck guard (0 none, 1 tall) — 0 to 1 (step 0.01). human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-pauldrons-flange-1.png`
+- [x] T-pauldrons-balance-1. Armour: shoulders — Left and right — matched. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-pauldrons-balance-1.png`
+- [x] T-pauldrons-balance-2. Armour: shoulders — Left and right — left heavier. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-pauldrons-balance-2.png`
+- [x] T-pauldrons-balance-3. Armour: shoulders — Left and right — right heavier. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-pauldrons-balance-3.png`
+- [x] T-pauldrons-balance-4. Armour: shoulders — Left and right — left only. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-pauldrons-balance-4.png`
+- [x] T-pauldrons-balance-5. Armour: shoulders — Left and right — right only. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-pauldrons-balance-5.png`
+- [x] T-pauldrons-room-1. Armour: shoulders — Room over the clothes, mm — 3 to 24 (step 1). human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-pauldrons-room-1.png`
+- [x] T-pauldrons-seed-1. Armour: shoulders — Variation — 0 to 999 (step 1). human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-pauldrons-seed-1.png`
+- [x] T-armguards-color-1. Armour: arms — Colour — #8d9197 and a chosen colour. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-armguards-color-1.png`
+- [x] T-armguards-trim-1. Armour: arms — Straps and edges — #5a4636 and a chosen colour. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-armguards-trim-1.png`
+- [x] T-armguards-material-1. Armour: arms — Plates — steel. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-armguards-material-1.png`
+- [x] T-armguards-material-2. Armour: arms — Plates — leather. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-armguards-material-2.png`
+- [x] T-armguards-material-3. Armour: arms — Plates — lacquer. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-armguards-material-3.png`
+- [x] T-armguards-cover-1. Armour: arms — Covers — forearm. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-armguards-cover-1.png`
+- [x] T-armguards-cover-2. Armour: arms — Covers — forearm and elbow. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-armguards-cover-2.png`
+- [x] T-armguards-cover-3. Armour: arms — Covers — whole arm. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-armguards-cover-3.png`
+- [x] T-armguards-cut-1. Armour: arms — Cut — rounded. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-armguards-cut-1.png`
+- [x] T-armguards-cut-2. Armour: arms — Cut — pointed. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-armguards-cut-2.png`
+- [x] T-armguards-cut-3. Armour: arms — Cut — angular. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-armguards-cut-3.png`
+- [x] T-armguards-balance-1. Armour: arms — Left and right — matched. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-armguards-balance-1.png`
+- [x] T-armguards-balance-2. Armour: arms — Left and right — left heavier. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-armguards-balance-2.png`
+- [x] T-armguards-balance-3. Armour: arms — Left and right — right heavier. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-armguards-balance-3.png`
+- [x] T-armguards-balance-4. Armour: arms — Left and right — left only. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-armguards-balance-4.png`
+- [x] T-armguards-balance-5. Armour: arms — Left and right — right only. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-armguards-balance-5.png`
+- [x] T-armguards-room-1. Armour: arms — Room over the clothes, mm — 3 to 20 (step 1). human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-armguards-room-1.png`
+- [x] T-armguards-seed-1. Armour: arms — Variation — 0 to 999 (step 1). human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-armguards-seed-1.png`
+- [x] T-legguards-color-1. Armour: legs — Colour — #8d9197 and a chosen colour. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-legguards-color-1.png`
+- [x] T-legguards-trim-1. Armour: legs — Straps and edges — #5a4636 and a chosen colour. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-legguards-trim-1.png`
+- [x] T-legguards-material-1. Armour: legs — Plates — steel. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-legguards-material-1.png`
+- [x] T-legguards-material-2. Armour: legs — Plates — leather. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-legguards-material-2.png`
+- [x] T-legguards-material-3. Armour: legs — Plates — lacquer. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-legguards-material-3.png`
+- [x] T-legguards-cover-1. Armour: legs — Covers — shin. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-legguards-cover-1.png`
+- [x] T-legguards-cover-2. Armour: legs — Covers — shin and knee. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-legguards-cover-2.png`
+- [x] T-legguards-cover-3. Armour: legs — Covers — whole leg. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-legguards-cover-3.png`
+- [x] T-legguards-cut-1. Armour: legs — Cut — rounded. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-legguards-cut-1.png`
+- [x] T-legguards-cut-2. Armour: legs — Cut — pointed. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-legguards-cut-2.png`
+- [x] T-legguards-cut-3. Armour: legs — Cut — angular. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-legguards-cut-3.png`
+- [x] T-legguards-room-1. Armour: legs — Room over the clothes, mm — 4 to 24 (step 1). human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-legguards-room-1.png`
+- [x] T-legguards-seed-1. Armour: legs — Variation — 0 to 999 (step 1). human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-legguards-seed-1.png`
+- [x] T-tassets-color-1. Armour: hips — Colour — #8d9197 and a chosen colour. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-tassets-color-1.png`
+- [x] T-tassets-trim-1. Armour: hips — Edges — #b08d4a and a chosen colour. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-tassets-trim-1.png`
+- [x] T-tassets-material-1. Armour: hips — Plates — steel. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-tassets-material-1.png`
+- [x] T-tassets-material-2. Armour: hips — Plates — leather. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-tassets-material-2.png`
+- [x] T-tassets-material-3. Armour: hips — Plates — lacquer. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-tassets-material-3.png`
+- [x] T-tassets-cut-1. Armour: hips — Cut — rounded. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-tassets-cut-1.png`
+- [x] T-tassets-cut-2. Armour: hips — Cut — pointed. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-tassets-cut-2.png`
+- [x] T-tassets-cut-3. Armour: hips — Cut — angular. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-tassets-cut-3.png`
+- [x] T-tassets-plates-1. Armour: hips — Hangs — front. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-tassets-plates-1.png`
+- [x] T-tassets-plates-2. Armour: hips — Hangs — front and sides. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-tassets-plates-2.png`
+- [x] T-tassets-plates-3. Armour: hips — Hangs — all round. human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-tassets-plates-3.png`
+- [x] T-tassets-lames-1. Armour: hips — Plates in each — 1 to 4 (step 1). human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-tassets-lames-1.png`
+- [x] T-tassets-length-1. Armour: hips — Length (0 hip, 1 above the knee) — 0 to 1 (step 0.01). human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-tassets-length-1.png`
+- [x] T-tassets-room-1. Armour: hips — Room over the clothes, mm — 4 to 30 (step 1). human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-tassets-room-1.png`
+- [x] T-tassets-seed-1. Armour: hips — Variation — 0 to 999 (step 1). human-armour.js / armourPieces, armourMakers; human-tailor-editor.js / control. Comparison `T-tassets-seed-1.png`
+- [x] T-set-1. Wear Light fantasy and generate another seeded variation; edit its pieces. human-armour.js / armourSet, human-tailor-editor.js / dress. Comparison `T-set-1.png` Variation `T-set-1-variation.png`
+- [x] T-set-2. Wear Heavy fantasy and generate another seeded variation; edit its pieces. human-armour.js / armourSet, human-tailor-editor.js / dress. Comparison `T-set-2.png` Variation `T-set-2-variation.png`
+- [x] T-set-3. Wear Light sci-fi and generate another seeded variation; edit its pieces. human-armour.js / armourSet, human-tailor-editor.js / dress. Comparison `T-set-3.png` Variation `T-set-3-variation.png`
+- [x] T-set-4. Wear Heavy sci-fi and generate another seeded variation; edit its pieces. human-armour.js / armourSet, human-tailor-editor.js / dress. Comparison `T-set-4.png` Variation `T-set-4-variation.png`
+- [x] T-layers-1. Lay out the starter pieces using the current cloth colour. human-tailor-editor.js / tailorEditor, human-tailor.js / tailorHuman. Comparison `T-layers-1.png`
+- [x] T-layers-2. Add each piece and prevent a thirteenth layer. human-tailor-editor.js / tailorEditor, human-tailor.js / tailorHuman. Comparison `T-layers-2.png`
+- [x] T-layers-3. Wear earlier and later, enforcing ends; boots over or under trousers according to order. human-tailor-editor.js / tailorEditor, human-tailor.js / tailorHuman. Comparison `T-layers-3.png` Later `T-layers-3-later.png`
+- [x] T-layers-4. Remove one layer or clear all, restoring the selected clothing. human-tailor-editor.js / tailorEditor, human-tailor.js / tailorHuman. Comparison `T-layers-4.png`
+- [x] T-layers-5. Keep layers through Anatomy, Base layer and Pressure suit; restore under Work clothes. human-tailor-editor.js / tailorEditor, human-tailor.js / tailorHuman. Comparison `T-layers-5.png` 1 `T-layers-5-1.png` 2 `T-layers-5-2.png` 3 `T-layers-5-3.png`
+- [x] T-layers-6. Apply a torso mail finish, plated gorget, articulated guards and mantle facing, fastening and movement. human-tailor-editor.js / tailorEditor, human-tailor.js / tailorHuman. Comparison `T-layers-6.png`
+
+## Stacked cuts and paired adult wings
+
+- [x] G-1. Add Cape to the same host in sequence, compare its anchors, openings and silhouette with earlier layers still visible. Inspect the final skirt hem, exposed legs and any detached waist ring. graft.js / garmentBlock, cutGarment; wardrobe-editor.js / wardrobeEditor. Comparison `G-1.png`
+- [x] G-2. Add Poncho to the same host in sequence, compare its anchors, openings and silhouette with earlier layers still visible. Inspect the final skirt hem, exposed legs and any detached waist ring. graft.js / garmentBlock, cutGarment; wardrobe-editor.js / wardrobeEditor. Comparison `G-2.png`
+- [x] G-3. Add Tabard to the same host in sequence, compare its anchors, openings and silhouette with earlier layers still visible. Inspect the final skirt hem, exposed legs and any detached waist ring. graft.js / garmentBlock, cutGarment; wardrobe-editor.js / wardrobeEditor. Comparison `G-3.png`
+- [x] G-4. Add Skirt to the same host in sequence, compare its anchors, openings and silhouette with earlier layers still visible. Inspect the final skirt hem, exposed legs and any detached waist ring. graft.js / garmentBlock, cutGarment; wardrobe-editor.js / wardrobeEditor. Comparison `G-4.png`
+- [x] W-bat. Mount two bat wings on the adult, compare scapular origins, span, rise, sweep, chord and tips from front and back. Refit after reshaping the adult. human-creature-mount.js / attachCreatureLimbs, reseatCreatureLimbs; wing-surface.js / wingGeometry. Comparison `W-bat.png` Refit `W-bat-refit.png`
+- [x] W-feather. Mount two feather wings on the adult, compare scapular origins, span, rise, sweep, chord and tips from front and back. Refit after reshaping the adult. human-creature-mount.js / attachCreatureLimbs, reseatCreatureLimbs; wing-surface.js / wingGeometry. Comparison `W-feather.png` Refit `W-feather-refit.png`
+- [x] W-insect. Mount two insect wings on the adult, compare scapular origins, span, rise, sweep, chord and tips from front and back. Refit after reshaping the adult. human-creature-mount.js / attachCreatureLimbs, reseatCreatureLimbs; wing-surface.js / wingGeometry. Comparison `W-insect.png` Refit `W-insect-refit.png`
+
+The floating waist ring is a browser bug. On adult seed 8973 the pelvis cut gets a 0.025 m drop because graft.js / bodyFrame uses the chest (minimum y 1.2415 m) as the floor. The underlying outfit supplies the visible skirt. Use the actual knee joints for the editable desktop skirt.
