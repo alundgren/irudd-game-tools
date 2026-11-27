@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { Vector3 } from "three";
+import { buildCharacter, clayMaterials } from "@irudd/character";
 import {
   dressedAdult,
-  humanAdultGenerator,
   humanLooks,
   seededHumanAdult,
   unbraidedLook8950,
@@ -10,6 +11,7 @@ import {
   type HumanLook,
 } from "@irudd/character/human";
 import { parseGlb } from "../src/glb.js";
+import { isMesh } from "../../../packages/character/src/mesh.js";
 import { loadHumanBody } from "../src/human-assets.js";
 import { accessorDigest, adultStore, clayBytes, documentOf } from "../src/human-clay.js";
 import { installNodeExporter } from "../src/node-exporter.js";
@@ -63,12 +65,32 @@ test("the hair is a style field a steer changes", async () => {
   assert.notEqual(after, before, "the side part is grown in place of the crop");
 });
 
-test("a cut the port does not grow is refused at its field", () => {
-  const params = wearing(dayDress, "Crop");
-  const result = humanAdultGenerator(body).params({
-    ...params,
-    style: { ...params.style, hair: "Bob" },
+test("Bob fits the browser's swept-left roots and strands to the reference head", () => {
+  const params = { ...wearing(dayDress, "Bob"), human: { height: 1.72 } };
+  const built = buildCharacter(documentOf(store.generate(params, "Bob")), {
+    human: body,
+    materials: clayMaterials(),
   });
-  assert.ok(!result.ok);
-  assert.deepEqual(result.diagnostics[0]?.path, ["params", "style", "hair"]);
+  try {
+    for (const [name, vertices, triangles, sizeMm] of [
+      ["Bob roots", 1567, 2816, [151, 162, 189]],
+      ["Bob", 9158, 8518, [228, 239, 232]],
+    ] as const) {
+      const mesh = built.group.getObjectByName(name);
+      assert.ok(mesh && isMesh(mesh), name);
+      const { geometry } = mesh;
+      assert.equal(geometry.getAttribute("position").count, vertices);
+      assert.equal(geometry.index?.count, triangles * 3);
+      geometry.computeBoundingBox();
+      assert.ok(geometry.boundingBox);
+      const size = geometry.boundingBox.getSize(new Vector3()).multiplyScalar(1000).toArray();
+      for (const axis of [0, 1, 2] as const)
+        assert.ok(
+          Math.abs(size[axis] - sizeMm[axis]) < 1,
+          `${name} axis ${axis}: ${size[axis]} mm`,
+        );
+    }
+  } finally {
+    built.dispose();
+  }
 });

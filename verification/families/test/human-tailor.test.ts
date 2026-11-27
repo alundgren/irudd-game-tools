@@ -16,6 +16,7 @@ import {
   type HumanAdultParams,
 } from "@irudd/character/human";
 import { parseGlb } from "../src/glb.js";
+import { isMesh } from "../../../packages/character/src/mesh.js";
 import { loadHumanBody } from "../src/human-assets.js";
 import { adultStore, clayBytes, documentOf, meshValues } from "../src/human-clay.js";
 import { g0LookPieces, surfaceDigest } from "../src/human-dressed.js";
@@ -136,7 +137,7 @@ test("the dressed adult's clay export is G0's, piece by piece", async () => {
   );
 });
 
-test("a fringe edit combs the hair and an unfitted hair style is refused", async () => {
+test("a fringe edit combs the long hair and a second steer fits the browser's Sleek bob", async () => {
   let s = generate(dressed);
   const hairOf = async () => {
     const glb = parseGlb(await clayBytes(documentOf(s), body));
@@ -155,20 +156,27 @@ test("a fringe edit combs the hair and an unfitted hair style is refused", async
   const combed = await hairOf();
   assert.equal(combed.triangles, swept.triangles);
   assert.notEqual(combed.digest, swept.digest);
-  assert.throws(() =>
-    store.commit(s, {
-      type: "edit",
-      ops: [
-        {
-          op: "generation.steer",
-          params: {
-            ...dressed,
-            style: { ...dressed.style, hair: "Sleek bob" },
-          },
-        },
-      ],
-    }),
-  );
+  const bob = { ...parted, style: { ...parted.style, hair: "Sleek bob" } } as const;
+  s = store.commit(s, { type: "edit", ops: [{ op: "generation.steer", params: bob }] });
+  const built = buildCharacter(documentOf(s), { human: body, materials: clayMaterials() });
+  try {
+    assert.equal(built.group.getObjectByName("Long centre part"), undefined);
+    const cards = built.group.getObjectByName("Sleek bob");
+    assert.ok(cards && isMesh(cards));
+    assert.equal(cards.userData["libraryHair"], "bob_blunt");
+    const { geometry } = cards;
+    assert.equal(geometry.getAttribute("position").count, 12939);
+    assert.ok(geometry.index);
+    assert.equal(
+      createHash("sha256")
+        .update(new Uint8Array(Uint32Array.from(geometry.index.array).buffer))
+        .digest("hex"),
+      "e0c374575aaba60f77b48d91a69b53b3106bc67a0d4c450171f302cbbb56af05",
+      "the fitted cards use the browser's authored triangles",
+    );
+  } finally {
+    built.dispose();
+  }
 });
 
 test("an outfit edit steers the export while a held region edit stays", async () => {
