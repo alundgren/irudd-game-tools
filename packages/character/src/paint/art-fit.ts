@@ -2,6 +2,7 @@ import { Schema } from "effect";
 import {
   FeatureId,
   figureAnatomy,
+  figureHairCap,
   figurePaint,
   figurePortraitDepth,
   figureSweep,
@@ -377,4 +378,23 @@ export function jsonOperations(ops: ReadonlyArray<Operation>): Json[] {
   const copy: unknown = JSON.parse(JSON.stringify(ops));
   if (!isJson(copy) || !isJsonArray(copy)) throw new ArtFitError("The fit produced no operations.");
   return [...copy];
+}
+
+export type PaintedEdit = "whole" | "replace" | "revise" | "wear" | "scalp";
+export function fittedEditRefusal(
+  action: PaintedEdit,
+  target: Part | undefined,
+  protectedIds: readonly string[],
+) {
+  if (action === "whole") return;
+  if (!target) return "Select a part to fit the returned artwork.";
+  if (action !== "wear" && protectedIds.includes(target.id))
+    return "Remove the shape lock before changing this part.";
+  if (action === "revise") return depthRefusal(target);
+  if (action === "scalp") {
+    const cap = figureHairCap.read(target.features);
+    if (!cap || cap.sourceOnly || !figurePaint.read(target.features)?.portrait)
+      return "Choose a calibrated portrait with its fitted source hairstyle.";
+  }
+  return undefined;
 }

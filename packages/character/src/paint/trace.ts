@@ -43,6 +43,8 @@ export function traceRegion(
   height: number,
   track: ReadonlyArray<TrackRow>,
   samples = 26,
+  pivotEnd: "top" | "bottom" = "bottom",
+  profile = 1,
 ): Binding {
   const knots: number[][] = [];
   const first = row(track, 0);
@@ -80,7 +82,7 @@ export function traceRegion(
           0.25 * row(row(prev, i + 1), j);
       }
   }
-  const base = row(knots, 0);
+  const base = row(knots, pivotEnd === "top" ? knots.length - 1 : 0);
   const pivot = [row(base, 0), row(base, 1), row(base, 2)] as const;
   const rest = knots.map(
     (k) =>
@@ -92,5 +94,5 @@ export function traceRegion(
         row(k, 4),
       ] as const,
   );
-  return { atlas, region, height, offset: pivot, rest, profile: 1 };
+  return { atlas, region, height, offset: pivot, rest, profile };
 }

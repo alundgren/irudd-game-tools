@@ -119,7 +119,9 @@ export function registerArtTools(server: McpServer, host: HostConnection): void 
             ? "operations: an array of document operations against the brief's revision"
             : view.brief.kind === "trace"
               ? `traceMap: an ${traceMapFormat} object`
-              : "imageFile or imageBase64: the picture you generated";
+              : view.brief.paintAction
+                ? "imageFile or imageBase64 and the traceMap for the fitted regions; include coverage for a wearable"
+                : "imageFile or imageBase64: the picture you generated";
         return {
           content: [
             {
@@ -173,7 +175,10 @@ export function registerArtTools(server: McpServer, host: HostConnection): void 
           .optional()
           .describe("Turnaround: standing height in metres."),
         coverage: z.enum(["open", "closed"]).optional().describe("Turnaround of a wearable."),
-        traceMap: z.unknown().optional().describe(`Trace: the ${traceMapFormat} object.`),
+        traceMap: z
+          .unknown()
+          .optional()
+          .describe(`Trace or fitted turnaround: the ${traceMapFormat} object.`),
         operations: z.array(z.unknown()).optional().describe("Variation: document operations."),
       },
       annotations: { readOnlyHint: false, idempotentHint: true, openWorldHint: false },
@@ -199,6 +204,7 @@ export function registerArtTools(server: McpServer, host: HostConnection): void 
                   kind,
                   image: stored.digest,
                   ...(args.height === undefined ? {} : { height: args.height }),
+                  ...(args.traceMap === undefined ? {} : { traceMap: args.traceMap }),
                   ...(args.coverage === undefined ? {} : { coverage: args.coverage }),
                 };
         } else if (kind === "trace") reply = { ...header, kind, traceMap: args.traceMap };

@@ -84,6 +84,7 @@ export interface ExportOptions {
   readonly materials?: MaterialSource;
   readonly human?: HumanBody;
   readonly humanPaint?: HumanPaintSources;
+  readonly coverage?: boolean;
   readonly staticMesh?: boolean;
   readonly wardrobe?: boolean;
 }
@@ -260,7 +261,7 @@ export async function exportCharacter(
       });
       let rig: Rig | undefined;
       try {
-        if (!options.staticMesh) rig = skinCharacter(character);
+        if (!options.staticMesh) rig = skinCharacter(character, false, options.coverage);
       } catch (error) {
         character.dispose();
         throw error;

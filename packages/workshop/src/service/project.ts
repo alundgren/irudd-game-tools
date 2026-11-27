@@ -729,9 +729,9 @@ const makeProject = (
           const result = diffRevisions(loaded.state, from, to);
           return result.ok ? { ok: true, from, to, changes: result.value } : result;
         }),
-      draft: (documentId, proposalId) =>
+      draft: (documentId, proposalId, version) =>
         Effect.map(existing(documentId), (loaded): DraftView => {
-          const result = previewProposal(loaded.state, proposalId);
+          const result = previewProposal(loaded.state, proposalId, version);
           if (!result.ok) return result;
           const p = result.value;
           return {

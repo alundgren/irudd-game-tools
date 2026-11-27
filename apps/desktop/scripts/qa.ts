@@ -739,7 +739,7 @@ try {
   agent?.close();
   await app?.close().catch(() => undefined);
   console.log(JSON.stringify({ results, problems, scratch: keep ? scratch : undefined }, null, 2));
-  if (!keep) rmSync(scratch, { recursive: true, force: true });
+  if (!keep) rmSync(scratch, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
 }
 if (problems.length) {
   console.error("Page errors were reported.");

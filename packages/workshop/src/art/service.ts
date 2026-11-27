@@ -75,6 +75,7 @@ export interface ArtTranslatorInput {
 }
 
 export interface ArtTranslation {
+  readonly fit?: { readonly needsRepair: boolean; readonly score: number };
   readonly operations: ReadonlyArray<Json>;
   readonly notes?: ReadonlyArray<string>;
 }
@@ -216,10 +217,12 @@ function proposalCommand(
     documentId: brief.documentId,
     expectedRevision: brief.revision,
     command: {
-      type: "proposal.create",
+      ...(brief.refinement
+        ? { type: "proposal.refine", version: brief.refinement.version }
+        : { type: "proposal.create" }),
       proposal,
       summary: (notes.length ? `${summary} (${notes.join(" ")})` : summary).slice(0, 500),
-      content: { kind: "ops", ops },
+      content: { kind: brief.refinement ? "draft-ops" : "ops", ops },
     },
   } as const;
 }
@@ -242,7 +245,7 @@ const kindInstructions: Record<ArtRoute, ReadonlyArray<string>> = {
   turnaround: [
     "Generate one original, nonsexualized square 2x2 orthographic turnaround with your image tool: top left exact front (+Z), top right profile with the nose pointing LEFT, bottom left exact rear, bottom right profile pointing RIGHT.",
     "Equal square cells, same pose, floor and scale in every view, 5% margin, even diffuse lighting, a uniform #ff00ff background in every gap; no floor, shadow, lines, text or extra figures.",
-    "The editor reuses the existing geometry and projects these colours onto the listed painted regions, so keep the attached source sheet's registration, silhouette and framing exactly.",
+    "For a repaint, the editor reuses the existing geometry and projects these colours onto the listed painted regions, so keep the attached source sheet's registration, silhouette and framing exactly.",
   ],
   trace: [
     "Trace corresponding visible volumes in the attached front and left-facing profile views. Use no image generation.",
@@ -485,11 +488,21 @@ export class Art {
 
   async request(
     person: Actor,
-    p: { readonly agent: string; readonly requestId: string; readonly brief: ArtBrief },
+    p: {
+      readonly agent: string;
+      readonly requestId: string;
+      readonly brief: ArtBrief;
+      readonly offline?: boolean;
+    },
   ): Promise<ArtRequestView> {
     return this.serial(async () => {
       const { project, store } = this.options;
-      const artId = artRequestId(project.info.projectId, p.agent, p.requestId);
+      const recipient = p.offline ? "offline" : p.agent;
+      const artId = artRequestId(
+        project.info.projectId,
+        p.offline ? "file:offline" : recipient,
+        p.requestId,
+      );
       const existing = store.request(artId);
       if (existing) {
         if (!sameJson(existing.brief, p.brief))
@@ -498,6 +511,7 @@ export class Art {
             `Request ${p.requestId} already sent a different brief to ${p.agent}. Use a new request ID.`,
             { artId },
           );
+        if (p.offline) return this.view(existing);
         const delivered = await this.redeliver(person, existing);
         if (delivered) return this.view(delivered);
       }
@@ -529,7 +543,15 @@ export class Art {
       }
       if (brief.kind === "turnaround") {
         const parts = brief.parts ?? [];
-        if (parts.length === 0)
+        if (brief.paintAction && parts.length !== (brief.paintAction === "whole" ? 0 : 1))
+          problems.push(
+            diagnostic(
+              "schema",
+              ["brief", "parts"],
+              "Choose one target for a fitted edit or no target for a whole character.",
+            ),
+          );
+        if (!brief.paintAction && parts.length === 0)
           problems.push(
             diagnostic("schema", ["brief", "parts"], "Name the painted regions to repaint."),
           );
@@ -544,7 +566,10 @@ export class Art {
                 `Revision ${brief.revision} has no part ${id}.`,
               ),
             );
-          else if (!part.paint)
+          else if (
+            !part.paint &&
+            (!brief.paintAction || brief.paintAction === "revise" || brief.paintAction === "scalp")
+          )
             problems.push(
               diagnostic(
                 "schema",
@@ -552,7 +577,7 @@ export class Art {
                 `${id} is not painted from a turnaround sheet.`,
               ),
             );
-          else atlases.add(part.paint.atlas);
+          else if (part.paint) atlases.add(part.paint.atlas);
         }
         const [atlas] = atlases;
         if (atlas !== undefined && atlases.size === 1)
@@ -605,25 +630,29 @@ export class Art {
           diagnostics: problems,
           path: ["params", ...(problems[0]?.path ?? [])],
         });
-      const pairingId = this.options.pairings.pairingId(p.agent);
+      const pairingId = p.offline ? "file:offline" : this.options.pairings.pairingId(recipient);
       if (!pairingId)
         throw new ArtError("AgentNotPaired", `Agent ${p.agent} is not paired with this project.`, {
           agent: p.agent,
         });
-      this.options.steering.requireConnected(p.agent);
+      if (!p.offline) this.options.steering.requireConnected(recipient);
       const stored = store.insertRequest({
         artId,
-        agent: p.agent,
+        agent: recipient,
         pairingId,
         requestId: p.requestId,
-        messageId: steeringMessageId(project.info.projectId, p.agent, p.requestId),
+        messageId: steeringMessageId(
+          project.info.projectId,
+          p.offline ? "file:offline" : recipient,
+          p.requestId,
+        ),
         brief,
         files,
         createdAt: this.now(),
         createdBy: person,
       });
       this.options.cut?.("request-stored");
-      await this.deliver(person, stored);
+      if (!p.offline) await this.deliver(person, stored);
       return this.view(stored);
     });
   }
@@ -676,6 +705,15 @@ export class Art {
         : `Art request ${artId}: ${brief.kind}, an ${artBriefFormat} v1 brief for ${brief.documentId} at revision ${brief.revision}.`,
       "",
       brief.direction,
+      ...(brief.nudge
+        ? [
+            "Nudge before fitting " +
+              (brief.nudge.target ?? "the whole character") +
+              ": " +
+              JSON.stringify(brief.nudge.amounts) +
+              ". Sizes and face use percent, moves use centimetres and turns use degrees.",
+          ]
+        : []),
       ...(brief.variation
         ? [
             brief.variation.strength + " variation, magnitude " + brief.variation.magnitude + "%",
@@ -688,6 +726,11 @@ export class Art {
         const f = files[i];
         return `Attachment ${i + 1}, ${a.role}${a.label ? ` (${a.label})` : ""}: ${a.digest}${f ? `, ${f.width} × ${f.height} ${f.mediaType}` : ""}`;
       }),
+      ...(brief.paintAction
+        ? [
+            `Painted edit: ${brief.paintAction}. Return a registered four-view image and a traceMap for its editable regions. For a wearable, draw the isolated garment and specify open or closed coverage. For scalp fitting, supply an isolated clean portrait with five face landmarks.`,
+          ]
+        : []),
       ...(brief.parts?.length ? [`Parts: ${brief.parts.join(", ")}`] : []),
       ...(brief.height !== undefined ? [`Height: ${brief.height} m`] : []),
       ...(brief.protected?.length ? [`Protected regions: ${brief.protected.join(", ")}`] : []),
@@ -710,12 +753,16 @@ export class Art {
     const id = request.artId;
     const kind = request.brief.kind;
     const at = briefRoute(request.brief);
+    const sheetOptions = request.brief.paintAction
+      ? " --trace-map <trace-map.json>" +
+        (request.brief.paintAction === "wear" ? " --coverage <open|closed>" : "")
+      : "";
     const reply =
       kind === "variation"
         ? `--ops <operations.json>`
         : kind === "trace"
           ? `--trace-map <trace-map.json>`
-          : `--image <file.png>${kind === "turnaround" ? " [--height <m>]" : ""}`;
+          : `--image <file.png>${kind === "turnaround" ? " [--height <m>]" + sheetOptions : ""}`;
     return [
       ...kindInstructions[at],
       ...(this.translators.get(at)?.guidance ?? []),
@@ -881,6 +928,17 @@ export class Art {
             `The brief asks for a ${brief.kind} reply, not ${p.reply.kind}.`,
           ),
         ]);
+      if (
+        source.stale &&
+        (brief.paintAction || brief.refinement || request.pairingId === "file:offline")
+      )
+        return reject([
+          diagnostic(
+            "stale-revision",
+            ["brief", "revision"],
+            "The character changed. Prepare a brief at the current revision.",
+          ),
+        ]);
       let earlier: StoredSubmission | undefined;
       for (const s of store.submissions(request.artId)) {
         if (s.replyDigest !== digest || s.state === "rejected") continue;
@@ -948,12 +1006,18 @@ export class Art {
       const credited = prepared.ops;
       const requestId = artCommandId(request.artId, via, caller.actor.id, digest);
       const prior = await Effect.runPromise(project.receipt(brief.documentId, requestId));
-      const proposalId = prior?.proposal?.id ?? (await this.nextProposal(request));
+      const proposalId =
+        brief.refinement?.proposal ?? prior?.proposal?.id ?? (await this.nextProposal(request));
       const pending = store.insertPending({
         ...base,
         files,
         translator: translator.id,
-        proposal: { id: proposalId, version: 1, requestId, baseRevision: brief.revision },
+        proposal: {
+          id: proposalId,
+          version: (brief.refinement?.version ?? 0) + 1,
+          requestId,
+          baseRevision: brief.revision,
+        },
       });
       this.options.cut?.("submission-pending");
       let outcome: ApplyResult;
@@ -1073,12 +1137,84 @@ export class Art {
           diagnostic("unknown-revision", ["brief", "revision"], "The brief's revision is gone."),
         ],
       };
+    const prior =
+      brief.refinement &&
+      (await Effect.runPromise(
+        this.options.project.draft(brief.documentId, brief.refinement.proposal),
+      ));
+    if (
+      prior &&
+      (!prior.ok ||
+        prior.proposal.status !== "draft" ||
+        prior.proposal.version !== brief.refinement?.version ||
+        prior.proposal.baseRevision !== brief.revision ||
+        prior.stale)
+    )
+      return {
+        ok: false,
+        diagnostics: [
+          diagnostic(
+            "proposal-version",
+            ["brief", "refinement"],
+            "The character or proposal changed. Request a fresh refinement.",
+          ),
+        ],
+      };
+    const document = prior?.ok ? prior.preview : at.document;
     let ops: ReadonlyArray<Json>;
     let notes: ReadonlyArray<string> = [];
     const read = async (digest: string): Promise<Uint8Array> =>
       (await Effect.runPromise(this.options.project.blob(digest))).bytes;
     try {
-      const made = await translator.translate({ brief, document: at.document, reply, files, read });
+      let made = await translator.translate({ brief, document, reply, files, read });
+      if (
+        brief.paintAction &&
+        reply.kind === "turnaround" &&
+        isTranslation(made) &&
+        made.fit?.needsRepair
+      ) {
+        const prior = this.options.store
+          .submissions(request.artId)
+          .find(
+            (s) =>
+              s.reply.kind === "turnaround" &&
+              s.reply.image === reply.image &&
+              s.diagnostics.some((d) => d.path.join(".") === "reply.traceMap.repair"),
+          );
+        if (!prior)
+          return {
+            ok: false,
+            diagnostics: [
+              diagnostic(
+                "schema",
+                ["reply", "traceMap", "repair"],
+                "Refit the missed outlines and submit a corrected trace map with the same artwork and a fresh submission ID. " +
+                  (made.notes ?? []).join(" "),
+              ),
+            ],
+          };
+        if (
+          prior.reply.kind === "turnaround" &&
+          prior.reply.traceMap &&
+          !sameJson(prior.reply.traceMap, reply.traceMap ?? null)
+        ) {
+          const earlier = await translator.translate({
+            brief,
+            document,
+            reply: prior.reply,
+            files,
+            read,
+          });
+          if (isTranslation(earlier) && earlier.fit && earlier.fit.score > made.fit.score)
+            made = {
+              ...earlier,
+              notes: [
+                ...(earlier.notes ?? []),
+                "Used the better fitting map from the first attempt.",
+              ],
+            };
+        }
+      }
       if (isTranslation(made)) {
         ops = made.operations;
         notes = made.notes ?? [];
@@ -1096,12 +1232,12 @@ export class Art {
         ],
       };
     }
-    if (ops.length === 0)
+    if (ops.length === 0 && !brief.refinement)
       return {
         ok: false,
         diagnostics: [diagnostic("no-change", ["reply"], "The reply changes nothing.")],
       };
-    const credited = creditOperations(at.document, ops, {
+    const credited = creditOperations(document, ops, {
       via: caller.role === "agent" ? "agent" : "person-import",
       submittedBy: caller.actor,
       artId: request.artId,

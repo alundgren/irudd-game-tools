@@ -401,7 +401,13 @@ try {
   assert.equal(await state(page, traced), painted);
   await save("Hand traced courier");
   await page.fill("#variation-name", "Courier alternate");
-  await changeDoc(() => page.click("#save-variation"));
+  await page.click("#save-variation");
+  const stored = page.locator("#document option").filter({ hasText: "Courier alternate" }).last();
+  await stored.waitFor({ state: "attached" });
+  assert.equal(await page.inputValue("#document"), traced);
+  const alternate = await stored.getAttribute("value");
+  assert.ok(alternate);
+  await changeDoc(() => page.selectOption("#document", alternate));
   await select("p-traced-body");
   await page.click("#camera-front");
   await page.click("#focus-selection");

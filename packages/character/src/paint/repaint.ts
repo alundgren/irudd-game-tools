@@ -60,6 +60,23 @@ export function retainRemovedPaint(doc: CharacterDocument, removed: readonly str
   };
 }
 
+export function paintedBranch(
+  doc: CharacterDocument,
+  target: string,
+  locked: ReadonlySet<string>,
+): PartId[] {
+  const atlas = doc.parts.find((p) => p.id === target)?.paint?.atlas;
+  if (!atlas || locked.has(target)) return [];
+  const branch = new Set([target]);
+  let count = 0;
+  while (count !== branch.size) {
+    count = branch.size;
+    for (const part of doc.parts)
+      if (part.parent && branch.has(part.parent) && !locked.has(part.id)) branch.add(part.id);
+  }
+  return doc.parts.filter((p) => branch.has(p.id) && p.paint?.atlas === atlas).map((p) => p.id);
+}
+
 export class RepaintError extends Error {}
 
 export function repaintOperations(

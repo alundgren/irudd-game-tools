@@ -1,10 +1,12 @@
 import type { BriefDraft } from "./art-files.js";
 import {
-  descendants,
+  figureHairCap,
   type AssetAttribution,
   type CharacterDocument,
   type Part,
 } from "@irudd/document";
+import { paintNudgeAxes } from "@irudd/character/paint-nudge";
+import { paintedBranch } from "@irudd/character/repaint";
 import { ArtFitError, depthRefusal, traceTarget } from "@irudd/character/art-fit";
 import { buildAnchorRefusal } from "@irudd/character/trace-build";
 import type {
@@ -26,6 +28,7 @@ import {
   extensionOf,
   importedReply,
   readPicture,
+  toBase64,
   resendRequest,
   rolesShown,
   stagePicture,
@@ -44,7 +47,13 @@ export interface ArtOptions {
   readonly current: () =>
     | { readonly documentId: string; readonly revision: number; readonly doc: CharacterDocument }
     | undefined;
+  readonly locks: () => ReadonlySet<string>;
   readonly selection: () => string | null;
+  readonly measured: (
+    target: string | null,
+    rear?: boolean,
+    nudge?: NonNullable<BriefDraft["nudge"]>,
+  ) => Promise<{ bytes: Uint8Array; height: number }>;
   readonly capture: (view: CaptureView, frameHead: boolean) => Promise<Uint8Array>;
   readonly picture: (
     digest: string,
@@ -70,6 +79,8 @@ function fitRefusal(
 }
 
 export interface ArtPanel {
+  selectedAgent(): string;
+  originalBrief(id: string): BriefDraft | undefined;
   protectedParts(id: string): readonly string[];
   refresh(): Promise<void>;
   redraw(): void;
@@ -114,10 +125,12 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
   let lastSnapshot = "";
   let pending: Pending[] = [];
   let kind: ArtKind = "variation";
+  let paintAction: BriefDraft["paintAction"];
   let intent: TraceIntent = "fit";
   let attachmentRole: AttachmentRole = "whole";
   let agent = "";
   let direction = "";
+  let nudge: Record<string, number> = {};
   let sourceOptions: Pick<ArtRequestView["brief"], "height" | "protected"> = {};
   let composingFor: { documentId: string; revision: number } | undefined;
   let draftEpoch = 0;
@@ -203,6 +216,8 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
       clearPending();
       parts.clear();
       direction = "";
+      paintAction = undefined;
+      nudge = {};
       sourceOptions = {};
     } else if (composingFor.revision !== now.revision) {
       const before = pending.length;
@@ -237,7 +252,9 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
     kindSelect.onchange = () => {
       const next = artKindsShown.find((k) => k.kind === kindSelect.value)?.kind;
       if (next) kind = next;
+      paintAction = undefined;
       attachmentRole = kind === "trace" || kind === "depth" ? "front" : "whole";
+      nudge = {};
       sourceOptions = {};
       parts = new Set();
       intent = "fit";
@@ -251,6 +268,7 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
     text.value = direction;
     text.oninput = () => {
       direction = text.value;
+      offline.disabled = !direction.trim() || needs.length > 0;
       send.disabled = !connected || !direction.trim() || needs.length > 0;
     };
 
@@ -273,7 +291,39 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
       text,
     );
 
-    if (kind === "turnaround" || kind === "variation") {
+    if (kind === "turnaround") {
+      const mode = el("select");
+      mode.setAttribute("aria-label", "Painted edit");
+      const target = now.doc.parts.find((p) => p.id === options.selection());
+      const cap = target && figureHairCap.read(target.features);
+      const modes = [
+        ["", "Repaint existing geometry", true],
+        ["whole", "Design a whole character", true],
+        ["replace", "Redesign this part", !!target],
+        ["wear", "Fit an isolated garment to this part", !!target],
+        ["revise", "Revise this portrait from its source art", target && !depthRefusal(target)],
+        ["scalp", "Fit a clean scalp under this hair", cap && !cap.sourceOnly],
+      ] as const;
+      for (const [value, label, available] of modes)
+        if (available) mode.append(new Option(label, value));
+      if (!modes.some(([value, , available]) => value === paintAction && available))
+        paintAction = undefined;
+      mode.value = paintAction ?? "";
+      mode.onchange = () => {
+        paintAction = modes.find(([value]) => value === mode.value)?.[0] || undefined;
+        clearPending(true);
+        parts.clear();
+        render();
+      };
+      box.append(mode);
+      if (paintAction) {
+        parts = new Set(target && paintAction !== "whole" ? [target.id] : []);
+        box.append(
+          el("p", { text: paintAction === "whole" ? "Whole character" : (target?.label ?? "") }),
+        );
+      }
+    }
+    if ((kind === "turnaround" && !paintAction) || kind === "variation") {
       const choices =
         kind === "turnaround"
           ? paintedParts(now.doc)
@@ -287,7 +337,9 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
         const tick = el("input");
         tick.type = "checkbox";
         tick.checked = parts.has(c.id);
-        tick.disabled = sheet !== undefined && c.atlas !== sheet;
+        tick.disabled =
+          kind === "turnaround" &&
+          (options.locks().has(c.id) || (sheet !== undefined && c.atlas !== sheet));
         tick.onchange = () => {
           if (tick.checked) parts.add(c.id);
           else parts.delete(c.id);
@@ -299,10 +351,7 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
       if (kind === "turnaround" && selected && branchAtlas) {
         list.prepend(
           button("Select painted branch", () => {
-            const branch = descendants(now.doc, selected);
-            parts = new Set(
-              choices.filter((c) => c.atlas === branchAtlas && branch.has(c.id)).map((c) => c.id),
-            );
+            parts = new Set(paintedBranch(now.doc, selected, options.locks()));
             render();
           }),
         );
@@ -385,6 +434,70 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
       );
     }
 
+    if (kind === "turnaround" || kind === "depth") {
+      const id = paintAction === "whole" ? null : (options.selection() ?? [...parts][0]);
+      const target = now.doc.parts.find((p) => p.id === id);
+      const details = el("details");
+      details.append(
+        el("summary", { text: "Nudge before fitting" }),
+        el("p", {
+          className: "muted",
+          text: "Use percent for size and facial features, centimetres for moves, and degrees for turns.",
+        }),
+      );
+      const axes = paintNudgeAxes(now.doc, target);
+      nudge = Object.fromEntries(Object.entries(nudge).filter(([axis]) => axes.includes(axis)));
+      for (const axis of axes) {
+        const field = el("input");
+        field.type = "number";
+        field.min = "-40";
+        field.max = "40";
+        field.step = "1";
+        field.value = String(nudge[axis] ?? 0);
+        field.oninput = () => {
+          if (field.validity.valid && field.valueAsNumber) nudge[axis] = field.valueAsNumber;
+          else delete nudge[axis];
+        };
+        details.append(el("label", { className: "steer-field" }, axis, field));
+      }
+      box.append(details);
+    }
+    if (kind === "turnaround") {
+      const target = paintAction === "whole" ? null : options.selection();
+      box.append(
+        button("Capture measured views", async () => {
+          try {
+            const adjustment = Object.keys(nudge).length
+              ? { target, amounts: { ...nudge } }
+              : undefined;
+            const whole = await options.measured(null, false, adjustment);
+            const detail = await options.measured(target, !target, adjustment);
+            if (epoch !== draftEpoch || options.current()?.revision !== now.revision) return;
+            await attach(
+              "whole",
+              whole.bytes,
+              epoch,
+              "Whole character, " + whole.height.toFixed(3) + " m",
+            );
+            await attach(
+              target ? "close-up" : "back",
+              detail.bytes,
+              epoch,
+              (target ? "Selected part alone, " : "Rear quarter, ") +
+                detail.height.toFixed(3) +
+                " m",
+            );
+            if (epoch === draftEpoch)
+              sourceOptions = {
+                ...sourceOptions,
+                height: Math.max(0.15, Math.min(6, detail.height)),
+              };
+          } catch (error) {
+            say(failure(error));
+          }
+        }),
+      );
+    }
     const role = el("select");
     role.setAttribute("aria-label", "Attachment role");
     for (const r of rolesShown) role.append(new Option(r, r));
@@ -454,10 +567,16 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
       pending.map((a) => a.role),
       [...parts],
       kind === "trace" && intent === "build",
+      paintAction === "whole",
     );
     const send = button("Send brief", () => {
       void sendBrief(now.documentId, now.revision, sheet);
     });
+    const offline = button(
+      "Prepare offline brief",
+      () => void sendBrief(now.documentId, now.revision, sheet, true),
+    );
+    offline.disabled = !direction.trim() || needs.length > 0;
     send.disabled = !connected || !direction.trim() || needs.length > 0;
     box.append(
       el("p", {
@@ -470,12 +589,17 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
               ? `Still needed: ${needs.join(", ")}.`
               : `For revision ${now.revision}${sheet ? `, with the current sheet ${sheet.slice(0, 19)}…` : ""}.`,
       }),
-      el("div", { className: "row-actions" }, send),
+      el("div", { className: "row-actions" }, send, offline),
     );
     return box;
   }
 
-  async function sendBrief(documentId: string, revision: number, sheet: string | undefined) {
+  async function sendBrief(
+    documentId: string,
+    revision: number,
+    sheet: string | undefined,
+    offline = false,
+  ) {
     if (
       sending ||
       options.current()?.documentId !== documentId ||
@@ -500,24 +624,38 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
       revision,
       direction: direction.trim(),
       ...sourceOptions,
+      ...(Object.keys(nudge).length && (kind === "turnaround" || kind === "depth")
+        ? {
+            nudge: {
+              target:
+                paintAction === "whole" ? null : (options.selection() ?? [...parts][0] ?? null),
+              amounts: { ...nudge },
+            },
+          }
+        : {}),
+      ...(kind === "turnaround" && paintAction ? { paintAction } : {}),
       attachments,
       ...(parts.size ? { parts: [...parts] } : {}),
       ...(kind === "trace" && intent === "build" ? { intent } : {}),
     });
     try {
       const sent = await host.call("art.request", {
-        agent,
+        agent: offline ? "offline" : agent,
+        ...(offline ? { offline } : {}),
         requestId: undeliveredRequestId(requests, agent, brief) ?? `art-${crypto.randomUUID()}`,
         brief,
       });
       if (epoch !== draftEpoch) return;
       clearPending();
       direction = "";
+      nudge = {};
       sourceOptions = {};
       parts = new Set();
       intent = "fit";
       known.add(sent.messageId);
-      note = `Sent ${sent.artId} to ${sent.agent}.`;
+      note = offline
+        ? "Offline brief ready. Save the brief, then import the artwork on its card."
+        : `Sent ${sent.artId} to ${sent.agent}.`;
       await refresh();
     } catch (error) {
       say(`Could not send the brief: ${failure(error)}`);
@@ -533,9 +671,11 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
     clearPending();
     agent = r.agent;
     kind = r.brief.kind;
+    paintAction = r.brief.paintAction;
     intent = r.brief.intent ?? "fit";
     attachmentRole = kind === "trace" || kind === "depth" ? "front" : "whole";
     direction = r.brief.direction;
+    nudge = { ...r.brief.nudge?.amounts };
     sourceOptions = {
       ...(r.brief.height === undefined ? {} : { height: r.brief.height }),
       ...(r.brief.protected ? { protected: r.brief.protected } : {}),
@@ -590,6 +730,13 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
       el("strong", { text: `Import ${picked.name}` }),
       el("p", { text: "Add any source or credit that should travel with this artwork." }),
     );
+    const mapFile = el("input");
+    mapFile.type = "file";
+    mapFile.accept = ".json";
+    const coverage = el("select");
+    coverage.append(new Option("Continuous shell", "closed"), new Option("Open garment", "open"));
+    if (r.brief.paintAction) form.append(el("label", {}, "Trace map (optional)", mapFile));
+    if (r.brief.paintAction === "wear") form.append(el("label", {}, "Garment coverage", coverage));
     const author = field("Artist or studio", 200);
     const source = field("Source", 500);
     const license = field("License", 120);
@@ -607,12 +754,22 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
     form.onsubmit = (event) => {
       event.preventDefault();
       dialog.close();
-      void importFile(r, picked, {
-        ...(source.value.trim() ? { source: source.value.trim() } : {}),
-        ...(license.value.trim() ? { license: license.value.trim() } : {}),
-        ...(author.value.trim() ? { author: author.value.trim() } : {}),
-        ...(credit.value.trim() ? { credit: credit.value.trim() } : {}),
-      });
+      void importFile(
+        r,
+        picked,
+        {
+          ...(source.value.trim() ? { source: source.value.trim() } : {}),
+          ...(license.value.trim() ? { license: license.value.trim() } : {}),
+          ...(author.value.trim() ? { author: author.value.trim() } : {}),
+          ...(credit.value.trim() ? { credit: credit.value.trim() } : {}),
+        },
+        mapFile.files?.[0],
+        r.brief.paintAction === "wear"
+          ? coverage.value === "open"
+            ? "open"
+            : "closed"
+          : undefined,
+      );
     };
     dialog.onclose = () => {
       dialog.remove();
@@ -627,6 +784,8 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
     r: ArtRequestView,
     picked: File,
     attribution: AssetAttribution,
+    mapFile?: File,
+    coverage?: "open" | "closed",
   ): Promise<void> {
     try {
       const bytes = new Uint8Array(await picked.arrayBuffer());
@@ -644,7 +803,11 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
       const params = {
         artId: r.artId,
         submissionId: `import-${crypto.randomUUID()}`,
-        reply: made.reply,
+        reply: {
+          ...made.reply,
+          ...(mapFile ? { traceMap: parseJson(new Uint8Array(await mapFile.arrayBuffer())) } : {}),
+          ...(coverage ? { coverage } : {}),
+        },
       };
       const outcome = await options.api.call("art.submit", params);
       if (!outcome.ok) return say(`${outcome.error._tag}: ${outcome.error.message}`);
@@ -655,31 +818,28 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
     }
   }
 
-  function saveBrief(r: ArtRequestView): HTMLAnchorElement {
-    const a = el("a", {
-      text: "Save brief",
-      title: "The brief as JSON, to make the artwork elsewhere",
-    });
-    a.download = `${r.artId}-brief.json`;
-    const url =
-      urls.get(`brief:${r.artId}`) ??
-      URL.createObjectURL(
-        new Blob(
-          [
-            JSON.stringify(
-              { request: r.artId, brief: r.brief, attachments: r.attachments },
-              null,
-              2,
-            ),
-          ],
-          {
+  function saveBrief(r: ArtRequestView): HTMLElement {
+    return button("Save brief", async () => {
+      try {
+        const files = await Promise.all(
+          r.attachments.map(async (a) => {
+            const image = await readPicture(host, r.artId, a.digest);
+            return { ...a, base64: toBase64(image.bytes) };
+          }),
+        );
+        const a = el("a");
+        a.download = r.artId + "-brief.json";
+        a.href = URL.createObjectURL(
+          new Blob([JSON.stringify({ request: r.artId, brief: r.brief, attachments: files })], {
             type: "application/json",
-          },
-        ),
-      );
-    urls.set(`brief:${r.artId}`, url);
-    a.href = url;
-    return a;
+          }),
+        );
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      } catch (error) {
+        say(failure(error));
+      }
+    });
   }
 
   function submission(r: ArtRequestView, s: ArtSubmissionView): HTMLElement {
@@ -708,6 +868,19 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
         thumb(r.artId, f, `reply ${s.seq} · ${f.width}×${f.height} · ${f.byteLength} bytes`),
       );
     if (s.files.length) item.append(figures);
+    if ((s.reply.kind === "turnaround" || s.reply.kind === "trace") && s.reply.traceMap) {
+      const link = el("a", { text: "Save trace map" });
+      const key = r.artId + "/" + s.submissionId;
+      const url =
+        urls.get(key) ??
+        URL.createObjectURL(
+          new Blob([JSON.stringify(s.reply.traceMap, null, 2)], { type: "application/json" }),
+        );
+      urls.set(key, url);
+      link.href = url;
+      link.download = s.submissionId + "-trace-map.json";
+      item.append(link);
+    }
     if (s.proposal?.status === "draft")
       item.append(
         el("p", {
@@ -751,6 +924,8 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
       card.append(
         el("ol", { className: "art-replies" }, ...r.submissions.map((s) => submission(r, s))),
       );
+    else if (r.pairingId === "file:offline")
+      card.append(el("p", { text: "Save the brief and import the completed artwork here." }));
     else if (undelivered(r))
       card.append(
         el("p", {
@@ -815,7 +990,9 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
     if (note) root.append(el("p", { className: "muted", text: note }));
     const now = options.current();
     const shown = requests.filter(
-      (r) => !r.brief.fromSteer && (!now || r.brief.documentId === now.documentId),
+      (r) =>
+        (!r.brief.fromSteer || r.brief.refinement) &&
+        (!now || r.brief.documentId === now.documentId),
     );
     if (shown.length) root.append(...shown.map(request));
   }
@@ -866,6 +1043,14 @@ export function mountArt(root: HTMLElement, options: ArtOptions): ArtPanel {
 
   return {
     refresh,
+    selectedAgent: () => agent,
+    originalBrief(id) {
+      return requests.find(
+        (r) =>
+          r.brief.documentId === options.current()?.documentId &&
+          (r.steering?.proposalId === id || r.submissions.some((s) => s.proposal?.id === id)),
+      )?.brief;
+    },
     protectedParts(id) {
       return requests
         .filter(

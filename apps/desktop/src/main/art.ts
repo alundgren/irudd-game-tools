@@ -1,5 +1,11 @@
 import { Schema } from "effect";
-import { AssetEntry, isJson, isJsonArray, type Json } from "@irudd/document";
+import {
+  AssetEntry,
+  type CharacterDocument,
+  isJson,
+  isJsonArray,
+  type Json,
+} from "@irudd/document";
 import { bundledAssets } from "@irudd/character/assets";
 import { repaintOperations } from "@irudd/character/repaint";
 import {
@@ -21,7 +27,25 @@ import type { ArtTranslator } from "@irudd/workshop/host";
 export const shippedArtwork = bundledAssets.map((asset) => asset.digest);
 const decodeEntry = Schema.decodeUnknownSync(AssetEntry);
 
+export interface FitInput {
+  readonly document: CharacterDocument;
+  readonly brief: import("@irudd/workshop/wire").ArtBrief;
+  readonly reply: Extract<import("@irudd/workshop/wire").ArtReply, { kind: "turnaround" }>;
+  readonly asset: AssetEntry;
+}
 export interface ArtRaster {
+  nudge?(
+    doc: CharacterDocument,
+    nudge: NonNullable<FitInput["brief"]["nudge"]>,
+  ): Promise<readonly Json[]>;
+  fit?(
+    input: FitInput,
+    bytes: Uint8Array,
+  ): Promise<{
+    operations: readonly Json[];
+    notes: readonly string[];
+    fit: { needsRepair: boolean; score: number };
+  }>;
   pixels(
     bytes: Uint8Array,
     mediaType: string,
@@ -33,7 +57,10 @@ export interface ArtRaster {
 export const repaintTranslator: ArtTranslator = {
   kind: "turnaround",
   id: "repaint",
+  check: (brief) =>
+    brief.paintAction ? "Open the desktop workshop to fit a painted part." : undefined,
   translate({ brief, document, reply, files }): ReadonlyArray<Json> {
+    if (brief.paintAction) throw new Error("Open the desktop workshop to fit a painted part.");
     if (reply.kind !== "turnaround") throw new Error("A repaint takes a turnaround reply.");
     const sheet = files.find((f) => f.digest === reply.image);
     if (!sheet) throw new Error("The reply's sheet was not measured.");

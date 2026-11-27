@@ -203,7 +203,12 @@ export function mountVariation(ctx: PanelContext, onProtection: () => void) {
   }
   function enrich(brief: BriefDraft): BriefDraft {
     const s = current();
-    if (!s || brief.kind !== "variation" || ctx.documentId !== brief.documentId) return brief;
+    if (
+      !s ||
+      (brief.kind !== "variation" && brief.kind !== "turnaround") ||
+      ctx.documentId !== brief.documentId
+    )
+      return brief;
     const d = s.direction;
     const protectedParts = [...new Set([...(brief.protected ?? []), ...s.protected])];
     return {

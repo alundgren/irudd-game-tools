@@ -1,5 +1,6 @@
 import * as T from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+import { skinMeshData } from "../human/brush-preview.js";
 import type { BuiltCharacter } from "../build.js";
 import type { BuildPart } from "../view.js";
 import { alignGroundContacts } from "./ground.js";
@@ -319,7 +320,11 @@ function whiteVertexColors(geometry: T.BufferGeometry): void {
 
 const boneSafe = (label: string): string => label.replace(/[^a-zA-Z0-9_-]/g, "_");
 
-export function skinCharacter(character: BuiltCharacter, standingOnly = false): Rig {
+export function skinCharacter(
+  character: BuiltCharacter,
+  standingOnly = false,
+  coverage = false,
+): Rig {
   prepareExpressions(character.faces);
   const regions = collect(character);
   const actor = new T.Group();
@@ -387,6 +392,14 @@ export function skinCharacter(character: BuiltCharacter, standingOnly = false): 
   const point = new T.Vector3();
   const regionNames = [...character.parts.values()].map((p) => p.part.label);
   const regionIndices = new Map([...character.parts.keys()].map((id, i) => [id, i]));
+  const coverageNames = ["Other", "Adult skin", "Clothing"];
+  function coverageId(mesh: T.Mesh) {
+    if (skinMeshData.has(mesh)) return 1;
+    if (!mesh.userData["styleRegion"] || mesh.userData["styleRegion"] === "head") return 0;
+    if (!mesh.name) return 2;
+    const index = coverageNames.indexOf(mesh.name);
+    return index >= 0 ? index : coverageNames.length >= 254 ? 2 : coverageNames.push(mesh.name) - 1;
+  }
   const hips = hipBindings(regions, index);
   const byMaterial = new Map<T.Material, T.BufferGeometry[]>();
   for (const s of regions.values())
@@ -444,6 +457,11 @@ export function skinCharacter(character: BuiltCharacter, standingOnly = false): 
           1,
         ),
       );
+      if (coverage)
+        geometry.setAttribute(
+          "_coverage",
+          new T.Uint8BufferAttribute(new Uint8Array(pos.count).fill(coverageId(source)), 1),
+        );
       geometry.setAttribute("skinIndex", new T.BufferAttribute(ids, 4));
       geometry.setAttribute("skinWeight", new T.BufferAttribute(blend, 4));
       if (!geometry.index) geometry.setIndex(Array.from({ length: pos.count }, (_, i) => i));
@@ -465,6 +483,7 @@ export function skinCharacter(character: BuiltCharacter, standingOnly = false): 
         }
         face.bind(skeleton, new T.Matrix4());
         face.userData["regionNames"] = regionNames;
+        if (coverage) face.userData["coverageNames"] = coverageNames;
         face.frustumCulled = false;
         face.castShadow = true;
         face.receiveShadow = true;
@@ -507,6 +526,7 @@ export function skinCharacter(character: BuiltCharacter, standingOnly = false): 
     mesh.name = "Character surface";
     mesh.receiveShadow = true;
     mesh.userData["regionNames"] = regionNames;
+    if (coverage) mesh.userData["coverageNames"] = coverageNames;
     mesh.bind(skeleton, new T.Matrix4());
     mesh.castShadow = true;
     mesh.frustumCulled = false;

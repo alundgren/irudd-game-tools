@@ -88,6 +88,27 @@ export const ArtBrief = Schema.Struct({
   parts: Schema.optionalKey(Schema.Array(PartId).check(Schema.isMaxLength(128))),
   height: Schema.optionalKey(Height),
   protected: Schema.optionalKey(Schema.Array(Text(64)).check(Schema.isMaxLength(32))),
+  refinement: Schema.optionalKey(
+    Schema.Struct({
+      proposal: Text(128),
+      version: Revision,
+      summary: Schema.String.check(Schema.isMaxLength(500)),
+      earlierDirection: Schema.String.check(Schema.isMaxLength(8000)),
+      exportReview: Schema.optionalKey(JsonValue),
+      spatialGuide: Schema.optionalKey(JsonValue),
+      surfaceMarks: Schema.optionalKey(JsonValue),
+    }),
+  ),
+  nudge: Schema.optionalKey(
+    Schema.Struct({
+      target: Schema.NullOr(PartId),
+      amounts: Schema.Record(
+        Label,
+        Schema.Int.check(Schema.isBetween({ minimum: -40, maximum: 40 })),
+      ),
+    }),
+  ),
+  paintAction: Schema.optionalKey(Schema.Literals(["whole", "replace", "wear", "revise", "scalp"])),
   intent: Schema.optionalKey(Schema.Literals(traceIntents)),
 }).check(
   Schema.makeFilter(
@@ -99,8 +120,22 @@ export const ArtBrief = Schema.Struct({
   Schema.makeFilter(
     (b) =>
       b.kind === "variation" ||
+      (b.kind === "turnaround" && !b.fromSteer) ||
       (!b.variation && !b.fromSteer) ||
       "Choose a variation brief for a drawn direction.",
+  ),
+  Schema.makeFilter(
+    (b) => !b.refinement || b.kind === "variation" || "A refinement takes variation operations.",
+  ),
+  Schema.makeFilter(
+    (b) =>
+      !b.nudge ||
+      b.kind === "turnaround" ||
+      b.kind === "depth" ||
+      "Supply a nudge with a painted or depth edit.",
+  ),
+  Schema.makeFilter(
+    (b) => !b.paintAction || b.kind === "turnaround" || "Choose a turnaround for a painted edit.",
   ),
   Schema.makeFilter(
     (b) =>
@@ -115,7 +150,13 @@ export const briefIntent = (brief: ArtBrief): TraceIntent | undefined =>
   brief.kind === "trace" ? (brief.intent ?? "fit") : undefined;
 
 const Point = Schema.Tuple([Unit, Unit]);
-const Outline = Schema.Array(Point).check(Schema.isMinLength(4), Schema.isMaxLength(12));
+const Outline = Schema.Array(Point).check(
+  Schema.isMaxLength(12),
+  Schema.makeFilter(
+    (points) =>
+      !points.length || points.length >= 4 || "Supply at least four points for an outline.",
+  ),
+);
 const SpinePoint = Schema.Tuple([
   Unit,
   Unit,
@@ -134,6 +175,11 @@ export const TraceRegion = Schema.Struct({
   id: RegionId,
   parent: Schema.optionalKey(RegionId),
   method: Schema.Literals(["loft", "volume", "path", "membrane"]),
+  hairRegions: Schema.optionalKey(
+    Schema.Array(Schema.Struct({ id: RegionId, front: Outline, side: Outline })).check(
+      Schema.isMaxLength(24),
+    ),
+  ),
   front: Schema.optionalKey(Outline),
   side: Schema.optionalKey(Outline),
   spine: Schema.optionalKey(
@@ -210,16 +256,14 @@ export const ArtReply = Schema.Union([
   Schema.Struct({
     ...replyHeader,
     kind: Schema.Literal("variation"),
-    operations: Schema.Array(JsonValue).check(
-      Schema.isMinLength(1),
-      Schema.isMaxLength(artLimits.operations),
-    ),
+    operations: Schema.Array(JsonValue).check(Schema.isMaxLength(artLimits.operations)),
   }),
   Schema.Struct({
     ...replyHeader,
     kind: Schema.Literal("turnaround"),
     image: Digest,
     height: Schema.optionalKey(Height),
+    traceMap: Schema.optionalKey(TraceMap),
     coverage: Schema.optionalKey(Schema.Literals(["open", "closed"])),
   }),
   Schema.Struct({ ...replyHeader, kind: Schema.Literal("trace"), traceMap: TraceMap }),
@@ -238,7 +282,12 @@ export const artParams = {
     total: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: artLimits.replyBytes })),
     base64: Schema.String.check(Schema.isMaxLength(Math.ceil(artLimits.chunkBytes / 3) * 4)),
   }),
-  "art.request": Schema.Struct({ agent: AgentId, requestId: RequestId, brief: ArtBrief }),
+  "art.request": Schema.Struct({
+    agent: AgentId,
+    requestId: RequestId,
+    brief: ArtBrief,
+    offline: Schema.optionalKey(Schema.Boolean),
+  }),
   "art.list": Schema.Struct({
     documentId: Schema.optionalKey(DocumentId),
     all: Schema.optionalKey(Schema.Boolean),

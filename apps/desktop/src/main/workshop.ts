@@ -13,6 +13,7 @@ import {
 import type { CallOutcome, CommitNotice, SteerNotice, WindowMethod } from "../shared/api.js";
 import { registerInProcess, serveAttached } from "./review-link.js";
 import type { ReviewWorker } from "./review.js";
+import { fittedTurnaround, withPaintNudge } from "./fitted-art.js";
 import { desktopArtTranslators, shippedArtwork, type ArtRaster } from "./art.js";
 
 interface Verbs {
@@ -152,11 +153,18 @@ export async function openWorkshop(options: LinkOptions): Promise<WorkshopLink> 
   const loaded = options.forms ? loadForms(options.forms) : { forms: [], problems: [] };
   for (const problem of loaded.problems) console.warn(`Form starter skipped: ${problem}`);
   const forms = loaded.forms;
+  const raster = options.raster ?? options.review;
   const attached = await attachOrHost({
     path: options.directory,
     kind: "desktop",
     forms,
-    artTranslators: desktopArtTranslators(options.raster ?? options.review),
+    artTranslators: desktopArtTranslators(raster).map((t) =>
+      raster && t.kind === "turnaround"
+        ? withPaintNudge(fittedTurnaround(raster), raster)
+        : t.kind === "depth"
+          ? withPaintNudge(t, raster)
+          : t,
+    ),
     shippedArtwork,
     ...(options.registry ? { registry: options.registry } : {}),
     ...(options.starters ? { starters: options.starters } : {}),

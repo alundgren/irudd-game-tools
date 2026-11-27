@@ -13,6 +13,9 @@
     "./human/dress": "./src/human/dress/index.ts",
     "./repaint": "./src/paint/repaint.ts",
     "./art-fit": "./src/paint/art-fit.ts",
+    "./proposal-export": "./src/review/proposal-export.ts",
+    "./paint-nudge": "./src/paint/nudge.ts",
+    "./fitted-edit": "./src/paint/fitted-edit.ts",
     "./trace-build": "./src/paint/trace-build.ts",
     "./assets": "./src/assets.ts"
   },

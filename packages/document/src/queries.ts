@@ -59,8 +59,18 @@ export interface ProposalPreview {
   readonly rebased: Checked<ReadonlyArray<Change>>;
 }
 
-export function previewProposal(state: DocumentState, id: string): Checked<ProposalPreview> {
-  const proposal = state.proposals.get(id);
+export function previewProposal(
+  state: DocumentState,
+  id: string,
+  version?: number,
+): Checked<ProposalPreview> {
+  const current = state.proposals.get(id);
+  const proposal =
+    version === undefined || version === current?.version
+      ? current
+      : state.journal.findLast(
+          (entry) => entry.effect.proposal?.id === id && entry.effect.proposal.version === version,
+        )?.effect.proposal;
   if (!proposal) return fail([diagnostic("unknown-proposal", [], `There is no proposal ${id}.`)]);
   const base = documentAt(state, proposal.baseRevision);
   const head = state.document;

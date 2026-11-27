@@ -188,7 +188,13 @@ export class Dispatcher {
       case "diff":
         return run(project.diff(text("documentId"), number("from"), number("to")));
       case "draft":
-        return run(project.draft(text("documentId"), text("proposalId")));
+        return run(
+          project.draft(
+            text("documentId"),
+            text("proposalId"),
+            typeof params["version"] === "number" ? params["version"] : undefined,
+          ),
+        );
       case "receipt": {
         const outcome = await run(project.receipt(text("documentId"), text("requestId")));
         return outcome.ok ? { ok: true, value: outcome.value ?? null } : outcome;

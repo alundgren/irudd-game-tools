@@ -229,6 +229,33 @@ async function headPart(rig: Rig): Promise<string> {
   return part;
 }
 
+test("an offline brief preserves its images for a human import without sending a message", async () => {
+  await withRig("offline-file", async (rig) => {
+    const { front } = await views(rig);
+    const request = {
+      agent: "offline",
+      offline: true,
+      requestId: requestId("file"),
+      brief: brief("variation", 1, [{ role: "front", digest: front.digest }]),
+    };
+    const saved = await rig.human.call("art.request", request);
+    assert.equal(saved.steering, null);
+    assert.equal(rig.fake.sent.length, 0);
+    assert.equal((await rig.human.call("art.request", request)).artId, saved.artId);
+    assert.deepEqual(
+      (await readArtFile(rig.human, saved.artId, front.digest)).bytes.length,
+      front.byteLength,
+    );
+    const reply = await rig.human.call("art.submit", {
+      artId: saved.artId,
+      submissionId: requestId("import"),
+      reply: variation(await headPart(rig), "Heron"),
+    });
+    assert.equal(reply.submission.state, "proposed");
+    assert.equal(reply.submission.via, "person-import");
+  });
+});
+
 test("a brief with attachments reaches the bound conversation and the reply is the agent's proposal", async () => {
   await withRig("flow", async (rig) => {
     const { human, agent, fake } = rig;

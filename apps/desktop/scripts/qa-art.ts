@@ -1,3 +1,4 @@
+import { depthReply, paintJacket } from "./painted-reply.js";
 import { answerFileDialogs, callEditor, launchEditor } from "./editor-session.js";
 import assert from "node:assert/strict";
 import { portraitContactSheet } from "./contact-sheet.js";
@@ -25,6 +26,7 @@ import {
   AssetEntry,
   PartId,
   applyOperations,
+  readDocument,
   assetCredits,
   createRegistry,
   decodeOperations,
@@ -38,9 +40,9 @@ import {
   validateDocument,
   type CharacterDocument,
 } from "@irudd/document";
-import { bundledAssetNamed, repaintOperations } from "@irudd/character";
+import { repaintOperations } from "@irudd/character";
 import { bundledAssets } from "@irudd/character/assets";
-import { panelCanvas, panelFromPixels, type Panel } from "@irudd/character/art-fit";
+import { jsonOperations, panelCanvas, panelFromPixels, type Panel } from "@irudd/character/art-fit";
 import { traceBuildOperations, type TraceBuildRegion } from "@irudd/character/trace-build";
 import {
   connect,
@@ -417,9 +419,6 @@ async function latest(agent: WorkshopClient, documentId: string) {
   return request;
 }
 
-const courier = bundledAssetNamed("courier");
-assert.ok(courier);
-const courierBytes = new Uint8Array(readFileSync(join(repository, "character-view", courier.file)));
 let agent: WorkshopClient | undefined;
 let credentialFile = "";
 try {
@@ -496,7 +495,7 @@ try {
     await composer.getByLabel("Kind of artwork").selectOption("variation");
     await sendBrief(page, {
       kind: "turnaround",
-      direction: "Repaint the body as a courier; keep the cut and registration.",
+      direction: "Dye the existing work jacket teal, retaining the seams, shirt and silhouette.",
       part: "p-body",
       views: ["whole"],
     });
@@ -531,6 +530,9 @@ try {
     return r;
   });
 
+  const source = await readArtFile(paired, turnaround.artId, bodyAtlas);
+  const jacket = await paintJacket(page, source.bytes);
+  const jacketDigest = sha256Digest(jacket);
   await step("the agent's sheet is proposed, previewed, accepted and undone", async () => {
     await page.locator('#outliner [data-part="p-body"]').click();
     await page.click("#focus-selection");
@@ -540,7 +542,7 @@ try {
       paired.call("project.image", { digest: bodyAtlas, offset: 0 }),
       /person|forbidden/i,
     );
-    const staged = await uploadArt(paired, courierBytes, "image/webp");
+    const staged = await uploadArt(paired, jacket, "image/webp");
     const submitted = await paired.call("art.submit", {
       artId: turnaround.artId,
       submissionId: "qa-courier-0001",
@@ -548,7 +550,7 @@ try {
         format: "irudd.art-reply",
         version: 1,
         kind: "turnaround",
-        summary: "Courier body",
+        summary: "Teal work jacket",
         image: staged.digest,
       },
     });
@@ -556,9 +558,9 @@ try {
     await page.waitForSelector("#art .art-reply.art-proposed img[src^='blob:']", {
       timeout: 20_000,
     });
-    await page.waitForSelector("#proposals .proposal:has-text('Courier body')");
+    await page.waitForSelector("#proposals .proposal:has-text('Teal work jacket')");
     await page
-      .locator("#proposals .proposal:has-text('Courier body') button:has-text('Preview')")
+      .locator("#proposals .proposal:has-text('Teal work jacket') button:has-text('Preview')")
       .click();
     await page.waitForSelector("#banner:has-text('Previewing')");
     const proposed = await editorPixels(page);
@@ -582,14 +584,18 @@ try {
     await keepFile("Painted edit", documentId);
     const accepted = (await paired.call("current", { documentId })).document;
     assert.ok(accepted);
-    assert.equal(accepted.parts.find((p) => p.id === "p-body")?.paint?.atlas, courier.digest);
-    const own = ownRepaint(baseDoc, courier.digest, courier.byteLength);
+    assert.equal(accepted.parts.find((p) => p.id === "p-body")?.paint?.atlas, jacketDigest);
+    const own = ownRepaint(baseDoc, jacketDigest, jacket.byteLength);
     assert.equal(
-      assetCredits(accepted).has(courier.digest),
-      false,
-      "a returned bundled sheet keeps its original ownership",
+      assetCredits(accepted).has(jacketDigest),
+      true,
+      "the returned recolour records its author",
     );
-    assert.equal(documentDigest(accepted), documentDigest(own), "the person's own repaint");
+    assert.equal(
+      documentDigest({ ...accepted, extensions: own.extensions }),
+      documentDigest(own),
+      "the person's own repaint",
+    );
     await page.waitForSelector("#art .art-reply:has-text('accepted in revision 2')");
     const composer = page.locator("#art .art-compose");
     const requests = page.locator("#art .art-request");
@@ -616,7 +622,7 @@ try {
       updated.attachments.map((a) => a.role),
       ["front", "source-sheet"],
     );
-    assert.equal(updated.attachments[1]?.digest, courier.digest);
+    assert.equal(updated.attachments[1]?.digest, jacketDigest);
     assert.notEqual(updated.attachments[0]?.digest, turnaround.attachments[0]?.digest);
     assert.equal(
       (await paired.call("art.list", { documentId, all: true })).requests.length,
@@ -649,7 +655,7 @@ try {
   await step("a reply after the person's edit is stale and keeps the head", async () => {
     await sendBrief(page, {
       kind: "turnaround",
-      direction: "Try the courier again on the undone body.",
+      direction: "Try the teal jacket again on the undone body.",
       part: "p-body",
       views: ["whole"],
     });
@@ -675,8 +681,8 @@ try {
       format: "irudd.art-reply",
       version: 1,
       kind: "turnaround",
-      summary: "Courier again",
-      image: courier.digest,
+      summary: "Teal jacket again",
+      image: jacketDigest,
     } as const;
     const first = await paired.call("art.submit", {
       artId: r.artId,
@@ -695,7 +701,7 @@ try {
     await page.waitForSelector("#art .art-reply:has-text('same reply as qa-stale-0001')");
     await page.waitForSelector("#art button:has-text('Prepare updated brief')");
     await page
-      .locator("#proposals .proposal:has-text('Courier again') button:has-text('Preview')")
+      .locator("#proposals .proposal:has-text('Teal jacket again') button:has-text('Preview')")
       .first()
       .click();
     await page.waitForSelector("#banner:has-text('The document has moved on')");
@@ -905,62 +911,7 @@ try {
   const depthRevision = await step(
     "the agent's CLI depth pass is previewed, accepted, exported, deduplicated and undone",
     async () => {
-      const pass = await page.evaluate(async (base64) => {
-        const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-        const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
-        const n = bitmap.width;
-        const canvas = new OffscreenCanvas(n, n);
-        const ctx = canvas.getContext("2d", { willReadFrequently: true });
-        if (!ctx) throw new Error("Missing 2D context.");
-        ctx.drawImage(bitmap, 0, 0);
-        const image = ctx.getImageData(0, 0, n, n);
-        const px = image.data;
-        const spans: ([number, number] | null)[] = [];
-        let top = n;
-        let bottom = -1;
-        for (let y = 0; y < n; y++) {
-          let lo = -1;
-          let hi = -1;
-          for (let x = 0; x < n; x++) {
-            const i = 4 * (y * n + x);
-            const r = px[i] ?? 0;
-            const g = px[i + 1] ?? 0;
-            const b = px[i + 2] ?? 0;
-            const keyed = Math.min(r, b) > 108 && Math.min(r, b) > g * 1.7 + 32;
-            if (keyed || (px[i + 3] ?? 0) < 190) continue;
-            if (lo < 0) lo = x;
-            hi = x;
-          }
-          spans.push(hi > lo ? [lo, hi] : null);
-          if (hi > lo) {
-            top = Math.min(top, y);
-            bottom = y;
-          }
-        }
-        for (let y = 0; y < n; y++) {
-          const span = spans[y];
-          const v = (y - (top + bottom) / 2) / ((bottom - top) / 2 || 1);
-          for (let x = 0; x < n; x++) {
-            const i = 4 * (y * n + x);
-            let g = 0;
-            if (span) {
-              const u = (x - (span[0] + span[1]) / 2) / ((span[1] - span[0]) / 2 || 1);
-              g = Math.round(70 + 175 * Math.sqrt(Math.max(0, 1 - u * u)) * (1 - 0.25 * v * v));
-            }
-            px[i] = g;
-            px[i + 1] = g;
-            px[i + 2] = g;
-            px[i + 3] = 255;
-          }
-        }
-        ctx.putImageData(image, 0, 0);
-        const blob = await canvas.convertToBlob({ type: "image/png" });
-        const out = new Uint8Array(await blob.arrayBuffer());
-        let text = "";
-        for (let i = 0; i < out.length; i += 0x8000)
-          text += String.fromCharCode(...out.subarray(i, i + 0x8000));
-        return btoa(text);
-      }, Buffer.from(depthBrief.front).toString("base64"));
+      const pass = await depthReply(page, depthBrief.front);
       const file = join(evidence, "depth-pass.png");
       writeFileSync(file, Buffer.from(pass, "base64"));
       const reply = ["--image", file, "--summary", "Portrait depth pass"];
@@ -1526,6 +1477,7 @@ try {
     await page.click("#camera-threequarter");
     await page.click("#focus-selection");
     const proposal = "prop-painted-alternate";
+    const character = original.document;
     const propose = async (refine: boolean) =>
       paired.call("apply", {
         request: envelope(
@@ -1535,50 +1487,67 @@ try {
             type: refine ? "proposal.refine" : "proposal.create",
             proposal,
             ...(refine ? { version: 1 } : {}),
-            summary: refine ? "Wide painted body" : "Tall painted body",
+            summary: refine ? "Teal work jacket" : "Teal work jacket study",
             content: {
               kind: "ops",
-              ops: [
-                {
-                  op: "part.transform",
-                  part: "p-body",
-                  scale: refine ? [1.75, 0.8, 1.3] : [1, 1.6, 1],
-                },
-              ],
+              ops: refine
+                ? jsonOperations(
+                    repaintOperations(
+                      character,
+                      [decodePart("p-body")],
+                      decodeEntry({
+                        digest: jacketDigest,
+                        mediaType: "image/webp",
+                        byteLength: jacket.byteLength,
+                        role: "paint-atlas",
+                      }),
+                    ),
+                  )
+                : [{ op: "part.set", part: "p-body", set: { color: "#408084" } }],
             },
           },
           refine ? "qa-refine-alt" : "qa-create-alt",
         ),
       });
     assert.notEqual((await propose(false)).kind, "rejected");
-    const card = page.locator("#proposals .proposal").filter({ hasText: "Tall painted body" });
-    await card.getByLabel("Refinement notes").fill("Widen the body and lower the silhouette.");
+    const card = page.locator("#proposals .proposal").filter({ hasText: "Teal work jacket study" });
+    await card
+      .getByLabel("Refinement notes")
+      .fill("Keep the red shirt and apply the teal dye to the existing jacket.");
     await card.getByRole("button", { name: "Request refinement" }).click();
     await page.waitForFunction(() =>
       document.querySelector("#status")?.textContent?.includes("Requested refinement"),
     );
-    assert.match(JSON.stringify(await paired.call("inbox.read", { all: true })), /Widen the body/);
+    assert.match(JSON.stringify(await paired.call("inbox.read", { all: true })), /teal dye/);
     assert.notEqual((await propose(true)).kind, "rejected");
     await page
       .locator("#proposals .proposal")
-      .filter({ hasText: "Wide painted body" })
+      .filter({ hasText: "Teal work jacket" })
       .getByText("Preview", { exact: true })
       .click();
     await page.locator("#banner").getByText("Show current", { exact: true }).click();
     await capture("58-alternate-before");
     await page.locator("#banner").getByText("Show proposal", { exact: true }).click();
     await page.locator("#banner").getByText("Keep alternate", { exact: true }).waitFor();
-    await capture("58-alternate-after");
+    const previewParts = await paired.call("draft", { documentId, proposalId: proposal });
+    assert.ok(previewParts.ok);
     await page.locator("#banner").getByText("Keep alternate", { exact: true }).click();
-    await page.waitForFunction(
-      (id) => document.querySelector<HTMLSelectElement>("#document")?.value !== id,
-      documentId,
-    );
-    const alternate = await page.inputValue("#document");
+    const option = page
+      .locator("#document option")
+      .filter({ hasText: "Teal work jacket alternate" });
+    await option.waitFor({ state: "attached" });
+    assert.equal(await page.inputValue("#document"), documentId);
+    const alternate = await option.getAttribute("value");
     assert.ok(alternate);
+    await page.selectOption("#document", alternate);
+    await waitRevision(page, 1);
+    await capture("58-alternate-after");
     await keepFile("Refined alternate", alternate);
     const target = await paired.call("current", { documentId: alternate });
-    assert.equal(target.document?.label, "Wide painted body alternate");
+    const checkedPreview = readDocument(previewParts.preview, { registry });
+    assert.ok(checkedPreview.ok);
+    assert.deepEqual(target.document?.parts, checkedPreview.value.parts);
+    assert.equal(target.document?.label, "Teal work jacket alternate");
     assert.equal(
       (await paired.call("current", { documentId })).documentDigest,
       original.documentDigest,
