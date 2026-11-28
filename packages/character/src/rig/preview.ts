@@ -4,6 +4,7 @@ import { isMesh } from "../mesh.js";
 import { gazeNames } from "../surfaces/eyes.js";
 import { expressions } from "./expressions.js";
 import { poseClipName } from "./poses.js";
+import { PoseSession } from "./pose-session.js";
 import type { Rig } from "./skin.js";
 
 export class MotionPreview {
@@ -20,6 +21,12 @@ export class MotionPreview {
   playing = false;
   time = 0;
   name = "Rest";
+  private session: PoseSession | undefined;
+
+  posing(creaturePlan: boolean): PoseSession {
+    this.session ??= new PoseSession(this.rig, creaturePlan);
+    return this.session;
+  }
 
   constructor(rig: Rig) {
     this.rig = rig;
@@ -52,6 +59,7 @@ export class MotionPreview {
   }
 
   select(name: string) {
+    this.session = undefined;
     this.playing = false;
     this.mixer.stopAllAction();
     for (const { bone, at, turn } of this.standing) {

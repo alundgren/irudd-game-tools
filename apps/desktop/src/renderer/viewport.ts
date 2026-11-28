@@ -11,6 +11,7 @@ import {
   startSkinStroke,
   skinMeshData,
   MotionPreview,
+  type PoseSession,
   skinCharacter,
   fanDisplay,
   armChains,
@@ -127,6 +128,30 @@ export class EditorViewport {
       }
   }
   private readonly camera = new T.PerspectiveCamera(34, 1, 0.01, 500);
+  private readonly key = new T.DirectionalLight(0xfff0de, 2.4);
+  private readonly keyDirection = new T.Vector3(-2.2, 4, 3.2);
+  private fitShadow(camera: T.Camera, target: T.Vector3): void {
+    let half = 3;
+    if (camera instanceof T.PerspectiveCamera)
+      half =
+        2 *
+        camera.position.distanceTo(target) *
+        Math.tan(T.MathUtils.degToRad(camera.fov / 2)) *
+        0.83;
+    else if (camera instanceof T.OrthographicCamera)
+      half = ((camera.top - camera.bottom) / camera.zoom) * 0.83;
+    half = Math.max(0.3, half);
+    const shadow = this.key.shadow.camera;
+    if (
+      Math.abs(shadow.top - half) < 0.001 &&
+      this.key.target.position.distanceToSquared(target) < 1e-7
+    )
+      return;
+    this.key.target.position.copy(target);
+    this.key.position.copy(target).add(this.keyDirection);
+    Object.assign(shadow, { left: -half, right: half, top: half, bottom: -half });
+    shadow.updateProjectionMatrix();
+  }
   private readonly orbit: OrbitControls;
   private readonly gizmo: TransformControls;
   private readonly highlight = new T.BoxHelper(new T.Object3D(), 0xe2a447);
@@ -176,11 +201,13 @@ export class EditorViewport {
     room.dispose();
     pmrem.dispose();
     this.scene.add(new T.HemisphereLight(0xf4f6ff, 0x6f6258, 0.8));
-    const key = new T.DirectionalLight(0xfff0de, 2.4);
-    key.position.set(-2.2, 4, 3.2);
+    const key = this.key;
+    key.position.copy(this.keyDirection);
     key.castShadow = true;
     key.shadow.mapSize.set(2048, 2048);
-    key.shadow.bias = -0.0002;
+    key.shadow.normalBias = 0.0015;
+    key.shadow.bias = -0.00012;
+    key.shadow.radius = 2;
     Object.assign(key.shadow.camera, {
       left: -3,
       right: 3,
@@ -189,7 +216,7 @@ export class EditorViewport {
       near: 0.5,
       far: 12,
     });
-    this.scene.add(key);
+    this.scene.add(key, key.target);
     const fill = new T.DirectionalLight(0xc8dcff, 1.2);
     fill.position.set(3, 2.5, -4);
     this.scene.add(fill);
@@ -212,13 +239,22 @@ export class EditorViewport {
     this.gizmo = new TransformControls(this.camera, canvas);
     this.gizmo.setSize(0.9);
     this.gizmo.addEventListener("change", () => this.request());
-    this.gizmo.addEventListener("objectChange", () => this.highlight.update());
+    this.gizmo.addEventListener("objectChange", () => {
+      this.highlight.update();
+      if (this.motion && this.posing) {
+        this.posing.guide();
+        this.onPoseChange?.();
+      }
+    });
     this.gizmo.addEventListener("dragging-changed", (event) => {
       const dragging = event.value === true;
       this.orbit.enabled = !dragging;
       if (this.motion) {
         this.motion.playing = false;
         this.onMotionFrame?.(this.motion.time);
+        if (dragging) this.posing?.beginDrag();
+        else this.posing?.endDrag();
+        this.onPoseChange?.();
         return;
       }
       if (dragging) this.beginDrag();
@@ -236,7 +272,21 @@ export class EditorViewport {
       if (!start || e.defaultPrevented || this.gizmo.dragging) return;
       if (Math.hypot(e.clientX - start[0], e.clientY - start[1]) > 4) return;
       if (this.motion) {
-        if (this.joints?.visible && !this.gizmo.axis) this.pickJoint(e.clientX, e.clientY);
+        if (this.pickingSurface && this.posing) {
+          const rect = canvas.getBoundingClientRect();
+          const ray = new T.Raycaster();
+          ray.setFromCamera(
+            new T.Vector2(
+              ((e.clientX - rect.left) * 2) / rect.width - 1,
+              1 - ((e.clientY - rect.top) * 2) / rect.height,
+            ),
+            this.camera,
+          );
+          if (this.posing.pickSurface(ray)) this.pickingSurface = false;
+          this.attachGizmo();
+          this.onPoseChange?.();
+          this.request();
+        } else if (this.joints?.visible && !this.gizmo.axis) this.pickJoint(e.clientX, e.clientY);
         return;
       }
       this.events.onPick(this.pick(e.clientX, e.clientY));
@@ -319,12 +369,20 @@ export class EditorViewport {
   }
 
   onJointPick: ((key: string) => void) | undefined;
+  onPoseChange: (() => void) | undefined;
   private pickedBone: T.Bone | undefined;
   private jointMode: "rotate" | "translate" = "rotate";
+  private posing: PoseSession | undefined;
+  pickingSurface = false;
 
-  poseJoint(key: string, mode: "rotate" | "translate") {
+  poseJoint(key: string, mode: "rotate" | "translate", session?: PoseSession) {
     this.pickedBone = this.motion?.rig.bindings.get(key)?.bone;
     this.jointMode = mode;
+    if (session !== this.posing) {
+      this.posing?.target.removeFromParent();
+      this.posing = session;
+      if (session) this.scene.add(session.target);
+    }
     this.attachGizmo();
     this.request();
   }
@@ -369,6 +427,10 @@ export class EditorViewport {
     });
     this.gizmo.detach();
     this.pickedBone = undefined;
+    this.posing?.target.removeFromParent();
+    this.posing = undefined;
+    this.pickingSurface = false;
+    this.onPoseChange = undefined;
     this.onJointPick = undefined;
     this.onMotionFrame = undefined;
     this.motion.dispose();
@@ -507,6 +569,16 @@ export class EditorViewport {
 
   private attachGizmo(): void {
     const part = this.selected === null ? undefined : this.built?.parts.get(this.selected);
+    if (this.motion && this.joints?.visible && this.posing?.guiding && !this.pickingSurface) {
+      this.gizmo.setSpace("world");
+      this.gizmo.setMode("translate");
+      this.gizmo.attach(this.posing.target);
+      return;
+    }
+    if (this.motion && this.pickingSurface) {
+      this.gizmo.detach();
+      return;
+    }
     if (this.motion && this.joints?.visible && this.pickedBone) {
       this.gizmo.setSpace("local");
       this.gizmo.setMode(this.jointMode);
@@ -776,6 +848,7 @@ export class EditorViewport {
     try {
       for (const node of hidden) node.visible = false;
       this.renderer.setRenderTarget(target);
+      this.fitShadow(camera, centre);
       this.renderer.render(this.scene, camera);
       this.renderer.readRenderTargetPixels(target, 0, 0, canvas.width, canvas.height, pixels);
     } finally {
@@ -1038,6 +1111,7 @@ export class EditorViewport {
 
   capture(view: "current" | "front" | "side" | "back", frameHead: boolean): Promise<Uint8Array> {
     let camera: T.Camera = this.camera;
+    const target = this.orbit.target.clone();
     if (view !== "current") {
       const along = {
         front: new T.Vector3(0, 0, 1),
@@ -1045,7 +1119,6 @@ export class EditorViewport {
         side: new T.Vector3(1, 0, 0),
         back: new T.Vector3(0, 0, -1),
       }[view];
-      const target = this.orbit.target.clone();
       let distance = this.camera.position.distanceTo(target);
       if (frameHead) {
         const bounds = new T.Box3();
@@ -1083,6 +1156,7 @@ export class EditorViewport {
     const shown = [this.highlight.visible, helper.visible] as const;
     this.highlight.visible = false;
     helper.visible = false;
+    this.fitShadow(camera, target);
     this.renderer.render(this.scene, camera);
     const canvas = this.renderer.domElement;
     const done = new Promise<Uint8Array>((resolve, reject) => {
@@ -1116,6 +1190,7 @@ export class EditorViewport {
     }
     this.lastFrame = now;
     const moved = this.orbit.update();
+    this.fitShadow(this.camera, this.orbit.target);
     this.renderer.render(this.scene, this.camera);
     this.onFrame?.();
     if (moved) this.request();

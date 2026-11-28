@@ -11,8 +11,10 @@ import {
   type Knot,
   type Vec3,
 } from "@irudd/document";
+import { resampleKnots } from "./knots.js";
 
 const rad = Math.PI / 180;
+const organic = 7;
 const smooth = (t: number) => t * t * (3 - 2 * t);
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const girthProfiles = {
@@ -132,6 +134,11 @@ export function creatureSlots(p: CreaturePlan): BaseSlotInput[] {
     "figure.finish": { surface: skin.surface },
     ...(skin.markings ? { "figure.markings": skin.markings } : {}),
   };
+  const flesh = {
+    ...core,
+    ...(skin.blend ? { "creature.blend": { blend: true } } : {}),
+  };
+  const moves = (role: string) => ({ "motion.role": { role } });
   function part(
     slot: string,
     parent: string | null,
@@ -183,7 +190,8 @@ export function creatureSlots(p: CreaturePlan): BaseSlotInput[] {
     return knot(s.point, s.width, s.depth);
   });
   tube("body", null, body, skin.base, {
-    ...core,
+    ...flesh,
+    ...moves(p.limbs.some((l) => l.kind === "leg") ? "torso" : "axial spine"),
     "creature.organ": { rank: "spine", hide: "core" },
   });
   const hips = bodyStation(p, 0.04).point,
@@ -217,17 +225,27 @@ export function creatureSlots(p: CreaturePlan): BaseSlotInput[] {
       Math.sin(pitch) * neck,
       Math.cos(pitch) * neck,
     ]);
-    tube(prefix + ".neck", "body", [
-      knot(chest, g * 0.72 * head.neckGirth),
-      knot(add(chest, scale(sub(at, chest), 0.54)), g * 0.56 * head.neckGirth),
-      knot(at, g * 0.47 * head.neckGirth),
-    ]);
+    tube(
+      prefix + ".neck",
+      "body",
+      resampleKnots(
+        [
+          knot(chest, g * 0.72 * head.neckGirth),
+          knot(add(chest, scale(sub(at, chest), 0.54)), g * 0.56 * head.neckGirth),
+          knot(at, g * 0.47 * head.neckGirth),
+        ],
+        organic,
+      ),
+      skin.base,
+      { ...flesh, ...moves("head") },
+    );
     const r = head.size * g * 0.74,
       w = r * (head.shape === "wide" ? 1.3 : 1),
       d = r * (head.shape === "long" ? 1.35 : 1),
       height = r * (head.shape === "flat" ? 0.64 : 1);
     part(prefix, prefix + ".neck", at, [2 * w, 1.8 * height, 2 * d], skin.base, {
-      ...core,
+      ...flesh,
+      ...moves("head"),
       "creature.organ": { hide: "core", rank: "head", head: true },
     });
     for (let i = 0; i < head.eyes; i++) {
@@ -494,11 +512,20 @@ export function creatureSlots(p: CreaturePlan): BaseSlotInput[] {
       -Math.cos(angle) * len,
     ]);
     const mid = add(hips, scale(sub(end, hips), 0.5));
-    tube("tail", "body", [
-      knot(hips, g * 0.65 * tail.girth),
-      knot(add(mid, [0, g * 0.3, 0]), g * 0.33 * tail.girth),
-      knot(end, g * 0.065),
-    ]);
+    tube(
+      "tail",
+      "body",
+      resampleKnots(
+        [
+          knot(hips, g * 0.65 * tail.girth),
+          knot(add(mid, [0, g * 0.3, 0]), g * 0.33 * tail.girth),
+          knot(end, g * 0.065),
+        ],
+        organic,
+      ),
+      skin.base,
+      { ...flesh, ...moves("tail") },
+    );
     if (p.details.includes("tail tuft"))
       detail("tail.tuft", "tail", end, [g * 0.72, g * 0.74, g * 1.18], skin.accent);
     if (tail.kind === "club") detail("tail.club", "tail", end, [g, g * 0.75, g * 1.23]);
@@ -648,7 +675,7 @@ export function creatureSlots(p: CreaturePlan): BaseSlotInput[] {
           knot(end, chord * 0.045, chord * 0.04),
         ],
         skin.accent,
-        {},
+        moves("fin"),
       );
     } else if (l.kind === "wing") {
       const len = l.length * k,
@@ -668,7 +695,7 @@ export function creatureSlots(p: CreaturePlan): BaseSlotInput[] {
             knot(add(point, span), 0.008 * k, 0.004 * k),
           ],
           skin.accent,
-          {},
+          moves("wing"),
         );
         return;
       }
@@ -701,6 +728,8 @@ export function creatureSlots(p: CreaturePlan): BaseSlotInput[] {
             reach * (0.34 * (1 - u) ** 0.68 + 0.008),
           );
         }),
+        skin.base,
+        { ...core, ...moves("tail") },
       );
     } else {
       const leg = l.kind === "leg",
@@ -730,17 +759,35 @@ export function creatureSlots(p: CreaturePlan): BaseSlotInput[] {
       const ankle = add(foot, [-side * wide * 0.07, length * 0.2, -length * 0.12]);
       const muscle =
         reach * (insect ? 0.24 : leg && l.style === "pillar" ? 0.6 : 0.42) * l.muscle + 0.004;
-      tube(id, "body", [
-        knot(hip, muscle * 0.84),
-        knot(add(hip, scale(sub(knee, hip), 0.4)), muscle * 1.06),
-        knot(knee, muscle * 0.56),
-      ]);
-      tube(id + ".shin", id, [
-        knot(knee, muscle * 0.58),
-        knot(add(knee, scale(sub(ankle, knee), 0.4)), muscle * 0.56),
-        knot(ankle, muscle * 0.29),
-        knot(foot, muscle * 0.23),
-      ]);
+      tube(
+        id,
+        "body",
+        resampleKnots(
+          [
+            knot(hip, muscle * 0.84),
+            knot(add(hip, scale(sub(knee, hip), 0.4)), muscle * 1.06),
+            knot(knee, muscle * 0.56),
+          ],
+          organic,
+        ),
+        skin.base,
+        { ...flesh, ...moves(leg ? "thigh" : "upper arm") },
+      );
+      tube(
+        id + ".shin",
+        id,
+        resampleKnots(
+          [
+            knot(knee, muscle * 0.58),
+            knot(add(knee, scale(sub(ankle, knee), 0.4)), muscle * 0.56),
+            knot(ankle, muscle * 0.29),
+            knot(foot, muscle * 0.23),
+          ],
+          organic,
+        ),
+        skin.base,
+        { ...flesh, ...moves(leg ? "shin" : "forearm") },
+      );
       if (leg && p.details.includes("spurs")) {
         tapered(
           id + ".spur",
@@ -761,7 +808,7 @@ export function creatureSlots(p: CreaturePlan): BaseSlotInput[] {
         }
       } else if (l.end !== "point" && l.end !== "none") {
         const radius = reach * (leg ? 0.38 : 0.32);
-        detail(
+        part(
           id + ".pad",
           id + ".shin",
           foot,
@@ -771,6 +818,7 @@ export function creatureSlots(p: CreaturePlan): BaseSlotInput[] {
             radius * (l.end === "paddle" ? 3.6 : 2.1),
           ],
           l.end === "hoof" ? skin.pale : skin.base,
+          moves(leg ? "foot" : "hand"),
         );
         if (l.end !== "hoof" && l.end !== "pad")
           for (let j = 0; j < l.digits; j++) {
