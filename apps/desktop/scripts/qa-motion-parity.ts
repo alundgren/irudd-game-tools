@@ -835,12 +835,15 @@ try {
     const families = await desk
       .locator("#creature-family option")
       .evaluateAll((items) => items.map((o) => (o instanceof HTMLOptionElement ? o.value : "")));
+    const kinds = families.filter((f) => f !== "Any");
     const wanted = ["grazer", "stalker", "glider", "brute", "wader", "swimmer"].filter((f) =>
-      families.includes(f),
+      kinds.includes(f),
     );
-    console.log("families", families.join(","), "using", wanted.join(","));
-    assert.ok(wanted.length >= 4, "At least four creature families");
-    for (const [index, family] of wanted.entries()) {
+    console.log("families", kinds.join(","), "smooth", wanted.join(","));
+    assert.equal(kinds.length, 14, "Every creature family");
+    assert.equal(wanted.length, 6, "Six smooth body families");
+    for (const [order, family] of kinds.entries()) {
+      const index = wanted.indexOf(family);
       await web.goto(url + "#x", { waitUntil: "domcontentloaded" });
       const old = await desk.inputValue("#document");
       await desk.selectOption("#start", "creature-plan/seed");
@@ -906,15 +909,48 @@ try {
       assert.ok(webBody, family + " browser body");
       assert.ok(deskBody, family + " desktop body");
       console.log(family, "web", JSON.stringify(webBody), "desk", JSON.stringify(deskBody));
-      assert.ok(
-        deskBody.vertices >= webBody.vertices * 0.8,
-        family + " desktop body vertices " + deskBody.vertices + " vs " + webBody.vertices,
-      );
+      assert.equal(deskBody.vertices, webBody.vertices, family + " body vertices");
       assert.equal(deskBody.flat, false);
       await web.click("[data-tab=sculpt]");
       await web.click('[data-mode="Clay"]');
       await desk.selectOption("#display-mode", "clay");
       await web.waitForTimeout(600);
+      const [webWhole, deskWhole] = await Promise.all(
+        [web, desk].map((p) => p.evaluate(() => window.shapeProbe.bounds())),
+      );
+      assert.ok(webWhole && deskWhole);
+      console.log(
+        family,
+        "bounds web",
+        JSON.stringify(webWhole),
+        "desk",
+        JSON.stringify(deskWhole),
+      );
+      for (const axis of [0, 1, 2])
+        assert.ok(
+          Math.abs((webWhole.size[axis] ?? 0) - (deskWhole.size[axis] ?? 0)) < 0.002,
+          family + " whole-creature size on axis " + axis,
+        );
+      const [sx, sy, sz] = webWhole.size;
+      const tall = 1.18 * Math.max(sy, 0.62 * Math.max(sx, sz), 0.3);
+      const [wholeLeft, wholeRight] = await Promise.all(
+        [web, desk].map(async (p) =>
+          Buffer.from(
+            await p.evaluate(([c, h]) => window.shapeProbe.capture(c, h, 0.62), [
+              webWhole.centre,
+              tall,
+            ] as const),
+            "base64",
+          ),
+        ),
+      );
+      await capture(
+        String(39 + order) + "-whole-" + family,
+        "Whole " + family + " (seed 33, Clay, same camera)",
+        wholeLeft ?? Buffer.alloc(0),
+        wholeRight ?? Buffer.alloc(0),
+      );
+      if (index < 0) continue;
       const centre = await web.evaluate(() => window.shapeProbe.centre("body"));
       const [left, right] = await Promise.all(
         [web, desk].map(async (p) =>
@@ -939,15 +975,15 @@ try {
         assert.equal(await control("Keep the other feet planted").isChecked(), true);
         await web.selectOption("#pose-joint", { label: "left leg 1 thigh · joint 1" });
         await web.selectOption("#pose-mode", "tip");
-        await control("Joint").selectOption({ label: "leg 0 1 l · joint 1" });
+        await control("Joint").selectOption({ label: "left leg 1 thigh · joint 1" });
         await control("Joint adjustment").selectOption("tip");
         const planted = async () => [
           await jointAt(web, webCanvas, "left leg 2 foot"),
-          await jointAt(desk, deskCanvas, "leg 0 0 l pad"),
+          await jointAt(desk, deskCanvas, "left leg 2 foot"),
         ];
         const lifted = async () => [
           await jointAt(web, webCanvas, "left leg 1 foot"),
-          await jointAt(desk, deskCanvas, "leg 0 1 l pad"),
+          await jointAt(desk, deskCanvas, "left leg 1 foot"),
         ];
         const [hold, lift] = [await planted(), await lifted()];
         await drag(0, -50, 14);

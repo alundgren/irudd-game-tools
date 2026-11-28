@@ -57,10 +57,17 @@ function formSlots(p: typeof formSchema.Type): BaseSlotInput[] {
     sculpt: { jaw: 0.7 + draw() * 0.72, nose: 0.72 + draw() * 0.7, eyes: 0.8 + draw() * 0.46 },
   };
   if (p.kind === "Hybrid") {
-    return creatureSlots(p.plan)
-      .filter((q) => !/^head\.\d+\.(?!neck$)/.test(q.slot))
+    const slots = creatureSlots(p.plan);
+    const heads = new Set(slots.filter((q) => /^head(?:-\d+)?$/.test(q.slot)).map((q) => q.slot));
+    const parents = new Map(slots.map((q) => [q.slot, q.parent]));
+    const underHead = (slot: string | null): boolean => {
+      const parent = slot === null ? null : (parents.get(slot) ?? null);
+      return parent !== null && (heads.has(parent) || underHead(parent));
+    };
+    return slots
+      .filter((q) => !underHead(q.slot))
       .map((q) => {
-        if (!/^head\.\d+$/.test(q.slot)) return q;
+        if (!heads.has(q.slot)) return q;
         const size = Math.max(0.65, Math.min(2.5, q.size[1] * 4.4));
         return {
           ...q,

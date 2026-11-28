@@ -44,10 +44,29 @@ Build both workshops before running `pnpm --filter @irudd/desktop qa:motion-pari
 
 ## Smooth creature bodies
 
-- [x] 32. Grazer plan body is smooth (organic sweeps resampled to the browser's ring density, studio key shadow bias and fitted frustum). Source: `surface.js sweepRings, sweepGeometry`; `app.js key.shadow.normalBias`. Screenshot: `32-smooth-grazer.png`.
+- [x] 32. Grazer plan body is smooth and is the same creature in both workshops. The desktop generator is a port of `creature-plan.js randomCreaturePlan, buildCreature`, so the plan, proportions, relief, ridges and rings, joint blending and warps, hands, feet and claws, coat, hide and plumage match the browser for every seed (exact form JSON on 400 seeds). Sweeps keep the browser form's own knots. The blended skin joins every blended part in one field, as the browser does, so a part away from the trunk (such as the tank's muzzle) no longer changes the body's tessellation. Unit tests: `verification/families/test/creature-families.test.ts` (one test per family: same form digest, mesh count, vertex count and bounds) and `packages/character/test/creature-smooth.test.ts`. Source: `creature-plan.js`; `surface.js sweepGeometry`. Screenshot: `32-smooth-grazer.png`.
 - [x] 33. Stalker plan body is smooth. Source: `surface.js sweepGeometry`. Screenshot: `33-smooth-stalker.png`.
 - [x] 34. Glider plan body is smooth. Source: `surface.js sweepGeometry`. Screenshot: `34-smooth-glider.png`.
 - [x] 35. Brute plan body is smooth. Source: `surface.js sweepGeometry`. Screenshot: `35-smooth-brute.png`.
 - [x] 36. Wader plan body is smooth. Source: `surface.js sweepGeometry`. Screenshot: `36-smooth-wader.png`.
 - [x] 37. Swimmer plan body is smooth. A plan with `skin.blend` joins its organic parts into one shared skin (unit test `packages/character/test/creature-smooth.test.ts`). Source: `surface.js sweepGeometry`; `blended-skin.js`. Screenshot: `37-smooth-swimmer.png`.
+
+## Whole creatures, same seed and camera
+
+Each family is created at seed 33 on the desktop, its plan is built by the browser workshop, and both are rendered in Clay from the same orthographic camera, browser left and desktop right. Body vertex counts and whole-creature bounds must match. Shell whorls, nostril cartilage and contour feathers are carried by the `creature.cage-finish` feature (`creature-whorl.js finishWhorl, finishCartilage`; `creature-plumage.js finishContourFeather`), and dress livery by `creature-livery.js`. The default three-quarter camera uses the browser's direction and bounds fit (`app.js chooseAngle`).
+
+- [x] 39. Whole envoy matches. Screenshot: `39-whole-envoy.png`.
+- [x] 40. Whole hopper matches. Screenshot: `40-whole-hopper.png`.
+- [x] 41. Whole grazer matches. Screenshot: `41-whole-grazer.png`.
+- [x] 42. Whole stalker matches. Screenshot: `42-whole-stalker.png`.
+- [x] 43. Whole glider matches. Screenshot: `43-whole-glider.png`.
+- [x] 44. Whole brute matches. Screenshot: `44-whole-brute.png`.
+- [x] 45. Whole tank matches. Screenshot: `45-whole-tank.png`.
+- [x] 46. Whole wader matches. Screenshot: `46-whole-wader.png`.
+- [x] 47. Whole skitter matches. Screenshot: `47-whole-skitter.png`.
+- [x] 48. Whole mantis matches. Screenshot: `48-whole-mantis.png`.
+- [x] 49. Whole strider matches. Screenshot: `49-whole-strider.png`.
+- [x] 50. Whole drifter matches. Screenshot: `50-whole-drifter.png`.
+- [x] 51. Whole swimmer matches. Screenshot: `51-whole-swimmer.png`.
+- [x] 52. Whole wild matches. Screenshot: `52-whole-wild.png`.
 

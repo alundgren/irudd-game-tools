@@ -1,4 +1,5 @@
-import { currentCreature } from "./creature/generator.js";
+import { currentCreature, generatedCreature } from "./creature/generator.js";
+import { creatureLimbChains } from "./creature/plan/names.js";
 import { wornOutfit } from "./wardrobe.js";
 import {
   characterAppearance,
@@ -26,6 +27,7 @@ import {
   creatureSkin,
   creatureCoatZone,
   creatureEyeSurface,
+  creatureCageFinish,
   creatureLimbChain,
   creatureOrgan,
   figureUndercoat,
@@ -57,7 +59,9 @@ import {
   type CreaturePlan,
   type CoatZone,
   type EyeSurface,
-  type CreatureLimbChain,
+  type CageFinish,
+  CreatureLimbChain,
+  decodeWith,
   type CreatureOrgan,
   type FigureWing,
   type Digest,
@@ -124,6 +128,7 @@ export interface BuildPart {
   readonly undercoat: FigureMarkings | undefined;
   readonly coatZone: CoatZone["zone"] | undefined;
   readonly eyeSurface: EyeSurface["surface"] | undefined;
+  readonly cageFinish: CageFinish | undefined;
   readonly wing: FigureWing | undefined;
   readonly organ: CreatureOrgan;
   readonly limbChain: CreatureLimbChain | undefined;
@@ -256,6 +261,8 @@ export function viewPart(part: Part): BuildPart {
   const cage = figureCage.read(part.features);
   if (eyeSurface && (!cage || cage.vertices.length < 16))
     throw new Error(`Part ${part.id} has an eye surface but is not a cage of 16 or more points.`);
+  const cageFinish = creatureCageFinish.read(part.features);
+  if (cageFinish && !cage) throw new Error(`Part ${part.id} has a cage finish but is not a cage.`);
   const wing = figureWing.read(part.features);
   if (
     wing &&
@@ -287,6 +294,7 @@ export function viewPart(part: Part): BuildPart {
     undercoat: figureUndercoat.read(part.features),
     coatZone: creatureCoatZone.read(part.features)?.zone,
     eyeSurface,
+    cageFinish,
     wing,
     organ: creatureOrgan.read(part.features) ?? {},
     limbChain: creatureLimbChain.read(part.features),
@@ -382,6 +390,22 @@ function offerOf(
   return { pose, held: offer.held };
 }
 
+function generatedChains(doc: CharacterDocument, parts: BuildPart[]): BuildPart[] {
+  const plan = currentCreature(doc);
+  if (!plan || !generatedCreature(doc) || parts.some((p) => p.limbChain)) return parts;
+  const chains = creatureLimbChains(
+    parts.map((p) => p.label),
+    plan.limbs.map((l) => ({ kind: l.kind, side: l.side, pairs: l.pairs })),
+    new Map(parts.map((p) => [p.label, p.id])),
+    new Map(parts.map((p) => [p.label, p.motion ?? "rigid"])),
+  );
+  return parts.map((p) => {
+    const chain = chains.get(p.label);
+    const read = chain && decodeWith(CreatureLimbChain, chain);
+    return read?.ok ? { ...p, limbChain: read.value } : p;
+  });
+}
+
 export function buildView(doc: CharacterDocument): BuildView {
   const unsupported = doc.parts.filter((p) => p.sculpt.length || p.component);
   if (unsupported.length)
@@ -389,7 +413,7 @@ export function buildView(doc: CharacterDocument): BuildView {
       "This build does not yet render sculpted or catalog parts: " +
         unsupported.map((p) => p.id).join(", "),
     );
-  const parts = doc.parts.map(viewPart).sort(assemblyOrder);
+  const parts = generatedChains(doc, doc.parts.map(viewPart).sort(assemblyOrder));
   checkPlateSites(parts);
   for (const group of new Set(parts.flatMap((p) => (p.seam ? [p.seam] : []))))
     if (parts.filter((p) => p.seam === group).length > seamGroupLimit)
@@ -409,13 +433,21 @@ export function buildView(doc: CharacterDocument): BuildView {
     byId: new Map(parts.map((p) => [p.id, p])),
     outfit,
     appearance: characterAppearance.read(doc.features),
-    skin: creatureSkin.read(doc.features) ?? {},
+    skin: creatureSkin.read(doc.features) ?? generatedSkin(currentCreature(doc), doc),
     plan: currentCreature(doc),
     build: figureBuild.read(doc.features),
     poses,
     offer,
     occluders: figureOccluders.read(doc.features)?.sources ?? [],
     layers: garmentLayers(doc, parts),
+  };
+}
+
+function generatedSkin(plan: CreaturePlan | undefined, doc: CharacterDocument): CreatureSkin {
+  if (!plan || !generatedCreature(doc)) return {};
+  return {
+    tint: plan.skin.base,
+    ...(plan.skin.surface === "scales" ? { surface: "scales" as const } : {}),
   };
 }
 

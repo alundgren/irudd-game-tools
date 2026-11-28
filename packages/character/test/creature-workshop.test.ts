@@ -276,10 +276,10 @@ test("adult wings occupy opposite scapula sockets and refitting reuses their par
   );
 });
 
-test("each family yields repeatable drawable anatomy, with different families dealt on consecutive seeds", () => {
+test("each family yields repeatable drawable anatomy, and one deck of seeds deals every family", () => {
   const registry = createRegistry({ generators: [creatureGenerator], features: familyFeatures });
   const families = new Set<string>();
-  for (let seed = 0; seed < creatureFamilies.length; seed++) {
+  for (let seed = 0; seed < 30; seed++) {
     const plan = randomCreature(seed);
     assert.deepEqual(plan, randomCreature(seed));
     families.add(plan.family ?? "");

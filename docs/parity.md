@@ -43,7 +43,7 @@ Posture, arm edits and named poses have History entries and travel with the char
 | 3 | Your random choices and variations |
 | 4 | Wardrobe |
 | 5 | Parts and surface details |
-| 6 | Creatures |
+| 6 | Creatures. 9-7 replaces the desktop creature generator with a port of the browser's plan builder, so a seed gives the same creature in both workshops |
 | 7 | Motion |
 | 8a | Shape tools, individual styling and armour |
 | 8b | Portraits, references, artwork and files |
@@ -73,10 +73,10 @@ Posture, arm edits and named poses have History entries and travel with the char
 | 17 | Tailor layers of clothing | done | 4, 8a, 9-3 |
 | 18 | Add freckles, scars or moles | done | 5 |
 | 19 | Apply a portrait to an adult's own head | done | 8b |
-| 20 | Mount a pair of wings on an adult | done | 6, 9-3 |
-| 21 | Edit a creature's body plan with drag handles | done | 6, 7, 9-2, 9-7 |
-| 22 | Shuffle a chosen part of a creature's plan | done | 6 |
-| 23 | Choose a creature's coat and markings | done | 5, 6 |
+| 20 | Mount a pair of wings on an adult; a creature's own wings now take the browser plan's membrane, ribs and colours | done | 6, 9-3, 9-7 |
+| 21 | Edit a creature's body plan with drag handles placed on the browser's spine frame and limb sockets | done | 6, 7, 9-2, 9-7 |
+| 22 | Shuffle a chosen part of a creature's plan, rebuilt with the browser's relief, ridges, joint blending, hands, feet and claws | done | 6, 9-7 |
+| 23 | Choose a creature's coat and markings, including shell whorls, nostril and ear cartilage, contour feathers and dress livery | done | 5, 6, 9-7 |
 | 24 | Match a face to portrait landmarks | done | 8b |
 | 25 | Attach rigid accessories | done | 5 |
 | 26 | Shape a face from a side portrait | done | 8b |
@@ -113,7 +113,7 @@ Posture, arm edits and named poses have History entries and travel with the char
 | 57 | Request and apply painted edits | done | 9-5 |
 | 58 | Refine a proposal, compare it or keep an alternate | done | 9-5 |
 | 59 | Inspect a game export | done | 9-5 |
-| 60 | Generate a starting form by archetype, colouring and family | done | 2, 6 |
+| 60 | Generate a starting form by archetype, colouring and family, dealt from the browser's family deck and biomes | done | 2, 6, 9-7 |
 | 61 | Trace artwork manually to build a character | done | 8b, 9-6 |
 | 62 | Reuse a turnaround on other regions | done | 8b, 9-6 |
 | 63 | Save and open form files and choose export options | done | 8b |
@@ -131,7 +131,7 @@ The same run checks paired adult wings, creature starting families, drag handles
 
 Run the packaged `qa:character` check after changing the rig, animation tracks or motion controls. It compares three paused frames from a walking adult and a flying creature, checks gaze and expression changes on a fitted portrait, and exercises arm edits and joint posing. It reopens the saved poses in a fresh project and inspects the animation channels in both exported GLBs. The motion editing sequence took 2 minutes 2 seconds on the first run and 2 minutes 4 seconds on repeat on an RTX 5070 Ti. Screenshots and the contact sheet are in `.reference-cache/phase7/`.
 
-Build both workshops and run `pnpm --filter @irudd/desktop qa:motion-parity` after changing joint guiding, expressions or creature plan surfaces. It drags wrist and limb-tip targets with real pointer events in Chrome and Electron, sets the same elbow, scope and planting choices in both, compares expression and gaze crops of a portrait and the adult, and renders six creature plan families in Clay. It saves an IK pose, checks its History entry and reopens it in a fresh project. Append `wrist`, `courier`, `tip`, `save`, `face` or `smooth` for a focused run. The paired images and contact sheet are written to `.reference-cache/phase9-7/`. [Behaviour checklist and screenshot filenames](motion-parity-checklist.md)
+Build both workshops and run `pnpm --filter @irudd/desktop qa:motion-parity` after changing joint guiding, expressions or creature plan surfaces. It drags wrist and limb-tip targets with real pointer events in Chrome and Electron, sets the same elbow, scope and planting choices in both, compares expression and gaze crops of a portrait and the adult, and renders six creature plan bodies in Clay. It then renders every creature family at seed 33 from one camera in both workshops and requires matching body vertex counts and whole-creature bounds. It saves an IK pose, checks its History entry and reopens it in a fresh project. Append `wrist`, `courier`, `tip`, `save`, `face` or `smooth` for a focused run. The paired images and contact sheet are written to `.reference-cache/phase9-7/`. [Behaviour checklist and screenshot filenames](motion-parity-checklist.md)
 
 ### Shape tools and styling
 

@@ -18,7 +18,7 @@ import {
   type Vec3,
 } from "@irudd/document";
 import { addDetail, removeDetailBranches } from "./surface-edit.js";
-import { makePlate, surfaceChart } from "./surfaces/plate-growth.js";
+import { makePlate, surfaceChart } from "./surfaces/plate-shape.js";
 
 import { legacyPlateLayout, migratePlate } from "./legacy-plates.js";
 type Template = ReturnType<typeof makePlate>;

@@ -48,6 +48,14 @@ import { wingGeometry } from "./surfaces/wing.js";
 import { markingField, paintJoinedCoat, paintMarkings } from "./surfaces/markings.js";
 import { billChart, finishBill, type BillChart, type BillFinishes } from "./creature/bill.js";
 import { finishCreatureEye, type EyeFinish } from "./creature/eye.js";
+import {
+  contourPlumage,
+  featherChart,
+  finishContourFeather,
+  finishWhorl,
+} from "./creature/cage-finish.js";
+import { creaturePlateChart, finishLivery, liveryChart } from "./creature/livery.js";
+import { finishGuards } from "./human/dress/armour-device.js";
 import { bakeCreatureHide } from "./creature/hide.js";
 import { applyCreatureCoat, creatureCoatField } from "./creature/coat.js";
 import { limbPigments, paintLimbPigment, type LimbTint } from "./creature/limb-colour.js";
@@ -434,7 +442,14 @@ function blendSkin(
   const common = first
     ? material(view.skin.tint ?? first.color, view.skin.surface ?? "plain")
     : null;
-  for (const [mesh, o] of joinSurfaces(entries, view.skin.softness ?? 0.015, common, null))
+  for (const [mesh, o] of joinSurfaces(
+    entries,
+    view.skin.softness ?? 0.015,
+    common,
+    null,
+    72,
+    false,
+  ))
     owners.set(mesh, o);
   return owners;
 }
@@ -561,6 +576,8 @@ function buildFigure(
   const hands = new Map<T.Mesh, ReadonlyArray<Digit>>();
   const cageFaces = new WeakMap<T.BufferGeometry, ReadonlyArray<number>>();
   const reliefs = new WeakMap<T.BufferGeometry, Float32Array>();
+  let plumage: T.Material | undefined;
+  const liveryMaterials = new Map<string, T.Material>();
   const faces = new Map<T.Mesh, HeadSpace | undefined>();
   const sheets = new Map<string, T.Texture | undefined>();
   const baked = new Map<string, T.Texture | undefined>();
@@ -667,6 +684,9 @@ function buildFigure(
   const partMesh = (part: BuildPart, fit: RegionFit | undefined): T.Mesh => {
     let digits: ReadonlyArray<Digit> | undefined;
     const bill = plan && creatureRaster ? billChart(part, plan.head) : undefined;
+    const dress = creatureRaster ? plan?.dress : undefined;
+    const livery = liveryChart(part, dress);
+    const plated = dress && !livery ? creaturePlateChart(part) : undefined;
     const parent = part.parent === null ? undefined : view.byId.get(part.parent);
     const carrier = part.scute?.mount && parent?.paint ? parent : undefined;
     const geometry = partGeometry(part, fit, (d) => (digits = d), {
@@ -675,7 +695,7 @@ function buildFigure(
       reliefs,
       game: Boolean(options.game),
       planned: plan !== undefined,
-      chart: bill?.uv,
+      chart: livery?.uv ?? plated ?? bill?.uv ?? featherChart(part.cageFinish, part.cage),
       toes: view.parts.some(
         (p) =>
           p.parent === part.id &&
@@ -715,8 +735,37 @@ function buildFigure(
         object.material = material;
       } else geometry.deleteAttribute("color");
     }
-    if (part.cage?.pinna && options.finish)
-      finishEar(object, part.cage, cageFaces.get(geometry), part.color);
+    if (livery && dress && creatureRaster)
+      finishLivery(object, part, dress, livery, liveryMaterials, creatureRaster, textures);
+    else if (plated && dress && creatureRaster) {
+      const uv = geometry.getAttribute("uv");
+      if (uv)
+        finishGuards(
+          object,
+          Array.from(uv.array),
+          { piece: part.label, color: part.color, trim: dress.color, material: "steel" },
+          false,
+          creatureRaster,
+        );
+    }
+    const finish = part.cageFinish;
+    if (part.cage && finish?.finish === "contour feather" && options.finish) {
+      if (!plumage) {
+        plumage = contourPlumage(options.materials("#ffffff", "plain"));
+        if (plumage instanceof T.MeshStandardMaterial && plumage.map) textures.push(plumage.map);
+      }
+      finishContourFeather(object, part.color, plumage);
+    }
+    if (part.cage && finish?.finish === "whorl")
+      finishWhorl(object, part.cage, cageFaces.get(geometry), finish, part.color, !options.finish);
+    if (part.cage && (part.cage.pinna || finish?.finish === "nostril") && options.finish)
+      finishEar(
+        object,
+        part.cage,
+        cageFaces.get(geometry),
+        part.color,
+        finish?.finish === "nostril",
+      );
     if (part.sweep?.suckerRows) {
       const cups = suctionCups(
         part.sweep.knots,

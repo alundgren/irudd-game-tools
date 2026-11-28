@@ -148,6 +148,17 @@ const probe = {
     if (box.isEmpty()) throw new Error("Cannot frame " + id);
     return box.getCenter(v).toArray();
   },
+  bounds() {
+    const box = new T.Box3(),
+      v = new T.Vector3();
+    for (const m of visible().meshes.filter((m) => owner(m) !== undefined)) {
+      const p = m.geometry.getAttribute("position");
+      for (let i = 0; i < p.count; i++)
+        box.expandByPoint(v.fromBufferAttribute(p, i).applyMatrix4(m.matrixWorld));
+    }
+    if (box.isEmpty()) throw new Error("Cannot frame the character");
+    return { centre: box.getCenter(new T.Vector3()).toArray(), size: box.getSize(v).toArray() };
+  },
   capture(center: readonly [number, number, number], height: number, yaw: number) {
     const { renderer, scene, camera } = visible(),
       canvas = renderer.domElement,

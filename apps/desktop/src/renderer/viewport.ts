@@ -65,7 +65,7 @@ const directions = {
   portrait: new T.Vector3(-2.06, 0, 4.33).normalize(),
   side: new T.Vector3(1, 0, 0),
   back: new T.Vector3(0, 0, -1),
-  threequarter: new T.Vector3(0.62, 0.35, 1).normalize(),
+  threequarter: new T.Vector3(2.1, 1.36, 4.25).normalize(),
 };
 export type CameraAngle = keyof typeof directions;
 
@@ -629,11 +629,16 @@ export class EditorViewport {
     if (!bounds && this.built) box.setFromObject(this.built.group);
     if (box.isEmpty()) box.set(new T.Vector3(-0.5, 0, -0.5), new T.Vector3(0.5, 1.4, 0.5));
     const centre = box.getCenter(new T.Vector3());
-    const size = Math.max(0.001, box.getSize(new T.Vector3()).length());
-    const halfFov = Math.atan(
-      Math.tan(T.MathUtils.degToRad(this.camera.fov / 2)) * Math.min(1, this.camera.aspect),
-    );
-    const distance = (0.53 * size) / Math.sin(halfFov);
+    const extent = box.getSize(new T.Vector3());
+    const size = Math.max(0.001, extent.length());
+    const slope = Math.tan(T.MathUtils.degToRad(this.camera.fov / 2));
+    const halfFov = Math.atan(slope * Math.min(1, this.camera.aspect));
+    const distance = bounds
+      ? (0.53 * size) / Math.sin(halfFov)
+      : Math.max(
+          Math.max(extent.y * 1.32, extent.z * 0.55, 0.35) / (2 * slope),
+          (Math.max(extent.x, extent.z) * 1.45 + 0.06) / (2 * slope * this.camera.aspect),
+        );
     this.orbit.target.copy(centre);
     this.camera.position.copy(centre).addScaledVector(along, distance);
     this.camera.near = Math.max(size / 500, 0.001);

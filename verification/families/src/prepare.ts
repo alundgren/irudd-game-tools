@@ -37,7 +37,7 @@ import {
   type HumanBody,
 } from "@irudd/character/human";
 import { loadHumanBody } from "./human-assets.js";
-import { creatureLimbChains, creatureOrgan } from "./creature-names.js";
+import { creatureLimbChains, creatureOrgan } from "@irudd/character/creature";
 
 let humanBody: HumanBody | undefined;
 const loadedBody = (): HumanBody => {
@@ -194,6 +194,9 @@ const handledPartFields = new Set([
   "undercoat",
   "coatZone",
   "eyeSurface",
+  "shellFinish",
+  "nasalWing",
+  "contourFeather",
   "wing",
   "seamGroup",
   "drape",
@@ -534,6 +537,9 @@ export function prepareForm(name: string, raw: unknown): Prepared {
     const eye = p["eyeSurface"];
     if (eye !== undefined && (shape !== "cage" || !isRecord(p["cage"])))
       unsupported.push(`parts[${legacyId}].eyeSurface on ${shape}`);
+    for (const key of ["shellFinish", "nasalWing", "contourFeather"])
+      if (p[key] !== undefined && shape !== "cage")
+        unsupported.push(`parts[${legacyId}].${key} on ${shape}`);
     for (const key of ["seamGroup", "footSection"])
       if (p[key] !== undefined && shape !== "sweep")
         unsupported.push(`parts[${legacyId}].${key} on ${shape}`);
@@ -806,6 +812,16 @@ export function prepareForm(name: string, raw: unknown): Prepared {
       features["creature.eye-surface"] = {
         surface: str(p["eyeSurface"], `parts[${legacyId}].eyeSurface`),
       };
+    const shell = p["shellFinish"];
+    if (isRecord(shell)) {
+      const [ribs = 0, seed = 0] = nums(
+        [shell["ribs"], shell["seed"]],
+        `parts[${legacyId}].shellFinish`,
+      );
+      features["creature.cage-finish"] = { finish: "whorl", ribs, seed };
+    } else if (p["nasalWing"] === true) features["creature.cage-finish"] = { finish: "nostril" };
+    else if (p["contourFeather"] === true)
+      features["creature.cage-finish"] = { finish: "contour feather" };
     const wing = p["wing"];
     if (isRecord(wing))
       features["figure.wing"] = asJson(

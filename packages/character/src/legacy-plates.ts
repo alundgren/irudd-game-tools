@@ -12,7 +12,7 @@ import {
   type PlateField,
   type Vec3,
 } from "@irudd/document";
-import { legacyPlateCage, makePlate } from "./surfaces/plate-growth.js";
+import { legacyPlateCage, makePlate } from "./surfaces/plate-shape.js";
 const vector = (p: readonly number[]) => new T.Vector3(p[0], p[1], p[2]);
 export function legacyPlateLayout(p: Part, shape: PlateField) {
   const { rows, columns, face } = shape;
