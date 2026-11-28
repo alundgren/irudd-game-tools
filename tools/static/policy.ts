@@ -83,6 +83,20 @@ const electronTypes = {
     /(?:^|\/)node_modules\/electron\/electron\.d\.ts\(\d+,\d+\): error TS2304: Cannot find name '(?:VideoFrame|HTMLElement|HTMLElementEventMap|EventListenerOrEventListenerObject)'\.$/,
 };
 
+const mainTypes = {
+  owner: "desktop",
+  reason:
+    "Electron 46 alpha names four browser types in its shared electron.d.ts, and @types/three names Web APIs that the creature generator's Vector3 math never touches in the main process.",
+  removal:
+    "Remove when Electron supplies main declarations that compile with Node types alone and @types/three checks under lib es2024.",
+  allowedDiagnostic: new RegExp(
+    [
+      electronTypes.allowedDiagnostic.source,
+      String.raw`(?:^|\/)node_modules\/\.pnpm\/@types\+(?:three|webxr)@[^/]+\/node_modules\/@types\/(?:three|webxr)\/[^(]+\.d\.ts\(\d+,\d+\): error TS(?:2304|2552|2749): (?:Cannot find name '[A-Za-z0-9]+'\.(?: Did you mean '[A-Za-z0-9]+'\?)?|'WebGLShader' refers to a value, but is being used as a type here\. Did you mean 'typeof WebGLShader'\?)$`,
+    ].join("|"),
+  ),
+};
+
 export const projects: readonly ProjectPolicy[] = [
   {
     dir: "packages/document",
@@ -187,7 +201,7 @@ export const projects: readonly ProjectPolicy[] = [
     programs: [
       {
         tsconfig: "tsconfig.main.json",
-        skipLibCheck: electronTypes,
+        skipLibCheck: mainTypes,
         entries: ["src/main/main.ts", "src/main/headless.ts"],
         lib: esOnly,
         types: ["node"],
@@ -334,7 +348,7 @@ export const packagedBundleProbes = [
     output: "apps/desktop/dist/clients/irudd-host.mjs",
     entry: "apps/desktop/src/main/headless.ts",
     allowedSource:
-      /^(?:packages\/(?:document|workshop|hosts)\/src\/|packages\/character\/src\/(?:human\/|creature\/(?:generator|index|draw|body|forms)\.ts$|library\/anchors\.ts$|random\.ts$|(?:assets|paint\/(?:repaint|art-fit|panel|trace-build|trace))\.ts$)|apps\/desktop\/src\/main\/(?:headless|human|art)\.ts$)/,
+      /^(?:packages\/(?:document|workshop|hosts)\/src\/|packages\/character\/src\/(?:human\/|creature\/(?:(?:generator|index|draw|body|forms)\.ts$|plan\/[a-z-]+\.ts$)|rig\/chain-reach\.ts$|surfaces\/(?:wing|plate-shape|sweep)\.ts$|library\/anchors\.ts$|random\.ts$|(?:assets|paint\/(?:repaint|art-fit|panel|trace-build|trace))\.ts$)|apps\/desktop\/src\/main\/(?:headless|human|art)\.ts$)/,
   },
   {
     name: "activate",

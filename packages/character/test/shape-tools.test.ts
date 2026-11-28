@@ -1,5 +1,5 @@
 import { legacyPlateLayout } from "../src/legacy-plates.js";
-import { legacyPlateCage } from "../src/surfaces/plate-growth.js";
+import { legacyPlateCage } from "../src/surfaces/plate-shape.js";
 import { changePlateTip, growPlateField, plateDefaults } from "../src/plate-field.js";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";

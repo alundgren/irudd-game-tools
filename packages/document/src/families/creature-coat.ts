@@ -33,3 +33,22 @@ export const creatureEyeSurface = family({
   schema: EyeSurface,
   toJson: (v) => v,
 });
+
+export const CageFinish = Schema.Union([
+  Schema.Struct({
+    finish: Schema.Literal("whorl"),
+    ribs: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 12 })),
+    seed: Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 4294967295 })),
+  }),
+  Schema.Struct({ finish: Schema.Literal("nostril") }),
+  Schema.Struct({ finish: Schema.Literal("contour feather") }),
+]);
+export type CageFinish = typeof CageFinish.Type;
+
+export const creatureCageFinish = family({
+  id: "creature.cage-finish",
+  version: 1,
+  scope: "part",
+  schema: CageFinish,
+  toJson: (v) => v,
+});

@@ -10,7 +10,7 @@ import {
   readDocument,
   type CharacterDocument,
 } from "@irudd/document";
-import { creatureLimbChains, creatureOrgan } from "../src/creature-names.js";
+import { creatureLimbChains, creatureOrgan } from "@irudd/character/creature";
 import { fixturesDir } from "../src/paths.js";
 import { familyRegistry } from "../src/prepare.js";
 

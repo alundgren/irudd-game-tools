@@ -3,7 +3,12 @@ import { characterAppearance, characterOrigin } from "./appearance.js";
 import { figureCage } from "./cage.js";
 import { creatureBlend, creatureSkin } from "./creature.js";
 import { creaturePlan } from "./creature-plan.js";
-import { creatureCoatZone, creatureEyeSurface, figureUndercoat } from "./creature-coat.js";
+import {
+  creatureCageFinish,
+  creatureCoatZone,
+  creatureEyeSurface,
+  figureUndercoat,
+} from "./creature-coat.js";
 import { figureWing } from "./wing.js";
 import { creatureLimbChain, creatureOrgan } from "./creature-organ.js";
 import { motionOffer } from "./motion-offer.js";
@@ -126,6 +131,7 @@ export const familyFeatures: ReadonlyArray<FeatureDefinition> = [
   figureUndercoat.definition,
   creatureCoatZone.definition,
   creatureEyeSurface.definition,
+  creatureCageFinish.definition,
   figureWing.definition,
   creatureOrgan.definition,
   creatureLimbChain.definition,

@@ -1,4 +1,12 @@
-import { bendElbow, poseClipName, recutSleeves } from "@irudd/character";
+import {
+  bendElbow,
+  poseClipName,
+  recutSleeves,
+  type ElbowDirection,
+  type PoseScope,
+  type PoseTool,
+} from "@irudd/character";
+import { currentCreature } from "@irudd/character/creature";
 import { HumanAdultParams, humanAdultId, type postureRanges } from "@irudd/character/human";
 import { decodeWith, motionHold, motionPoses } from "@irudd/document";
 import { byId, button, el } from "../dom.js";
@@ -21,7 +29,10 @@ export function mountMotion(ctx: PanelContext, viewport: EditorViewport) {
     clipName = "Rest",
     jointKey = "",
     armId = "",
-    bones = false;
+    bones = false,
+    tool: PoseTool = "rotate",
+    scope: PoseScope = "one",
+    plant: boolean | undefined;
   let postureAxis: keyof typeof postureRanges = "weight";
   let active: typeof viewport.motion;
   function render() {
@@ -31,6 +42,9 @@ export function mountMotion(ctx: PanelContext, viewport: EditorViewport) {
     if (previous !== doc?.id) {
       clipName = "Rest";
       jointKey = armId = "";
+      tool = "rotate";
+      scope = "one";
+      plant = undefined;
       previous = doc?.id;
     }
     if (!rows || !panel.open || panel.hidden || !doc || !view) {
@@ -116,6 +130,7 @@ export function mountMotion(ctx: PanelContext, viewport: EditorViewport) {
       const expression = choices(
         ["Rest", ...["Blink", "Smile", "BrowLift"].filter((n) => preview.morphs.has(n))],
         preview.expression,
+        (n) => (n === "BrowLift" ? "Raise brows" : n),
       );
       const strength = slider(0, 1, preview.strength, face),
         x = slider(-1, 1, preview.gaze[0], face),
@@ -162,32 +177,141 @@ export function mountMotion(ctx: PanelContext, viewport: EditorViewport) {
       jointKey = joint.value;
       attachJoint();
     };
+    const playback = preview;
+    const session = preview.posing(currentCreature(doc) !== undefined);
+    if (plant === undefined) plant = session.plant;
     const axis = choices(["x", "y", "z"] as const, "x", (k) => k.toUpperCase());
-    const mode = choices(["Rotate", "Move"], "Rotate");
+    const toolLabels: Record<PoseTool, string> = {
+      rotate: "Rotate",
+      translate: "Move",
+      reach: "Guide wrist",
+      tip: "Guide limb tip",
+    };
+    const mode = choices(
+      ["rotate", "translate", "reach", "tip"] as const,
+      tool,
+      (t) => toolLabels[t],
+    );
+    const together = el("select");
+    const planted = el("input");
+    planted.type = "checkbox";
     const step = el("input");
     Object.assign(step, { type: "number", step: "any", min: 0.001, max: 180, value: 15 });
-    function attachJoint() {
-      viewport.poseJoint(joint.value, mode.read() === "Rotate" ? "rotate" : "translate");
+    const note = el("output");
+    note.setAttribute("role", "status");
+    note.className = "pose-note";
+    const surface = button("Choose a point on the model", () => {
+      viewport.pickingSurface = !viewport.pickingSurface;
+      surface.setAttribute("aria-pressed", String(viewport.pickingSurface));
+      note.textContent = viewport.pickingSurface
+        ? "Click a point on the posed surface for this wrist."
+        : "";
+      attachJoint();
+    });
+    surface.setAttribute("aria-pressed", "false");
+    const elbowLabels: Record<ElbowDirection, string> = {
+      original: "Along existing bend",
+      clear: "Give other arms room",
+      down: "Toward floor",
+      left: "Character left",
+      right: "Character right",
+      back: "Toward back",
+    };
+    const elbow = choices(
+      ["original", "clear", "down", "left", "right", "back"] as const,
+      "original",
+      (d) => elbowLabels[d],
+    );
+    const turn = el("input");
+    Object.assign(turn, { type: "number", min: -180, max: 180, step: 5, value: 0 });
+    const reachControls = el("div", { className: "pose-reach" });
+    reachControls.append(
+      surface,
+      field("Point elbow", elbow.input),
+      field("Elbow turn in degrees", turn),
+    );
+    const undo = button("Undo pose edit", () => {
+      session.undo();
+      attachJoint(false);
+    });
+    function refresh() {
+      undo.disabled = !session.undoable;
+      surface.setAttribute("aria-pressed", String(viewport.pickingSurface));
+      if (session.note) note.textContent = session.note;
+      viewport.request();
     }
+    function attachJoint(fresh = true) {
+      const choice = session.choose(joint.value, mode.read(), scope, plant);
+      if (!choice) return;
+      tool = choice.tool;
+      scope = choice.scope;
+      plant = choice.plant;
+      mode.input.value = choice.tool;
+      for (const option of mode.input.options)
+        option.disabled =
+          (option.value === "reach" && !choice.canReach) ||
+          (option.value === "tip" && !choice.canTip);
+      together.replaceChildren(...choice.scopes.map((v) => new Option(session.scopeLabel(v), v)));
+      together.value = choice.scope;
+      together.disabled = choice.scopes.length < 2;
+      planted.checked = choice.plant;
+      planted.disabled = !choice.canPlant;
+      reachControls.hidden = choice.tool !== "reach";
+      if (choice.tool !== "reach" && viewport.pickingSurface) {
+        viewport.pickingSurface = false;
+        surface.setAttribute("aria-pressed", "false");
+      }
+      if (fresh) {
+        elbow.input.value = "original";
+        turn.value = "0";
+        session.note = "";
+        note.textContent = "";
+      } else {
+        session.elbow = elbow.read();
+        session.roll = turn.valueAsNumber;
+      }
+      viewport.poseJoint(joint.value, choice.tool === "rotate" ? "rotate" : "translate", session);
+      refresh();
+    }
+    viewport.onPoseChange = () => {
+      play.textContent = "Play";
+      refresh();
+    };
     attachJoint();
     viewport.onJointPick = (key) => {
       jointKey = joint.value = key;
       attachJoint();
     };
     mode.input.onchange = () => {
+      const was = tool === "rotate";
+      tool = mode.read();
       attachJoint();
-      step.value = mode.read() === "Rotate" ? "15" : "0.025";
+      if (was !== (tool === "rotate")) step.value = tool === "rotate" ? "15" : "0.025";
     };
+    together.onchange = () => {
+      scope = together.value === "pair" || together.value === "kind" ? together.value : "one";
+      attachJoint();
+    };
+    planted.onchange = () => {
+      plant = planted.checked;
+      attachJoint();
+    };
+    const reguide = () => {
+      session.elbow = elbow.read();
+      session.roll = Number.isFinite(turn.valueAsNumber) ? turn.valueAsNumber : 0;
+      session.reguide();
+      refresh();
+    };
+    elbow.input.onchange = reguide;
+    turn.onchange = reguide;
     function adjust(sign: number) {
       if (!step.checkValidity() || !Number.isFinite(step.valueAsNumber)) return;
-      preview?.adjust(
-        joint.value,
-        sign ? mode.read() : "Reset",
-        axis.read(),
-        sign * step.valueAsNumber,
-      );
+      playback.playing = false;
+      if (sign) session.nudge(axis.read(), sign * step.valueAsNumber);
+      else session.relax();
+      if (!sign && session.guiding) attachJoint();
       play.textContent = "Play";
-      viewport.request();
+      refresh();
     }
     const pose = saved.find((p) => poseClipName(p.name) === clipName);
     const name = el("input");
@@ -198,11 +322,17 @@ export function mountMotion(ctx: PanelContext, viewport: EditorViewport) {
     rows.append(
       field("Joint", joint),
       field("Joint adjustment", mode.input),
+      button("Front view", () => viewport.setAngle("front")),
+      field("Pose together", together),
+      field("Keep the other feet planted", planted),
+      reachControls,
       field("Axis", axis.input),
       field("Step (degrees or metres)", step),
       button("Decrease joint", () => adjust(-1)),
       button("Increase joint", () => adjust(1)),
-      button("Reset joint", () => adjust(0)),
+      button("Relax joint", () => adjust(0)),
+      undo,
+      note,
       field("Pose name", name),
       button("Save pose", () => {
         const title = name.value.trim();

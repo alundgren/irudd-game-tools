@@ -510,12 +510,14 @@ export function joinSurfaces(
   commonMaterial: T.Material | null,
   band: number | null,
   detail = 72,
+  clustered = true,
 ): Map<T.Mesh, BlendOwners> {
   const owners = new Map<T.Mesh, BlendOwners>();
   if (entries.length < 2) return owners;
   if (entries.length > 48) throw new Error("Join at most 48 skin regions at once.");
   for (const { mesh } of entries) mesh.updateWorldMatrix(true, false);
-  for (const cluster of clusters(entries, (band ?? 0) + 4 * softness))
+  const groups = clustered ? clusters(entries, (band ?? 0) + 4 * softness) : [[...entries]];
+  for (const cluster of groups)
     if (cluster.length > 1)
       for (const [mesh, o] of joinCluster(cluster, softness, commonMaterial, band, detail))
         owners.set(mesh, o);

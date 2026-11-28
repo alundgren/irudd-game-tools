@@ -124,6 +124,7 @@ export function finishEar(
   cage: FigureCage,
   faces: readonly number[] | undefined,
   color: string,
+  nostril = false,
 ) {
   const g = mesh.geometry,
     index = g.index;
@@ -131,13 +132,18 @@ export function finishEar(
   const count = g.getAttribute("position").count,
     weights = new Float32Array(count),
     visits = new Uint16Array(count);
-  const shades = [0, 0, 0.04, 0.17, 0.37, 0.68, 0.77, 0.87, 0.9];
+  const shades = nostril
+    ? [0, 0.04, 0.26, 0.89, 1]
+    : [0, 0, 0.04, 0.17, 0.37, 0.68, 0.77, 0.87, 0.9];
+  const sides = nostril ? 12 : 16;
   const base = new Color(color),
-    lining = base.clone().lerp(new Color("#b97c76"), 0.38).multiplyScalar(0.75);
+    lining = nostril
+      ? base.clone().multiplyScalar(0.12)
+      : base.clone().lerp(new Color("#b97c76"), 0.38).multiplyScalar(0.75);
   for (const [face, which] of faces.entries()) {
     const control = cage.faces[which];
     if (!control) continue;
-    const ring = Math.min(shades.length - 1, Math.floor(Math.min(...control) / 16));
+    const ring = Math.min(shades.length - 1, Math.floor(Math.min(...control) / sides));
     for (let j = 0; j < 3; j++) {
       const v = index.getX(3 * face + j);
       weights[v] = (weights[v] ?? 0) + (shades[ring] ?? 0);

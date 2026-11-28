@@ -42,6 +42,9 @@ export {
 } from "./game/optimize.js";
 export { readGlb, writeGlb, type GlbParts } from "./glb.js";
 export * from "./rig/preview.js";
+export { PoseSession, type PoseTool, type PoseChoice } from "./rig/pose-session.js";
+export type { PoseScope } from "./rig/limb-pose.js";
+export type { ElbowDirection } from "./rig/wrist-reach.js";
 export * from "./rig/arm-edit.js";
 export { poseClipName } from "./rig/poses.js";
 export { fanDisplay } from "./rig/fan-display.js";
