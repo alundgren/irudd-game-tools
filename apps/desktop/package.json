@@ -17,6 +17,7 @@
     "qa:field-parity": "node --import ../../packages/document/test/support/register.ts scripts/qa-shape-parity.ts phase9-2",
     "qa:reference-parity": "node --import ../../packages/document/test/support/register.ts scripts/qa-reference-parity.ts",
     "qa:trace-parity": "node --import ../../packages/document/test/support/register.ts scripts/qa-trace-parity.ts",
+    "qa:motion-parity": "node --import ../../packages/document/test/support/register.ts scripts/qa-motion-parity.ts",
     "qa:portraits": "node --import ../../packages/document/test/support/register.ts scripts/qa-portraits.ts",
     "qa:player": "node --import ../../packages/document/test/support/register.ts scripts/qa-player.ts",
     "qa:character": "node --import ../../packages/document/test/support/register.ts scripts/qa-character.ts",
