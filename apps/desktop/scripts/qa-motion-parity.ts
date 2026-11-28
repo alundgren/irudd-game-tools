@@ -830,7 +830,8 @@ try {
   }
   if (run("smooth")) {
     await web.goto("about:blank");
-    if (await motion.evaluate((p) => p.hasAttribute("open"))) await motion.locator("summary").click();
+    if (await motion.evaluate((p) => p.hasAttribute("open")))
+      await motion.locator("summary").click();
     const families = await desk
       .locator("#creature-family option")
       .evaluateAll((items) => items.map((o) => (o instanceof HTMLOptionElement ? o.value : "")));
